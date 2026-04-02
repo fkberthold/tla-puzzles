@@ -1,0 +1,31 @@
+---- MODULE GuessingGame ----
+EXTENDS Integers, TLC
+
+(*--algorithm GuessingGame {
+  variables secret \in 1..5, guess = 0, result = "playing";
+
+  define {
+    TypeOK ==
+      /\ secret \in 1..5
+      /\ guess \in 0..5
+      /\ result \in {"playing", "won", "lost"}
+    NeverWins == result /= "won"
+  }
+
+  fair process (player = "Player") {
+    choose:
+      with (g \in 1..5) {
+        guess := g;
+      };
+    check:
+      if (guess = secret) {
+        result := "won";
+      } else {
+        result := "lost";
+      };
+  }
+}
+
+*)
+
+================================

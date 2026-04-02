@@ -1,0 +1,32 @@
+---- MODULE TollBooth ----
+EXTENDS Integers, TLC
+
+(*--algorithm TollBooth {
+  variables paid = 0, gate = "closed";
+
+  define {
+    TypeOK ==
+      /\ paid \in 0..100
+      /\ gate \in {"open", "closed"}
+    GateEventuallyOpens == <>(gate = "open")
+  }
+
+  fair process (driver = "Driver") {
+    insert:
+      while (gate = "closed") {
+        either {
+          paid := paid + 25;
+        } or {
+          paid := paid + 10;
+        };
+        assert paid <= 100;
+        if (paid >= 50) {
+          gate := "open";
+        };
+      }
+  }
+}
+
+*)
+
+================================

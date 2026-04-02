@@ -1,0 +1,37 @@
+---- MODULE Scoreboard ----
+EXTENDS Integers, TLC
+
+(*--algorithm Scoreboard {
+  variables home = 0, away = 0, round = 0;
+
+  define {
+    TotalPoints == home + away
+    HomeLeads == home > away
+    Tied == home = away
+    GameOver == round = 5
+    ValidScore(s) == s \in 0..5
+
+    TypeOK ==
+      /\ ValidScore(home)
+      /\ ValidScore(away)
+      /\ round \in 0..5
+    PointsConserved == TotalPoints = round
+    HomeAlwaysLeads == HomeLeads
+  }
+
+  fair process (game = "Game") {
+    play:
+      while (~GameOver) {
+        either {
+          home := home + 1;
+        } or {
+          away := away + 1;
+        };
+        round := round + 1;
+      }
+  }
+}
+
+*)
+
+================================

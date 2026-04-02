@@ -1,0 +1,41 @@
+---- MODULE TicketMachine ----
+EXTENDS Integers, TLC
+
+(*--algorithm TicketMachine {
+  variables tickets = 3, served = 0, sold = 0, status = "open";
+
+  define {
+    SoldOut == tickets = 0
+    MaxCustomers == served = 5
+    ShutDown == SoldOut \/ MaxCustomers
+
+    TypeOK ==
+      /\ tickets \in 0..3
+      /\ served \in 0..5
+      /\ sold \in 0..3
+      /\ status \in {"open", "closed"}
+    TicketConservation == sold + tickets = 3
+    AllSold == status = "closed" => SoldOut
+  }
+
+  fair process (machine = "Machine") {
+    serve:
+      while (~ShutDown) {
+        served := served + 1;
+        either {
+          \* Customer buys a ticket
+          tickets := tickets - 1;
+          sold := sold + 1;
+        } or {
+          \* Customer walks away
+          skip;
+        };
+      };
+    close:
+      status := "closed";
+  }
+}
+
+*)
+
+================================
