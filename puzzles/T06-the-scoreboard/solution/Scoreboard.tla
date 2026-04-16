@@ -33,8 +33,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "29907057" /\ chksum(tla) = "f80e0779")
-VARIABLES home, away, round, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "6b5c5fa8" /\ chksum(tla) = "f98923ac")
+VARIABLES pc, home, away, round
 
 (* define statement *)
 TotalPoints == home + away
@@ -51,7 +51,7 @@ PointsConserved == TotalPoints = round
 HomeAlwaysLeads == HomeLeads
 
 
-vars == << home, away, round, pc >>
+vars == << pc, home, away, round >>
 
 ProcSet == {"Game"}
 

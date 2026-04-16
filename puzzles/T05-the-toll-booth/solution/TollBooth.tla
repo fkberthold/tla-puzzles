@@ -28,8 +28,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8486cdc5" /\ chksum(tla) = "eda422f8")
-VARIABLES paid, gate, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "ceb9dc8d" /\ chksum(tla) = "f484cae8")
+VARIABLES pc, paid, gate
 
 (* define statement *)
 TypeOK ==
@@ -38,7 +38,7 @@ TypeOK ==
 GateEventuallyOpens == <>(gate = "open")
 
 
-vars == << paid, gate, pc >>
+vars == << pc, paid, gate >>
 
 ProcSet == {"Driver"}
 

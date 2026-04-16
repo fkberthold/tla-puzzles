@@ -25,8 +25,8 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "711876e3" /\ chksum(tla) = "68982c56")
-VARIABLES location, seated, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "155240" /\ chksum(tla) = "a63e3a57")
+VARIABLES pc, location, seated
 
 (* define statement *)
 TypeOK ==
@@ -36,7 +36,7 @@ AlwaysAtLake == location /= "summit"
 EventuallySits == <>(seated = TRUE)
 
 
-vars == << location, seated, pc >>
+vars == << pc, location, seated >>
 
 ProcSet == {"Hiker"}
 

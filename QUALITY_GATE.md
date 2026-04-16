@@ -1,6 +1,6 @@
 # Puzzle Quality Gate
 
-Every puzzle must pass ALL six checks before inclusion. No exceptions.
+Every puzzle must pass ALL seven checks before inclusion. No exceptions.
 
 ## 1. Concept Uniqueness
 What ONE new thing does this puzzle teach that no previous puzzle taught?
@@ -39,15 +39,27 @@ When TLC finds a violation, the counterexample trace must be:
 A 3-state violation trace teaches. A 15-state trace confuses. If the trace is too long,
 simplify the puzzle (fewer variables, smaller domains, fewer processes).
 
+## 7. Demonstration–Puzzle Domain Disjoint
+The lesson at the top of the puzzle must include a WORKED EXAMPLE that:
+- (a) shows the FULL technique — syntax, mechanics, the thing the learner needs in their hands; and
+- (b) uses a domain fundamentally different from the puzzle's setting.
+
+If a learner could solve the puzzle by copying the lesson-example with variables renamed, the lesson gives it away and fails. Description alone does not count as demonstration — the example must be runnable PlusCal in a different domain, so the learner has to ABSTRACT the technique from the example and APPLY it to the puzzle.
+
+Exception: capstone puzzles that introduce no new concept (T08) replace the worked demo with a recap of prior techniques shown in a fresh composition.
+
+This rule pairs with the Strip Test. Together they enforce the same meta-principle: the learner must GENERALIZE. No shortcut from prior puzzles (strip test), no shortcut from the intro (domain-disjoint demo).
+
 ---
 
 ## Process
 
 1. Name the ONE concept
 2. Write the puzzle description (README.md)
-3. Write the PlusCal solution
-4. Run `pcal` to translate
-5. Run TLC — verify passes and violations
-6. Record state count and trace lengths
-7. Apply all six checks
-8. If any check fails, revise or cut
+3. Write the lesson section at the TOP with a worked example in a different domain
+4. Write the PlusCal solution
+5. Run `pcal` to translate
+6. Run TLC — verify passes and violations
+7. Record state count and trace lengths
+8. Apply all seven checks
+9. If any check fails, revise or cut

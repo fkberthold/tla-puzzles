@@ -13,11 +13,10 @@ EXTENDS Integers, TLC
   }
 
   fair process (player = "Player") {
-    choose:
+    play:
       with (g \in 1..5) {
         guess := g;
       };
-    check:
       if (guess = secret) {
         result := "won";
       } else {
@@ -27,8 +26,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8714658e" /\ chksum(tla) = "2aade441")
-VARIABLES secret, guess, result, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "1c0f83b8" /\ chksum(tla) = "10ee0288")
+VARIABLES pc, secret, guess, result
 
 (* define statement *)
 TypeOK ==
@@ -38,7 +37,7 @@ TypeOK ==
 NeverWins == result /= "won"
 
 
-vars == << secret, guess, result, pc >>
+vars == << pc, secret, guess, result >>
 
 ProcSet == {"Player"}
 
@@ -46,22 +45,18 @@ Init == (* Global variables *)
         /\ secret \in 1..5
         /\ guess = 0
         /\ result = "playing"
-        /\ pc = [self \in ProcSet |-> "choose"]
+        /\ pc = [self \in ProcSet |-> "play"]
 
-choose == /\ pc["Player"] = "choose"
-          /\ \E g \in 1..5:
-               guess' = g
-          /\ pc' = [pc EXCEPT !["Player"] = "check"]
-          /\ UNCHANGED << secret, result >>
+play == /\ pc["Player"] = "play"
+        /\ \E g \in 1..5:
+             guess' = g
+        /\ IF guess' = secret
+              THEN /\ result' = "won"
+              ELSE /\ result' = "lost"
+        /\ pc' = [pc EXCEPT !["Player"] = "Done"]
+        /\ UNCHANGED secret
 
-check == /\ pc["Player"] = "check"
-         /\ IF guess = secret
-               THEN /\ result' = "won"
-               ELSE /\ result' = "lost"
-         /\ pc' = [pc EXCEPT !["Player"] = "Done"]
-         /\ UNCHANGED << secret, guess >>
-
-player == choose \/ check
+player == play
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet: pc[self] = "Done"

@@ -37,8 +37,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "51ad9849" /\ chksum(tla) = "d91e2704")
-VARIABLES tickets, served, sold, status, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "ffd289a6" /\ chksum(tla) = "a899b876")
+VARIABLES pc, tickets, served, sold, status
 
 (* define statement *)
 SoldOut == tickets = 0
@@ -54,7 +54,7 @@ TicketConservation == sold + tickets = 3
 AllSold == status = "closed" => SoldOut
 
 
-vars == << tickets, served, sold, status, pc >>
+vars == << pc, tickets, served, sold, status >>
 
 ProcSet == {"Machine"}
 
