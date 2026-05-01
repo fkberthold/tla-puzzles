@@ -8,6 +8,10 @@ states/
 # Backup/scratch files
 *.old
 *.bak
+*.backup
+*.dump
+*.cfg.test
+*.cfg.backup
 
 # Mempalace-local artifacts (config-like, regenerable)
 entities.json
