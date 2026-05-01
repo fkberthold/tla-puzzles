@@ -17,6 +17,13 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 
 `Kind` legend: puzzle / review / capstone / cross-capstone / judgment.
 
+> **Note:** Within each tier, rows are sorted alphabetically by ID. The actual
+> learner sequence is encoded in the `bd` dependency graph (see `bd ready`).
+> One intentional reorder: in Tier 7, **T62 (Model Values) is the dep-chain
+> successor of T60 (SYMMETRY)**, since T62 deepens model-value semantics that
+> T60 introduces. T61 (VIEW) follows T62 in the dep chain even though it
+> appears before T62 in this table.
+
 HEADER
 
 emit_tier() {

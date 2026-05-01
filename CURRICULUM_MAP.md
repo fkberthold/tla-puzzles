@@ -8,6 +8,13 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 
 `Kind` legend: puzzle / review / capstone / cross-capstone / judgment.
 
+> **Note:** Within each tier, rows are sorted alphabetically by ID. The actual
+> learner sequence is encoded in the `bd` dependency graph (see `bd ready`).
+> One intentional reorder: in Tier 7, **T62 (Model Values) is the dep-chain
+> successor of T60 (SYMMETRY)**, since T62 deepens model-value semantics that
+> T60 introduces. T61 (VIEW) follows T62 in the dep chain even though it
+> appears before T62 in this table.
+
 
 ## Tier 0 — Prelude (Workflow Basics)
 
@@ -95,9 +102,11 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 | ✓ | tla-va4 | R09: Review — Either/Or with Liveness | review | PC | 1 | concept:either-or,concept:eventually,concept:weak-fairness |
 | ✓ | tla-kgk | T42: <> Eventually — Deeper | puzzle | PC | 1 | concept:eventually,concept:property-eventually |
 | ✓ | tla-cqz | T43: [] Always — As Property | puzzle | PC | 1 | concept:always,concept:invariant,concept:property-eventually |
+| ✓ | tla-z8b | T44b: Leads-To Failure — When ~> Doesn't Hold | puzzle | PC | 2 | concept:leads-to,concept:liveness-debug,concept:weak-fairness |
 | ✓ | tla-aum | T44: ~> Leads-To | puzzle | PC | 3 | concept:always,concept:eventually,concept:leads-to |
 | ✓ | tla-2xs | T45: []<> Infinitely Often | puzzle | PC | 2 | concept:always,concept:eventually,concept:infinitely-often |
 | ✓ | tla-33k | T46: <>[] Eventually Always | puzzle | PC | 2 | concept:always,concept:eventually,concept:eventually-always |
+| ✓ | tla-znq | T47b: Reading Lasso Traces — Stem and Cycle Anatomy | puzzle | PC | 1 | concept:lasso-trace,workflow:read-trace |
 | ✓ | tla-3an | T47: Strong Fairness | puzzle | PC | 2 | concept:enabled,concept:strong-fairness,concept:weak-fairness |
 | ✓ | tla-281 | T48: Liveness Debugging | puzzle | PC | 2 | concept:liveness-debug,concept:strong-fairness,concept:weak-fairness |
 | ✓ | tla-ric | T49: Tier 5 Capstone — Request/Response System | capstone | PC | 3 | concept:infinitely-often,concept:leads-to,concept:liveness-debug,concept:strong-fairness |
@@ -147,6 +156,7 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 | ✓ | tla-5n4x | A07: Apalache — --cinit for Constants | puzzle | TLA | 2 | apa:cinit,apa:type-base |
 | ✓ | tla-7qij | A08: Apalache — TLC vs Apalache Comparison | puzzle | TLA | 2 | apa:type-base,apa:vs-tlc |
 | ✓ | tla-qszc | A09: Apalache Capstone — Full Type-Annotated Spec | capstone | TLA | 3 | apa:assign,apa:fold,apa:terminal-stutter,apa:type-alias,apa:type-base,apa:type-composite |
+| ✓ | tla-9ju | A10: TLC + Apalache Joint Capstone | capstone | TLA | 2 | apa:type-base,apa:vs-tlc |
 
 ## Judgment Intersticials
 
