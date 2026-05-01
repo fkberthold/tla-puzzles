@@ -24,8 +24,8 @@ EXTENDS FiniteSets, Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a1419c50" /\ chksum(tla) = "e7c8c6a9")
-VARIABLES pc, printerInUse, printing
+\* BEGIN TRANSLATION (chksum(pcal) = "c38e5de2" /\ chksum(tla) = "8ca0d0ec")
+VARIABLES printerInUse, printing, pc
 
 (* define statement *)
 TypeOK ==
@@ -35,7 +35,7 @@ MutualExclusion == Cardinality(printing) <= 1
 FlagMatchesSet == printerInUse <=> (printing /= {})
 
 
-vars == << pc, printerInUse, printing >>
+vars == << printerInUse, printing, pc >>
 
 ProcSet == ({"Alice", "Bob"})
 

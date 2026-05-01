@@ -35,7 +35,7 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a7557061" /\ chksum(tla) = "ec1a8f63")
+\* BEGIN TRANSLATION (chksum(pcal) = "c62e2973" /\ chksum(tla) = "ec1a8f63")
 VARIABLES published, received
 
 (* define statement *)

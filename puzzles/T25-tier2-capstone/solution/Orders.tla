@@ -62,8 +62,8 @@ EXTENDS Integers, Sequences, FiniteSets, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3841ed17" /\ chksum(tla) = "7420988a")
-VARIABLES pc, orders, summary, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "14edcf3f" /\ chksum(tla) = "babd8126")
+VARIABLES orders, summary, phase, pc
 
 (* define statement *)
 Customers == {"alice", "bob"}
@@ -96,7 +96,7 @@ EndsCorrect ==
     /\ summary.allItems = {"apple"}
 
 
-vars == << pc, orders, summary, phase >>
+vars == << orders, summary, phase, pc >>
 
 ProcSet == {"Sys"}
 

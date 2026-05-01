@@ -36,8 +36,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ced93fc7" /\ chksum(tla) = "342188f2")
-VARIABLES pc, goals, step
+\* BEGIN TRANSLATION (chksum(pcal) = "d209360b" /\ chksum(tla) = "f8d11926")
+VARIABLES goals, step, pc
 
 (* define statement *)
 Teams == DOMAIN goals
@@ -52,7 +52,7 @@ EndsCorrect == step = 4 =>
 TeamsStable == Teams = {"red", "blue", "green"}
 
 
-vars == << pc, goals, step >>
+vars == << goals, step, pc >>
 
 ProcSet == {"Ref"}
 

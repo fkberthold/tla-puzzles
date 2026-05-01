@@ -29,15 +29,15 @@ ASSUME Capacity >= 1
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "571b7214" /\ chksum(tla) = "792c568c")
-VARIABLES pc, books, ops
+\* BEGIN TRANSLATION (chksum(pcal) = "2387b07e" /\ chksum(tla) = "b6f8965b")
+VARIABLES books, ops, pc
 
 (* define statement *)
 TypeOK == books \in 0..Capacity /\ ops \in 0..5
 Bounded == books >= 0 /\ books <= Capacity
 
 
-vars == << pc, books, ops >>
+vars == << books, ops, pc >>
 
 ProcSet == {"Clerk"}
 

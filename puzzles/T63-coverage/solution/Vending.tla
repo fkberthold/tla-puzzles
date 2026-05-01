@@ -37,14 +37,14 @@ EXTENDS Integers, TLC
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "5ef5a373" /\ chksum(tla) = "6a489ce0")
-VARIABLES pc, coins, items
+\* BEGIN TRANSLATION (chksum(pcal) = "4993765f" /\ chksum(tla) = "42c8e1fa")
+VARIABLES coins, items, pc
 
 (* define statement *)
 TypeOK == coins \in 0..2 /\ items \in 0..3
 
 
-vars == << pc, coins, items >>
+vars == << coins, items, pc >>
 
 ProcSet == {"Inserter"} \cup {"Buyer"} \cup {"Refunder"}
 

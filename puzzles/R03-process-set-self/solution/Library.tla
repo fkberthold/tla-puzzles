@@ -26,15 +26,15 @@ EXTENDS Integers, FiniteSets, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e3423bdb" /\ chksum(tla) = "92358a8f")
-VARIABLES pc, available, holders
+\* BEGIN TRANSLATION (chksum(pcal) = "b2c1d7a4" /\ chksum(tla) = "820c1104")
+VARIABLES available, holders, pc
 
 (* define statement *)
 TypeOK == available \in -1..1 /\ holders \subseteq {"Pat1", "Pat2"}
 NoOverborrow == available >= 0
 
 
-vars == << pc, available, holders >>
+vars == << available, holders, pc >>
 
 ProcSet == ({"Pat1", "Pat2"})
 

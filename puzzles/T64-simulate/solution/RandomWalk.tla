@@ -23,15 +23,15 @@ EXTENDS Integers, TLC
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "4f1bfecb" /\ chksum(tla) = "807d402d")
-VARIABLES pc, x, y, z, steps
+\* BEGIN TRANSLATION (chksum(pcal) = "14bdcbe9" /\ chksum(tla) = "92fa0666")
+VARIABLES x, y, z, steps, pc
 
 (* define statement *)
 TypeOK == x \in -200..200 /\ y \in -200..200 /\ z \in -200..200 /\ steps \in 0..200
 StaysReachable == x*x + y*y + z*z <= 200*200
 
 
-vars == << pc, x, y, z, steps >>
+vars == << x, y, z, steps, pc >>
 
 ProcSet == {"Walker"}
 

@@ -23,15 +23,15 @@ CONSTANT MaxJars
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "257eefa4" /\ chksum(tla) = "e4ebf22b")
-VARIABLES pc, jars
+\* BEGIN TRANSLATION (chksum(pcal) = "257eefa4" /\ chksum(tla) = "c53f2b61")
+VARIABLES jars, pc
 
 (* define statement *)
 TypeOK == jars \in 0..MaxJars
 NeverNegative == jars >= 0
 
 
-vars == << pc, jars >>
+vars == << jars, pc >>
 
 ProcSet == {"Cook"}
 

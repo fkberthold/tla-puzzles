@@ -33,8 +33,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "44e871d8" /\ chksum(tla) = "aa8bdf57")
-VARIABLES pc, tickets, winner, minValid, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "200561ae" /\ chksum(tla) = "a27476cc")
+VARIABLES tickets, winner, minValid, phase, pc
 
 (* define statement *)
 Tickets == tickets
@@ -50,7 +50,7 @@ MinIs2 == phase = 2 => minValid = 2
 WinnerStable == phase >= 1 => winner = AnyTicket
 
 
-vars == << pc, tickets, winner, minValid, phase >>
+vars == << tickets, winner, minValid, phase, pc >>
 
 ProcSet == {"Op"}
 

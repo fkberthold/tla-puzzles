@@ -29,7 +29,7 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES pc, coins, chosen, dispensed
+VARIABLES coins, chosen, dispensed, pc
 
 (* define statement *)
 TypeOK ==
@@ -38,7 +38,7 @@ TypeOK ==
   /\ dispensed \in BOOLEAN
 
 
-vars == << pc, coins, chosen, dispensed >>
+vars == << coins, chosen, dispensed, pc >>
 
 ProcSet == {"Vending"}
 

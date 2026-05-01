@@ -24,15 +24,15 @@ EXTENDS Integers
       }
   }
 }*)
-\* BEGIN TRANSLATION (chksum(pcal) = "311e5910" /\ chksum(tla) = "c0426f88")
-VARIABLES pc, hour, reset
+\* BEGIN TRANSLATION (chksum(pcal) = "c70b4094" /\ chksum(tla) = "810867ea")
+VARIABLES hour, reset, pc
 
 (* define statement *)
 TypeOK == hour \in 11..12 /\ reset \in BOOLEAN
 ReachesNoon == <>( hour = 12 )
 
 
-vars == << pc, hour, reset >>
+vars == << hour, reset, pc >>
 
 ProcSet == {"Resetter"} \cup {"Ticker"}
 

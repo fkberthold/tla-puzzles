@@ -23,8 +23,8 @@ Members == {"Anna", "Ben", "Cleo"}
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "f799b74d" /\ chksum(tla) = "ef3ac52")
-VARIABLES pc, locker
+\* BEGIN TRANSLATION (chksum(pcal) = "f799b74d" /\ chksum(tla) = "a40757f8")
+VARIABLES locker, pc
 
 (* define statement *)
 TypeOK == \A m \in Members : locker[m] \in {"open", "closed"}
@@ -32,7 +32,7 @@ DoneImpliesClosed ==
   \A m \in Members : pc[m] = "Done" => locker[m] = "closed"
 
 
-vars == << pc, locker >>
+vars == << locker, pc >>
 
 ProcSet == (Members)
 

@@ -31,8 +31,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a4535c48" /\ chksum(tla) = "ef8b1860")
-VARIABLES pc, roster, team, captain, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "2147f55a" /\ chksum(tla) = "ac6b1d9f")
+VARIABLES roster, team, captain, phase, pc
 
 (* define statement *)
 TypeOK ==
@@ -42,7 +42,7 @@ TypeOK ==
 CaptainConsistent == phase = 2 => (captain = "none" \/ captain \in team)
 
 
-vars == << pc, roster, team, captain, phase >>
+vars == << roster, team, captain, phase, pc >>
 
 ProcSet == {"Coach"}
 

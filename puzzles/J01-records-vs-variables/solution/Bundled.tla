@@ -27,8 +27,8 @@ EXTENDS Integers, TLC
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "be6df9ce" /\ chksum(tla) = "ae9b7b87"  )
-VARIABLES pc, order
+\* BEGIN TRANSLATION (chksum(pcal) = "ce70e293" /\ chksum(tla) = "66bbbc0e"  )
+VARIABLES order, pc
 
 (* define statement *)
 TypeOK ==
@@ -40,7 +40,7 @@ TypeOK ==
 NoUnpaidShip == order.shipped => order.paid
 
 
-vars == << pc, order >>
+vars == << order, pc >>
 
 ProcSet == {"Clerk"}
 

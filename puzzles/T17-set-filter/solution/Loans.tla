@@ -33,8 +33,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "2d265c30" /\ chksum(tla) = "f5c10fb")
-VARIABLES pc, loaned, outOnLoan, available, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "5dc77f27" /\ chksum(tla) = "890e50bd")
+VARIABLES loaned, outOnLoan, available, phase, pc
 
 (* define statement *)
 Books == DOMAIN loaned
@@ -48,7 +48,7 @@ Disjoint == outOnLoan \cap available = {}
 EndsCorrect == phase = 3 => (outOnLoan = {1} /\ available = {2, 3, 4})
 
 
-vars == << pc, loaned, outOnLoan, available, phase >>
+vars == << loaned, outOnLoan, available, phase, pc >>
 
 ProcSet == {"Lib"}
 

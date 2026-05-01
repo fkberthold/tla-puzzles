@@ -36,8 +36,8 @@ EXTENDS Sequences, Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e9c0957b" /\ chksum(tla) = "7effc805")
-VARIABLES pc, queue, treated
+\* BEGIN TRANSLATION (chksum(pcal) = "64223d9e" /\ chksum(tla) = "3e4b7c0e")
+VARIABLES queue, treated, pc
 
 (* define statement *)
 TypeOK ==
@@ -49,7 +49,7 @@ Conservation == treated + Len(queue) <= 3
 
 VARIABLE i
 
-vars == << pc, queue, treated, i >>
+vars == << queue, treated, pc, i >>
 
 ProcSet == {"Nurse"} \cup {"Doctor"}
 

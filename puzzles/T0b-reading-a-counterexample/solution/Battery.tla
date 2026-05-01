@@ -17,15 +17,15 @@ EXTENDS Integers
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8b960d87" /\ chksum(tla) = "34624bed")
-VARIABLES pc, charge
+\* BEGIN TRANSLATION (chksum(pcal) = "8b960d87" /\ chksum(tla) = "6ce79df7")
+VARIABLES charge, pc
 
 (* define statement *)
 TypeOK == charge \in 0..3
 StaysCharged == charge > 0
 
 
-vars == << pc, charge >>
+vars == << charge, pc >>
 
 ProcSet == {"Drain"}
 

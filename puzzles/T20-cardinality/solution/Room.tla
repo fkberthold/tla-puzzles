@@ -33,8 +33,8 @@ EXTENDS Integers, FiniteSets, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "57b78465" /\ chksum(tla) = "114a574")
-VARIABLES pc, occupied, count, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "5355fea9" /\ chksum(tla) = "9b22222")
+VARIABLES occupied, count, phase, pc
 
 (* define statement *)
 Chairs == 1..6
@@ -49,7 +49,7 @@ CountAccurate == phase = 2 => count = NumOccupied
 Bound == NumOccupied <= 6
 
 
-vars == << pc, occupied, count, phase >>
+vars == << occupied, count, phase, pc >>
 
 ProcSet == {"Mon"}
 

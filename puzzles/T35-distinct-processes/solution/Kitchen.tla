@@ -27,15 +27,15 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "f3282c9b" /\ chksum(tla) = "4180f4c6")
-VARIABLES pc, cooked, served
+\* BEGIN TRANSLATION (chksum(pcal) = "35cd26c" /\ chksum(tla) = "8d26fcd6")
+VARIABLES cooked, served, pc
 
 (* define statement *)
 TypeOK == cooked \in 0..3 /\ served \in 0..3
 NeverOverServe == served <= cooked
 
 
-vars == << pc, cooked, served >>
+vars == << cooked, served, pc >>
 
 ProcSet == {"Chef"} \cup {"Server"}
 

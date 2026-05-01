@@ -44,7 +44,7 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES pc, servedBy, round
+VARIABLES servedBy, round, pc
 
 (* define statement *)
 TypeOK ==
@@ -53,7 +53,7 @@ TypeOK ==
 S1EventuallyServes == <>(servedBy = "S1")
 
 
-vars == << pc, servedBy, round >>
+vars == << servedBy, round, pc >>
 
 ProcSet == {"S1"} \cup {"S2"} \cup {"Clock"}
 

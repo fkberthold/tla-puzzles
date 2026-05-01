@@ -34,8 +34,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8ab1c2" /\ chksum(tla) = "41eb3469")
-VARIABLES pc, tick, display, goFlag
+\* BEGIN TRANSLATION (chksum(pcal) = "54a72ecf" /\ chksum(tla) = "abde8a4c")
+VARIABLES tick, display, goFlag, pc
 
 (* define statement *)
 Color(t) ==
@@ -53,7 +53,7 @@ DisplayMatches == display = Color(tick)
 GoMatches == goFlag = IsGo(tick)
 
 
-vars == << pc, tick, display, goFlag >>
+vars == << tick, display, goFlag, pc >>
 
 ProcSet == {"Ctrl"}
 

@@ -16,14 +16,14 @@ EXTENDS Integers
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "2f0377de" /\ chksum(tla) = "32559a45")
-VARIABLES pc, n
+\* BEGIN TRANSLATION (chksum(pcal) = "2f0377de" /\ chksum(tla) = "de1f2187")
+VARIABLES n, pc
 
 (* define statement *)
 TypeOK == n \in 0..3
 
 
-vars == << pc, n >>
+vars == << n, pc >>
 
 ProcSet == {"Counter"}
 

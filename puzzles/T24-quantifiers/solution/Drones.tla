@@ -31,8 +31,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "936703db" /\ chksum(tla) = "26f1aa45")
-VARIABLES pc, battery, state, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "ab582563" /\ chksum(tla) = "5f654610")
+VARIABLES battery, state, phase, pc
 
 (* define statement *)
 Drones == 1..4
@@ -45,7 +45,7 @@ LowConsistent == \A d \in Drones : (battery[d] <= 2 => state[d] = "low")
 AllSafe == \A d \in Drones : battery[d] >= 3
 
 
-vars == << pc, battery, state, phase >>
+vars == << battery, state, phase, pc >>
 
 ProcSet == {"Disp"}
 

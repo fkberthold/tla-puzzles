@@ -30,7 +30,7 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES pc, state, flips
+VARIABLES state, flips, pc
 
 (* define statement *)
 StateOK == state \in {"on", "off"}
@@ -42,7 +42,7 @@ FlipsNonNeg == flips >= 0
 EventuallyOn == <>(state = "on")
 
 
-vars == << pc, state, flips >>
+vars == << state, flips, pc >>
 
 ProcSet == {"Toggler"}
 

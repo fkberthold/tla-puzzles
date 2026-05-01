@@ -39,8 +39,8 @@ CAPACITY == 3
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3acec4d0" /\ chksum(tla) = "3170853b")
-VARIABLES pc, counter, served
+\* BEGIN TRANSLATION (chksum(pcal) = "8c3a7b6d" /\ chksum(tla) = "cc255b72")
+VARIABLES counter, served, pc
 
 (* define statement *)
 TypeOK ==
@@ -52,7 +52,7 @@ EventuallyServedAll == <>(served = 4)
 
 VARIABLE brewed
 
-vars == << pc, counter, served, brewed >>
+vars == << counter, served, pc, brewed >>
 
 ProcSet == ({"B1", "B2"}) \cup {"Server"}
 

@@ -23,15 +23,15 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c9393b6a" /\ chksum(tla) = "2677e5f5")
-VARIABLES pc, light, count
+\* BEGIN TRANSLATION (chksum(pcal) = "8aeb5252" /\ chksum(tla) = "27cadd16")
+VARIABLES light, count, pc
 
 (* define statement *)
 TypeOK == light \in {"on", "off"} /\ count \in 0..3
 AlwaysOff == light = "off"
 
 
-vars == << pc, light, count >>
+vars == << light, count, pc >>
 
 ProcSet == {"Person"}
 

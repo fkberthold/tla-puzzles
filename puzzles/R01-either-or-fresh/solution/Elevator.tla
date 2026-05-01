@@ -23,8 +23,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "4af096d5" /\ chksum(tla) = "422a0b76")
-VARIABLES pc, floor, doors
+\* BEGIN TRANSLATION (chksum(pcal) = "9b6c8622" /\ chksum(tla) = "c8d01418")
+VARIABLES floor, doors, pc
 
 (* define statement *)
 TypeOK == floor \in {0, 1, 5} /\ doors \in {"closed", "open"}
@@ -32,7 +32,7 @@ AlwaysOffice == floor /= 1
 EventuallyOpen == <>(doors = "open")
 
 
-vars == << pc, floor, doors >>
+vars == << floor, doors, pc >>
 
 ProcSet == {"Car"}
 

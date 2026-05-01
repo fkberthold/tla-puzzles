@@ -30,8 +30,8 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c3a929f8" /\ chksum(tla) = "5184c7e6")
-VARIABLES pc, alarmRang, coffeeBrewed, doorLocked
+\* BEGIN TRANSLATION (chksum(pcal) = "16a0dd36" /\ chksum(tla) = "e89d25d")
+VARIABLES alarmRang, coffeeBrewed, doorLocked, pc
 
 (* define statement *)
 TypeOK ==
@@ -44,7 +44,7 @@ MorningComplete ==
   /\ <>(doorLocked = TRUE)
 
 
-vars == << pc, alarmRang, coffeeBrewed, doorLocked >>
+vars == << alarmRang, coffeeBrewed, doorLocked, pc >>
 
 ProcSet == {"Routine"}
 

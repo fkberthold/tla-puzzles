@@ -36,8 +36,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "46913e78" /\ chksum(tla) = "d34aac02")
-VARIABLES pc, account, step
+\* BEGIN TRANSLATION (chksum(pcal) = "ad47026f" /\ chksum(tla) = "56ccec82")
+VARIABLES account, step, pc
 
 (* define statement *)
 Owner == account.owner
@@ -53,7 +53,7 @@ OwnerStable == Owner = "Bob"
 EndsCorrect == step = 4 => (Balance = 70 /\ IsFrozen)
 
 
-vars == << pc, account, step >>
+vars == << account, step, pc >>
 
 ProcSet == {"Bank"}
 

@@ -22,8 +22,8 @@ EXTENDS FiniteSets, Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "812cc342" /\ chksum(tla) = "e46e549d")
-VARIABLES pc, door, through
+\* BEGIN TRANSLATION (chksum(pcal) = "c4f9564c" /\ chksum(tla) = "336beb8d")
+VARIABLES door, through, pc
 
 (* define statement *)
 TypeOK ==
@@ -32,7 +32,7 @@ TypeOK ==
 MutualExclusion == Cardinality(through) <= 1
 
 
-vars == << pc, door, through >>
+vars == << door, through, pc >>
 
 ProcSet == ({"Alice", "Bob"})
 

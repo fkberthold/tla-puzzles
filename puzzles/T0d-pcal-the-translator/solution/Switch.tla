@@ -9,10 +9,10 @@
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "89eb4d73" /\ chksum(tla) = "4b49c6a5")
-VARIABLES pc, on
+\* BEGIN TRANSLATION (chksum(pcal) = "89eb4d73" /\ chksum(tla) = "672d3c2")
+VARIABLES on, pc
 
-vars == << pc, on >>
+vars == << on, pc >>
 
 ProcSet == {"Toggler"}
 

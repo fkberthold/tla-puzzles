@@ -36,8 +36,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "fbe8401b" /\ chksum(tla) = "85f6e5d8")
-VARIABLES pc, clicks, step
+\* BEGIN TRANSLATION (chksum(pcal) = "b3910244" /\ chksum(tla) = "d17e70df")
+VARIABLES clicks, step, pc
 
 (* define statement *)
 Users == DOMAIN clicks
@@ -52,7 +52,7 @@ EndsCorrect == step = 4 =>
   (clicks["u1"] = 2 /\ clicks["u2"] = 1 /\ clicks["u3"] = 1)
 
 
-vars == << pc, clicks, step >>
+vars == << clicks, step, pc >>
 
 ProcSet == {"Dash"}
 

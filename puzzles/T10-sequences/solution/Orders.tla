@@ -34,8 +34,8 @@ EXTENDS Integers, Sequences, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6975d356" /\ chksum(tla) = "e8c5a75d")
-VARIABLES pc, orders, served, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "4792552b" /\ chksum(tla) = "7ee3c0b9")
+VARIABLES orders, served, phase, pc
 
 (* define statement *)
 QueueLen == Len(orders)
@@ -50,7 +50,7 @@ ServedOnlyAfterAllTaken == Len(served) = 1 => phase = 3
 NoExtraServing == Len(served) <= 1
 
 
-vars == << pc, orders, served, phase >>
+vars == << orders, served, phase, pc >>
 
 ProcSet == {"Barista"}
 

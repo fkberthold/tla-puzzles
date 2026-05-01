@@ -18,14 +18,14 @@ CONSTANT MaxTicks
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "b6baed4c" /\ chksum(tla) = "e62804bf")
-VARIABLES pc, ticks
+\* BEGIN TRANSLATION (chksum(pcal) = "b6baed4c" /\ chksum(tla) = "2242818b")
+VARIABLES ticks, pc
 
 (* define statement *)
 TypeOK == ticks \in 0..MaxTicks
 
 
-vars == << pc, ticks >>
+vars == << ticks, pc >>
 
 ProcSet == {"Clock"}
 

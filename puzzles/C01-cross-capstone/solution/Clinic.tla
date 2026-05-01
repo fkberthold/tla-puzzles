@@ -57,8 +57,8 @@ Patients == {"P1", "P2", "P3"}
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1648c857" /\ chksum(tla) = "853d4c28")
-VARIABLES pc, appointment
+\* BEGIN TRANSLATION (chksum(pcal) = "ed1eb40" /\ chksum(tla) = "6af5ca05")
+VARIABLES appointment, pc
 
 (* define statement *)
 Statuses == {"empty", "pending", "booked", "rejected"}
@@ -80,7 +80,7 @@ EventuallyAllTerminal ==
         appointment[p].status \in {"booked", "rejected"})
 
 
-vars == << pc, appointment >>
+vars == << appointment, pc >>
 
 ProcSet == (Patients) \cup {"Clerk"}
 

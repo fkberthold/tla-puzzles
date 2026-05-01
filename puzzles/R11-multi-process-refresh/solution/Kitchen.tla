@@ -28,8 +28,8 @@ EXTENDS Integers, TLC
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "359fbbb9" /\ chksum(tla) = "8c047576")
-VARIABLES pc, dish, delivered
+\* BEGIN TRANSLATION (chksum(pcal) = "a6a233d2" /\ chksum(tla) = "146c29d4")
+VARIABLES dish, delivered, pc
 
 (* define statement *)
 TypeOK == dish \in BOOLEAN /\ delivered \in 0..3
@@ -37,7 +37,7 @@ OrderedDelivery == delivered <= 3
 EventuallyDone == <>(delivered = 3)
 
 
-vars == << pc, dish, delivered >>
+vars == << dish, delivered, pc >>
 
 ProcSet == {"Chef"} \cup {"Server"}
 

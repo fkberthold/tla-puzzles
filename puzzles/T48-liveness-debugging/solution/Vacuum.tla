@@ -36,7 +36,7 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6d3e70e6" /\ chksum(tla) = "d7136a9")
+\* BEGIN TRANSLATION (chksum(pcal) = "2c37a41b" /\ chksum(tla) = "d7136a9")
 VARIABLES available, charged
 
 (* define statement *)

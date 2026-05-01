@@ -22,15 +22,15 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ebfb1187" /\ chksum(tla) = "d8f9fa7c")
-VARIABLES pc, dropFell
+\* BEGIN TRANSLATION (chksum(pcal) = "ebfb1187" /\ chksum(tla) = "4734346d")
+VARIABLES dropFell, pc
 
 (* define statement *)
 TypeOK == dropFell \in BOOLEAN
 EventuallyDrips == <>(dropFell = TRUE)
 
 
-vars == << pc, dropFell >>
+vars == << dropFell, pc >>
 
 ProcSet == {"Faucet"}
 

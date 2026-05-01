@@ -25,15 +25,15 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e6e155ad" /\ chksum(tla) = "b5377eaa")
-VARIABLES pc, count, done
+\* BEGIN TRANSLATION (chksum(pcal) = "53c86bd6" /\ chksum(tla) = "590ebf99")
+VARIABLES count, done, pc
 
 (* define statement *)
 TypeOK == count \in 0..3 /\ done \in {TRUE, FALSE}
 DoneImpliesZero == done = TRUE => count = 0
 
 
-vars == << pc, count, done >>
+vars == << count, done, pc >>
 
 ProcSet == {"Counter"}
 

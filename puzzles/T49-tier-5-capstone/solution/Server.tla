@@ -50,8 +50,8 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "73e8a961" /\ chksum(tla) = "5d5a103c")
-VARIABLES pc, pending, served, slot
+\* BEGIN TRANSLATION (chksum(pcal) = "a6502bb9" /\ chksum(tla) = "bacad9ad")
+VARIABLES pending, served, slot, pc
 
 (* define statement *)
 Clients == {"c1", "c2"}
@@ -69,7 +69,7 @@ EveryRequestServed ==
 ServerStaysAvailable == []<>(slot = "empty")
 
 
-vars == << pc, pending, served, slot >>
+vars == << pending, served, slot, pc >>
 
 ProcSet == ({"c1", "c2"}) \cup {"Server"}
 

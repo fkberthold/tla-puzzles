@@ -33,8 +33,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "b70dde83" /\ chksum(tla) = "aa99c3da")
-VARIABLES pc, level, gradesPresent, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "c14fc8c0" /\ chksum(tla) = "8443649")
+VARIABLES level, gradesPresent, phase, pc
 
 (* define statement *)
 Students == DOMAIN level
@@ -48,7 +48,7 @@ EveryGradeIsAStudentsGrade ==
   \A g \in gradesPresent : \E s \in Students : level[s] = g
 
 
-vars == << pc, level, gradesPresent, phase >>
+vars == << level, gradesPresent, phase, pc >>
 
 ProcSet == {"Princ"}
 

@@ -38,8 +38,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8c0dfb95" /\ chksum(tla) = "8464d1f")
-VARIABLES pc, last, stops, holding
+\* BEGIN TRANSLATION (chksum(pcal) = "37144149" /\ chksum(tla) = "cb5a62c5")
+VARIABLES last, stops, holding, pc
 
 (* define statement *)
 IsPickup == last.kind = "pickup"
@@ -57,7 +57,7 @@ PickupImpliesHolding == IsPickup => holding
 NeverDropoffEmpty == IsDropoff => holding
 
 
-vars == << pc, last, stops, holding >>
+vars == << last, stops, holding, pc >>
 
 ProcSet == {"Van"}
 

@@ -20,7 +20,7 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES pc, counter
+VARIABLES counter, pc
 
 (* define statement *)
 TypeOK == counter \in 0..2
@@ -28,7 +28,7 @@ TypeOK == counter \in 0..2
 Correct == (\A self \in {"A", "B"} : pc[self] = "Done") => counter = 2
 
 
-vars == << pc, counter >>
+vars == << counter, pc >>
 
 ProcSet == ({"A", "B"})
 

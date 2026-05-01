@@ -26,8 +26,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "5a815418" /\ chksum(tla) = "2932a02c")
-VARIABLES pc, parked, assigned
+\* BEGIN TRANSLATION (chksum(pcal) = "700fd395" /\ chksum(tla) = "671ed68f")
+VARIABLES parked, assigned, pc
 
 (* define statement *)
 Cars == {"X", "Y", "Z"}
@@ -39,7 +39,7 @@ EveryoneInSpot1 == \A c \in Cars : parked[c] = 1
 NotAlwaysSpot1 == ~EveryoneInSpot1
 
 
-vars == << pc, parked, assigned >>
+vars == << parked, assigned, pc >>
 
 ProcSet == {"Op"}
 

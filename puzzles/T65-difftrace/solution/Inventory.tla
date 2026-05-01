@@ -40,9 +40,9 @@ EXTENDS Integers, TLC
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "18b2cf8b" /\ chksum(tla) = "d6853a04")
-VARIABLES pc, apples, bananas, cherries, dates, elderberries, figs, grapes, 
-          honeydew, sold
+\* BEGIN TRANSLATION (chksum(pcal) = "125f11b9" /\ chksum(tla) = "2e44428f")
+VARIABLES apples, bananas, cherries, dates, elderberries, figs, grapes, 
+          honeydew, sold, pc
 
 (* define statement *)
 TypeOK ==
@@ -59,8 +59,8 @@ TypeOK ==
 NotPastFive == sold <= 5
 
 
-vars == << pc, apples, bananas, cherries, dates, elderberries, figs, grapes, 
-           honeydew, sold >>
+vars == << apples, bananas, cherries, dates, elderberries, figs, grapes, 
+           honeydew, sold, pc >>
 
 ProcSet == {"Seller"}
 

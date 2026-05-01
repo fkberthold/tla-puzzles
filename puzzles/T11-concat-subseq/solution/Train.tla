@@ -31,8 +31,8 @@ EXTENDS Integers, Sequences, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "f737e15d" /\ chksum(tla) = "8e10058d")
-VARIABLES pc, morning, afternoon, fullDay, middleThree, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "dfa5e157" /\ chksum(tla) = "4beafde5")
+VARIABLES morning, afternoon, fullDay, middleThree, phase, pc
 
 (* define statement *)
 TotalLen == Len(fullDay)
@@ -43,7 +43,7 @@ LengthsAddUp == TotalLen > 0 => Len(morning) + Len(afternoon) = TotalLen
 MiddleStations == phase >= 2 => middleThree = <<"B", "C", "D">>
 
 
-vars == << pc, morning, afternoon, fullDay, middleThree, phase >>
+vars == << morning, afternoon, fullDay, middleThree, phase, pc >>
 
 ProcSet == {"Dispatch"}
 

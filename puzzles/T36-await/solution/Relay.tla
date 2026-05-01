@@ -24,8 +24,8 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c73ec3d6" /\ chksum(tla) = "f5b65371")
-VARIABLES pc, handoffReady, runnerBFinished
+\* BEGIN TRANSLATION (chksum(pcal) = "c0d95bd8" /\ chksum(tla) = "7fc45b2c")
+VARIABLES handoffReady, runnerBFinished, pc
 
 (* define statement *)
 TypeOK == handoffReady \in BOOLEAN /\ runnerBFinished \in BOOLEAN
@@ -33,7 +33,7 @@ NoEarlyFinish == runnerBFinished => handoffReady
 EventuallyFinishes == <>(runnerBFinished = TRUE)
 
 
-vars == << pc, handoffReady, runnerBFinished >>
+vars == << handoffReady, runnerBFinished, pc >>
 
 ProcSet == {"RunnerA"} \cup {"RunnerB"}
 

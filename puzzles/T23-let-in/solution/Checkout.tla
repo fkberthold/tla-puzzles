@@ -35,8 +35,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "98ca47d7" /\ chksum(tla) = "33b24426")
-VARIABLES pc, base, discount, shipping, final, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "a619644c" /\ chksum(tla) = "c0eca3c2")
+VARIABLES base, discount, shipping, final, phase, pc
 
 (* define statement *)
 Final(b, d, s) ==
@@ -54,7 +54,7 @@ Correct == phase = 2 => final = Final(base, discount, shipping)
 BoundedFinal == final <= base + shipping
 
 
-vars == << pc, base, discount, shipping, final, phase >>
+vars == << base, discount, shipping, final, phase, pc >>
 
 ProcSet == {"Cash"}
 

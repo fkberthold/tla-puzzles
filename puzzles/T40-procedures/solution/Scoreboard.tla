@@ -34,8 +34,8 @@ EXTENDS Integers, Sequences, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "61c06718" /\ chksum(tla) = "5f316a5d")
-VARIABLES pc, homeScore, awayScore, stack
+\* BEGIN TRANSLATION (chksum(pcal) = "81647baf" /\ chksum(tla) = "3605600")
+VARIABLES homeScore, awayScore, pc, stack
 
 (* define statement *)
 TypeOK == homeScore \in 0..10 /\ awayScore \in 0..10
@@ -46,7 +46,7 @@ FinalState ==
 
 VARIABLES team, pts
 
-vars == << pc, homeScore, awayScore, stack, team, pts >>
+vars == << homeScore, awayScore, pc, stack, team, pts >>
 
 ProcSet == {"RefA"} \cup {"RefB"}
 

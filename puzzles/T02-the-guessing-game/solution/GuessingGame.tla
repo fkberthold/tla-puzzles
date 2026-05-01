@@ -26,8 +26,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1c0f83b8" /\ chksum(tla) = "10ee0288")
-VARIABLES pc, secret, guess, result
+\* BEGIN TRANSLATION (chksum(pcal) = "d2a9bbd" /\ chksum(tla) = "3733a5b")
+VARIABLES secret, guess, result, pc
 
 (* define statement *)
 TypeOK ==
@@ -37,7 +37,7 @@ TypeOK ==
 NeverWins == result /= "won"
 
 
-vars == << pc, secret, guess, result >>
+vars == << secret, guess, result, pc >>
 
 ProcSet == {"Player"}
 

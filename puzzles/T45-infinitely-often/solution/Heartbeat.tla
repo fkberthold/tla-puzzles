@@ -20,15 +20,15 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8e99bb" /\ chksum(tla) = "d306418c")
-VARIABLES pc, pulse
+\* BEGIN TRANSLATION (chksum(pcal) = "8e99bb" /\ chksum(tla) = "fc824b7e")
+VARIABLES pulse, pc
 
 (* define statement *)
 TypeOK == pulse \in BOOLEAN
 BeatsForever == []<>(pulse = TRUE)
 
 
-vars == << pc, pulse >>
+vars == << pulse, pc >>
 
 ProcSet == {"Heart"}
 

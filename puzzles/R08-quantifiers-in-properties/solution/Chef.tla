@@ -17,8 +17,8 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6be3d2ad" /\ chksum(tla) = "b19a29d3")
-VARIABLES pc, plated
+\* BEGIN TRANSLATION (chksum(pcal) = "6be3d2ad" /\ chksum(tla) = "4e50234b")
+VARIABLES plated, pc
 
 (* define statement *)
 Chefs == {"Alice", "Bob", "Carol"}
@@ -26,7 +26,7 @@ TypeOK == plated \in [Chefs -> BOOLEAN]
 EveryoneEventuallyPlates == \A c \in Chefs : <>(plated[c] = TRUE)
 
 
-vars == << pc, plated >>
+vars == << plated, pc >>
 
 ProcSet == ({"Alice", "Bob", "Carol"})
 

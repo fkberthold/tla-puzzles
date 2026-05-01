@@ -37,8 +37,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "60479301" /\ chksum(tla) = "c3cb01a3")
-VARIABLES pc, inventory, looked_up, total, phase
+\* BEGIN TRANSLATION (chksum(pcal) = "10a9fbc7" /\ chksum(tla) = "c0b4f0a9")
+VARIABLES inventory, looked_up, total, phase, pc
 
 (* define statement *)
 Titles == DOMAIN inventory
@@ -55,7 +55,7 @@ TotalCorrect == phase >= 2 => total = 13
 TitlesStable == Titles = {"alpha", "beta", "gamma"}
 
 
-vars == << pc, inventory, looked_up, total, phase >>
+vars == << inventory, looked_up, total, phase, pc >>
 
 ProcSet == {"Librarian"}
 

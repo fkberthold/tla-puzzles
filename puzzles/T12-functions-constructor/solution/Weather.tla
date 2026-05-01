@@ -24,8 +24,8 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "b531ae31" /\ chksum(tla) = "412cb34b")
-VARIABLES pc, readings, calibrated
+\* BEGIN TRANSLATION (chksum(pcal) = "de13f218" /\ chksum(tla) = "7c111f90")
+VARIABLES readings, calibrated, pc
 
 (* define statement *)
 Stations == DOMAIN readings
@@ -37,7 +37,7 @@ AllSame == \A s \in Stations : readings[s] = readings["north"]
 DomainStable == Stations = {"north", "south", "east"}
 
 
-vars == << pc, readings, calibrated >>
+vars == << readings, calibrated, pc >>
 
 ProcSet == {"Weather"}
 

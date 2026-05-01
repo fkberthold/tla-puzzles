@@ -18,14 +18,14 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES pc, brewed
+VARIABLES brewed, pc
 
 (* define statement *)
 TypeOK == brewed \in BOOLEAN
 EventuallyBrewed == <>(brewed = TRUE)
 
 
-vars == << pc, brewed >>
+vars == << brewed, pc >>
 
 ProcSet == {"Machine"}
 
