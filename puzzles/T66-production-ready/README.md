@@ -19,7 +19,7 @@ This capstone gives you a small but realistic spec — a job scheduler — with 
 
 ## Setup
 
-A pre-written abstract spec lives in `solution/Scheduler.tla`. It models a job scheduler with:
+A pre-written abstract spec lives in `solution/Scheduler.tla` (this is a pure TLA+ spec, no PlusCal). It models a job scheduler with:
 
 - A set of `Jobs` (model values, declared as `CONSTANT`).
 - A `queue` of jobs waiting to run.
@@ -94,6 +94,8 @@ The Conservation violation should have a 2-state trace (initial → schedule →
 | SYMMETRY only | 7 | 9 |
 | SYMMETRY + VIEW | 7 | 9 |
 | VIEW only | 31 | 129 |
+
+> **Note:** VIEW alone shows no reduction here because `log` is bounded in the finite Scheduler spec — unlike Hopper (T61), where `log` grew without bound. VIEW's benefit appears when the projected variable is unbounded.
 
 For Jobs=4, the difference is 14× — and grows superlinearly with bigger Jobs.
 

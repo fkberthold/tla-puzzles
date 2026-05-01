@@ -68,7 +68,7 @@ A scoreboard tracks how many goals each of three teams scored. Teams are named `
 
 1. Red scores a goal — red goes from 0 to 1.
 2. Blue scores two goals — blue goes from 0 to 2.
-3. Red scores another goal — red goes from 1 to ... but T14 doesn't have `@` yet, so you'll write the new value as a fresh number 2.
+3. Red scores another goal — red now has 2. Since T14 doesn't have `@` yet, write the new value as a literal 2.
 4. Then green scores 3 — green goes from 0 to 3.
 
 You'll model each goal-update with `EXCEPT`, writing the absolute new value each time.

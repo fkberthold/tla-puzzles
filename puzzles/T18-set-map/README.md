@@ -70,12 +70,7 @@ The inner `{k \in 1..10 : k > 5}` is the filter; the outer `{n*n : n \in ...}` i
 
 ## Setup
 
-A school maintains a function `level` that maps each student to a grade level (an integer). The principal wants two derived sets:
-
-- The set of all GRADE LEVELS represented in the school (so they can plan classrooms).
-- The set of LABEL STRINGS to display on each student's badge — built by concatenating "Grade " with each student's level. To keep TLA+ simple, you'll just produce the level numbers PRESENT, no string formatting.
-
-So actually: just produce the set of all grade levels in use. That's a single map.
+A school maintains a function `level` that maps each student to a grade level. The principal wants the set of all grade levels currently represented — useful for planning classrooms. You'll produce this with a single map comprehension.
 
 ## Task
 

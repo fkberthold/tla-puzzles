@@ -2,7 +2,7 @@
 
 ## Lesson: Recap — `either/or` for Branching Behavior
 
-You met `either/or` back in T03 (the hiker at the fork). This is a recap drill in a fresh domain — no new syntax, just the same shape applied somewhere different.
+You met `either/or` back in T03 (the fork-in-the-road puzzle). This is a recap drill in a fresh domain — no new syntax, just the same shape applied somewhere different.
 
 The rule, once more:
 

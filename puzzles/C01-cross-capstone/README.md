@@ -8,7 +8,8 @@ This is a CROSS-TIER capstone. Where T08, T25, T34, T41 each closed a single tie
 - **Tier 2** — FUNCTIONS with EXCEPT (T14, T15): per-process state indexed by process ID
 - **Tier 4** — DISTINCT PROCESSES (T35): a process set on one side, a single process on the other
 - **Tier 4** — `await` (T36): the synchronization between client and server
-- **Tier 1** — INVARIANTS and **Tier 1** — `<>` PROPERTY-EVENTUALLY: safety + liveness checks
+- **Tier 1** — INVARIANTS (T05): safety checks
+- **Tier 3** — `<>` PROPERTY-EVENTUALLY (T27): liveness checks
 
 The pattern: a SET of CLIENT processes each submit a typed REQUEST RECORD into a shared SLOT, then `await` a response. A single SERVER process loops, picking up pending slots, computing a result, writing it back. Each client's slot is `state[self]` — function-as-state indexed by process ID, updated with EXCEPT.
 
@@ -17,6 +18,8 @@ This is the canonical request/response shape underneath every RPC, every web API
 **Worked example (recap, fresh domain) — a print-shop kiosk.**
 
 Three customers each submit a print job (a record `[doc: ..., copies: ...]`) into a shared `request[customer]` slot, then await the kiosk's response (`status: "ready"` with an `eta`). One kiosk operator loops over pending requests, fills in `eta` based on `copies`, sets `status := "ready"`. The customer awakes when their slot's status flips, picks up the slip, and leaves.
+
+(Note: in real PlusCal you'd guard the `with` with an `await` so the kiosk doesn't fire when the candidate set is empty — see the puzzle below for that pattern.)
 
 ```
 (*--algorithm PrintShop {
@@ -44,8 +47,6 @@ Three customers each submit a print job (a record `[doc: ..., copies: ...]`) int
   }
 }*)
 ```
-
-(In real PlusCal you'd guard the `with` with an `await` so the kiosk doesn't fire when the candidate set is empty — see the puzzle below for that pattern.)
 
 The same five ingredients appear:
 
@@ -86,7 +87,7 @@ Write a PlusCal spec with:
 - A variable `appointment` initialized as a function: each patient's slot starts as `[doctor |-> 0, when |-> 0, status |-> "empty"]`
 - A process set `patient \in Patients`:
   - **submit**: choose `d \in 1..2`, `t \in 1..2` with two `with` blocks, then assign the patient's slot a fresh record `[doctor |-> d, when |-> t, status |-> "pending"]`.
-  - **wait**: `await appointment[self].status \in {"booked", "rejected"}`
+  - **waitDecision**: `await appointment[self].status \in {"booked", "rejected"}`
   - **leave**: `skip`
 - A `clerk = "Clerk"` process:
   - Loops while `\E p \in Patients : appointment[p].status \in {"empty", "pending"}`. (Patients in `"empty"` haven't yet submitted; patients in `"pending"` need a decision.)

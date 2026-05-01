@@ -49,6 +49,7 @@ fair process (client \in {"A", "B"})
 Run it:
 
 ```bash
+cd solution
 tlc -pcal Split.tla && tlc Split
 ```
 
@@ -56,11 +57,13 @@ TLC reports **`Invariant Correct is violated`** with a trace showing the classic
 
 ```
 State 1: counter = 0, both at "read"
-State 2: A reads → local[A] = 0,  A at "write", B at "read"
-State 3: B reads → local[B] = 0,  both at "write"
+State 2: A reads → local = [A |-> 0, B |-> 0],  A at "write", B at "read"
+State 3: B reads → local = [A |-> 0, B |-> 0],  both at "write"
 State 4: A writes → counter = 1,  A Done, B at "write"
 State 5: B writes → counter = 1,  both Done   ← LOST UPDATE
 ```
+
+(TLC shows `local` as a function over the process set: `local = [A |-> 0, B |-> 0]`.)
 
 Both clients read 0, both compute "0+1," both write 1. Net effect: counter increased by 1, not 2. The trace length varies by label choice, but the violation finding is what matters here.
 

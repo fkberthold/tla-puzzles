@@ -84,7 +84,7 @@ Three things to notice:
 
 1. **Which invariant fired.** The first error line names it: `StaysCharged is violated`. The other invariant in the `.cfg`, `TypeOK`, held in every state — TLC only reports the one that broke.
 
-2. **The trace is bottom-up.** State 1 is the initial state. The last state (State 4 here) is the *violating* state — the one where the invariant was false. To understand the failure, read upward from the bottom: "TLC ended at `charge = 0`. How did it get there?" Then walk up: state 3 had `charge = 1`, state 2 had `charge = 2`, initial had `charge = 3`. The drain process subtracted 1 each step until it hit 0, where `StaysCharged == charge > 0` finally broke.
+2. **Start from the last state.** State 1 is the initial state. The last state (State 4 here) is the *violating* state — the one where the invariant was false. To understand the failure, read upward from the bottom: "TLC ended at `charge = 0`. How did it get there?" Then walk up: state 3 had `charge = 1`, state 2 had `charge = 2`, initial had `charge = 3`. The drain process subtracted 1 each step until it hit 0, where `StaysCharged == charge > 0` finally broke.
 
 3. **What the invariant actually claimed.** In the `define` block of `Battery.tla`:
 

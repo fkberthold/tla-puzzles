@@ -68,9 +68,10 @@ A **stem** is the prefix of states leading into the cycle. It starts at State 1.
 A **cycle** is the part that repeats infinitely. It's marked by "Back to state N" — the point where execution returns to an earlier state and will loop there forever.
 
 In this puzzle:
-- **Stem length**: 1 state (just the initial state before any action)
+- **Stem**: State 1 (the initial state, which is also where the cycle begins)
 - **Back-edge**: The transition from State 2 back to State 1
-- **Cycle length**: 1 state repeating (State 2 looping back to State 1, then back to State 2, etc.)
+- **Cycle**: State 1 → State 2 → State 1 → ... (two states alternating)
+- **Cycle length**: 2 states
 - **Total trace shown**: 2 states
 
 The cycle never reaches `hour = 12`, so `ReachesNoon` fails. That's the violation.
@@ -121,7 +122,7 @@ Back to state 1:
 - Inside this cycle, the dispenser is stuck in its `check` label, waiting for `coinInserted` to become TRUE (State 2), but before it can act, the coin slot fires again, toggling it back to FALSE (returning to State 1). The dispenser never gets a guaranteed turn.
 - Since the cycle never sets `dispensed = TRUE`, the property fails.
 
-**The fix:** Add `fair` to the coin slot. Then weak fairness guarantees that if the dispenser's `await` condition `coinInserted` is continuously enabled, the dispenser will eventually fire. But in this case, `coinInserted` flickers (enabled in State 2, disabled in State 1), so weak fairness doesn't apply. The real fix would be to change the coin-slot hardware (stop toggling the flag), or add `fair+` (strong fairness) to the dispenser — see T47 for details on strong fairness.
+**The fix:** A real fix would require either redesigning the coin slot to stop toggling, or using strong fairness on the dispenser — see T47 for that pattern. For now, the point is recognizing that the cycle never reaches `dispensed = TRUE`.
 
 The point here: a lasso shows you an infinite loop that violates a liveness property. The cycle repeats forever while the property's eventual state is never reached.
 

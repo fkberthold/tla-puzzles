@@ -36,7 +36,7 @@ This demonstrates the whole T01 toolkit:
 - `while (...) { ... }` — loop the process runs until a condition fails
 - `if (...) { ... } else { ... }` — conditional state change
 - `cups := cups + 1` — variable update (`:=`, not `=`)
-- **One-assignment rule:** each variable may be assigned AT MOST ONCE per label. That's why `status` needs the `close:` label — we assigned it inside `serve:`, so the final `"closed"` value needs a fresh label to live in.
+- **One-assignment rule:** each variable may be assigned AT MOST ONCE per label. That's why `status := "closed"` needs its own `close:` label — `serve:` already assigns `status` (via the if/else inside the loop), and you can't assign the same variable twice in one label.
 
 Sample invariants you'd check on this spec:
 
@@ -81,4 +81,4 @@ Add these invariants:
     If you write an invariant claiming `light = "off"` always, TLC will find it false at the first toggle. That's not a bug in TLC — it means your spec ALLOWS the light to turn on. Invariants catch where reality differs from the claim.
 
 ??? hint "💡 Hint 3 — Split your assignments across labels"
-    The lesson says "one assignment per label." If you increment `count` AND toggle `light` in the same label, you can't do the second toggle. You need separate labels so each toggle is its own atomic step. Try: `toggle:` (flip the light), then `increment:` (add to count), then loop back to `toggle`.
+    If you increment `count` AND toggle `light` in the same label, that's fine — two different variables. But you may still need to split them if the loop structure requires observing intermediate states. Try: `toggle:` (flip the light), then `increment:` (add to count), then loop back to `toggle`.

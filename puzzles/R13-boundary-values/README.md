@@ -62,13 +62,13 @@ Open `solution/Pantry.cfg` (or click the ⚙️ spoiler below). It says `CONSTAN
 
 4. Drop it back to `3`. Same coverage of every branch, far fewer states.
 
-The branches in `Pantry.tla` are: enter loop / exit loop, add jar, remove jar (only when `jars > 0`), do nothing (when `jars = 0` and the remove branch is taken). Three values — `0`, `1`, `2` (≤ `MaxJars = 3`) — exercise every one. The `MaxJars = 20` run gives you 20 numerically-distinct states that all behave the same way as `MaxJars = 3`.
+The branches in `Pantry.tla` are: enter loop / exit loop, add jar, remove jar (only when `jars > 0`), do nothing (when `jars = 0` and the remove branch is taken). Three boundary conditions — `jars = 0`, `0 < jars < MaxJars`, and `jars = MaxJars` — exercise every branch. At `MaxJars = 3`, TLC finds 5 distinct states that cover all three boundaries. At `MaxJars = 20`, the 5-state-equivalent coverage exists at `jars ∈ {0, 1, 2}`, but TLC also enumerates `jars = 3` through `jars = 20`, producing 22 states with identical structure.
 
 ## Check
 
 - With `MaxJars = 3`: TLC reports **5 distinct states**, depth **5**, both invariants pass.
 - With `MaxJars = 10`: TLC reports **12 distinct states**, depth **12**.
-- With `MaxJars = 20`: TLC reports about **22 distinct states**, depth **22**.
+- With `MaxJars = 20`: TLC reports **22 distinct states** (`MaxJars + 2` — one for `jars = 0`, one per value up to `MaxJars`, and one final state), depth **22**.
 
 The behavior space at `MaxJars = 3` already covers every meaningful case: jars empty, jars partial, jars full, attempt to remove from empty (the `if` branch). Increasing the bound just creates more numerically-distinct states with the same shape.
 

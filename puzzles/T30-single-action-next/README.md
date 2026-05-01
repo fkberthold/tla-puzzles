@@ -12,7 +12,7 @@ The discipline:
 4. Write `Next` as one action that captures every transition. Every variable must appear primed (or in `UNCHANGED`).
 5. Write `Spec == Init /\ [][Next]_<<vars>>`.
 
-For T30 the action is **single** — `Next == OneAction`. T31 generalizes to multiple actions.
+For T30 the action is **single** — `Next == OneAction`. T31 generalizes to multiple actions. The `CHECK_DEADLOCK FALSE` cfg directive tells TLC not to report terminal states as errors — introduced in T0c, used here because `Latch` fires once and then no action is ever enabled again.
 
 A useful heuristic for "what should the action say":
 

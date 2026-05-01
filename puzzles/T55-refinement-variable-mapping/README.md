@@ -145,7 +145,7 @@ tlc ConcreteDimmer
 - `TypeOK` passes.
 - `Refines` PASSES — every concrete step looks like a valid abstract step or a stutter:
   - `StepUp` from 1 to 2, or 2 to 3: lampOn was TRUE, stays TRUE — stutter on the abstract.
-  - `StepUp` from 0 to 1: lampOn went FALSE → TRUE — that's the abstract `Toggle`. (But wait — `OnSwitch` already covers 0→1; depending on which step fires first you might never see this from `StepUp` alone. Both work.)
+  - `StepUp` from 0 to 1: lampOn went FALSE → TRUE — that's the abstract `Toggle`.
   - `OnSwitch`/`OffSwitch`: lampOn flips, matching abstract `Toggle`.
   - `StepDown` from 3 to 2 or 2 to 1: lampOn was TRUE, stays TRUE — stutter.
   - `StepDown` from 1 to 0: lampOn went TRUE → FALSE — abstract `Toggle`.

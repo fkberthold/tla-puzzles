@@ -110,23 +110,6 @@ In the `define` block:
 
 A single fair process runs one label:
 
-1. **report**: nondeterministically assign new battery and state functions:
-   ```
-   with (b \in [Drones -> BatteryLevels]) {
-     with (s \in [Drones -> States]) {
-       battery := b;
-       state := s;
-     };
-   };
-   phase := phase + 1;
-   ```
-
-(That's a heavy nondeterministic step — `[Drones -> BatteryLevels]` is `10^4 = 10000` functions, times `3^4 = 81` for state. Don't worry: TLC handles it. The state space will be ~810,000 states.)
-
-Wait, that's too big. Use a smaller domain. Reduce battery levels to `1..3` for the nondeterministic step:
-
-A single fair process runs one label:
-
 1. **report**: nondeterministically assign:
    ```
    with (b \in [Drones -> 1..3]) {

@@ -66,7 +66,7 @@ Skim TLC's output until you find this line near the bottom:
 
 That's the success signal. Three specific things to spot:
 
-- **"5 distinct states found"** — TLC explored 5 reachable states (initial + 3 ticks + 1 done). One reachable state per value of `count`, plus the post-loop state.
+- **"5 distinct states found"** — TLC explored 5 reachable states: the 4 states where `count` is 0, 1, 2, and 3 (the last tick), plus the `Done` state where the loop has exited with `count` still at 3.
 - **"0 states left on queue"** — TLC finished. The state space is fully explored, not truncated.
 - **"Model checking completed. No error has been found."** — every invariant declared in `Tick.cfg` held in every state.
 

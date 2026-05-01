@@ -117,10 +117,9 @@ ServerProcess ==
 Next == ClientSubmit \/ ServerProcess
 
 \* Strong fairness on ServerProcess: even if the queue keeps emptying
-\* and refilling, the server gets to process. (Without SF, a behavior
-\* could submit-and-immediately-stop — wait, actually WF would suffice
-\* for a simple FIFO, but the cross-capstone exercises SF for practice.
-\* See Tier 5 T47.)
+\* and refilling, the server gets to process. (WF would actually suffice
+\* for this FIFO queue — the queue's enabled-ness is monotone. SF is
+\* exercised here for practice. See Tier 5 T47.)
 Spec == Init /\ [][Next]_vars
         /\ WF_vars(ClientSubmit)
         /\ SF_vars(ServerProcess)
@@ -173,7 +172,7 @@ CHECK_DEADLOCK FALSE
   - `Init`: concrete `aux_submitted = 0, aux_completed = 0` projects to abstract `submitted = 0, completed = 0`. Match.
   - `ClientSubmit`: bumps `aux_submitted`, leaves `aux_completed`. Maps to abstract `Submit`.
   - `ServerProcess`: bumps `aux_completed`, leaves `aux_submitted`. Maps to abstract `Complete` (which requires `completed < submitted`, satisfied because the server can only pop when there's something queued, which means `aux_completed < aux_submitted`).
-- **Stuttering (T57).** No concrete action is a pure stutter on the abstract — every concrete action moves at least one auxiliary. But the `[Next]_vars` brackets in the abstract are still essential to absorb internal-only changes (e.g., `nextId` being bumped without the abstract counters changing — wait, in this design `ClientSubmit` does change `aux_submitted`, so `nextId` rides along with a real abstract step). For cleanliness imagine: a future version where the client increments `nextId` separately. Then that step would be a stutter.
+- **Stuttering (T57).** No concrete action is a pure stutter on the abstract — every concrete action moves at least one auxiliary. The `[Next]_vars` brackets in the abstract are still essential; in this design `ClientSubmit` changes `aux_submitted`, so `nextId` rides along with a real abstract step.
 
 ## Check
 

@@ -9,7 +9,6 @@ No new concept. This puzzle reaches for everything from Tier 4 in one spec:
 - **T37** — `ENABLED` to talk about when an action can fire
 - **T38** — Append/Head/Tail and the producer/consumer pattern
 - **T39** — atomic test-and-modify on a shared resource
-- **T40** — (optional, not required here) procedures
 
 The Tier 4 capstone scenario: a BOUNDED BUFFER. Multiple producers append to a queue, one consumer takes from the head. The queue has a CAPACITY: producers must wait when the buffer is full. The consumer must wait when it's empty.
 
@@ -85,7 +84,7 @@ Write a PlusCal spec with:
 1. **TypeOK**: `counter \in Seq({"B1","B2"}) /\ served \in 0..4`
 2. **BoundedCounter**: `Len(counter) <= CAPACITY`
 3. **Conservation**: `served + Len(counter) <= 4`
-4. **PlaceEnabledIffRoom**: For each brewer, `ENABLED <its place action>` should match `Len(counter) < CAPACITY` AND that brewer hasn't yet brewed 2. (Stated for each brewer separately — see the hint.)
+4. **PlaceEnabledIffRoom**: For each brewer, `ENABLED <its place action>` should match `Len(counter) < CAPACITY`. (Stated for each brewer separately — see the hint.)
 
 Optional liveness:
 

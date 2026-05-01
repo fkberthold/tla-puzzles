@@ -98,7 +98,7 @@ In the `define` block:
 - `Disjoint == outOnLoan \intersect available = {}`  \* a loaned book isn't available
 - `EndsCorrect == phase = 3 => (outOnLoan = {1} /\ available = {2, 3, 4})`
 
-(`\intersect` is set intersection. You haven't been asked to USE intersection in earlier puzzles, but the operator name is suggestive. If TLC complains, replace with `\cap` — it's the same operator with a shorter name.)
+(`\intersect` and `\cap` are both valid TLA+ names for set intersection; they are aliases.)
 
 ## Check
 

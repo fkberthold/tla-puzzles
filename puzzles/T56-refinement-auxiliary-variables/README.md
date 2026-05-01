@@ -13,52 +13,7 @@ The fix: add an AUXILIARY VARIABLE to the concrete spec. Auxiliary variables:
 
 The mapping then references the auxiliary. The concrete spec is unchanged operationally: every real action also updates the auxiliary in the obvious way, but no real action's behavior depends on it.
 
-**Worked example — bank account.**
-
-Abstract `AbstractAccount` tracks just the running balance:
-
-```
----- MODULE AbstractAccount ----
-EXTENDS Integers
-VARIABLE balance
-Init == balance = 0
-Deposit  == balance' = balance + 1
-Withdraw == balance > 0 /\ balance' = balance - 1
-Next == Deposit \/ Withdraw
-Spec == Init /\ [][Next]_<<balance>>
-====
-```
-
-Concrete `ConcreteAccount` tracks deposits and withdrawals as SEPARATE running totals (you might do this in a real system to audit them independently):
-
-```
----- MODULE ConcreteAccount ----
-EXTENDS Integers
-VARIABLES totalIn, totalOut
-\* Auxiliary variable for the refinement mapping (see comment).
-\* It mirrors balance = totalIn - totalOut, but TLC needs to see it
-\* as a state variable so the mapping can reference its value.
-\* (For this simple case we could compute the mapping from the real
-\* vars — but the auxiliary pattern shows up elsewhere when you can't.)
-
-vars == << totalIn, totalOut >>
-
-Init == totalIn = 0 /\ totalOut = 0
-DepositC  == totalIn'  = totalIn  + 1 /\ UNCHANGED totalOut
-WithdrawC == totalIn > totalOut /\ totalOut' = totalOut + 1 /\ UNCHANGED totalIn
-Next == DepositC \/ WithdrawC
-Spec == Init /\ [][Next]_vars
-
-L0 == INSTANCE AbstractAccount WITH balance <- totalIn - totalOut
-Refines == L0!Spec
-====
-```
-
-In this account example the mapping doesn't actually need a fresh auxiliary — `balance <- totalIn - totalOut` works directly. So when DO you need a true auxiliary?
-
-When the abstract distinguishes states that the concrete state doesn't determine. Example: the abstract has a `phase` enum (`"counting"`, `"verifying"`, `"done"`) and the concrete only has a counter. From a counter value alone you can't tell which abstract phase you're in — two different paths reach the same counter value but in different phases. So you add an auxiliary `aux_phase` to the concrete that tracks phase explicitly, and the mapping says `phase <- aux_phase`. The auxiliary doesn't drive any concrete action — it only LABELS the concrete state for the abstract's view.
-
-**A working example with a true auxiliary — a vending machine.**
+**Worked example — a vending machine.**
 
 Abstract: tracks the count of items SOLD over time. Each sell event bumps the count.
 
@@ -93,6 +48,8 @@ Refines == L0!Spec
 `Restock` is a stutter on `soldCount` (the abstract sees no change). `Sell` increments both `stock` (down) and `aux_sold` (up). The mapping projects to `aux_sold`, and the abstract sees only the increment.
 
 The concrete actions WRITE the auxiliary but never READ it — that's how you know it's truly auxiliary.
+
+Note: sometimes you don't need a separate auxiliary at all — if the mapping can be computed directly from real variables, no auxiliary is needed. For example, a concrete spec that tracks `totalIn` and `totalOut` separately can map to an abstract `balance` via `balance <- totalIn - totalOut` without adding any new variable. The auxiliary pattern is only necessary when raw concrete state can't reconstruct an abstract value.
 
 ## Setup
 
@@ -165,7 +122,7 @@ tlc Doorbell
 - TLC explores about **7 distinct states** for `Max = 3`.
 - `TypeOK` passes.
 - `Refines` PASSES — `Press` is a stutter on the abstract (no `rings` change); `Settle` is the abstract `Ring`.
-- Try removing `aux_rings` and using the mapping `rings <- IF state = "ringing" THEN ?? ELSE ??`. You'll find no expression in raw concrete state lets you recover the count. THAT's why you need an auxiliary.
+- From `state` alone (only `"idle"` or `"ringing"`), no expression can recover the ring count — both `"idle at ring 0"` and `"idle at ring 2"` look identical. That's why `aux_rings` is necessary.
 
 ## Hints
 

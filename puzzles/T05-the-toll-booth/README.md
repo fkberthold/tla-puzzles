@@ -77,5 +77,5 @@ Write a PlusCal spec with:
 ??? hint "💡 Hint 2 — Asserts are line-specific checks"
     `assert paid <= 100` fires ONLY at that line, only when execution passes through. It's a sanity check: "if we ever get here, this must be true." It's not an invariant (checked in every state). The assert only cares about THIS moment in the computation.
 
-??? hint "💡 Hint 3 — MaxFairness ensures liveness"
+??? hint "💡 Hint 3 — Weak fairness ensures liveness"
     With `fair process`, weak fairness means TLC doesn't deadlock — the process eventually takes a step if it can. Without `fair`, TLC might get stuck and falsely report a deadlock. The temporal property `<>(gate = "open")` relies on fairness to guarantee eventually someone inserts a coin.

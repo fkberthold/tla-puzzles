@@ -6,7 +6,7 @@ A **model value** is a name from the cfg that is equal only to itself. `s1`, `s2
 
 When the spec uses model values uniformly — e.g., it never branches on `s = s1` specifically — then ANY permutation of the model-value set produces an equivalent behavior. **SYMMETRY** is the cfg directive that tells TLC about this. Once given, TLC visits only one representative per orbit. The state space shrinks dramatically.
 
-**Worked example — committee voting (NOT a locker).**
+**Worked example — committee voting.**
 
 ```
 ---- MODULE Vote ----
@@ -118,4 +118,4 @@ Both runs check `TypeOK` successfully. The reduction does not lose any safety in
     Without SYMMETRY, TLC visits all 2^4 = 16 subsets of Students: {}, {s1}, {s2}, {s3}, {s4}, {s1,s2}, ... With SYMMETRY, TLC groups states into orbits (equivalence classes under permutation). All 1-element subsets {s1}, {s2}, {s3}, {s4} are in the same orbit; TLC visits only ONE representative. Same for all 2-element, 3-element, and 4-element subsets. Result: 5 distinct views instead of 16. The coverage is identical because every cardinality class has the same structure.
 
 ??? hint "💡 Hint 3 — SYMMETRY Rejects Liveness"
-    If you try to add a PROPERTY like Termination (a liveness property with <>) to Lockers, TLC will refuse to use SYMMETRY. Why? Because liveness counterexamples are lasso traces (a prefix followed by a loop). Symmetry reduction can hide a liveness bug in a skipped orbit. TLC plays it safe: SYMMETRY is safety-only. For this puzzle, stick with TypeOK.
+    If you try to add a PROPERTY like Termination (a liveness property with <>) to Lockers, TLC will print a warning and silently ignore the SYMMETRY directive — it won't abort, but it won't reduce the state space either. Why? Because liveness counterexamples are lasso traces (a prefix followed by a loop). Symmetry reduction can hide a liveness bug in a skipped orbit. TLC plays it safe: SYMMETRY is safety-only. If you need both liveness and reduction, remove SYMMETRY and use VIEW instead. For this puzzle, stick with TypeOK.

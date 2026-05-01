@@ -68,7 +68,7 @@ Spec == Init /\ [][Next]_vars
 Three things to notice:
 
 1. **`EXTENDS Apalache`** — required to bring `:=` into scope.
-2. **Both variables in every action.** Even `Start`, which only changes `running`, has `elapsed' := elapsed`. Apalache wants the assignment in writing, not via `UNCHANGED`. (`UNCHANGED` works too, but `:=` is the more explicit habit when teaching.)
+2. **Both variables in every action.** Even `Start`, which only changes `running`, has `elapsed' := elapsed`. Apalache wants the assignment in writing. Use `:=` in regular actions where every variable needs an explicit value. (`UNCHANGED` is accepted in terminal stutter actions like `Done == cond /\ UNCHANGED vars`, but `:=` is the right habit for actions that do real work.)
 3. **Init uses `:=` too.** Init is a special action defining the *first* state, and Apalache treats it the same: every variable must be assigned.
 
 **The key idea.** Read `:=` as "this variable, here, gets this value." It's `=` to TLC and a directive to Apalache. Use it for every primed-variable line, and for every conjunct in `Init`. Your specs become more readable AND Apalache's errors become more precise.
@@ -115,7 +115,7 @@ apalache-mc check --inv=TypeOK --length=10 Door.tla
 
 - TLC: 11 distinct states, no error. The `:=` operator is just `=` to TLC, so the spec checks normally.
 
-> **Note about `EXTENDS Apalache`.** The official `Apalache.tla` is shipped in the `solution/` directory (extracted from the apalache jar). Both TLC and Apalache resolve `EXTENDS Apalache` to the same file. TLC uses the erasure-style operator bodies (`__x := __e == __x = __e`); Apalache replaces them with native symbolic semantics.
+> **Note about `EXTENDS Apalache`.** The official `Apalache.tla` is shipped in the `solution/` directory (extracted from the apalache jar). Both TLC and Apalache resolve `EXTENDS Apalache` to the same file. TLC treats `:=` as plain `=` (via the definition in `Apalache.tla`); Apalache treats it as a syntactic assignment marker.
 - Apalache: invariant holds, no errors about unassigned variables.
 
 **Mistake to try.** Drop the `passes' := passes` line from `Close`. Run TLC: it errors with "the next state is not completely specified" — TLC sees that `passes` has no defined behavior in `Close`. Run Apalache (if you have it): `assignment error: variable passes is not assigned a value`. Both tools require the assignment; `:=` makes it harder to forget.

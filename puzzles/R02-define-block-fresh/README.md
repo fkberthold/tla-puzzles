@@ -110,5 +110,5 @@ In the `define` block, create these operators:
 ??? hint "💡 Hint 2 — Parameter-free vs. parameterized"
     You need both. Parameter-free operators (`IsPickup`, `IsDropoff`, `AtDepot`) read from the VARIABLE `last` directly — no arguments. Parameterized operators (`ValidAddress(s)`, `ValidKind(s)`) take a record and inspect it. Which ones are which?
 
-??? hint "💡 Hint 3 — Record syntax and EXCEPT"
+??? hint "💡 Hint 3 — Building a record from scratch each time"
     To BUILD a record in PlusCal, use `[address |-> a, kind |-> k]`. To READ a field, use dot notation: `last.address`. The assignment `last := [address |-> a, kind |-> k]` replaces the whole record. You don't need EXCEPT here — just a full reconstruction each time.

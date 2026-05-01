@@ -45,11 +45,11 @@ tlc -pcal WeakFairness.tla && tlc WeakFairness
 
 This is the **default fairness for almost every PlusCal process** — and `fair process` is why your earlier puzzles' liveness checks worked.
 
-## Side C — when weak fairness isn't enough
+## The gap: when weak fairness isn't enough
 
 Weak fairness has a loophole: it only helps when the action is **continuously enabled**. If an action gets disabled and re-enabled repeatedly, WF says nothing.
 
-Open `solution/StrongFairness.tla` (or click the 🔒 spoiler below). Two servers compete for a single shared slot (`servedBy`). A clock periodically clears the slot. Suppose we want to prove `<>(servedBy = "S1")` — server S1 eventually serves at least once.
+Open `solution/StrongFairness.tla` (or click the 🔒 spoiler below). Two servers compete for a single shared slot (`servedBy`). A clock clears the slot between rounds. Suppose we want to prove `<>(servedBy = "S1")` — server S1 eventually serves at least once.
 
 With only WF on each server, here's a legal infinite behavior:
 
@@ -57,7 +57,7 @@ With only WF on each server, here's a legal infinite behavior:
 2. The clock clears the slot back to `"none"`.
 3. S2 grabs it again. Repeat forever.
 
-S1's `serve` action is enabled (whenever the slot is `"none"`), then *disabled* (whenever S2 holds it), then enabled, then disabled... never *continuously* enabled. Weak fairness lets this slide. **Strong fairness** would not — SF says: if you're enabled infinitely often, you fire infinitely often.
+S1's serve step is enabled (whenever the slot is `"none"`), then *disabled* (whenever S2 holds it), then enabled, then disabled... never *continuously* enabled. Weak fairness lets this slide. **Strong fairness** would not — SF says: if you're enabled infinitely often, you fire infinitely often.
 
 (The shipped `StrongFairness.tla` runs to completion and is a base for the discussion. To actually witness this loophole, you'd weaken WF or look at it as a thought experiment. The cfg checks `TypeOK` only.)
 

@@ -30,7 +30,7 @@ The difference matters in two situations:
 1. **The predicate references `'` (next-state values).** `INVARIANT` rejects this — invariants are state predicates, not actions. `PROPERTY [][A]_v` (a "step" formula) is the right shape.
 2. **The predicate is itself temporal.** `[]<>P` is a property, not an invariant. `INVARIANT []<>P` doesn't typecheck.
 
-For everything else — the bread-and-butter "this state predicate holds" — INVARIANT is shorter and idiomatic. Use PROPERTY `[]P` when the predicate is part of a larger temporal formula or when you're emphasizing the temporal level (T27 will name this distinction).
+For everything else — the bread-and-butter "this state predicate holds" — INVARIANT is shorter and idiomatic. Use PROPERTY `[]P` when the predicate is part of a larger temporal formula or when you're emphasizing the temporal level.
 
 **Worked example — a bank account.**
 
@@ -68,7 +68,7 @@ INVARIANT NeverNegative
 PROPERTY AlwaysNeverNegative
 ```
 
-For a state predicate like `NeverNegative`, both pass. Both fail (with the same trace) if you change the withdraw branch to skip the guard. The trace shape and length are identical. The difference is purely about which level you're working at — T27 will return to this.
+For a state predicate like `NeverNegative`, both pass. Both fail (with the same trace) if you change the withdraw branch to skip the guard. The trace shape and length are identical. The difference is purely about which level you're working at.
 
 When you reach for `[]<>` (T45) or `<>[]` (T46) or leads-to (T44), only the PROPERTY form is available. `INVARIANT` doesn't accept temporal operators.
 
@@ -109,7 +109,7 @@ Both should pass. Both check the same thing.
 - TLC should report `No error has been found`. The canonical solution reports 21 distinct states (`temp` values from 60 to 80 inclusive); your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - Both the `INVARIANT` and the `PROPERTY` pass. They are checking the same predicate at different syntactic levels.
 - **Strip test**: drop the guard on the decrease branch (`temp := temp - 1` unconditionally). Now `temp` can fall to 59. Both `INVARIANT TypeOK` and `PROPERTY AlwaysInRange` fail with the same 2- to 3-state trace. Same diagnosis, different directive.
-- **The point**: when you graduate to `<>`, `[]<>`, `<>[]`, or leads-to, only the PROPERTY form will work. `[]InRange` is the gateway: a temporal formula that happens to be equivalent to an invariant, but lives in the same grammar as the harder properties coming up.
+- **The point**: `[]InRange` demonstrates that PROPERTY and INVARIANT are equivalent for plain state predicates. This parity breaks once temporal nesting is added: `<>`, `[]<>`, `<>[]`, and leads-to require the PROPERTY form.
 
 ## Hints
 

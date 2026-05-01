@@ -37,7 +37,7 @@ Before solving the puzzle, observe the trade-off in a different domain.
 ---- MODULE TicketCounter ----
 (*
   A counter issues tickets sequentially from 1 to MaxTickets.
-  Two processes may request a ticket concurrently.
+  A single requester increments the ticket counter until MaxTickets is reached.
   Invariant: the next ticket to issue never exceeds MaxTickets + 1.
 *)
 EXTENDS Integers, Apalache
@@ -52,11 +52,11 @@ VARIABLES
 
 TypeOK == nextTicket \in 1..MaxTickets + 1
 
-Init == nextTicket = 1
+Init == nextTicket := 1
 
 Request ==
   /\ nextTicket <= MaxTickets
-  /\ nextTicket' = nextTicket + 1
+  /\ nextTicket' := nextTicket + 1
 
 Done ==
   /\ nextTicket > MaxTickets
@@ -73,7 +73,7 @@ ConstInit == MaxTickets \in 1..1000
 **TLC at MaxTickets=4:**
 ```
 $ tlc TicketCounter -metadir /tmp
-States generated: 6 distinct states, depth 2
+States generated: 5 distinct states, depth 4
 ```
 
 Concrete. Fast. Only checks those 6 states.
@@ -194,7 +194,7 @@ Both pass. **Same spec, two views, two strengths.**
 4. **Time**: ~20 min to read, ~10 min to verify both tools. ⭐⭐ capstone.
 5. **TLC Verification**: Spec passes TypeOK and NeverOverflow under TLC.
 6. **Apalache Verification**: Spec passes Apalache type check and logical verification.
-7. **Domain-Disjoint Demo**: The TicketCounter worked example uses a different domain (sequential IDs vs. concurrent buffer ops) so the technique must be abstracted.
+7. **Domain-Disjoint Demo**: The TicketCounter worked example uses a different domain (sequential IDs vs. nondeterministic push/pop buffer ops) so the technique must be abstracted.
 
 ## What to Take Away
 

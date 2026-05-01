@@ -12,6 +12,7 @@ No new concept. This puzzle composes the Tier 6 refinement toolkit on a single p
 - **T55** — refinement mapping when names differ.
 - **T56** — auxiliary variables for mappings the raw concrete state can't support.
 - **T57** — stuttering steps (`[Next]_vars`) make refinement work.
+- **T58** — reading refinement-violation traces; identifying mapping bugs vs concrete bugs.
 
 The recap below is the workflow you compose; the puzzle uses a different domain.
 
@@ -68,6 +69,8 @@ TypeOK == signal \in {"go", "stop"} /\ cycles \in 0..MaxCycles
 ### `solution/ConcreteLight.tla`
 
 The concrete cycles `red` → `green` → `yellow` → `red`. Both `red` and `yellow` map to abstract `"stop"`. `green` maps to abstract `"go"`. The transition `yellow → red` completes a cycle.
+
+**Note:** The action definitions below contain a subtle refinement bug — find and fix it. The "Walking through the refinement" section below will guide you through the diagnosis.
 
 - `EXTENDS Integers`
 - `CONSTANT MaxCycles`, `ASSUME MaxCycles \in Nat /\ MaxCycles >= 1`

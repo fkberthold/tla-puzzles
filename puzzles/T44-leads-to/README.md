@@ -66,7 +66,7 @@ Notice what `called ~> here` does NOT say:
 
 - It does NOT say "as soon as called, here." There can be many states between.
 - It does NOT say "called and here in the same state." Just that one always follows the other in TIME.
-- It DOES re-arm: after the cycle completes and the rider presses again, the obligation is renewed automatically by the implicit `[]`.
+- It IS recurring: every time the rider presses again, `called ~> here` applies again. The outer `[]` in `[](called => <>here)` is what makes this repeated obligation automatic.
 
 In the cfg:
 
@@ -94,8 +94,6 @@ Write a PlusCal spec with:
 - A `fair process (server = "Server")` that loops: when `pending`, atomically set `served := TRUE; pending := FALSE`.
 - A second client step that resets the pair: when `served /\ ~pending`, set `served := FALSE` (the client picks up the response and is ready for the next round).
 
-Hint: write the client as a single process with two `either/or` branches, one for "make a request" and one for "pick up the response," each with its own guard. Likewise the server has one branch.
-
 In `Server.cfg`: `INVARIANT TypeOK` and `PROPERTY RequestServed`.
 
 ## Check
@@ -116,7 +114,7 @@ In `Server.cfg`: `INVARIANT TypeOK` and `PROPERTY RequestServed`.
     The lesson says `~>` is "whenever P, eventually Q." But it's not a one-time promise — it's a REPEATED promise. What does that mean for a system that cycles through request/response many times?
 
 ??? hint "💡 Hint 2 — Two process structure"
-    Leads-to typically involves a REQUEST side and a RESPONSE side. The task hint suggests writing the client as ONE process with two `either/or` branches. What are those two branches modeling?
+    Leads-to typically involves a REQUEST side and a RESPONSE side. Write the client as ONE process with two `either/or` branches: one for "make a request" (when `~pending /\ ~served`) and one for "pick up the response" (when `served /\ ~pending`). What does each branch model?
 
 ??? hint "💡 Hint 3 — The atomic response"
     The server's response step must set BOTH `served` and clear `pending` atomically in ONE label. Why? What would happen if they were in separate labels?

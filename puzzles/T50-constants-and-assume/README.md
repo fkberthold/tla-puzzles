@@ -76,7 +76,7 @@ In the .tla file:
 - `CONSTANT Capacity`
 - `ASSUME Capacity \in Nat /\ Capacity >= 1`
 - A PlusCal algorithm with one variable `books` (count of books currently in the library)
-- One `fair process (clerk = "Clerk")` that loops 5 times. On each iteration it nondeterministically borrows (decrements `books`, only if `books > 0`) or returns (increments `books`, only if `books < Capacity`). Use `either/or` and the `await`-like guards.
+- One `fair process (clerk = "Clerk")` that loops 5 times. On each iteration it nondeterministically borrows (decrements `books`, only if `books > 0`) or returns (increments `books`, only if `books < Capacity`). Use `either { ... } or { ... }` for nondeterministic choice (you saw this in T03) with `await`-like guards on each branch.
 
 Add invariants:
 

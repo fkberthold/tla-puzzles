@@ -99,7 +99,7 @@ In the `define` block:
 - `MostRecent == IF orders = <<>> THEN "none" ELSE orders[Len(orders)]`
 - `TypeOK == QueueLen \in 0..3 /\ Len(served) \in 0..1 /\ phase \in 0..3`
 
-(Note: `Next` is reserved by the PlusCal translator for the next-state relation, so the front-of-queue operator is named `NextUp`.)
+(Note: The PlusCal translator generates a TLA+ definition called `Next` for the next-state relation; naming your own operator `Next` creates a name clash. So the front-of-queue operator is named `NextUp`.)
 
 ## Check
 

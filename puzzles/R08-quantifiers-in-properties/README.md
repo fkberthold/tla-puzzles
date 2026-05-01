@@ -2,13 +2,13 @@
 
 ## Lesson: `\A` Inside a Temporal Property
 
-T24 used quantifiers inside an INVARIANT — a state-level claim. Tier 5 mixes the two: quantifiers can appear inside a TEMPORAL property too. The shape
+T24 used quantifiers inside an INVARIANT — a state-level claim. That same technique works inside a temporal property too. The shape
 
 ```
 \A p \in Procs : <>(done[p] = TRUE)
 ```
 
-reads "for every process `p`, EVENTUALLY `done[p]` is true." The `<>` is per-process: each `p` must eventually be done, but they don't have to finish at the same time. This is different from `<>(\A p \in Procs : done[p] = TRUE)` (everyone done in the SAME state) — though when the system terminates and `done` only goes from FALSE to TRUE, the two end up equivalent.
+reads "for every process `p`, EVENTUALLY `done[p]` is true." The `<>` is per-process: each `p` must eventually be done, but they don't have to finish at the same time. This is different from `<>(\A p \in Procs : done[p] = TRUE)` (everyone done in the SAME state). When a flag can only ever go from FALSE to TRUE — as in this example — the two forms produce the same result: there's only one possible "simultaneous" state.
 
 There is no new TLA+ syntax here. The novelty is the recurrence: quantifiers worked at the state level (T24) and they work the same way at the temporal level. You just nest the quantifier outside (or inside) the temporal operator.
 
@@ -76,4 +76,4 @@ In `Chef.cfg`: `INVARIANT TypeOK` and `PROPERTY EveryoneEventuallyPlates`.
     The lesson uses `fair process` on the student. Why is `fair` needed for a `<>` property to hold? What does `fair` add to the generated TLA+ spec?
 
 ??? hint "💡 Hint 3 — The formula shape"
-    Your property should look like `\A c \in Chefs : <>(plated[c] = TRUE)`. The `/\` from T24 (quantified invariants) shows up here too: you're writing a universal claim over processes.
+    Your property should look like `\A c \in Chefs : <>(plated[c] = TRUE)`. You're writing a universal claim over processes — the `\A` is the outer quantifier, and the `<>` is the temporal claim inside it.

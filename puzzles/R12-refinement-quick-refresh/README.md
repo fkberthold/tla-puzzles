@@ -6,7 +6,7 @@ A **refinement mapping** says: "every behavior of the concrete spec, viewed thro
 
 1. The concrete spec has its own variables and `Spec == Init /\ [][Next]_vars` formula.
 2. An `INSTANCE Abstract WITH absVar <- expr` — every variable of `Abstract` is supplied a value built from concrete variables.
-3. A property `Concrete!Spec` (well, actually `AbstractInstance!Spec`) is checked by TLC. If the concrete violates the abstract's `Spec`, TLC emits a counterexample.
+3. A property like `C!Spec` — the abstract spec formula, called through the instance — is checked by TLC. If the concrete violates the abstract's `Spec`, TLC emits a counterexample.
 
 **Worked example — postal scale refines coin-counter.**
 
@@ -103,7 +103,7 @@ Restore the mapping when you're done.
 ## Expected Result
 
 - With correct mapping: TypeOK passes, CounterSpec passes, 8 distinct states.
-- With sabotaged mapping: TLC emits "Invariant ... is violated" (actually a property violation on the abstract Init), trace length 1.
+- With sabotaged mapping: TLC reports a property violation (the abstract `C!Spec` fails at the initial state because the mapping starts at `n = 1`, not `n = 0`). Trace length 1.
 
 ## What to take away
 

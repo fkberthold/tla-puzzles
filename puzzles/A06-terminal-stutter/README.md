@@ -2,7 +2,7 @@
 
 ## Lesson: Apalache Hates Deadlocks More Than TLC
 
-When a spec finishes its work — every action's guard becomes false and no transition is possible — TLC says "deadlock." If you don't care about that, TLC offers `-deadlock` (off) and pcal generates a `Terminating` clause for you. Apalache also flags deadlock, and just like TLC it considers any state with no enabled action a *deadlock state*. The fix is the same: **make the terminal state stutter**, i.e. add an action that fires when work is done and leaves all variables unchanged.
+When a spec finishes its work — every action's guard becomes false and no transition is possible — TLC says "deadlock." If you don't care about that, TLC offers a `-deadlock` flag to disable deadlock detection if you don't care about terminal states, and pcal generates a `Terminating` clause for you. Apalache also flags deadlock, and just like TLC it considers any state with no enabled action a *deadlock state*. The fix is the same: **make the terminal state stutter**, i.e. add an action that fires when work is done and leaves all variables unchanged.
 
 The general pattern:
 
@@ -18,7 +18,7 @@ Then disjunct `Done` into `Next`:
 Next == ActualWork \/ Done
 ```
 
-`Done` is enabled exactly when `ActualWork` isn't. From the terminal state, behavior loops on `Done` forever — which Apalache (and TLC) reads as "no deadlock; just stuttering." `[][Next]_vars` already permits stuttering, but Apalache's check is "is there always SOME action enabled?" — `Done` makes the answer yes.
+`Done` is enabled exactly when `ActualWork` isn't. From the terminal state, behavior loops on `Done` forever — which Apalache (and TLC) reads as "no deadlock; just stuttering." `[][Next]_vars` already permits stuttering, but Apalache's deadlock check asks: "does any reachable state have zero enabled actions?" — `Done` ensures the answer is always no.
 
 A common variant uses an explicit `done` flag:
 

@@ -26,6 +26,7 @@ Output: "5 distinct states found." TLC enumerated every value of `n` from 0 to `
 The same spec, with type annotations active on `MaxN` and `n`, runs under Apalache as:
 
 ```bash
+cd solution
 apalache-mc check --inv=NeverOverflow --cinit=ConstInit SmallCounter.tla
 ```
 

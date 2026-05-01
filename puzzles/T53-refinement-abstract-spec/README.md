@@ -81,7 +81,7 @@ In the .tla:
 - `VARIABLE punches`
 - `vars == << punches >>`
 - `Init == punches = 0`
-- An action `Punch` that nondeterministically picks any new value `n` such that `punches < n /\ n <= MaxPunches` and sets `punches' = n`. (This captures "increased by some positive amount, capped at max" without committing to "by exactly 1".)
+- An action `Punch` that nondeterministically picks any new value `n` in `(punches+1)..MaxPunches` and sets `punches' = n`. (This captures "increased by some positive amount, capped at max" without committing to "by exactly 1".)
 - An action `Redeem` enabled when `punches >= MaxPunches`, sets `punches' = 0`. NOTE: with the cap above, "punches >= MaxPunches" reduces to "= MaxPunches".
 - `Next == Punch \/ Redeem`
 - `Spec == Init /\ [][Next]_vars`
@@ -106,7 +106,7 @@ tlc PunchCard
 - All four are reachable from `punches = 0` because `Punch` can jump to any of `{1,2,3}` directly, and `Redeem` returns from 3 to 0.
 - `TypeOK` passes.
 
-The abstract is intentionally tiny. Tier 6's later puzzles (T54+) will write the CONCRETE side — a more detailed spec — and prove it refines this abstract.
+The abstract is intentionally tiny. Tier 6's remaining puzzles (T54–T59) will write the CONCRETE side — a more detailed spec — and prove it refines this abstract.
 
 ## Hints
 

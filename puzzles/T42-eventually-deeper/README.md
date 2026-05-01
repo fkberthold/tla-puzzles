@@ -74,7 +74,7 @@ Write a PlusCal spec with:
 
 ## Expected Result
 
-- TLC should report `No error has been found`. The canonical solution reports 9 distinct states (each subset of the three flags, 8 combinations, plus a final "Done" state once the loop exits); your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
+- TLC should report `No error has been found`. The canonical solution reports 9 distinct states; your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - `MorningComplete` passes.
 - **Strip test**: replace the conjunction with the single property `<>(alarmRang = TRUE)`. TLC still passes — but the spec now happily allows behaviors that never brew coffee or never lock the door. That's the point of the conjunction: each eventuality must be CALLED OUT to be checked.
 
@@ -84,7 +84,7 @@ Write a PlusCal spec with:
     The setup mentions three sub-tasks. How many `<>` operators should appear in your `MorningComplete` property? Why does each task get its own `<>`?
 
 ??? hint "💡 Hint 2 — The loop structure"
-    Your process loops `while (TRUE)` but the loop guard is checking something. What condition means "at least one of the three flags is still FALSE"?
+    Your process loops while at least one flag is still FALSE — that's your loop condition, `~alarmRang \/ ~coffeeBrewed \/ ~doorLocked`. When all three are TRUE the loop exits.
 
 ??? hint "💡 Hint 3 — The property formula"
     Your `MorningComplete` is a CONJUNCTION of three `<>` claims. In TLA+, use `/\` to join them: `<>(alarmRang = TRUE) /\ <>(coffeeBrewed = TRUE) /\ <>(doorLocked = TRUE)`.

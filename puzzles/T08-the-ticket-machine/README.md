@@ -89,7 +89,7 @@ A single process loops while `~ShutDown`:
 ## Check
 
 1. **TypeOK**: tickets in 0..3, served in 0..5, sold in 0..3, status in {"open", "closed"}
-2. **NeverOversell**: `sold <= 3 - tickets` — tickets sold plus tickets remaining equals initial stock
+2. **NeverOversell**: `sold <= 3 - tickets` — tickets sold never exceed the tickets removed from stock (weaker than conservation)
 3. **TicketConservation**: `sold + tickets = 3` — the real conservation law
 4. **AllSold**: `status = "closed" => SoldOut` — this SHOULD be violated (the machine can close at 5 customers with unsold tickets)
 

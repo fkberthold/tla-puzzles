@@ -115,9 +115,7 @@ Write `Bucket.tla`:
 - `VARIABLE tokens` annotated `Int`. Init `tokens := 0`.
 - `Add`: when `tokens < Capacity`, increment.
 - `Take`: when `tokens > 0`, decrement.
-- `Done`: stutter when no work to do (here, simply allow stutter at any reachable state — `Done` always enabled and unchanged).
-
-Wait — that would let the spec do nothing. Better to omit `Done` since `Add` and `Take` cover all states (when `tokens \in 1..Capacity-1`, both fire; at `tokens = 0`, `Add` fires; at `tokens = Capacity`, `Take` fires). No deadlock. Skip `Done`.
+- `Done`: omit — the bucket never deadlocks because `Add` covers `tokens = 0` and `Take` covers `tokens = Capacity`.
 
 - `Next == Add \/ Take`
 - `Spec == Init /\ [][Next]_vars`
@@ -126,7 +124,7 @@ Wait — that would let the spec do nothing. Better to omit `Done` since `Add` a
 
 Provide a `.cfg` for TLC with `Capacity = 5` (positive, so no negative-literal cfg quirk).
 
-In the `README.md` for this puzzle's solution dir, add a short `NOTES.md` (or just a heading at the bottom of this README) recording what would happen on Apalache. **Don't fabricate Apalache output — describe expected behavior** based on the comparison table above.
+Add a short `NOTES.md` to the solution directory (or a heading at the bottom of this README) recording what would happen on Apalache. **Don't fabricate Apalache output — describe expected behavior** based on the comparison table above.
 
 ## Check
 

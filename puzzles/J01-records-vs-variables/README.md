@@ -7,7 +7,7 @@
 You have a chunk of state — say, the four fields of an `Order`: id, quantity, paid, shipped. Two ways to model it in TLA+:
 
 - **Side A — scattered:** four top-level variables (`orderId`, `orderQty`, `orderPaid`, `orderShipped`).
-- **Side B — bundled:** one variable `order` whose value is a record `[id, qty, paid, shipped]`, accessed via `order.id` and updated via `[order EXCEPT !.paid = TRUE]`.
+- **Side B — bundled:** one variable `order` whose value is a record `[id: ..., qty: ..., paid: ..., shipped: ...]`, accessed via `order.id` and updated via `[order EXCEPT !.paid = TRUE]`.
 
 Both are valid. Both pass the same invariants. The difference is *cost of change* and *cost of reading*.
 

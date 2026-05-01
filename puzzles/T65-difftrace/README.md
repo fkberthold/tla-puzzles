@@ -51,10 +51,9 @@ Now each state's diff IS the action it took. State 2 cooked a burger. State 3 co
 
 **The debugging workflow:**
 
-1. Run TLC. It finds a violation.
-2. Read the trace **without** `-difftrace`. Verify the bug is real.
-3. If the trace is too long or too noisy, re-run with `-difftrace` to see what's actually changing per step.
-4. Patch the spec to fix the bug. Re-run. Repeat.
+1. Run TLC with `-difftrace`. It finds a violation.
+2. Verify the bug is real by reading the diff trace — the initial and final states are printed in full; intermediate states show only what changed.
+3. Patch the spec to fix the bug. Re-run. Repeat.
 
 `-difftrace` doesn't change WHAT TLC does — only how it presents the trace. The same number of states; the same exploration; the same outcome. Just a more readable diff.
 

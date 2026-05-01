@@ -99,7 +99,7 @@ Cross ==
 
 The first two conjuncts are unprimed — those become `ENABLED Cross`. The next two are primed — they don't appear in `ENABLED`. To check this against your guard, plug it into the invariant: `(ENABLED Cross) <=> (light = "red" /\ crossings < 3)`.
 
-In your `.cfg`, add `CHECK_DEADLOCK FALSE` so TLC doesn't flag terminal states (where `Cross` is exhausted but `Flip` is still going) — actually here `Flip` is always enabled, so deadlock isn't a concern. But include it just in case.
+You do not need `CHECK_DEADLOCK FALSE` here — `Flip` is always enabled, so TLC will never flag a deadlock. If your spec ever terminates without all actions being enabled, revisit your guards.
 
 ## Hints
 

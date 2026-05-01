@@ -11,7 +11,7 @@ Compare the four shapes:
 | `<>P`     | At least once, P. (T03, T42) |
 | `[]P`     | Always P. (T43) |
 | `[]<>P`   | Infinitely often P — recurring forever. (T45) |
-| `<>[]P`   | Eventually always P — stabilizes to P. (this puzzle) |
+| `<>[]P`   | Eventually always P — stabilizes to P. (T46) |
 
 `[]<>` and `<>[]` are easy to swap by accident. The order matters:
 
@@ -48,7 +48,7 @@ Compare:
 
 - `<>(pH = 4)` — pH reaches 4 once. True. (Even if pH then jumped back up.)
 - `[](pH = 4)` — pH is always 4. FALSE — the initial value is 7.
-- `[]<>(pH = 4)` — pH = 4 infinitely often. True here only because the system halts at 4 (so 4 holds in every state from then on, which is infinitely many).
+- `[]<>(pH = 4)` — pH = 4 infinitely often. True here only because the system halts at 4 (so 4 holds in every state from then on, which is infinitely many). Once `pH = 4` holds forever (because the loop halted), every suffix of the behavior satisfies `pH = 4` — so `[]<>(pH = 4)` trivially holds, even though `pH` doesn't oscillate.
 - `<>[](pH = 4)` — pH eventually stays at 4. True.
 
 The interesting failure mode for `<>[]`: a system that keeps oscillating. Suppose the loop instead of stopping at 4 cycled `pH` between 4 and 5 forever. Then:

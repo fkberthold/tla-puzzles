@@ -46,7 +46,7 @@ EXTENDS Integers
 
 VARIABLE pressed
 
-vars == pressed
+vars == <<pressed>>
 
 TypeOK == pressed \in BOOLEAN
 
@@ -63,7 +63,7 @@ SpecSafetyOnly == Init /\ [][Next]_vars
 
 \* With fairness — Press is enabled at the initial state, and it
 \* stays enabled (still Init), so weak fairness forces Press to fire.
-SpecLive == Init /\ [][Next]_vars /\ WF_vars(Press)
+SpecLive == Init /\ [][Next]_vars /\ WF_vars(Next)
 
 EventuallyPressed == <>(pressed = TRUE)
 ====
@@ -76,7 +76,7 @@ What TLC does:
 
 The lesson: invariants hold under both specs (because stuttering doesn't change anything). Liveness properties (`<>`) are the ones that need fairness.
 
-The single `WF_vars(Press)` line is what flips the verdict.
+The single `WF_vars(Next)` line is what flips the verdict. (Using `Next` rather than `Press` is idiomatic when `Next == Press`; both are valid.)
 
 ## Setup
 

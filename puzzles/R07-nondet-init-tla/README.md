@@ -67,7 +67,7 @@ Run TLC. Both `TypeOK` and `NeverNegative` must hold.
 ## Expected Result
 
 - TLC enumerates 6 initial states (`books = 0`, `books = 1`, ..., `books = 5`)
-- From each, the `Borrow` action walks down to 0
+- From each, the `Next` action walks down to 0
 - Total reachable states: 6 distinct
 - All invariants pass
 

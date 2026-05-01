@@ -75,7 +75,7 @@ Write a PlusCal spec with:
 
 ## Hint
 
-Compare what happens if you replace `await handoffReady;` with `if (handoffReady) { runnerBFinished := TRUE; };`. Without `await`, Runner B's `wait` step can FIRE before A has acted — the `if` evaluates to false and B falls through without finishing. With `await`, B's step doesn't fire at all until the condition holds. The liveness property catches the difference: under `if`, eventually finishing requires that B's step happens AFTER A's, which fairness alone doesn't enforce.
+Compare what happens if you replace `await handoffReady;` with `if (handoffReady) { runnerBFinished := TRUE; };`. Without `await`, Runner B's `wait` step FIRES even when `handoffReady` is false — the `if` evaluates to false, B advances past `wait` without setting `runnerBFinished`, and B is Done without ever finishing. With `await`, B cannot take ANY step until `handoffReady` is true.
 
 ## Hints
 

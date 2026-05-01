@@ -134,7 +134,7 @@ The spec should run cleanly on **both** model checkers from the same source — 
 
 - Mixed type system: integers, strings, sets of records, sequences of records, functions from int to record, functions from int to int.
 - Type aliases reused across multiple variables (clean field renames stay one-line edits).
-- `:=` discipline: every action assigns every variable, no `UNCHANGED` shortcuts.
+- `:=` discipline: every regular action assigns every variable with `:=`; terminal stutter (`Done`) uses `UNCHANGED vars`.
 - A fold over a set of records (`TotalSizeBaked`).
 - A terminal `Done` action so the model never deadlocks at the natural end-of-trace.
 - A `ConstInit` predicate so Apalache can quantify `MaxOrders` symbolically.
@@ -148,7 +148,7 @@ If your spec passes both `tlc Pizzeria` (clean) and (when you have it installed)
     You have two record shapes: an order and an oven. The oven's `holding` field is itself an order. The task shows both aliases — declare them once at the module level, then use `$order` and `$oven` in every variable annotation and composite type. This is why A03 matters: aliases avoid repetition and keep field renames to one edit.
 
 ??? hint "💡 Hint 2 — Five variables, five :=" 
-    Every action must assign every variable. When a variable doesn't change, write `var' := var`. This is the `:=` discipline from A04. If you use `UNCHANGED` as a shortcut, Apalache will reject the spec. The task shows `Submit` leaving three variables unchanged — write them as `:=` assignments, not `UNCHANGED`.
+    Every action must assign every variable. When a variable doesn't change in a regular action, write `var' := var` rather than `UNCHANGED`. This is the `:=` discipline from A04. The task shows `Submit` leaving three variables unchanged — write them as `:=` assignments, not `UNCHANGED`. (Exception: the `Done` stutter action uses `UNCHANGED vars` — that's its idiomatic form and Apalache accepts it there.)
 
 ??? hint "💡 Hint 3 — One fold, one derived value"
     `TotalSizeBaked` is a fold over `completed` (a set of orders). Use `ApaFoldSet(Plus, 0, completed)` where `Plus(acc, o) == acc + o.size`. The lesson from A05 applies: folds replace recursion and encode for Apalache. Record field access in the fold (`o.size`) is standard TLA+ syntax.

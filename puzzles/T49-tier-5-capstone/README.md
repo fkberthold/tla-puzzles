@@ -81,8 +81,8 @@ Write a PlusCal spec with:
   - `await slot = "empty" /\ \E c \in Clients : pending[c] = TRUE`
   - `with (c \in {c \in Clients : pending[c] = TRUE}) { slot := c }` (pick a pending client)
   - `served[slot] := TRUE`
-  - `pending[slot] := TRUE`  ← wait, this is wrong; we need to clear it
-  - The right shape: clear `pending[slot]`, set `served[slot]`, then `slot := "empty"`. Order them across labels carefully.
+  - `pending[slot] := FALSE`
+  - `slot := "empty"`
 
 The server flow in three labels:
 
@@ -112,7 +112,7 @@ CHECK_DEADLOCK FALSE
 
 1. **TypeOK** holds.
 2. **EveryRequestServed** holds — every request from every client leads to a response.
-3. **ServerStaysAvailable** holds — server returns to idle infinitely often (in particular, eventually-always, since once both clients are done, slot is empty forever).
+3. **ServerStaysAvailable** holds — server returns to idle infinitely often.
 
 ## Expected Result
 
@@ -120,7 +120,7 @@ CHECK_DEADLOCK FALSE
 - All three checks pass with `fair+ process` on both client and server.
 - **Composition checks (do these to convince yourself the puzzle is honest):**
   - **T44 strip**: replace `~>` with `=>` in `EveryRequestServed`. The check becomes vacuous (passes for the wrong reason — the implication is checked only at the initial state where nothing is pending). The result still passes; the property became toothless.
-  - **T45 strip**: replace `[]<>(slot = "empty")` with `<>(slot = "empty")`. Still passes — but now allows behaviors where the server processes one request and then halts forever with `slot = "empty"` (which is technically still <>"empty" satisfied). To see a real difference, swap to `<>[](slot = "empty")` (eventually always) — passes too because `slot` does end up "empty" forever after both clients done. The genuine `[]<>` shape catches mid-behavior re-occupations, which are present here while requests are in flight.
+  - **T45 strip**: replace `[]<>(slot = "empty")` with `<>(slot = "empty")`. Still passes — but now the property is too weak: it is satisfied the moment `slot` first becomes "empty," even if it never empties again. The `[]<>` form is the right shape for "keeps happening."
   - **T47 strip**: change `fair+ process (server ...)` to `fair process (server ...)`. With WF, TLC may find a behavior where the server is enabled infinitely often (a request keeps appearing) but never serves. The lasso shape depends on TLC's exact fairness analysis; the source change is the lesson.
 - The capstone shows leads-to, infinitely-often, and strong fairness composing into one spec. Each piece carries weight: removing any one breaks a real property.
 

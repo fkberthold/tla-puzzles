@@ -55,7 +55,7 @@ Two traps to remember:
 
 ## Setup
 
-A pure-TLA+ spec for a **lock** is shown below as the file `Lock.tla` (also in the 🔒 spoiler). It declares several named formulas: `TypeOK`, `Locked`, `LockIt`, `Unlock`, `Stable`, `EventuallyUnlocked`, `NeverDoubleLocked`, `Init`, `Next`, `Spec`. Some are state-level, some action-level, some temporal-level.
+A pure-TLA+ spec for a **lock** lives in `solution/Lock.tla`. It declares several named formulas: `TypeOK`, `Locked`, `LockIt`, `Unlock`, `Stable`, `EventuallyUnlocked`, `NeverDoubleLocked`, `Init`, `Next`, `Spec`. Some are state-level, some action-level, some temporal-level.
 
 ## Task
 

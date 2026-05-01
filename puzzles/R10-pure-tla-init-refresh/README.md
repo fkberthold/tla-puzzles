@@ -86,8 +86,8 @@ tlc Weather
 
 ## Expected Result
 
-- Summer states: 31 (temp values) × 41 (humidity values) × 1 (snowing) = 1271
-- Winter states: 31 × 41 × 2 = 2542
+- Summer states: 31 (temp values in 60..90) × 41 (humidity values in 0..40) × 1 (snowing) = 1271
+- Winter states: 31 (temp values in 0..30) × 41 (humidity values in 30..70) × 2 (snowing) = 2542
 - Total distinct states: **3813**
 - All three invariants PASS.
 
@@ -96,7 +96,7 @@ If `WinterImpliesCold` fails, your disjunction probably let temp range overlap. 
 ## Hints
 
 ??? hint "💡 Hint 1 — Two shapes, two disjuncts"
-    T03 introduced pure TLA+ Init. This puzzle has TWO distinct initial configurations (summer vs winter). Use \/ at the top level of Init to express "either this set of states OR that set." Each disjunct is a separate conjunction of constraints.
+    T28 introduced pure TLA+ Init. This puzzle has TWO distinct initial configurations (summer vs winter). Use \/ at the top level of Init to express "either this set of states OR that set." Each disjunct is a separate conjunction of constraints.
 
 ??? hint "💡 Hint 2 — \in picks a value from a set"
     Inside each disjunct, use \in to let TLC enumerate all values in a range. For summer, temperature \in 60..90. TLC will try all 31 values. This is how you express nondeterminism in pure TLA+.

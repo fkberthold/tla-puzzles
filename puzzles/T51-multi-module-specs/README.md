@@ -99,7 +99,7 @@ Create TWO files in your working directory:
 
 - `SPECIFICATION Spec`
 - `INVARIANT TypeOK`
-- `CHECK_DEADLOCK FALSE` — terminal states (`"delivered"`, `"cancelled"`) have no outgoing transitions, which TLC reports as a deadlock by default. Pure-TLA+ specs without an explicit stutter often need this; we'll address stuttering properly in T57.
+- `CHECK_DEADLOCK FALSE` — terminal states (`"delivered"`, `"cancelled"`) have no outgoing transitions, which TLC would flag as a deadlock; we'll see in a later puzzle why pure-TLA+ specs handle this with stuttering.
 
 ## Check
 
@@ -124,7 +124,7 @@ If TLC complains it can't find module `OrderStates`, the helper file is misnamed
     EXTENDS Module makes all public definitions from Module available directly. Create OrderStates.tla with the state vocabulary; then EXTENDS OrderStates in your main spec. TLC walks the EXTENDS graph.
 
 ??? hint "💡 Hint 2 — The helper module is just a normal module with definitions"
-    OrderStates.tla exports Constants and Operators (like ValidTransition). It doesn't need to be a Spec (no VARIABLE, no Init, no Next). Just definitions — like a library.
+    OrderStates.tla exports constants and operators (like ValidTransition). It doesn't need to be a Spec (no VARIABLE, no Init, no Next). Just definitions — like a library.
 
 ??? hint "💡 Hint 3 — Only the top-level module goes in the .cfg"
     Your cfg names Order (the spec), not OrderStates (the helper). TLC discovers OrderStates via EXTENDS and automatically parses it.

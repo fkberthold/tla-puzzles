@@ -83,11 +83,11 @@ A **smart bulb** has two variables:
 
 Three actions:
 
-- **`PowerOn`**: turns the bulb on. Enabled when `power = "off"`. Sets `power' = "on"` and `brightness' = 1` (default brightness when turned on). Wait — actually re-read: when the bulb turns on, `brightness` becomes `1`.
+- **`PowerOn`**: turns the bulb on. Enabled when `power = "off"`. Sets `power' = "on"` and `brightness' = 1` (default brightness when turned on).
 - **`PowerOff`**: turns the bulb off. Enabled when `power = "on"`. Sets `power' = "off"` and `brightness' = 0`.
 - **`Dim`**: change brightness. Enabled when `power = "on"`. Sets `brightness' \in 0..3` (any value). Power stays on.
 
-Wait — but `Dim` setting `brightness' = 0` while power stays `"on"` would create the state `<<"on", 0>>`. Is that OK? Yes — physically, a bulb at brightness 0 with power on is "on but not emitting." The point of the puzzle is to write three actions that compose.
+Note: `Dim` can set `brightness' = 0` while power stays `"on"`, creating state `<<"on", 0>>`. This is intentional — a bulb at zero brightness with power on is "on but not emitting." The puzzle's goal is composing three actions, not constraining the physics.
 
 ## Task
 

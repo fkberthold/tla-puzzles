@@ -131,21 +131,9 @@ tlc LoggedCounter
 - `TypeOK` passes.
 - `Refines` PASSES — `Inc` matches the abstract `Inc`; `Log` is a pure stutter on `n`.
 
-## Strip Test
+## Experiment: Removing the Brackets
 
-To FEEL why the brackets matter, edit `Counter.tla` and change:
-
-```
-Spec == Init /\ [][Next]_<<n>>
-```
-
-to
-
-```
-Spec == Init /\ [][Next]_<<n, lastLog>>
-```
-
-Wait — `lastLog` isn't even declared in `Counter`. So you can't just append it. Instead, edit `LoggedCounter.tla` and try: change the INSTANCE substitution to provide a different mapping. Or, more directly: in `Counter.tla` change `[Next]_<<n>>` to plain `Next` (no brackets, no `_<<n>>`). Re-run TLC on `LoggedCounter`. You should see TLC report a refinement violation: a `Log` step that doesn't satisfy the un-bracketed abstract `Next` (which would require `n' = n + 1`).
+To FEEL why the brackets matter, in `Counter.tla` change `[Next]_<<n>>` to plain `Next` (no brackets, no `_<<n>>`). Re-run TLC on `LoggedCounter`. You should see a refinement violation: a `Log` step that doesn't satisfy the un-bracketed abstract `Next` (which would require `n' = n + 1`).
 
 This is what the brackets buy you. They are the formal hook on which refinement hangs.
 
