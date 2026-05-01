@@ -1,4 +1,4 @@
----- MODULE Clock ----
+---- MODULE Clock_buggy ----
 EXTENDS Integers
 
 VARIABLES minutes, seconds
@@ -9,13 +9,11 @@ Init ==
   /\ minutes = 0
   /\ seconds = 0
 
-\* The fix: every action constrains BOTH variables.
-\* When seconds < 59 we tick seconds and hold minutes steady (UNCHANGED).
-\* When seconds rolls over we explicitly assign both.
+\* BUG: the non-rollover branch forgets to constrain minutes'.
+\* Fix: add  /\ UNCHANGED minutes  to the THEN/ELSE that needs it.
 Tick ==
   IF seconds < 59
-    THEN /\ seconds' = seconds + 1
-         /\ UNCHANGED minutes
+    THEN seconds' = seconds + 1
     ELSE /\ seconds' = 0
          /\ minutes' = (minutes + 1) % 60
 

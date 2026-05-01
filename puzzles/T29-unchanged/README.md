@@ -80,18 +80,19 @@ A pair of counters models a simple clock display: `minutes` (0..59) and `seconds
 - **Tick** — increments `seconds`. When `seconds` hits 59, the next tick rolls it to 0 and increments `minutes` (mod 60).
 - **Reset** — sets `minutes` and `seconds` both to 0.
 
-The first version of the spec already in `solution/Clock.tla` has a deliberate bug: one action forgets to mention one of the variables. You will run it, see the type violation, then **fix the spec** by adding the missing constraint (using `UNCHANGED` where appropriate).
+A starter spec lives in `solution/Clock_buggy.tla`. It has a deliberate bug: one action forgets to mention one of the variables. You will run it, see the type violation, then write the fixed version (a corrected reference is in `solution/Clock.tla` for comparison after you've made your own attempt).
 
 ## Task
 
-1. Open `solution/Clock.tla`. Read both actions. Spot the missing primed variable.
+1. Open `solution/Clock_buggy.tla`. Read both actions. Spot the missing primed variable.
 2. Run TLC and confirm a `TypeOK` violation:
    ```bash
    cd solution
-   tlc Clock
+   tlc Clock_buggy
    ```
-3. Edit `Clock.tla` to fix the bug. Use `UNCHANGED` for the held-steady variable.
-4. Re-run TLC. Should now pass.
+3. Write the fix in your own scratch copy. Use `UNCHANGED` for the held-steady variable.
+4. Run TLC on the fixed version. Should now pass.
+5. Compare your fix to `solution/Clock.tla` (the reference). Run `tlc Clock` to confirm it produces 3600 distinct states.
 
 ## Check
 

@@ -18,3 +18,4 @@ entities.json
 .beads-credential-key
 /issues.jsonl
 _apalache-out/
+*_test.cfg
