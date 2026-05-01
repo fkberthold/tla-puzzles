@@ -4,7 +4,7 @@ A 105-puzzle progressive curriculum for learning **TLA+** and **PlusCal** by doi
 
 Modeled on the [99 Prolog Problems](https://www.ic.unicamp.br/~meidanis/courses/mc336/2009s2/prolog/problemas/). Designed for engineers who want a hands-on path from "I've heard of TLA+" to "I can specify a distributed system and verify both safety and liveness."
 
-📖 **Browse the rendered curriculum**: [tla-puzzles GitHub Pages](https://example.invalid/) *(link active once Pages is enabled)*
+📖 **Browse the rendered curriculum**: [fkberthold.github.io/tla-puzzles](https://fkberthold.github.io/tla-puzzles/)
 
 ---
 
