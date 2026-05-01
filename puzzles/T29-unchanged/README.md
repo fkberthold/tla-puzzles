@@ -84,7 +84,7 @@ A starter spec lives in `solution/Clock_buggy.tla`. It has a deliberate bug: one
 
 ## Task
 
-1. Open `solution/Clock_buggy.tla`. Read both actions. Spot the missing primed variable.
+1. Open `solution/Clock_buggy.tla` (or click the 🔒 spoiler below). Read both actions. Spot the missing primed variable.
 2. Run TLC and confirm a `TypeOK` violation:
    ```bash
    cd solution

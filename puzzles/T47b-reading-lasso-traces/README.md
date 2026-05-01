@@ -48,7 +48,7 @@ Three things to notice:
 
 2. **The lasso structure: stem + cycle.** State 1 is the initial state — this is part of the stem (the prefix). State 2 is reachable from State 1. Then "Back to state 1" marks the back-edge: the spot where the repeating cycle CLOSES. Everything from State 1 through State 2 and back to State 1 will repeat forever. That cycle, looping infinitely, is the violation: the property `ReachesNoon == <>( hour = 12 )` demands that we eventually reach `hour = 12`, but the cycle never does — it just flips `reset` back and forth while `hour` stays stuck at 11.
 
-3. **What TLC is allowed to schedule.** Open `solution/Clock.tla` and find this definition:
+3. **What TLC is allowed to schedule.** Open `solution/Clock.tla` (or click the 🔒 spoiler below) and find this definition:
 
    ```tla
    process (resetter = "Resetter") {

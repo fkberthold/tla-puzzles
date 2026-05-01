@@ -14,7 +14,7 @@ Both are sound for safety. Their costs scale on different things.
 
 ## A spec that runs in both
 
-Open `solution/SmallCounter.tla` — a counter from 0 to `MaxN` that increments or resets.
+Open `solution/SmallCounter.tla` (or click the 🔒 spoiler below) — a counter from 0 to `MaxN` that increments or resets.
 
 ```bash
 cd solution

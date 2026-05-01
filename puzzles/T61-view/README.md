@@ -73,12 +73,12 @@ A pre-written abstract spec lives in `solution/Hopper.tla`: a hopper fills and d
 
 ## Task
 
-Open `solution/Hopper.tla`. Note:
+Open `solution/Hopper.tla` (or click the 🔒 spoiler below). Note:
 
 - `level` and `history` are both variables. `level` is bounded; `history` grows without bound.
 - `LevelView == level` projects away `history`.
 
-Open `solution/Hopper.cfg`. Note `VIEW LevelView`.
+Open `solution/Hopper.cfg` (or click the ⚙️ spoiler below). Note `VIEW LevelView`.
 
 Run TLC:
 

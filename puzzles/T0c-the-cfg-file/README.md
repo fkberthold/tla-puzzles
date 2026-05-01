@@ -22,7 +22,7 @@ You should see "5 distinct states found" and "No error has been found." The same
 
 ## Anatomy of the .cfg
 
-Open `solution/Timer.cfg`. Four real lines:
+Open `solution/Timer.cfg` (or click the ⚙️ spoiler below). Four real lines:
 
 ```
 CONSTANT MaxTicks = 3

@@ -16,7 +16,7 @@ The choice has consequences. Too weak: legitimate liveness properties fail. Too 
 
 ## Side A — no fairness fails
 
-Open `solution/NoFairness.tla`. A coffee machine that should brew. The process is **not** marked `fair`.
+Open `solution/NoFairness.tla` (or click the 🔒 spoiler below). A coffee machine that should brew. The process is **not** marked `fair`.
 
 ```bash
 cd solution
@@ -35,7 +35,7 @@ A 2-state counterexample. The machine just... never brewed. Without fairness, "t
 
 ## Side B — weak fairness rescues it
 
-Open `solution/WeakFairness.tla`. **Identical** spec, except `process` becomes `fair process`. That single keyword adds `WF_vars(machine)` to `Spec`.
+Open `solution/WeakFairness.tla` (or click the 🔒 spoiler below). **Identical** spec, except `process` becomes `fair process`. That single keyword adds `WF_vars(machine)` to `Spec`.
 
 ```bash
 tlc -pcal WeakFairness.tla && tlc WeakFairness
@@ -49,7 +49,7 @@ This is the **default fairness for almost every PlusCal process** — and `fair 
 
 Weak fairness has a loophole: it only helps when the action is **continuously enabled**. If an action gets disabled and re-enabled repeatedly, WF says nothing.
 
-Open `solution/StrongFairness.tla`. Two servers compete for a single shared slot (`servedBy`). A clock periodically clears the slot. Suppose we want to prove `<>(servedBy = "S1")` — server S1 eventually serves at least once.
+Open `solution/StrongFairness.tla` (or click the 🔒 spoiler below). Two servers compete for a single shared slot (`servedBy`). A clock periodically clears the slot. Suppose we want to prove `<>(servedBy = "S1")` — server S1 eventually serves at least once.
 
 With only WF on each server, here's a legal infinite behavior:
 

@@ -13,7 +13,7 @@ Both produce the same kind of state-transition system. The notations highlight d
 
 ## Side A — PlusCal feels right
 
-Open `solution/Sequential.tla`. A vending machine inserts a coin, picks an item, dispenses. Three steps in *order*.
+Open `solution/Sequential.tla` (or click the 🔒 spoiler below). A vending machine inserts a coin, picks an item, dispenses. Three steps in *order*.
 
 ```
 fair process (machine = "Vending") {
@@ -33,7 +33,7 @@ tlc -pcal Sequential.tla && tlc Sequential
 
 ## Side B — Pure TLA+ feels right
 
-Open `solution/Relational.tla`. A small key-value store: at any time, any client may put a value at any key, or delete any existing key. There is no fixed order; the system is a *set of allowed transitions*.
+Open `solution/Relational.tla` (or click the 🔒 spoiler below). A small key-value store: at any time, any client may put a value at any key, or delete any existing key. There is no fixed order; the system is a *set of allowed transitions*.
 
 ```
 Put(k, v) ==

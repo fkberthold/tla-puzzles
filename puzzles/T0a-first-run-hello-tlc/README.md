@@ -40,7 +40,7 @@ If you see all three lines, the toolchain works.
 
 ## What's in the .cfg
 
-Open `solution/Tick.cfg`. Two real lines:
+Open `solution/Tick.cfg` (or click the ⚙️ spoiler below). Two real lines:
 
 ```
 SPECIFICATION Spec

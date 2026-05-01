@@ -13,7 +13,7 @@ The same code with different label boundaries describes *different systems* — 
 
 ## Side A — combined (atomic)
 
-Open `solution/Atomic.tla`. Two clients each increment a shared counter:
+Open `solution/Atomic.tla` (or click the 🔒 spoiler below). Two clients each increment a shared counter:
 
 ```
 fair process (client \in {"A", "B"}) {
@@ -33,7 +33,7 @@ tlc -pcal Atomic.tla && tlc Atomic
 
 ## Side B — split (interleavable)
 
-Open `solution/Split.tla`. Same intent — two clients each increment the counter — but now read and write are explicitly separate:
+Open `solution/Split.tla` (or click the 🔒 spoiler below). Same intent — two clients each increment the counter — but now read and write are explicitly separate:
 
 ```
 fair process (client \in {"A", "B"})

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Build the docs/ tree from puzzle READMEs and reference files.
-# Run before `mkdocs build` (or in the GH Action workflow).
-# Filesystem-only — no bd dependency.
+# One page per puzzle. Inlines solution files as collapsed spoilers.
+# Filesystem-only — no bd dependency for the structural part; concept tags
+# are cached separately into /tmp/puzzle_concepts.json by a precursor step
+# (or fall back to no chips).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,8 +25,7 @@ cp CURRICULUM_MAP.md "$DOCS/reference/curriculum-map.md"
 cp JUDGMENTS.md     "$DOCS/reference/judgments.md"
 { echo "# License"; echo; cat LICENSE; } > "$DOCS/about/license.md"
 
-# ---- per-tier curriculum pages ----
-# Classify a puzzle dir by its prefix (T0a, T01, R01, A01, J01, C01, T67) into a tier.
+# ---- helper: classify prefix into tier slug ----
 classify() {
   local prefix="$1"
   case "$prefix" in
@@ -33,8 +34,7 @@ classify() {
     A*)              echo "apalache" ;;
     J*)              echo "judgments" ;;
     R*)
-      local n="${prefix#R}"
-      n="${n#0}"  # strip leading zero so 04 → 4
+      local n="${prefix#R}"; n="${n#0}"
       case "$n" in
         1|2|3)   echo "tier-2" ;;
         4|5)     echo "tier-3" ;;
@@ -48,20 +48,17 @@ classify() {
     C01)             echo "tier-4" ;;
     C02)             echo "tier-6" ;;
     T*)
-      local n="${prefix#T}"
-      n="${n#0}"
+      local n="${prefix#T}"; n="${n#0}"
       case "$n" in
         [1-8])           echo "tier-1" ;;
         9|1[0-9]|2[0-5]) echo "tier-2" ;;
         2[6-9]|3[0-4])   echo "tier-3" ;;
         3[5-9]|4[0-1])   echo "tier-4" ;;
-        4[2-9])          echo "tier-5" ;;            # T42-T49
-        4[2-9]b)         echo "tier-5" ;;
-        5[0-9])          echo "tier-6" ;;            # T50-T59
+        4[2-9])          echo "tier-5" ;;
+        5[0-9])          echo "tier-6" ;;
         6[0-6])          echo "tier-7" ;;
         67)              echo "final" ;;
         *)
-          # Handle suffixed puzzle ids like T44b, T47b
           if [[ "$prefix" =~ ^T([0-9]+)[a-z]$ ]]; then
             local base="${BASH_REMATCH[1]}"
             if   [ "$base" -ge 42 ] && [ "$base" -le 49 ]; then echo "tier-5"
@@ -79,54 +76,188 @@ classify() {
   esac
 }
 
-# Sort key for puzzles within a tier: numeric where possible, lex otherwise.
-sortkey() {
-  local prefix="$1"
-  # Pad numeric portion so T0a, T01, T44b sort cleanly.
-  case "$prefix" in
-    T0a|T0b|T0c|T0d) echo "T00${prefix: -1}" ;;
-    *)               echo "$prefix" ;;
+# ---- helper: tier label from slug ----
+tier_label() {
+  case "$1" in
+    tier-0) echo "Tier 0 — Prelude" ;;
+    tier-1) echo "Tier 1 — PlusCal Basics" ;;
+    tier-2) echo "Tier 2 — Data Structures" ;;
+    tier-3) echo "Tier 3 — Pure TLA+ Pivot" ;;
+    tier-4) echo "Tier 4 — Multi-Process & Sync" ;;
+    tier-5) echo "Tier 5 — Temporal & Fairness" ;;
+    tier-6) echo "Tier 6 — Spec Structure & Refinement" ;;
+    tier-7) echo "Tier 7 — Production Craft" ;;
+    apalache) echo "Apalache Track" ;;
+    judgments) echo "Judgment Intersticials" ;;
+    final) echo "Final Capstone" ;;
+    *) echo "" ;;
   esac
 }
 
-# Initialize tier files with H1 + intro.
-declare -A TIER_TITLES=(
-  [tier-0]="Tier 0 — Prelude (Workflow Basics)"
-  [tier-1]="Tier 1 — PlusCal Basics"
-  [tier-2]="Tier 2 — PlusCal Data Structures"
-  [tier-3]="Tier 3 — Pure TLA+ Pivot"
-  [tier-4]="Tier 4 — Multi-Process & Synchronization"
-  [tier-5]="Tier 5 — Temporal Logic & Fairness"
-  [tier-6]="Tier 6 — Specification Structure & Refinement"
-  [tier-7]="Tier 7 — Production Craft"
-  [apalache]="Apalache Track"
-  [judgments]="Judgment Intersticials"
-  [final]="Final Capstone"
-)
-for tier in "${!TIER_TITLES[@]}"; do
-  echo "# ${TIER_TITLES[$tier]}" > "$DOCS/curriculum/${tier}.md"
-  echo "" >> "$DOCS/curriculum/${tier}.md"
+# ---- helper: pick the spoiler emoji for a solution file ----
+solution_label() {
+  local fname="$1"  # e.g., Tick.tla, Clock_buggy.tla, Apalache.tla
+  case "$fname" in
+    Apalache.tla)         echo "📖 Apalache library module — $fname" ;;
+    *_buggy.tla|*_buggy.cfg) echo "🐛 Starter (buggy) — $fname" ;;
+    *.cfg)                echo "⚙️  TLC config — $fname" ;;
+    *)                    echo "🔒 Solution — $fname" ;;
+  esac
+}
+
+# ---- helper: render concept chips from /tmp/puzzle_concepts.json ----
+render_chips() {
+  local prefix="$1"
+  if [ ! -f /tmp/puzzle_concepts.json ]; then return; fi
+  python3 - "$prefix" <<'PYEOF'
+import json, sys
+prefix = sys.argv[1]
+data = json.load(open('/tmp/puzzle_concepts.json'))
+labels = data.get(prefix, [])
+if not labels: sys.exit(0)
+chips = []
+for l in labels:
+    # concept:foo-bar → Foo bar
+    cls, _, name = l.partition(':')
+    pretty = name.replace('-', ' ').replace('_', ' ')
+    cls_emoji = {'concept':'•', 'apa':'⚡', 'workflow':'🛠'}.get(cls, '·')
+    chips.append(f'`{cls_emoji} {pretty}`')
+print(' '.join(chips))
+PYEOF
+}
+
+# ---- helper: get prev/next puzzle prefixes for nav (within same tier) ----
+# Note: MkDocs Material supplies cross-tier prev/next automatically once we
+# have one-page-per-puzzle; we don't need to compute it here.
+
+# ---- main: write one page per puzzle ----
+
+# Collect all puzzles in (tier, sortkey, prefix, dir) tuples.
+puzzle_index=$(mktemp)
+for dir in puzzles/*/; do
+  dir="${dir%/}"
+  base=$(basename "$dir")
+  prefix="${base%%-*}"
+  [ -f "$dir/README.md" ] || continue
+  tier=$(classify "$prefix")
+  # Sort key: pad T0a-T0d so they sort before T01.
+  case "$prefix" in
+    T0a|T0b|T0c|T0d) sk="T00${prefix: -1}" ;;
+    *)               sk="$prefix" ;;
+  esac
+  echo -e "${tier}\t${sk}\t${prefix}\t${dir}" >> "$puzzle_index"
 done
 
-# Build a sorted list of (sortkey, prefix, dir) and emit each puzzle into its tier file.
-{
-  for dir in puzzles/*/; do
-    dir="${dir%/}"
-    base=$(basename "$dir")
-    # Prefix is the first hyphenated token (T01, R01, A01, T44b, etc.)
-    prefix="${base%%-*}"
-    [ -f "$dir/README.md" ] || continue
-    sk=$(sortkey "$prefix")
-    echo -e "${sk}\t${prefix}\t${dir}"
+# Sort by tier, then sortkey within tier.
+LC_ALL=C sort -t$'\t' -k1,1 -k2,2 "$puzzle_index" > "${puzzle_index}.sorted"
+mv "${puzzle_index}.sorted" "$puzzle_index"
+
+# Write each puzzle as its own page.
+declare -A TIER_DIRS_SEEN
+while IFS=$'\t' read -r tier sk prefix dir; do
+  out_dir="$DOCS/curriculum/${tier}"
+  mkdir -p "$out_dir"
+  out="$out_dir/${prefix}.md"
+
+  # Frontmatter and concept-chip header
+  {
+    # Title comes from the puzzle's own README (its first H1)
+    cp_chips=$(render_chips "$prefix")
+    if [ -n "$cp_chips" ]; then
+      # Pull the H1 line from the README so the page title matches
+      h1=$(grep -m1 '^# ' "$dir/README.md" | head -1)
+      echo "$h1"
+      echo ""
+      echo "$cp_chips"
+      echo ""
+      # Then emit the rest of the README (skip the H1 we just used)
+      tail -n +2 "$dir/README.md" | sed '/^# /,$!d;1d' > /dev/null 2>&1 || true
+      # Simpler: emit everything *after* the first H1.
+      awk 'BEGIN{seen=0} /^# /{if(!seen){seen=1;next}} seen{print}' "$dir/README.md"
+    else
+      cat "$dir/README.md"
+    fi
+    echo ""
+    echo "---"
+    echo ""
+    echo "## Inlined source"
+    echo ""
+    echo "*Reading on the web? Click each block below to reveal the file content.*"
+    echo ""
+  } > "$out"
+
+  # Inline every solution file as a collapsed admonition.
+  # Order: main .tla → main .cfg → buggy variants → cfg variants → Apalache.tla last
+  if [ -d "$dir/solution" ]; then
+    sol_dir="$dir/solution"
+
+    # Build ordered file list.
+    files=()
+    # 1) Non-buggy, non-Apalache .tla files
+    while IFS= read -r f; do files+=("$f"); done < <(
+      find "$sol_dir" -maxdepth 1 -name "*.tla" \
+        ! -name "*_buggy.tla" ! -name "Apalache.tla" ! -name "*_TTrace_*" 2>/dev/null \
+        | LC_ALL=C sort
+    )
+    # 2) Their .cfg files (non-buggy)
+    while IFS= read -r f; do files+=("$f"); done < <(
+      find "$sol_dir" -maxdepth 1 -name "*.cfg" \
+        ! -name "*_buggy.cfg" ! -name "*_test.cfg" 2>/dev/null \
+        | LC_ALL=C sort
+    )
+    # 3) Buggy variants
+    while IFS= read -r f; do files+=("$f"); done < <(
+      find "$sol_dir" -maxdepth 1 \( -name "*_buggy.tla" -o -name "*_buggy.cfg" \) 2>/dev/null \
+        | LC_ALL=C sort
+    )
+    # 4) Apalache.tla last (it's a library module, less interesting)
+    if [ -f "$sol_dir/Apalache.tla" ]; then
+      files+=("$sol_dir/Apalache.tla")
+    fi
+
+    for f in "${files[@]}"; do
+      [ -f "$f" ] || continue
+      fname=$(basename "$f")
+      label=$(solution_label "$fname")
+      ext="${fname##*.}"
+      # Use 'tla' lexer for .tla; plain for .cfg
+      lang="text"
+      [ "$ext" = "tla" ] && lang="tla"
+
+      {
+        echo "??? note \"$label\""
+        echo ""
+        echo "    \`\`\`$lang"
+        sed 's/^/    /' "$f"
+        echo "    \`\`\`"
+        echo ""
+      } >> "$out"
+    done
+  fi
+
+done < "$puzzle_index"
+rm -f "$puzzle_index"
+
+# ---- per-tier index pages (linkable overviews) ----
+for tier_slug in tier-0 tier-1 tier-2 tier-3 tier-4 tier-5 tier-6 tier-7 apalache judgments final; do
+  tier_dir="$DOCS/curriculum/${tier_slug}"
+  if [ ! -d "$tier_dir" ]; then continue; fi
+  label=$(tier_label "$tier_slug")
+  {
+    echo "# $label"
+    echo ""
+    echo "Puzzles in this section, in curriculum order:"
+    echo ""
+  } > "$tier_dir/index.md"
+
+  # List puzzles in their canonical order (re-derive sortkey for stable listing)
+  for f in "$tier_dir"/*.md; do
+    fname=$(basename "$f" .md)
+    [ "$fname" = "index" ] && continue
+    # Pull H1 title from the page
+    title=$(grep -m1 '^# ' "$f" | sed 's/^# //')
+    echo "- [$title](${fname}.md)" >> "$tier_dir/index.md"
   done
-} | LC_ALL=C sort | while IFS=$'\t' read -r sk prefix dir; do
-  tier=$(classify "$prefix")
-  out="$DOCS/curriculum/${tier}.md"
-  echo "" >> "$out"
-  echo "---" >> "$out"
-  echo "" >> "$out"
-  # Demote the puzzle's H1 to H2 in the tier page.
-  sed -E 's/^# /## /' "$dir/README.md" >> "$out"
 done
 
 # ---- getting-started ----
@@ -134,6 +265,9 @@ cat > "$DOCS/getting-started.md" <<'EOF'
 # Getting Started
 
 This page walks you through installing the toolchain and running your first puzzle end-to-end.
+
+!!! info "Reading online?"
+    Each puzzle page inlines its solution files as collapsed 🔒 blocks — click to reveal. To actually verify a spec yourself, you'll want a local toolchain. Follow the install steps below, then `git clone https://github.com/fkberthold/tla-puzzles.git`.
 
 ## Install the toolchain
 
@@ -177,7 +311,7 @@ curl -L -o apalache.tgz \
 tar -xzf apalache.tgz -C ~/lib/
 ln -sf ~/lib/apalache/bin/apalache-mc ~/bin/apalache
 ln -sf ~/lib/apalache/bin/apalache-mc ~/bin/apalache-mc
-apalache version  # confirm install
+apalache version
 ```
 
 ### Verify
@@ -196,7 +330,7 @@ tlc -pcal Tick.tla
 tlc Tick
 ```
 
-You should see something like:
+Expected output (snippet):
 
 ```
 Model checking completed. No error has been found.
@@ -210,7 +344,7 @@ Three things to recognize:
 2. **"No error has been found"** — every invariant in the `.cfg` held in every state.
 3. **"0 states left on queue"** — TLC finished; the result is exhaustive, not truncated.
 
-You're set up. The puzzle's README explains what each line of the spec does. Continue through the curriculum in order via the [Curriculum Map](reference/curriculum-map.md).
+You're set up. Continue through the curriculum in order via the [Curriculum Map](reference/curriculum-map.md).
 
 ## Where to write your attempts
 
@@ -246,24 +380,77 @@ cat > "$DOCS/about/contributing.md" <<'EOF'
 - One concept per puzzle. Don't sneak in two.
 - Worked example in a domain different from the puzzle setting. A learner who copy-renamed your example into the puzzle should not pass.
 - Difficulty: ⭐ for ~15 min, ⭐⭐ for ~30 min, ⭐⭐⭐ for ~60+. Calibrate against a learner who just solved the immediately preceding puzzle.
-- For deliberate violations: counterexample under 10 states, ideally ≤ 5. Long traces obscure the lesson.
+- For deliberate violations: counterexample under 10 states, ideally ≤ 5.
 - Don't telegraph the puzzle in the lesson. The strip test (Quality Gate #3) is the canonical check.
 
 ## Reordering or modifying existing puzzles
 
-The curriculum sequence is built on a `bd` (beads) dependency chain. To change the learner sequence, edit dependencies via `bd dep add` / `bd dep remove`. Re-run `scripts/gen-curriculum-map.sh` after any structural change.
+The curriculum sequence is built on a `bd` (beads) dependency chain. Edit dependencies via `bd dep add` / `bd dep remove`. Re-run `scripts/gen-curriculum-map.sh` after any structural change.
 EOF
 
 # ---- extra css ----
 cat > "$DOCS/stylesheets/extra.css" <<'EOF'
-.md-content article h2 + p > code {
-  background-color: var(--md-code-bg-color);
-  padding: 0 0.3em;
+/* Concept chips */
+.md-content article p > code {
+  font-size: 0.78em;
+  padding: 0.05em 0.5em;
+}
+/* Compact admonitions for inlined source */
+.md-content article details.note {
+  margin: 0.6em 0;
 }
 h1, h2 {
   white-space: normal;
 }
 EOF
+
+# ---- awesome-pages config (.pages files for nav order) ----
+# Top-level docs/.pages — section ordering
+cat > "$DOCS/.pages" <<'EOF'
+nav:
+  - index.md
+  - getting-started.md
+  - curriculum
+  - reference
+  - about
+EOF
+
+# Curriculum directory ordering (tier order)
+cat > "$DOCS/curriculum/.pages" <<'EOF'
+title: Curriculum
+nav:
+  - tier-0
+  - tier-1
+  - tier-2
+  - tier-3
+  - tier-4
+  - tier-5
+  - tier-6
+  - tier-7
+  - apalache
+  - judgments
+  - final
+EOF
+
+# Per-tier ordering (puzzles within tier)
+for tier_slug in tier-0 tier-1 tier-2 tier-3 tier-4 tier-5 tier-6 tier-7 apalache judgments final; do
+  tier_dir="$DOCS/curriculum/${tier_slug}"
+  [ -d "$tier_dir" ] || continue
+  label=$(tier_label "$tier_slug")
+  {
+    echo "title: $label"
+    echo "nav:"
+    echo "  - index.md"
+    # List puzzles in canonical order — same sort as the main pass
+    for f in "$tier_dir"/*.md; do
+      fname=$(basename "$f" .md)
+      [ "$fname" = "index" ] && continue
+      # Pad T0a-T0d for sorting
+      case "$fname" in T0a|T0b|T0c|T0d) sk="T00${fname: -1}";; *) sk="$fname";; esac
+      echo -e "${sk}\t${fname}.md"
+    done | LC_ALL=C sort | cut -f2 | sed 's/^/  - /'
+  } > "$tier_dir/.pages"
+done
 
 echo "Docs built into $DOCS/"
 echo "Run \`mkdocs serve\` to preview at http://localhost:8000"

@@ -61,12 +61,12 @@ A pre-written abstract spec lives in `solution/Lockers.tla`: students from a set
 
 ## Task
 
-Open `solution/Lockers.tla`. Note:
+Open `solution/Lockers.tla` (or click the 🔒 spoiler below). Note:
 
 - `CONSTANT Students` declares the model-value set.
 - `StudentSym == Permutations(Students)` builds the symmetry set, using `Permutations` from the `TLC` module.
 
-Open `solution/Lockers.cfg`. Note:
+Open `solution/Lockers.cfg` (or click the ⚙️ spoiler below). Note:
 
 - `CONSTANT Students = {s1, s2, s3, s4}` — `s1..s4` are model values.
 - `SYMMETRY StudentSym` — tells TLC to apply orbit reduction.

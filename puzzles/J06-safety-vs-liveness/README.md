@@ -19,7 +19,7 @@ Misclassifying matters. If you write `INVARIANT EventuallyComplete` where `Event
 
 ## Worked example — both kinds in one spec
 
-Open `solution/SafetyDemo.tla`. A toggle that flips between "on" and "off" twice.
+Open `solution/SafetyDemo.tla` (or click the 🔒 spoiler below). A toggle that flips between "on" and "off" twice.
 
 ```
 StateOK     == state \in {"on", "off"}     \* SAFETY: about each state.

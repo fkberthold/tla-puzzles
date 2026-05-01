@@ -70,7 +70,7 @@ Your job is to **read** it and answer the questions below in your head (or on pa
 
 ## Task
 
-Open `solution/TrafficLight.tla`. Without running TLC yet, answer these questions:
+Open `solution/TrafficLight.tla` (or click the 🔒 spoiler below). Without running TLC yet, answer these questions:
 
 1. How many variables are there? Name them.
 2. What are the initial values? (one initial state, or several?)

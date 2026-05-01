@@ -90,7 +90,7 @@ Symbolic. Same speed. Proves safety for 1000 values at once — no state explosi
 
 ## Solving A10
 
-Open `solution/Buffer.tla`. This is a complete, typeable spec ready for both tools.
+Open `solution/Buffer.tla` (or click the 🔒 spoiler below). This is a complete, typeable spec ready for both tools.
 
 ### Side-by-Side Runs
 

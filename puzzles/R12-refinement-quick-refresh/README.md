@@ -70,7 +70,7 @@ A pre-written abstract spec lives in `solution/Counter.tla`. A pre-written concr
 
 ## Task
 
-Open `solution/Bag.tla`. Three things were left for you to inspect:
+Open `solution/Bag.tla` (or click the 🔒 spoiler below). Three things were left for you to inspect:
 
 1. The `INSTANCE Counter WITH n <- ..., Max <- ...` line. Confirm the mapping uses `Cardinality(inside)` for `n` and `Cardinality(Beads)` for `Max`.
 2. The line `CounterSpec == C!Spec`. This is the abstract spec, applied through the instance.

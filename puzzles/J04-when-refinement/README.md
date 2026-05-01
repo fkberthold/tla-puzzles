@@ -16,7 +16,7 @@ Both produce checkable specs. The question is whether the second spec earns its 
 
 ## Side A — single level fits
 
-Open `solution/Flat.tla`. A counter from 0 to `MaxN` with `Inc` and `Reset`.
+Open `solution/Flat.tla` (or click the 🔒 spoiler below). A counter from 0 to `MaxN` with `Inc` and `Reset`.
 
 ```bash
 cd solution
@@ -27,7 +27,7 @@ tlc Flat
 
 ## Side B — refinement fits
 
-Open `solution/AbstractQueue.tla`. A queue with `Enq` and `Deq`, modeled as a sequence — at the *contract* level.
+Open `solution/AbstractQueue.tla` (or click the 🔒 spoiler below). A queue with `Enq` and `Deq`, modeled as a sequence — at the *contract* level.
 
 ```bash
 tlc AbstractQueue

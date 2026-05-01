@@ -45,7 +45,7 @@ A pre-written PlusCal spec lives in `solution/Pantry.tla`: a cook adds and remov
 
 ## Task
 
-Open `solution/Pantry.cfg`. It says `CONSTANT MaxJars = 3`.
+Open `solution/Pantry.cfg` (or click the ⚙️ spoiler below). It says `CONSTANT MaxJars = 3`.
 
 1. Run TLC as-is:
 
