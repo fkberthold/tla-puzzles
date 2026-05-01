@@ -112,7 +112,7 @@ Write `Account.tla`:
 - `EXTENDS Integers, Apalache`
 - One constant `Limit`, type-annotated `Int`.
 - One variable `balance`, type-annotated `Int`. Init `balance := 0`.
-- `Deposit`: nondeterministically pick `amt \in 1..50`, add to balance.
+- `Deposit`: nondeterministically pick `amt \in 1..50`, add `amt` to balance (only fires when `balance < 100`, to keep the state space bounded).
 - `Withdraw`: nondeterministically pick `amt \in 1..50`, subtract from balance, but only if the result is ≥ `Limit`.
 - `Done`: stutter when `balance = 100` (caps the state space).
 - `Next == Deposit \/ Withdraw \/ Done`

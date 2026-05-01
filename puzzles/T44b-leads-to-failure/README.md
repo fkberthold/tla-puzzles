@@ -6,9 +6,7 @@ T44 introduced `~>` (leads-to): the temporal formula `P ~> Q` means `[](P => <>Q
 
 This feels safe: "if you publish, someone will receive." But **leads-to can FAIL** if you don't ensure the actions that make Q true are actually scheduled.
 
-There are two failure modes:
-
-### Failure Mode 1: Missing Fairness
+### Failure Mode: Missing Fairness
 
 If the action that MAKES Q true has **no fairness annotation**, TLC is allowed to ignore it forever.
 
@@ -25,22 +23,6 @@ process (actor = "Worker") {      \* BUG: no `fair`!
 The enabling condition `enabledForQ` holds, but the process is never scheduled. The state space stays in a loop where P is true but Q never happens. Result: `P ~> Q` is violated.
 
 The fix: add `fair` to the process declaration.
-
-### Failure Mode 2: Q's Enablement Depends on an Unanswered Precondition
-
-Even with fairness, if the action's `await` guard depends on something that the system NEVER makes true, the action will never fire.
-
-```
-process (actor = "Worker") {
-  loop:
-    while (TRUE) {
-      await P /\ someCondition;   \* someCondition is NEVER set true
-      Q := TRUE;
-    }
-}
-```
-
-If no other process sets `someCondition`, the action is disabled forever. Fairness doesn't help: WF (weak fairness) requires the action to be **continuously enabled**, and it isn't. The system can satisfy fairness by never enabling the action.
 
 ### Why This Matters
 
@@ -152,13 +134,13 @@ CHECK_DEADLOCK FALSE
 
 ## Expected Result
 
-- **Broken-spec lasso**: TLC reports **`Invariant PublishedEventuallyReceived is violated`** with a roughly 3-state counterexample (a finite stem plus a cycle):
+- **Broken-spec lasso**: TLC reports **`Temporal properties were violated`** with a roughly 3-state counterexample (a finite stem plus a cycle):
   - State 1: `published=FALSE, received=FALSE` (initial)
   - State 2: `published=TRUE, received=FALSE` (publisher fires)
   - State 3: Stuttering (subscriber never runs, system stuck)
   The total state count for a violation trace is not the metric — the violation finding and its lasso shape are what matter.
 
-- **Fixed-spec output**: TLC reports `No error has been found`. The canonical solution explores roughly 4–6 distinct states, verifies both the invariant and the property.
+- **Fixed-spec output**: TLC reports `No error has been found`. The canonical solution explores 3 distinct states, verifies both the invariant and the property.
 
 - **The fix**: change `process (subscriber = "Subscriber")` to `fair process (subscriber = "Subscriber")` — one word added.
 

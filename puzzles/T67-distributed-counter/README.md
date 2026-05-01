@@ -24,8 +24,10 @@ exercises:
   system is running. `Aggregate` requires `ready = TRUE`, so its
   enablement is intermittent: enabled, disabled, enabled, disabled. Weak
   fairness on `Aggregate` would not suffice — WF only fires actions that
-  remain *continuously* enabled. We need `SF_vars(Aggregate)`: infinitely
-  often enabled is enough.
+  remain *continuously* enabled. Even after every node has contributed,
+  `ToggleReady` can still flip `ready` back to FALSE, so `Aggregate` is
+  never guaranteed to be continuously enabled. We need
+  `SF_vars(Aggregate)`: infinitely often enabled is enough.
 
 - **Leads-to (Tier 5).** Liveness is stated as
   `AllContributed ~> aggDone` — once every node has contributed, the
@@ -42,8 +44,8 @@ exercises:
          done <- aggDone
   ```
 
-- **Refinement mapping (Tier 6).** That `WITH` clause IS the refinement
-  mapping. Every concrete behavior, viewed through the mapping, is a
+- **Refinement mapping (Tier 6).** That `WITH` clause is where the
+  refinement mapping is declared. Every concrete behavior, viewed through the mapping, is a
   behavior of the abstract spec. TLC checks `Refinement == Abstract!Spec`
   as a temporal property — and it passes only because each concrete
   action lines up with an abstract action (or stutters it):
@@ -70,8 +72,11 @@ exercises:
 
   The spec `EXTENDS Apalache`. The official `Apalache.tla` ships in this
   solution dir (extracted from the apalache jar), so both TLC and
-  Apalache see the same module — Apalache uses native ApaFoldSet,
-  TLC uses the erasure-style operator definition.
+  Apalache see the same module. TLC executes the recursive body of
+  `ApaFoldSet` defined in `Apalache.tla` as a normal RECURSIVE operator
+  — it is a correct, complete implementation, not a placeholder. Apalache
+  replaces it with a native symbolic encoding at verification time. Both
+  produce the same result; the difference is only in how they compute it.
 
 ## Setup
 
@@ -139,26 +144,33 @@ the counterexample. Restore the file after each.
 
 ### 1. Replace `SF_vars(Aggregate)` with `WF_vars(Aggregate)`
 
-TLC reports a liveness violation. The trace:
+TLC reports a liveness violation. The key shape of the counterexample
+is a lasso in which `ready` toggles between TRUE and FALSE while
+`Aggregate` never fires (your exact state numbers will depend on TLC's
+exploration order and the size of the `Nodes` set):
 
 ```
-State 4: all locals = 1, ready = FALSE
-State 5: ToggleReady → ready = TRUE
-Back to state 4: ToggleReady → ready = FALSE
+...
+State k:   all locals = 1, ready = FALSE
+State k+1: ToggleReady → ready = TRUE
+Back to state k: ToggleReady → ready = FALSE
 ```
 
 The heartbeat loops forever between ready = TRUE and ready = FALSE.
-`Aggregate` is enabled in odd states and disabled in even states — it is
+`Aggregate` is enabled in odd steps and disabled in even steps — it is
 infinitely-often enabled but not continuously enabled. WF does not fire
-it; SF does. **This is what `concept:strong-fairness` means in practice.**
+it; SF does. **(Exact state numbers depend on TLC's exploration order;
+the key shape is the loop above.) This is what `concept:strong-fairness`
+means in practice.**
 
 ### 2. Drop the `\A n \in Nodes : local[n] = 1` conjunct from `Aggregate`
 
-TLC reports a refinement violation. The coordinator now aggregates with
-some cells still 0, so `agg` ≠ `SumLocals`-when-all-done — but more
-importantly the abstract `Finish` requires `c = N`, and the mapped
-abstract step would have `c < N` ∧ `done' = TRUE`, which the abstract
-spec forbids. **This is what `concept:await` buys you in pure TLA+.**
+TLC reports a refinement violation. The coordinator can now aggregate
+before all cells are 1, so `SumLocals` is less than `NodeCount` at the
+moment of aggregation. More importantly, the abstract `Finish` requires
+`c = N`, and the mapped abstract step would have `c < N` ∧ `done' = TRUE`,
+which the abstract spec forbids. **This is what `concept:await` buys you
+in pure TLA+.**
 
 ### 3. Change the `WITH` mapping so `c <- agg`
 
@@ -205,7 +217,7 @@ That is the toolkit. Congratulations.
     ToggleReady flips `ready` back and forth while the system is running. This means Aggregate is enabled (ready=TRUE), then disabled (ready=FALSE), then enabled again — intermittently enabled. Weak fairness fires actions that remain continuously enabled; strong fairness fires actions that are infinitely-often enabled even if they keep being disabled. Which fairness does Aggregate need? Look at the first experiment to see what happens if you guess wrong.
 
 ??? hint "💡 Hint 3 — The `WITH` mapping encodes the design choice"
-    Three state variables appear in DistributedCounter: `local`, `ready`, `agg`, `aggDone`. But AbstractCounter only cares about `c` and `done`. The `WITH` clause tells TLC: `c <- SumLocals` and `done <- aggDone`. This isn't a whim — it's a choice. The `ready` flag and the heartbeat exist at the concrete level only; they are invisible to the abstract spec. Why does the mapping use SumLocals instead of `agg`? Try experiment 3 and you'll see.
+    Four state variables appear in DistributedCounter: `local`, `ready`, `agg`, `aggDone`. But AbstractCounter only cares about `c` and `done`. The `WITH` clause tells TLC: `c <- SumLocals` and `done <- aggDone`. This isn't a whim — it's a choice. The `ready` flag and the heartbeat exist at the concrete level only; they are invisible to the abstract spec. Why does the mapping use SumLocals instead of `agg`? Try experiment 3 and you'll see.
 
 ??? hint "💡 Hint 4 — Type annotations are bridges between TLC and Apalache"
     Every CONSTANT and VARIABLE carries a `\* @type:` comment. TLC ignores these; Apalache reads them. When you run `apalache check`, it uses the type information to verify the spec symbolically without enumerating all states. If you remove the type annotations, TLC still works fine — but Apalache will complain. This is why capstones for the Apalache track include these annotations even though TLC doesn't need them.

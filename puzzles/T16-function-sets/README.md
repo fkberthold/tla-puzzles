@@ -93,7 +93,7 @@ A single fair process runs one label:
 ## Check
 
 1. **TypeOK** — every reachable `parked` is a function in `[Cars -> Spots]`. There are `2^3 = 8` such functions.
-2. **NotAlwaysSpot1**: `~EveryoneInSpot1` — this SHOULD be violated. The TLC trace will pick the assignment that puts everyone in spot 1, leaving the invariant true at the end... wait, this invariant is "NOT everyone in spot 1." Reread: invariants must hold in EVERY state. The initial state has everyone in spot 1, so `EveryoneInSpot1` is true initially, so `~EveryoneInSpot1` is FALSE initially. TLC violates `NotAlwaysSpot1` at the initial state (with a 1-state trace).
+2. **NotAlwaysSpot1**: `~EveryoneInSpot1` — TLC will violate this at the INITIAL state (a 1-state trace). Invariants must hold in every reachable state. The initial state has everyone in spot 1, so `EveryoneInSpot1` is TRUE initially, which makes `~EveryoneInSpot1` FALSE. TLC reports the violation immediately.
 
 ## Expected Result
 

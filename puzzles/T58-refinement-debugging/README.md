@@ -111,16 +111,9 @@ The starting files are in `solution/`:
 3. Fix the spec.
 4. Re-run TLC. It should now report no error.
 
-The intended bug is in the CONCRETE Next definition. The mapping is fine.
-
 ## Expected Initial Result
 
-When you run TLC on the unfixed file, you'll see:
-
-- A property violation on `Refines` after a small number of steps.
-- The trace will reach a concrete state whose projection to the abstract has no valid abstract successor.
-
-Concretely: with `Max = 2`, you'll see `Reset` (the action that resets) firing from `n = 1` instead of `n = 2`. That projects to the abstract going from `n = 1` directly to `n = 0`, but the abstract only resets from `n = 2`.
+When you run TLC on the unfixed file, you'll see a property violation on `Refines` after a small number of steps. Read the trace to identify which concrete action is misbehaving and why.
 
 ## Expected Final Result
 

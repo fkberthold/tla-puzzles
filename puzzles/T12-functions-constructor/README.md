@@ -29,7 +29,7 @@ For TLC's sake, the domain `S` must be FINITE. (`Nat` won't fly. `0..3` will.)
 
 **Worked example — a school's seating chart.**
 
-A teacher assigns each student to a desk number. The class is `{"alex", "blair", "casey"}`. The teacher starts with everyone at desk 1, then re-seats them (every student gets a new desk, computed from their name length).
+A teacher assigns each student to a desk number. The class is `{"alex", "blair", "casey"}`. The teacher starts with everyone at desk 1, then re-seats them (alex gets desk 4, blair and casey get desk 5).
 
 ```
 (*--algorithm Classroom {
@@ -43,7 +43,8 @@ A teacher assigns each student to a desk number. The class is `{"alex", "blair",
   fair process (teacher = "Teacher") {
     reseat:
       \* Build a new function from the same domain.
-      seating := [s \in {"alex", "blair", "casey"} |-> Len(s)];
+      seating := [s \in {"alex", "blair", "casey"} |->
+                    IF s = "alex" THEN 4 ELSE IF s = "blair" THEN 5 ELSE 5];
   }
 }*)
 ```
@@ -58,8 +59,6 @@ What `[s \in S |-> e]` actually does:
 1. The set `S` becomes the DOMAIN.
 2. For each `s` in `S`, the function maps `s` to `e` (which can mention `s`).
 3. The whole thing is a single VALUE — a function — that you assign to a variable.
-
-You'll see `Len(s)` in the lesson. `Len` is from the `Sequences` module and treats a string like `"alex"` as a sequence of characters of length 4.
 
 (NOTE: This puzzle introduces the function constructor `[x \in S |-> e]`. The `EXCEPT` operator for updating one entry comes in T14.)
 

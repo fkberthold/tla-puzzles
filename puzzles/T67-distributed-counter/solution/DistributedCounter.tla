@@ -41,7 +41,8 @@ vars == <<local, ready, agg, aggDone>>
 
 \* Sum of all local cells, computed via Apalache's ApaFoldSet (provided by EXTENDS Apalache).
 \* The Apalache.tla shipped in this solution dir is the official module from the
-\* apalache jar; both TLC (via erasure semantics) and Apalache (native) accept it.
+\* apalache jar. TLC executes the recursive body in Apalache.tla directly;
+\* Apalache uses its native symbolic encoding. Both produce the same result.
 \* @type: (Int, Str) => Int;
 Add(acc, n) == acc + local[n]
 SumLocals == ApaFoldSet(Add, 0, Nodes)

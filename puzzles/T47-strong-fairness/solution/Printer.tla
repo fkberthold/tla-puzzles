@@ -11,9 +11,14 @@ EXTENDS Integers, TLC
 
   fair process (user = "User") {
     submit:
-      while (printed < 3) {
-        await ~hasJob;
-        hasJob := TRUE;
+      while (TRUE) {
+        either {
+          await ~hasJob;
+          hasJob := TRUE;     \* submit a new job
+        } or {
+          await hasJob;
+          hasJob := FALSE;    \* cancel the pending job
+        };
       }
   }
 
@@ -21,49 +26,44 @@ EXTENDS Integers, TLC
     work:
       while (TRUE) {
         await hasJob;
-        printed := printed + 1;
+        if (printed < 3) {
+          printed := printed + 1;
+        } else {
+          printed := 0;       \* wrap: start counting again
+        };
         hasJob := FALSE;
       }
   }
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ea2f1de9" /\ chksum(tla) = "ad7498cf")
-VARIABLES pc, hasJob, printed
+\* BEGIN TRANSLATION (chksum(pcal) = "334b5d10" /\ chksum(tla) = "f7b5ec45")
+VARIABLES hasJob, printed
 
 (* define statement *)
 TypeOK == hasJob \in BOOLEAN /\ printed \in 0..3
 JobsServed == []<>(printed = 3)
 
 
-vars == << pc, hasJob, printed >>
+vars == << hasJob, printed >>
 
 ProcSet == {"User"} \cup {"Printer"}
 
 Init == (* Global variables *)
         /\ hasJob = FALSE
         /\ printed = 0
-        /\ pc = [self \in ProcSet |-> CASE self = "User" -> "submit"
-                                        [] self = "Printer" -> "work"]
 
-submit == /\ pc["User"] = "submit"
-          /\ IF printed < 3
-                THEN /\ ~hasJob
-                     /\ hasJob' = TRUE
-                     /\ pc' = [pc EXCEPT !["User"] = "submit"]
-                ELSE /\ pc' = [pc EXCEPT !["User"] = "Done"]
-                     /\ UNCHANGED hasJob
-          /\ UNCHANGED printed
+user == /\ \/ /\ ~hasJob
+              /\ hasJob' = TRUE
+           \/ /\ hasJob
+              /\ hasJob' = FALSE
+        /\ UNCHANGED printed
 
-user == submit
-
-work == /\ pc["Printer"] = "work"
-        /\ hasJob
-        /\ printed' = printed + 1
-        /\ hasJob' = FALSE
-        /\ pc' = [pc EXCEPT !["Printer"] = "work"]
-
-printer == work
+printer == /\ hasJob
+           /\ IF printed < 3
+                 THEN /\ printed' = printed + 1
+                 ELSE /\ printed' = 0
+           /\ hasJob' = FALSE
 
 Next == user \/ printer
 
@@ -71,5 +71,5 @@ Spec == /\ Init /\ [][Next]_vars
         /\ WF_vars(user)
         /\ SF_vars(printer)
 
-\* END TRANSLATION 
+\* END TRANSLATION
 ================================

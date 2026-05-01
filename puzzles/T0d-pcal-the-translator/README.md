@@ -120,9 +120,9 @@ Three pieces every translation gets for free:
 - TLC ignores PlusCal entirely. It reads only the translated TLA+. PlusCal is sugar.
 - Every PlusCal construct has a precise TLA+ counterpart: variables → `Init`, labels → action definitions, `:=` → primed equality, `fair process` → `WF_vars(...)`, `process` → disjunction.
 - If you re-run `tlc -pcal` after editing the PlusCal block, pcal regenerates the translation block. The old `.old` file (gitignored) is the previous version.
-- If you ever need to write TLA+ that pcal can't express, you can edit *outside* the TRANSLATION block. Anything between `==== END TRANSLATION` and the closing `====` of the module is your territory. Tier 3 leaves PlusCal behind entirely.
+- If you ever need to write TLA+ that pcal can't express, you can edit *outside* the TRANSLATION block. Anything between `\* END TRANSLATION` and the closing `====` of the module is your territory. Tier 3 leaves PlusCal behind entirely.
 
-Done with Tier 0. You now have the toolchain in your hands. Tier 1 is where you start writing PlusCal yourself — but T01–T08 are already authored, so the curriculum continues at Tier 2 (R01, the first review).
+Done with T0d. Next is T0e (Module Anatomy), which maps the structural skeleton of a TLA+ module. After that, Tier 1 begins at T01.
 
 ## Hints
 

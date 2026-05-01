@@ -75,12 +75,14 @@ We want to verify that the total awarded matches what was added, no matter how t
 
 Write a PlusCal spec with:
 
+- `EXTENDS Integers, Sequences` (`Sequences` is needed because PlusCal models the call stack as a sequence)
 - Variables `homeScore = 0, awayScore = 0`
 - A procedure `award(team = "home", pts = 0)` that, in one labeled atomic step, adds `pts` to `homeScore` if `team = "home"` else to `awayScore`, then returns.
 - A `refA = "RefA"` process that calls `award("home", 3)` then `award("away", 2)`.
 - A `refB = "RefB"` process that calls `award("home", 2)` then `award("away", 3)`.
+- Invariants: `TypeOK`, `BoundedScores`, and `FinalState` (defined in the Check section below)
 
-After both refs finish, `homeScore = 5` and `awayScore = 5`.
+After both refs finish, both scores reflect the touchdowns awarded by all four calls.
 
 ## Check
 
@@ -91,7 +93,7 @@ After both refs finish, `homeScore = 5` and `awayScore = 5`.
 ## Expected Result
 
 - All invariants PASS regardless of interleaving — each procedure body is one atomic label, so adds compose correctly.
-- TLC should report `No error has been found`. The canonical solution explores around 30–40 distinct states; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
+- TLC should report `No error has been found`. The canonical solution explores around 25 distinct states; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 
 ## Hint
 
@@ -119,8 +121,6 @@ fair process (refA = "RefA") {
 ```
 
 Each `call` ends an atomic step (the next step JUMPS into the procedure). Each `return` ends an atomic step (the next step JUMPS back). You don't manage the stack yourself — pcal does it for you.
-
-You'll need `EXTENDS Integers, Sequences` (Sequences because the call stack uses sequences under the hood).
 
 ## Hints
 

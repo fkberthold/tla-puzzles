@@ -73,6 +73,19 @@ Honk ==
 
 This is the "rule of always mention every variable." Every action constrains every variable, either with a new value or with `UNCHANGED`. Some specs define `vars == <<a, b, c>>` once and end every action with `... /\ UNCHANGED vars-minus-the-ones-this-action-touches` — but at this scale, listing variables explicitly is clearer.
 
+**`UNCHANGED` inside an `IF-THEN-ELSE` branch.** The same rule applies when an action is written as a conditional. Each branch must mention every variable. If only one branch changes a variable, the other branch needs `UNCHANGED` for it:
+
+```
+ConditionalAction ==
+  IF cond
+    THEN /\ x' = x + 1
+         /\ UNCHANGED y
+    ELSE /\ y' = y + 1
+         /\ UNCHANGED x
+```
+
+The `THEN` branch changes `x` and holds `y` steady; the `ELSE` branch does the opposite. Without the `UNCHANGED` clauses, TLC would see an unconstrained primed variable in whichever branch fires. The puzzle below uses exactly this pattern — `Tick` is an `IF-THEN-ELSE` where the non-rollover branch needs `UNCHANGED minutes` added.
+
 ## Setup
 
 A pair of counters models a simple clock display: `minutes` (0..59) and `seconds` (0..59). Two actions:
@@ -80,11 +93,11 @@ A pair of counters models a simple clock display: `minutes` (0..59) and `seconds
 - **Tick** — increments `seconds`. When `seconds` hits 59, the next tick rolls it to 0 and increments `minutes` (mod 60).
 - **Reset** — sets `minutes` and `seconds` both to 0.
 
-A starter spec is shown below as the file `Clock_buggy.tla` (also visible in the 🐛 spoiler at the bottom of this page). It has a deliberate bug: one action forgets to mention one of the variables. You will run it, see the type violation, then write the fixed version (a corrected reference shown below as `Clock.tla` (in the 🔒 spoiler) for comparison after you've made your own attempt).
+A starter spec lives at `solution/Clock_buggy.tla`. It has a deliberate bug: one action forgets to mention one of the variables. You will run it, see the type violation, then write the fixed version (`solution/Clock.tla` is the reference for comparison after you've made your own attempt).
 
 ## Task
 
-1. Open `solution/Clock_buggy.tla` (or click the 🔒 spoiler below). Read both actions. Spot the missing primed variable.
+1. Open `solution/Clock_buggy.tla`. Read both actions. Spot the missing primed variable.
 2. Run TLC and confirm a `TypeOK` violation:
    ```bash
    cd solution

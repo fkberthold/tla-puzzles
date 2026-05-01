@@ -138,8 +138,6 @@ A single fair process:
 
 1. **advance**: while `tick < 5`, set `display := Color(tick + 1)`, `goFlag := IsGo(tick + 1)`, then `tick := tick + 1`.
 
-(The order matters because of the one-assignment-per-label rule. Assign `display` and `goFlag` based on the NEW tick, then advance the tick. A clean way: compute the new tick first as a local expression, OR just use `tick + 1` in the right-hand sides as shown.)
-
 ## Check
 
 1. **TypeOK** — see above.
@@ -150,7 +148,7 @@ A single fair process:
 
 - TLC should report `No error has been found`.
 - All three invariants pass.
-- The canonical solution reports **6 distinct states** (one per `tick` value: 0, 1, 2, 3, 4, 5). Your deterministic spec will likely match.
+- The canonical solution reports **7 distinct states** (one per `tick` value 0–5, plus a terminal "Done" state). Your deterministic spec will likely match.
 - Trace through by hand: at tick 2, `display = "yellow"` and `goFlag = FALSE`. At tick 4, `display = "green"` and `goFlag = TRUE`.
 
 **Bonus.** Replace the `CASE` with a nested `IF/THEN/ELSE`. Confirm TLC still gets the same answers. The `CASE` is just sugar for nested `IF`s — same semantics, prettier with many branches.
@@ -164,4 +162,4 @@ A single fair process:
     `CASE cond1 -> result1 [] cond2 -> result2 [] OTHER -> default` evaluates conditions in order and returns the FIRST result whose condition holds. `OTHER` is the catch-all, like `else`. Use `CASE` when you have many cases; use `IF` when you have two.
 
 ??? hint "💡 Hint 3 — Two phases: define operators, then use in loop"
-    The `define` block sets up `Color(t)` and `IsGo(t)` as operators that compute the light color and go-flag from a tick value. The `advance` loop repeatedly sets `display` and `goFlag` based on `Color(tick + 1)` and `IsGo(tick + 1)`, THEN increments tick. This ordering ensures the displays match the NEW tick.
+    The `define` block sets up `Color(t)` and `IsGo(t)` as operators that compute the light color and go-flag from a tick value. The `advance` loop sets `display`, `goFlag`, and `tick` all in one label — PlusCal evaluates all right-hand sides using the OLD values simultaneously, so using `tick + 1` as the argument to `Color` and `IsGo` correctly computes the next-tick display before tick advances.

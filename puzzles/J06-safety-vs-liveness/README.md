@@ -6,7 +6,7 @@
 
 Every TLA+ property falls into one of two camps:
 
-- **Safety.** A claim about *every reachable state*. "Nothing bad happens." Has the shape of an INVARIANT — a predicate over a single state.
+- **Safety.** A claim about *every reachable state*. "Nothing bad happens." Usually has the shape of an INVARIANT — a predicate over a single state. For action-level safety ("nothing bad ever happens across two consecutive states"), you write `[][A]_vars` and it goes in PROPERTY, not INVARIANT, because INVARIANT can only see one state at a time.
 - **Liveness.** A claim about *behaviors* (infinite sequences of states). "Something good eventually happens." Has the shape `<>P`, `[]<>P`, `P ~> Q`, etc.
 
 The two have *different ergonomics in TLA+*:
@@ -35,7 +35,7 @@ INVARIANT FlipsNonNeg
 PROPERTY  EventuallyOn
 ```
 
-Note the cfg keywords: **safety properties go under `INVARIANT`, liveness properties go under `PROPERTY`.** That's the syntactic line. The semantic line is one level deeper.
+Note the cfg keywords: **single-state safety properties go under `INVARIANT`, liveness properties go under `PROPERTY`** (and action-level safety properties also go under `PROPERTY`). That's the syntactic line. The semantic line is one level deeper.
 
 ```bash
 cd solution
@@ -69,7 +69,7 @@ Liveness properties almost always need fairness on the relevant actions. If your
 
 ## Why the distinction matters
 
-1. **Where it goes in the cfg.** `INVARIANT` for safety, `PROPERTY` for liveness. Different keyword, different TLC machinery.
+1. **Where it goes in the cfg.** `INVARIANT` for single-state safety, `PROPERTY` for liveness *and* for action-level safety (e.g., `[][A]_vars` forms). Different keyword, different TLC machinery.
 2. **What TLC has to do.** Invariants: state-by-state check during graph exploration — fast. Properties: temporal-logic check at the end — slower.
 3. **What a counterexample looks like.** Invariant violation: a finite path to a bad state. Property violation: a "lasso" — a finite stem followed by a cycle that the system loops in forever, never satisfying the property.
 4. **Whether fairness matters.** Safety: never. Liveness: almost always.
@@ -109,7 +109,7 @@ There isn't really a trade-off here — properties are *either* safety or livene
 
 A useful rule of thumb:
 
-> **"Never X" / "Always X" / "X holds" → safety, INVARIANT. "Eventually X" / "X then Y" / "infinitely often X" → liveness, PROPERTY.**
+> **"Never X in any state" / "X holds at every state" → single-state safety, INVARIANT. "Never X across any two consecutive states" (e.g., counter never decreases) → action-level safety, PROPERTY (written `[][A]_vars`). "Eventually X" / "X then Y" / "infinitely often X" → liveness, PROPERTY.**
 
 When stakeholders speak in *English*, "the system should be reliable" / "things should work" are too vague. Push them: do you mean "reliable means no two clients see different views" (safety) or "reliable means a request always completes within N steps" (liveness)? The TLA+ shape sharpens the requirement.
 

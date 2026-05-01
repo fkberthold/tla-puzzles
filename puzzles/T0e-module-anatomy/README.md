@@ -44,7 +44,7 @@ SPECIFICATION Spec
 INVARIANT TypeOK
 ```
 
-### The seven hard rules
+### The nine module elements
 
 1. **Module header**: `---- MODULE <Name> ----`. The dashes are at least four; conventional is exactly four. The name **must** match the filename. `Counter.tla` ↔ `MODULE Counter`. Mismatch is the most common "why won't TLC parse this?" mistake.
 
@@ -56,7 +56,7 @@ INVARIANT TypeOK
 
 5. **`define { ... }`** (PlusCal): named TLA+ operators that are visible everywhere in the module. Pcal copies them out into the translation. T06 covers this in detail.
 
-6. **Labels**: an identifier ending in `:` marks an atomic step. Code between two labels happens as one indivisible action. Labels are how PlusCal expresses the granularity of concurrency. T04 and J07 cover label boundaries.
+6. **Labels**: an identifier ending in `:` marks an atomic step. Code between two labels happens as one indivisible action. Labels are how PlusCal expresses the granularity of concurrency. T04 covers label boundaries.
 
 7. **PlusCal block closer**: `*)`. This closes the TLA+ block-comment that started with `(*` in (3).
 

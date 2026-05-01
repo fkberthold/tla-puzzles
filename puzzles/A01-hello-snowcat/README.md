@@ -79,6 +79,7 @@ Write a pure-TLA+ spec `VendingMachine.tla` with:
 - A variable `dispensed` annotated as `Bool`, initialized to `FALSE`
 - An action `Insert` that adds 25 to `deposit`, leaving `dispensed` unchanged, only fires if not yet dispensed and `deposit < 100`
 - An action `Dispense` that fires only when `deposit >= 100` and `~dispensed`, sets `dispensed' = TRUE`, leaves `deposit` unchanged
+- A terminal-stutter action `Done` that fires when `dispensed = TRUE` and leaves all variables unchanged (`UNCHANGED vars`); include it in `Next` so TLC does not report a deadlock at the terminal state
 - A `Spec == Init /\ [][Next]_vars` formula
 - A `TypeOK` invariant: `deposit \in 0..200 /\ dispensed \in BOOLEAN`
 

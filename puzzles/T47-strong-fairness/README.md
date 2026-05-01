@@ -84,9 +84,9 @@ In the cfg, both kinds of fairness are part of `Spec`, so you don't add a specia
 
 ## Setup
 
-A printer has a single job slot. Users submit print jobs one at a time. The printer only prints when there's a job in the slot. After printing, the slot is empty until a new job arrives. Users sometimes pause submitting; the slot's `hasJob` flag flickers.
+A printer has a single job slot. The user submits jobs one at a time — but can also cancel a pending job (the job is still in the queue but the user decides not to wait). This means the slot's `hasJob` flag genuinely **flickers**: the user sets it TRUE on submit and FALSE on cancel.
 
-The user expectation: every submitted job is eventually printed.
+The printer only prints when there is a job (`hasJob = TRUE`). After printing, the slot is cleared. The printer tracks a rolling count of prints, cycling back to 0 after every 3. The user expectation: the printer completes every batch of 3 jobs infinitely often.
 
 ## Task
 
@@ -95,16 +95,16 @@ Write a PlusCal spec with:
 - Variables `hasJob = FALSE`, `printed = 0`
 - A `define` block with:
   - `TypeOK == hasJob \in BOOLEAN /\ printed \in 0..3`
-  - `JobsServed == []<>(printed = 3)` — eventually all 3 jobs are printed (we cap so the state space is finite)
-- A `fair process (user = "User")` that submits up to 3 jobs total. Each iteration:
-  - `await ~hasJob`
-  - if `printed < 3`, set `hasJob := TRUE`
+  - `JobsServed == []<>(printed = 3)` — the printer reaches 3 prints infinitely often
+- A `fair process (user = "User")` that loops forever with an `either/or`:
+  - Either: `await ~hasJob; hasJob := TRUE` (submit a job)
+  - Or: `await hasJob; hasJob := FALSE` (cancel the pending job)
 - A `fair+ process (printer = "Printer")` that loops forever:
   - `await hasJob`
-  - `printed := printed + 1`
+  - increment `printed` mod 3 (if `printed < 3` then `printed + 1`, else reset to `0`)
   - `hasJob := FALSE`
 
-Why `fair+` on the printer? Because each print FIRES the action and immediately disables it (clearing `hasJob`). The action is intermittently enabled, so weak fairness won't suffice; strong fairness will.
+Why `fair+` on the printer? The user can cancel any pending job, so `hasJob` **flickers** — it becomes TRUE on submit and FALSE on cancel. The printer action is enabled only while `hasJob = TRUE`. Since a cancel can disable it at any moment, the action is never *continuously* enabled; it is only *repeatedly* enabled. Weak fairness gives no guarantee here. Strong fairness does.
 
 In `Printer.cfg`:
 
@@ -115,27 +115,25 @@ PROPERTY JobsServed
 CHECK_DEADLOCK FALSE
 ```
 
-The `CHECK_DEADLOCK FALSE` line tells TLC not to flag a deadlock when the user reaches `Done` (no more jobs to submit) and the printer is blocked on `await hasJob`. We're not modeling shutdown — the printer's purpose here is the SF demonstration, and `[]<>(printed = 3)` only requires that 3 prints happen, not that the printer terminates afterward.
-
 ## Check
 
 1. **TypeOK** holds.
-2. **JobsServed** (`[]<>(printed = 3)`) passes — every job is eventually printed.
+2. **JobsServed** (`[]<>(printed = 3)`) passes — the printer completes every batch of 3 infinitely often.
 
 ## Expected Result
 
-- TLC should report `No error has been found`. The canonical solution explores a small state space — about 8 distinct states covering combinations of `hasJob`, `printed`, and the two pcs; your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
+- TLC should report `No error has been found`. The canonical solution explores **8 distinct states** covering all combinations of `hasJob ∈ {FALSE, TRUE}` and `printed ∈ {0, 1, 2, 3}`; your spec may produce more if you split any action into multiple labels — that's fine.
 - `JobsServed` passes with `fair+ process` on the printer.
-- **Strip test**: change `fair+ process` to `fair process` on the printer (downgrade SF to WF). Re-translate (`tlc -pcal Printer.tla`) and re-run. The property's checked behavior depends on TLC's interpretation: depending on TLC's WF semantics for this exact pattern you may or may not see a violation directly. The point of the lesson is mechanical: `fair+` produces `SF_vars(...)` in the translation; `fair` produces `WF_vars(...)`. Open `Printer.tla` after both translations and read the `Spec ==` block to see the difference. The cfg never changes.
-- **Inspect the translation**: at the bottom of `Printer.tla`, look for the `Spec ==` definition. With `fair+` on the printer, you should see `SF_vars(printer)` (not `WF_vars(printer)`). That generated formula is the new concept this puzzle teaches.
+- **Strip test**: change `fair+ process` to `fair process` on the printer (downgrade SF to WF). Re-translate (`tlc -pcal Printer.tla`) and re-run. TLC will **definitely** report a temporal property violation — `Temporal properties were violated`. The counterexample is a lasso where the user alternates between submitting and immediately canceling: `hasJob` flickers TRUE/FALSE forever and the printer never fires past `printed = 2`. This is the WF failure mode the lesson is about.
+- **Inspect the translation**: at the bottom of `Printer.tla`, look for the `Spec ==` definition. With `fair+` on the printer, you should see `SF_vars(printer)` (not `WF_vars(printer)`). With `fair`, you see `WF_vars(printer)`. That one-word difference is the lesson.
 
 ## Hints
 
 ??? hint "💡 Hint 1 — The enabled/disabled flickering"
-    The printer's action fires when `hasJob = TRUE`, and firing SETS `hasJob = FALSE`. So after the printer fires, the action becomes disabled. When does it become enabled again? What fairness does that pattern require?
+    The printer's action fires when `hasJob = TRUE`. But the user can cancel at any time: `await hasJob; hasJob := FALSE`. That cancel sets `hasJob = FALSE` and disables the printer — without the printer having printed anything. Then the user might re-submit (TRUE) and cancel again (FALSE), indefinitely. The printer is repeatedly enabled, but never continuously. What fairness does that pattern require?
 
 ??? hint "💡 Hint 2 — Why weak fairness fails here"
-    WF says "if continuously enabled, eventually fires." But the printer's action is never CONTINUOUSLY enabled — it disables itself. SF says "if repeatedly enabled, eventually fires." That's what the flickering pattern needs.
+    WF says "if continuously enabled, eventually fires." But the user's cancel action can disable the printer at any moment. The printer is never *continuously* enabled — it flickers. SF says "if repeatedly enabled, eventually fires." The user will keep submitting (enabling the printer) infinitely often, so SF forces the printer to fire.
 
 ??? hint "💡 Hint 3 — The `fair+ process` syntax"
     Use `fair+ process (printer = "Printer")` (note the `+`). After pcal translates, look at the `Spec ==` block: you should see `SF_vars(printer)` instead of `WF_vars(printer)`.

@@ -71,12 +71,10 @@ Write a PlusCal spec with:
 - A variable `door` starting at `"unlocked"`
 - A variable `through` — a set of who has walked through, starting at `{}`
 - Two processes (Alice and Bob) that each:
-  1. **check**: `await door = "unlocked"` (wait until the door is unlocked)
+  1. **check**: `if (door = "unlocked")` — if the door is unlocked, proceed to `walk`; otherwise the process finishes
   2. **walk**: set `door := "locked"` and add themselves to `through`
 
 Note: `check` and `walk` are TWO LABELS — two separate atomic steps. This is the key.
-
-Use `if` (not `await`) for the check — if the door is locked, the process just finishes without walking through.
 
 ## Check
 
@@ -89,16 +87,6 @@ Use `if` (not `await`) for the check — if the door is locked, the process just
 - The trace shows the interleaving: Alice checks (unlocked), Bob checks (still unlocked — Alice hasn't walked yet!), Alice walks through, Bob walks through.
 - This is the classic TOCTOU (time-of-check-to-time-of-use) race condition.
 
-## Hint
-
-```
-fair process (person \in {"Alice", "Bob"}) {
-  ...
-}
-```
-
-Use `self` inside the process body for the person's identity.
-
 ## Hints
 
 ??? hint "💡 Hint 1 — The race lives in the gap between labels"
@@ -108,4 +96,12 @@ Use `self` inside the process body for the person's identity.
     One label for the check, a second label for walking through. Between these two atomic steps, the other process can run. If you put both in the same label, the race disappears (you can't observe an intermediate state). But the puzzle asks you to MODEL the race, so split them.
 
 ??? hint "💡 Hint 3 — Self and fairness"
-    Inside `fair process (person \in {"Alice", "Bob"})`, the identifier is `self`. Use `self` in your add-to-set operation: `through := through \cup {self}`. And use `fair` so TLC doesn't get stuck — each person eventually gets a turn.
+    Declare your process like this:
+
+    ```
+    fair process (person \in {"Alice", "Bob"}) {
+      ...
+    }
+    ```
+
+    Inside the process body, `self` holds the identity of the currently running person. Use it in your add-to-set operation: `through := through \union {self}`. And use `fair` so TLC doesn't get stuck — each person eventually gets a turn.

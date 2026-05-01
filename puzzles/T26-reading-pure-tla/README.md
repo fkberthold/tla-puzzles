@@ -64,13 +64,46 @@ Reading reflex: you can describe the system in one sentence. *"The thermostat si
 
 ## Setup
 
-A pure-TLA+ spec for a **traffic light** is shown below as the file `TrafficLight.tla` (also in the 🔒 spoiler). It is short — about 20 lines of real content. There is no PlusCal block; the file is hand-written TLA+.
+A pure-TLA+ spec for a **traffic light** is in `solution/TrafficLight.tla`. It is short — about 20 lines of real content. There is no PlusCal block; the file is hand-written TLA+.
+
+`TrafficLight.tla`:
+
+```
+---- MODULE TrafficLight ----
+EXTENDS Integers
+
+VARIABLES color, ticks
+
+Colors == {"red", "green", "yellow"}
+
+TypeOK == color \in Colors /\ ticks \in 0..3
+
+Init ==
+  /\ color = "red"
+  /\ ticks = 0
+
+Tick ==
+  /\ ticks < 3
+  /\ ticks' = ticks + 1
+  /\ color' = color
+
+Change ==
+  /\ color' = IF color = "red"   THEN "green"
+              ELSE IF color = "green" THEN "yellow"
+              ELSE "red"
+  /\ ticks' = 0
+
+Next == Tick \/ Change
+
+Spec == Init /\ [][Next]_<<color, ticks>>
+====
+```
 
 Your job is to **read** it and answer the questions below in your head (or on paper). Then run TLC and confirm the state count matches your reasoning.
 
 ## Task
 
-Open `solution/TrafficLight.tla` (or click the 🔒 spoiler below). Without running TLC yet, answer these questions:
+Read the spec above (or open `solution/TrafficLight.tla`). Without running TLC yet, answer these questions:
 
 1. How many variables are there? Name them.
 2. What are the initial values? (one initial state, or several?)

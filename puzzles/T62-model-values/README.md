@@ -62,6 +62,8 @@ A spec may have a SET of model values that are interchangeable (`Workers`) and O
 - `CONSTANT Boss = boss` — a specific one of them
 - `SYMMETRY Permutations(Workers \ {Boss})` — permute only the interchangeable ones
 
+This is a new pattern, not covered in T60 — `Permutations` can take any set, including a subset formed by set-difference (`\`).
+
 This is how you keep symmetry usable when one process is special.
 
 ## Setup
@@ -100,7 +102,7 @@ Now try a third experiment: keep model values, but add a comparison operator the
 Finish == \E w \in Workers \ done : w # Boss /\ w > Boss /\ done' = done \cup {w}
 ```
 
-Re-translate (no PlusCal here, so just save) and re-run. TLC errors at evaluation: `>` is not defined for model values.
+Save the file and re-run TLC. TLC errors at evaluation: `>` is not defined for model values.
 
 Restore the original `Finish`.
 
