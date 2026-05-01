@@ -18,17 +18,17 @@
 (* Aggregate action maps to abstract Finish, and the heartbeat's           *)
 (* ToggleReady steps map to abstract stuttering.                           *)
 (***************************************************************************)
-EXTENDS Integers, FiniteSets
+EXTENDS Integers, FiniteSets, Apalache
 
 CONSTANT
-  \* @type: Set(NODE);
+  \* @type: Set(Str);
   Nodes
 
 ASSUME /\ IsFiniteSet(Nodes)
        /\ Nodes # {}
 
 VARIABLES
-  \* @type: NODE -> Int;
+  \* @type: Str -> Int;
   local,
   \* @type: Bool;
   ready,
@@ -39,17 +39,12 @@ VARIABLES
 
 vars == <<local, ready, agg, aggDone>>
 
-\* ApaFoldSet — fold a binary operator over a finite set.
-\*   On Apalache, use the built-in ApaFoldSet (EXTENDS Apalache).
-\*   On TLC, this recursive definition reduces over (CHOOSE x \in S: TRUE).
-RECURSIVE ApaFoldSet(_, _, _)
-ApaFoldSet(Op(_,_), v, S) ==
-  IF S = {} THEN v
-  ELSE LET x == CHOOSE x \in S : TRUE
-       IN  ApaFoldSet(Op, Op(v, x), S \ {x})
-
-\* Sum of all local cells, computed via fold.
-SumLocals == ApaFoldSet(LAMBDA acc, n: acc + local[n], 0, Nodes)
+\* Sum of all local cells, computed via Apalache's ApaFoldSet (provided by EXTENDS Apalache).
+\* The Apalache.tla shipped in this solution dir is the official module from the
+\* apalache jar; both TLC (via erasure semantics) and Apalache (native) accept it.
+\* @type: (Int, Str) => Int;
+Add(acc, n) == acc + local[n]
+SumLocals == ApaFoldSet(Add, 0, Nodes)
 
 NodeCount == Cardinality(Nodes)
 
@@ -139,5 +134,9 @@ EventuallyAggregated == AllContributed ~> aggDone
 
 \* The abstract liveness property holds at the concrete level too.
 EventuallyDone == <>aggDone
+
+\* For Apalache: provide a concrete value for the symbolic CONSTANT.
+\* TLC ignores this — see DistributedCounter.cfg for TLC's constant binding.
+ConstInit == Nodes = {"n1", "n2", "n3"}
 
 ================================

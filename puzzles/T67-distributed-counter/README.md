@@ -56,19 +56,22 @@ exercises:
   | `DoneStutter`         | stuttering                     |
 
 - **Apalache type annotations (Apalache track).** Every CONSTANT and
-  VARIABLE carries a `\* @type:` comment. With Apalache installed, those
-  annotations let `apalache check` verify the same spec symbolically.
-  Without Apalache, they are inert comments TLC ignores.
+  VARIABLE carries a `\* @type:` comment. `apalache check` reads them and
+  verifies the same spec symbolically against an SMT solver. TLC reads
+  the same file and ignores the comments.
 
 - **`ApaFoldSet` (Apalache track).** Aggregation is a fold over the set
   of nodes:
 
   ```
-  SumLocals == ApaFoldSet(LAMBDA acc, n: acc + local[n], 0, Nodes)
+  Add(acc, n) == acc + local[n]
+  SumLocals == ApaFoldSet(Add, 0, Nodes)
   ```
 
-  We define `ApaFoldSet` recursively in this module so TLC can evaluate
-  it; on Apalache, `EXTENDS Apalache` would supply a native version.
+  The spec `EXTENDS Apalache`. The official `Apalache.tla` ships in this
+  solution dir (extracted from the apalache jar), so both TLC and
+  Apalache see the same module — Apalache uses native ApaFoldSet,
+  TLC uses the erasure-style operator definition.
 
 ## Setup
 
@@ -167,9 +170,21 @@ mapping `c <- SumLocals` is the only choice that lets each concrete
 
 ### 4. Remove all type annotations
 
-TLC behavior is unchanged — the annotations were inert for TLC. Run the
-spec under Apalache (if installed) and you will see `apalache check`
-report missing types. **This is `apa:type-base` in action.**
+TLC behavior is unchanged — the annotations were inert for TLC. Run
+`apalache check --inv=TypeOK --cinit=ConstInit DistributedCounter.tla`
+and you will see snowcat report missing types. **This is `apa:type-base`
+in action.**
+
+## Verifying with Apalache
+
+```bash
+apalache check --inv=TypeOK --cinit=ConstInit --length=10 DistributedCounter.tla
+```
+
+The `--cinit=ConstInit` flag tells Apalache where to find the constant
+initializer (Apalache reads `.cfg` files for the spec/properties but not
+for `CONSTANT` bindings — that's Apalache's symbolic model talking).
+Expected outcome: `NoError`.
 
 ## What this puzzle celebrates
 

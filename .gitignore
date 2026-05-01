@@ -17,3 +17,4 @@ entities.json
 *.db
 .beads-credential-key
 /issues.jsonl
+_apalache-out/

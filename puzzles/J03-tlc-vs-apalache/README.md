@@ -23,18 +23,15 @@ tlc SmallCounter
 
 Output: "5 distinct states found." TLC enumerated every value of `n` from 0 to `MaxN=4`.
 
-The same spec, with the type annotations shown in comments at the top, runs under Apalache as:
+The same spec, with type annotations active on `MaxN` and `n`, runs under Apalache as:
 
 ```bash
-# If apalache is installed:
-apalache-mc check --inv=NeverOverflow SmallCounter.tla
-# Or with a symbolic constant:
-apalache-mc check --cinit=CInit --inv=NeverOverflow SmallCounter.tla
+apalache-mc check --inv=NeverOverflow --cinit=ConstInit SmallCounter.tla
 ```
 
-Apalache reports something like "The outcome is: NoError" — it proved no violation up to its default search depth, by SMT reasoning, **without ever enumerating the 5 concrete states**.
+Apalache reports `The outcome is: NoError` — it proved no violation up to its default search depth (10 transitions), by SMT reasoning, **without ever enumerating the concrete states**. The `ConstInit` operator (defined at the bottom of the spec) parameterizes `MaxN` over `1..1000` symbolically; Apalache verifies safety for *every* value in that range at once.
 
-(If `apalache-mc` is not on your `$PATH`, that's fine — the lesson here is the *choice*, not the install. Run TLC and reason about what Apalache *would* do.)
+If `apalache-mc` isn't on your `$PATH`, install from https://github.com/apalache-mc/apalache/releases. Either way, the core lesson is the *choice*, not the install — running TLC and reasoning about what Apalache would do is enough to internalize the trade-off.
 
 ## The fundamental difference
 

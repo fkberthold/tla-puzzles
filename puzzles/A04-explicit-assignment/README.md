@@ -115,7 +115,7 @@ apalache-mc check --inv=TypeOK --length=10 Door.tla
 
 - TLC: 11 distinct states, no error. The `:=` operator is just `=` to TLC, so the spec checks normally.
 
-> **Note about `EXTENDS Apalache`.** The full `Apalache.tla` ships with a real Apalache install. If you don't have Apalache installed yet, the `solution/` directory includes a tiny TLC-only shim of the same module (just enough to define `:=` as `=` and let TLC parse the spec). Once you install Apalache for real, the shim is unused — Apalache resolves `EXTENDS Apalache` to its own library copy, which has the proper `:=` semantics for the symbolic checker.
+> **Note about `EXTENDS Apalache`.** The official `Apalache.tla` is shipped in the `solution/` directory (extracted from the apalache jar). Both TLC and Apalache resolve `EXTENDS Apalache` to the same file. TLC uses the erasure-style operator bodies (`__x := __e == __x = __e`); Apalache replaces them with native symbolic semantics.
 - Apalache: invariant holds, no errors about unassigned variables.
 
 **Mistake to try.** Drop the `passes' := passes` line from `Close`. Run TLC: it errors with "the next state is not completely specified" — TLC sees that `passes` has no defined behavior in `Close`. Run Apalache (if you have it): `assignment error: variable passes is not assigned a value`. Both tools require the assignment; `:=` makes it harder to forget.

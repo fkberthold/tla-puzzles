@@ -1,21 +1,17 @@
 ---- MODULE Tracker ----
 EXTENDS Integers, Sequences
 
-\* @type: Set(Int);
-VARIABLE pending
-
-\* @type: Seq(Int);
-VARIABLE queue
-
-\* @type: <<Int, Int>>;
-VARIABLE shift
-
-\* @type: { id: Int, priority: Str };
-VARIABLE currentOrder
-
-\* @type: Int -> Str;
-VARIABLE status
-
+VARIABLES
+  \* @type: Set(Int);
+  pending,
+  \* @type: Seq(Int);
+  queue,
+  \* @type: <<Int, Int>>;
+  shift,
+  \* @type: { id: Int, priority: Str };
+  currentOrder,
+  \* @type: Int -> Str;
+  status
 vars == << pending, queue, shift, currentOrder, status >>
 
 Init ==

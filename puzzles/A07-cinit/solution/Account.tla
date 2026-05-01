@@ -5,9 +5,10 @@ CONSTANT
   \* @type: Int;
   Limit
 
-\* @type: Int;
-VARIABLE balance
-
+VARIABLES
+  \* @type: Int;
+  balance
+\* @type: <<Int>>;
 vars == << balance >>
 
 Init == balance := 0

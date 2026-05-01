@@ -4,9 +4,10 @@ EXTENDS Integers, Apalache
 \* @typeAlias: box = { weight: Int, fragile: Bool };
 WarehouseTypes == TRUE
 
-\* @type: Set($box);
-VARIABLE boxes
-
+VARIABLES
+  \* @type: Set($box);
+  boxes
+\* @type: <<Set($box)>>;
 vars == << boxes >>
 
 Init ==
@@ -22,15 +23,18 @@ Next == UNCHANGED boxes
 Spec == Init /\ [][Next]_vars
 
 TotalWeight ==
-  LET Plus(acc, b) == acc + b.weight
+  LET \* @type: (Int, $box) => Int;
+      Plus(acc, b) == acc + b.weight
   IN  ApaFoldSet(Plus, 0, boxes)
 
 HeaviestWeight ==
-  LET Max(acc, b) == IF b.weight > acc THEN b.weight ELSE acc
+  LET \* @type: (Int, $box) => Int;
+      Max(acc, b) == IF b.weight > acc THEN b.weight ELSE acc
   IN  ApaFoldSet(Max, 0, boxes)
 
 FragileCount ==
-  LET Bump(acc, b) == IF b.fragile THEN acc + 1 ELSE acc
+  LET \* @type: (Int, $box) => Int;
+      Bump(acc, b) == IF b.fragile THEN acc + 1 ELSE acc
   IN  ApaFoldSet(Bump, 0, boxes)
 
 WarehouseOK ==

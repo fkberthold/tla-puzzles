@@ -1,12 +1,11 @@
 ---- MODULE VendingMachine ----
 EXTENDS Integers
 
-\* @type: Int;
-VARIABLE deposit
-
-\* @type: Bool;
-VARIABLE dispensed
-
+VARIABLES
+  \* @type: Int;
+  deposit,
+  \* @type: Bool;
+  dispensed
 vars == << deposit, dispensed >>
 
 Init ==

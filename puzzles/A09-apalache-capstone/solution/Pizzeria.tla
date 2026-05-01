@@ -11,21 +11,19 @@ CONSTANTS
   \* @type: Set(Str);
   Toppings
 
-\* @type: Int;
-VARIABLE nextId
+VARIABLES
+  \* @type: Int;
+  nextId,
+  \* @type: Seq($order);
+  pendingQueue,
+  \* @type: Int -> $oven;
+  ovens,
+  \* @type: Set($order);
+  completed,
+  \* @type: Int -> Int;
+  handled
 
-\* @type: Seq($order);
-VARIABLE pendingQueue
-
-\* @type: Int -> $oven;
-VARIABLE ovens
-
-\* @type: Set($order);
-VARIABLE completed
-
-\* @type: Int -> Int;
-VARIABLE handled
-
+\* @type: <<Int, Seq($order), Int -> $oven, Set($order), Int -> Int>>;
 vars == << nextId, pendingQueue, ovens, completed, handled >>
 
 OvenIDs == { 1, 2 }
@@ -92,7 +90,8 @@ Spec == Init /\ [][Next]_vars
 TotalCompleted == Cardinality(completed)
 
 TotalSizeBaked ==
-  LET Plus(acc, o) == acc + o.size
+  LET \* @type: (Int, $order) => Int;
+      Plus(acc, o) == acc + o.size
   IN  ApaFoldSet(Plus, 0, completed)
 
 \* ------------------------------------------------------------------

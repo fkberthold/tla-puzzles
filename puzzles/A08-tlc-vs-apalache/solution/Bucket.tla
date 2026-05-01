@@ -5,9 +5,10 @@ CONSTANT
   \* @type: Int;
   Capacity
 
-\* @type: Int;
-VARIABLE tokens
-
+VARIABLES
+  \* @type: Int;
+  tokens
+\* @type: <<Int>>;
 vars == << tokens >>
 
 Init == tokens := 0

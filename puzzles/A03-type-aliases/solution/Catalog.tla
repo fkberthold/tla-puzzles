@@ -5,15 +5,13 @@ EXTENDS Integers, Sequences
 \* @typeAlias: borrowing = { book: $book, patron: Str };
 CatalogTypes == TRUE
 
-\* @type: Set($book);
-VARIABLE shelf
-
-\* @type: Seq($borrowing);
-VARIABLE recent
-
-\* @type: $book;
-VARIABLE featured
-
+VARIABLES
+  \* @type: Set($book);
+  shelf,
+  \* @type: Seq($borrowing);
+  recent,
+  \* @type: $book;
+  featured
 vars == << shelf, recent, featured >>
 
 Hamlet == [ title |-> "Hamlet", pages |-> 200 ]

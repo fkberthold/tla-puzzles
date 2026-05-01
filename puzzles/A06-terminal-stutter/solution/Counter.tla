@@ -1,9 +1,10 @@
 ---- MODULE Counter ----
 EXTENDS Integers, Apalache
 
-\* @type: Int;
-VARIABLE n
-
+VARIABLES
+  \* @type: Int;
+  n
+\* @type: <<Int>>;
 vars == << n >>
 
 Init == n := 0

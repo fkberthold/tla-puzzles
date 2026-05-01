@@ -1,12 +1,11 @@
 ---- MODULE Door ----
 EXTENDS Integers, Apalache
 
-\* @type: Str;
-VARIABLE state
-
-\* @type: Int;
-VARIABLE passes
-
+VARIABLES
+  \* @type: Str;
+  state,
+  \* @type: Int;
+  passes
 vars == << state, passes >>
 
 Init ==
