@@ -1,0 +1,88 @@
+site_name: TLA+ Practice Puzzles
+site_description: A 105-puzzle progressive curriculum for learning TLA+ and PlusCal by doing.
+site_url: https://example.invalid/
+repo_url: https://github.com/fkberthold/tla-puzzles
+repo_name: tla-puzzles
+edit_uri: edit/main/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - footnotes
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Curriculum:
+      - Tier 0 — Prelude: curriculum/tier-0.md
+      - Tier 1 — PlusCal Basics: curriculum/tier-1.md
+      - Tier 2 — Data Structures: curriculum/tier-2.md
+      - Tier 3 — Pure TLA+ Pivot: curriculum/tier-3.md
+      - Tier 4 — Multi-Process & Sync: curriculum/tier-4.md
+      - Tier 5 — Temporal & Fairness: curriculum/tier-5.md
+      - Tier 6 — Spec Structure & Refinement: curriculum/tier-6.md
+      - Tier 7 — Production Craft: curriculum/tier-7.md
+      - Apalache Track: curriculum/apalache.md
+      - Judgment Intersticials: curriculum/judgments.md
+      - Final Capstone: curriculum/final.md
+  - Reference:
+      - Curriculum Map: reference/curriculum-map.md
+      - Quality Gate: reference/quality-gate.md
+      - Judgment Decision Tree: reference/judgments.md
+  - About:
+      - Contributing: about/contributing.md
+      - License: about/license.md
