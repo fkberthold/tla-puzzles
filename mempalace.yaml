@@ -1,0 +1,63 @@
+wing: tla_puzzles
+rooms:
+  - name: curriculum
+    description: Puzzle catalog, tier overview, per-puzzle READMEs, learning progression
+    keywords:
+      - puzzle
+      - tier
+      - lesson
+      - curriculum
+      - tla+ practice
+      - what this is
+      - difficulty
+  - name: pedagogy_rules
+    description: Quality gates, design rules, pedagogical principles for puzzles
+    keywords:
+      - quality gate
+      - quality_gate
+      - must pass
+      - pedagogy
+      - rules
+      - checks
+      - exception
+      - minimal novelty
+  - name: verification
+    description: TLC harness configs, model-check setup, invariants, properties
+    keywords:
+      - tlc
+      - cfg
+      - constants
+      - invariants
+      - properties
+      - model
+      - specification
+      - verification
+  - name: solutions
+    description: PlusCal/TLA+ specs — verbatim algorithm and translation
+    keywords:
+      - pluscal
+      - tla
+      - extends
+      - variables
+      - process
+      - algorithm
+      - module
+      - solution
+  - name: expertise
+    description: TLA+ language, tooling, idioms, theory — sourced from canonical references
+    keywords:
+      - lamport
+      - hillel
+      - learntla
+      - fairness
+      - refinement
+      - liveness
+      - safety
+      - temporal logic
+  - name: audit_results
+    description: Audit notes and findings for the puzzle set
+    keywords:
+      - audit
+      - finding
+      - issue
+      - regression
