@@ -96,3 +96,14 @@ In `Counter.cfg`: `INVARIANT TypeOK` and `PROPERTY Settles`.
   - `[]<>(n = 3)` still passes (3 recurs every cycle).
   - `<>[](n = 3)` FAILS — there is no point past which `n = 3` permanently. TLC produces a lasso showing the cycle.
 - This is the cleanest demonstration of why `[]<>` and `<>[]` are different: stabilization vs. recurrence.
+
+## Hints
+
+??? hint "💡 Hint 1 — Stabilization, not oscillation"
+    The task says `n` "settles at 3." What does that mean? Once `n = 3`, does it ever leave that state in your spec? If so, `<>[]` would fail.
+
+??? hint "💡 Hint 2 — The loop guard"
+    Your process loops forever with two branches: increment (conditionally) or `skip`. What prevents `n` from dropping back down? Why does the loop never reset `n`?
+
+??? hint "💡 Hint 3 — The property formula"
+    `Settles == <>[](n = 3)` reads "eventually, n is always 3." This holds when the loop reaches a state where the increment is disabled and only `skip` remains, so `n` stays at 3 forever.

@@ -113,3 +113,14 @@ State 2: minutes = null, seconds = 1
 After you add `/\ UNCHANGED minutes` to the `seconds < 59` branch of `Tick`, TLC reports **3600 distinct states** — every `(minutes, seconds)` pair in `0..59 × 0..59`, reachable by `Tick`-then-`Reset` cycling and the rollover branch. `TypeOK` passes; no deadlock.
 
 The error message is the most important part of this puzzle. Anytime TLC says "variable is not defined" or "successor not completely specified," look for a primed variable that is missing from the action you just wrote.
+
+## Hints
+
+??? hint "💡 Hint 1 — Every action must mention every variable"
+    The rule: in each action (in Next), every variable in the spec must appear in primed form — either assigned a new value or held steady. If you forget to mention a primed variable, TLC does not assume it stays the same; it treats it as unconstrained (can be anything), and `TypeOK` usually fails immediately.
+
+??? hint "💡 Hint 2 — Read the error message"
+    When TLC says "Successor state is not completely specified" or "variable is not defined," look at which variable it names. That is the one you forgot to mention in primed form. Find the action that fired on the first step (shown in the trace) and ask: did I write `minutes'` or `seconds'` for that variable?
+
+??? hint "💡 Hint 3 — UNCHANGED is shorthand"
+    `UNCHANGED var` expands to `var' = var` — it holds the variable steady. When an action changes one variable (e.g., `seconds' = seconds + 1`) but not another, use `UNCHANGED minutes` to satisfy the "mention every variable" rule. For multiple unchanged variables, use `UNCHANGED <<var1, var2>>`.

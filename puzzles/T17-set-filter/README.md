@@ -112,3 +112,14 @@ In the `define` block:
 - All three invariants pass.
 
 **Bonus.** Replace `loaned[b] /= "none"` with `loaned[b] \in {"alice", "bob"}` — this filter "by membership in a set" is a common shape. Predict whether the result is the same (only alice has a loan), then run TLC and confirm.
+
+## Hints
+
+??? hint "💡 Hint 1 — Filter syntax: binding before colon"
+    The filter `{x \in S : P(x)}` puts the BINDING (`x \in S`) BEFORE the colon, and the PREDICATE (`P(x)`) AFTER. Read it as "the set of x in S WHERE P(x) holds." You iterate through the domain `loaned` (which is 1..4), and keep only the books where the predicate matches.
+
+??? hint "💡 Hint 2 — Two filters: out on loan and available"
+    One filter keeps books where `loaned[b] /= "none"` (on loan). The other keeps books where `loaned[b] = "none"` (available). These are COMPLEMENTARY — every book is in exactly one. Together, `outOnLoan \cup available = {1, 2, 3, 4}`.
+
+??? hint "💡 Hint 3 — The invariant Disjoint is automatic"
+    Because you defined `outOnLoan` and `available` as complementary filters (one checks `= "none"`, the other checks `\= "none"`), they are guaranteed to be disjoint. The invariant `Disjoint` checking `outOnLoan \intersect available = {}` will always pass — it's a logical consequence of your definitions.

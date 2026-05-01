@@ -71,3 +71,14 @@ Add these invariants:
 - TypeOK should pass
 
 > **Note on state counts:** TLC reports both "states generated" and "distinct states found." You should see 55 generated and 30 distinct — the difference is TLC re-checking terminal states (stuttering steps). If you split your logic across two labels (e.g., a separate `choose:` and `check:` step), you'll see 55 distinct instead, because TLC can observe the intermediate state between choosing and checking. Both answers are correct — they reflect different modeling choices about atomicity.
+
+## Hints
+
+??? hint "💡 Hint 1 — Nondeterminism multiplies the state space"
+    5 possible secrets × 5 possible guesses = 25 branching paths. Plus the initial state, plus a final "done" state. Not 10 states — many more. TLC explores all combinations. Does the state count match?
+
+??? hint "💡 Hint 2 — Use `with` at runtime, not initialization"
+    The secret is chosen ONCE at the start (use `\in` at initialization). The guess is chosen ONCE during the game (use `with` in a label). Both introduce nondeterminism — in different places. Which one picks the initial value?
+
+??? hint "💡 Hint 3 — The 'NeverWins' violation should fire immediately"
+    If you claim `result /= "won"` as an invariant, TLC checks that in the initial state BEFORE any step. But `result` starts as `"playing"`, not `"won"`, so the initial state is fine. After the guess label, some paths lead to `"won"`. THAT state violates the invariant.

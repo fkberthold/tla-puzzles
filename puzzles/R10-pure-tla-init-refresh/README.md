@@ -92,3 +92,15 @@ tlc Weather
 - All three invariants PASS.
 
 If `WinterImpliesCold` fails, your disjunction probably let temp range overlap. The fix: each disjunct's clauses must constrain ALL variables they touch.
+
+## Hints
+
+??? hint "💡 Hint 1 — Two shapes, two disjuncts"
+    T03 introduced pure TLA+ Init. This puzzle has TWO distinct initial configurations (summer vs winter). Use \/ at the top level of Init to express "either this set of states OR that set." Each disjunct is a separate conjunction of constraints.
+
+??? hint "💡 Hint 2 — \in picks a value from a set"
+    Inside each disjunct, use \in to let TLC enumerate all values in a range. For summer, temperature \in 60..90. TLC will try all 31 values. This is how you express nondeterminism in pure TLA+.
+
+??? hint "💡 Hint 3 — Each disjunct must constrain ALL variables"
+    If your WinterImpliesCold invariant fails, check that the winter disjunct EXPLICITLY constrains temp to 0..30. The invariant will fail if the summer branch accidentally allows winter-like temps.
+

@@ -70,3 +70,14 @@ Add these invariants:
 - TLC should find **5 distinct states** (1 initial + 3 toggles + 1 done)
 - The "always off" invariant should be **violated** — TLC shows you the first toggle
 - TypeOK should **pass**
+
+## Hints
+
+??? hint "💡 Hint 1 — How many toggles?"
+    The spec runs 3 times. Start OFF. Each time you toggle, the state flips. How many distinct states should exist: initial OFF, then 3 toggles? Count them on your fingers.
+
+??? hint "💡 Hint 2 — The 'always off' invariant"
+    If you write an invariant claiming `light = "off"` always, TLC will find it false at the first toggle. That's not a bug in TLC — it means your spec ALLOWS the light to turn on. Invariants catch where reality differs from the claim.
+
+??? hint "💡 Hint 3 — Split your assignments across labels"
+    The lesson says "one assignment per label." If you increment `count` AND toggle `light` in the same label, you can't do the second toggle. You need separate labels so each toggle is its own atomic step. Try: `toggle:` (flip the light), then `increment:` (add to count), then loop back to `toggle`.

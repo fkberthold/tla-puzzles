@@ -123,3 +123,14 @@ tlc Game
 After you've seen the violation, change the invariant to `strikes = 3 => score <= 9` (always true) or comment it out, and re-run to confirm `TypeOK` still passes.
 
 The takeaway: pure-TLA+ specs are written by composing the same five pieces every time. Once you internalize the shape, writing a spec is just naming actions and listing what each one constrains.
+
+## Hints
+
+??? hint "💡 Hint 1 — Write the actions in the standard form: guard, then updates"
+    Each action (Hit, Strike, StrikeOut) follows the pattern: guards first, then primed assignments, then `UNCHANGED` if applicable. For `Hit`, the guard is `strikes < 3 /\ score < 9`; the updates are `score' = score + 1` and `strikes' = 0`. For `Strike`, the guard is `strikes < 3`, the update is `strikes' = strikes + 1`, and `score` is `UNCHANGED`.
+
+??? hint "💡 Hint 2 — Every action mentions every variable"
+    You have two variables: `score` and `strikes`. Every action must assign or `UNCHANGED` both. If `Hit` sets both, write both. If `Strike` only changes strikes, use `UNCHANGED score`. The rule is unforgiving: forgetting one causes "Successor state is not completely specified."
+
+??? hint "💡 Hint 3 — The invariant may not hold"
+    The invariant `NoScoreWhenStruckOut == strikes = 3 => score = 0` is logically true of the spec's initial state, but TLC's job is to check if it holds at *every* reachable state. If the action sequence Hit → Strike → Strike → Strike is legal, the system can reach `strikes = 3` with `score > 0`, violating the invariant. Use TLC's counterexample to trace the violation path.

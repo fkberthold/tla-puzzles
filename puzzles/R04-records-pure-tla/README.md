@@ -91,3 +91,14 @@ tlc MusicApp
 - No deadlock — `ToggleLike` is always enabled, so the system never gets stuck.
 
 If you forget the guard `song.plays < 5` on `Play`, TLC will report a `TypeOK` violation when `plays` becomes 6. If you write `state'` instead of `song'`, you'll get a parse or unknown-symbol error — variable names must match.
+
+## Hints
+
+??? hint "💡 Hint 1 — Where does the syntax change?"
+    You learned records in T09 using PlusCal. This puzzle writes the same records without PlusCal. The lesson explains the shift: instead of `:=` and labels, you use **primed variables** (`x'`) to describe the next state. Read the "Worked example" section — it shows `state'` (not `:=`). Does your spec follow that pattern?
+
+??? hint "💡 Hint 2 — What's the structure of an action?"
+    An action is a conjunction of a guard and an assignment. Your `Play` action should have the form: `/\ song.plays < 5 /\ song' = [song EXCEPT ...]`. The first line is the guard; the second updates the variable. For `ToggleLike`, there's no guard — it's always enabled.
+
+??? hint "💡 Hint 3 — The @ symbol and EXCEPT"
+    Inside `[song EXCEPT !.plays = @ + 1]`, the `@` means "the old value of the field being updated." For `ToggleLike`, you want to flip `liked`, so use `@ + 1` for plays but `~@` (logical NOT) for the boolean field.

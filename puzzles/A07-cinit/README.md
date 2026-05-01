@@ -150,3 +150,14 @@ apalache-mc check --cinit=ConstInit --inv=BalanceFloor Account.tla
 - Apalache's `--cinit=Op` flag tells the symbolic checker to pick constants that satisfy `Op` and verify the spec parameterized over them.
 - A finite, nontrivial range of constants in one solver run beats N separate TLC runs.
 - TLC has no `--cinit` equivalent. For TLC, you set concrete constant values in the `.cfg` file. The `ConstInit` operator simply sits unused in the spec when TLC runs.
+
+## Hints
+
+??? hint "💡 Hint 1 — Constants are symbolic in ConstInit"
+    The lesson shows that `ConstInit` is a predicate that constrains the constants. You're asked to write a `ConstInit` that lets Apalache pick `Limit` from a range. What's the TLA+ syntax for "this constant is in a range of integers"?
+
+??? hint "💡 Hint 2 — ConstInit lives in the spec"
+    `ConstInit` is an operator you define in the spec (like any TLA+ operator). It's a predicate that Apalache reads when you pass `--cinit=ConstInit`. TLC ignores it entirely — TLC still needs a `.cfg` with a concrete value. The lesson example shows `Limit \in -50..-10`.
+
+??? hint "💡 Hint 3 — One Deposit guard, one Withdraw guard"
+    Both `Deposit` and `Withdraw` should be guarded by a cap (`balance < 100` for `Deposit` to avoid huge state spaces). `Withdraw` must check that the result stays above `Limit`. Use the constant in the guard: `balance - amt >= Limit`.

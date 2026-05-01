@@ -86,3 +86,14 @@ You should see:
 - A spec checked at `Buffers = 3` typically tells you everything a check at `Buffers = 30` would, in 1/100th the time.
 - TypeOK that says `n \in 0..N` automatically scales with the boundary — you don't have to update it.
 - This is the ONE technique that makes large industrial specs check-able. Use it from day one.
+
+## Hints
+
+??? hint "💡 Hint 1 — Count the Branches"
+    Read the spec's guards and conditionals. The lesson mentioned three boundaries to test: `jars = 0`, `0 < jars < MaxJars`, and `jars = MaxJars`. Now trace through what happens at each boundary when the Cook tries to increment or the remove branch (with its `if (jars > 0)`) fires. How many DISTINCT behaviors does each boundary enable? What's the smallest MaxJars that lets all of them happen?
+
+??? hint "💡 Hint 2 — State Space Growth is Linear"
+    Don't guess — measure. Set `MaxJars = 3`, `MaxJars = 10`, `MaxJars = 20`, and note the distinct state counts. What's the relationship? Is it exponential, linear, or something else? If it's linear, the smallest bound that exercises every branch is optimal — anything larger is redundant.
+
+??? hint "💡 Hint 3 — TypeOK Automatically Scales"
+    TypeOK is defined as `jars \in 0..MaxJars`. You don't update it when you change MaxJars. The invariant still passes because it automatically scales. This is the whole point of boundary values: pick the smallest constant that still exercises every branch, and let the invariant definitions adapt. No manual tuning needed.

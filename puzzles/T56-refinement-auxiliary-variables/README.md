@@ -166,3 +166,15 @@ tlc Doorbell
 - `TypeOK` passes.
 - `Refines` PASSES — `Press` is a stutter on the abstract (no `rings` change); `Settle` is the abstract `Ring`.
 - Try removing `aux_rings` and using the mapping `rings <- IF state = "ringing" THEN ?? ELSE ??`. You'll find no expression in raw concrete state lets you recover the count. THAT's why you need an auxiliary.
+
+## Hints
+
+??? hint "💡 Hint 1 — An auxiliary variable tracks state the abstract sees but the concrete's raw state doesn't reveal"
+    Concrete has `state` (idle/ringing); abstract has `rings` (a count). From state alone, you can't recover the count. So add `aux_rings` to the concrete and map `rings <- aux_rings`.
+
+??? hint "💡 Hint 2 — Auxiliary variables are NEVER read by real actions"
+    Settle and Press update `aux_rings`, but their logic never DEPENDS on it. The auxiliary is purely for refinement. If an action guards on or depends on the auxiliary, it's not truly auxiliary.
+
+??? hint "💡 Hint 3 — Each real action must keep the auxiliary consistent"
+    Press doesn't change rings, so UNCHANGED aux_rings. Settle increments aux_rings each time a ring completes. The mapping references the auxiliary, so TLC sees the count grow correctly.
+

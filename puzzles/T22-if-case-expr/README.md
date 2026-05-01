@@ -153,3 +153,14 @@ A single fair process:
 - Trace through by hand: at tick 2, `display = "yellow"` and `goFlag = FALSE`. At tick 4, `display = "green"` and `goFlag = TRUE`.
 
 **Bonus.** Replace the `CASE` with a nested `IF/THEN/ELSE`. Confirm TLC still gets the same answers. The `CASE` is just sugar for nested `IF`s — same semantics, prettier with many branches.
+
+## Hints
+
+??? hint "💡 Hint 1 — IF/THEN/ELSE evaluates to a value"
+    `IF p THEN e1 ELSE e2` is an EXPRESSION that returns either `e1` or `e2` depending on whether `p` holds. The ELSE is MANDATORY. So `display := IF tick = 0 THEN "red" ELSE "green"` assigns a color based on the tick. Use this inside assignments, operators, records — anywhere you need a computed value.
+
+??? hint "💡 Hint 2 — CASE for multi-way branches"
+    `CASE cond1 -> result1 [] cond2 -> result2 [] OTHER -> default` evaluates conditions in order and returns the FIRST result whose condition holds. `OTHER` is the catch-all, like `else`. Use `CASE` when you have many cases; use `IF` when you have two.
+
+??? hint "💡 Hint 3 — Two phases: define operators, then use in loop"
+    The `define` block sets up `Color(t)` and `IsGo(t)` as operators that compute the light color and go-flag from a tick value. The `advance` loop repeatedly sets `display` and `goFlag` based on `Color(tick + 1)` and `IsGo(tick + 1)`, THEN increments tick. This ordering ensures the displays match the NEW tick.

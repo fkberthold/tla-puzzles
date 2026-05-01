@@ -98,3 +98,14 @@ tlc Latch
 - After `Latch` fires once from any initial state, `Latch` is no longer enabled. The system stutters forever — no error, because `[][Next]_vars` allows stuttering.
 
 If you wrote `Latch` without the `latched = FALSE` guard, TLC would still find 11 states — but `latched` could be set to `TRUE` repeatedly, costing nothing in state count (the post-latch state is the same), and the spec would be sloppy. If you wrote `Latch` without `value' = 0` and forgot to `UNCHANGED value`, you'd get the same "Successor state is not completely specified" error you saw in T29.
+
+## Hints
+
+??? hint "💡 Hint 1 — Build the spec in order: variables, type, init, action"
+    Start with `VARIABLES`. Then write `TypeOK` (what values can each variable take?). Then write `Init` (what are the starting values?). Then write the action(s). Finally, wrap it in `Spec`. This order forces you to ask the right questions at each step.
+
+??? hint "💡 Hint 2 — Guards before updates"
+    In the action, write the guard first (the condition that must be true to take a step). The guard is a conjunct that doesn't mention primes. Then write the updates (primed assignments). For `Latch`, the guard is `latched = FALSE`. The updates are `latched' = TRUE` and `value' = 0`.
+
+??? hint "💡 Hint 3 — Every variable in primed form"
+    After writing the updates, check: does the action mention both variables in primed form? If one variable doesn't change, use `UNCHANGED`. The `Latch` action changes both `latched` and `value`, so both appear primed. After `Latch` fires, no action is enabled, so `CHECK_DEADLOCK FALSE` in the `.cfg` tells TLC not to complain about terminal states.

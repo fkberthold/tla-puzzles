@@ -150,3 +150,18 @@ That's the version that refines.
 - Auxiliary variables are exactly the right tool for "the abstract sees a counter that the concrete doesn't natively keep."
 - Stuttering steps absorb internal events — `YellowToRed` is internal-only.
 - Multi-module + INSTANCE + WITH compose cleanly: one cfg, one TLC run, refinement verified end-to-end.
+
+## Hints
+
+??? hint "💡 Hint 1 — Decompose the concrete into abstract-level steps"
+    Four concrete actions: RedToGreen (signal flip, no cycle change), GreenToYellow (signal flip AND cycle increment), YellowToRed (internal only). Ask: which of these maps to an abstract step, and which to a stutter?
+
+??? hint "💡 Hint 2 — The abstract couples signal flip with cycle increment"
+    Abstract ToStop says: signal flips AND cycles increment, TOGETHER. If concrete GreenToYellow flips signal but doesn't increment aux_cycles, it won't match ToStop. The cycle increment must happen AT THE SAME STEP as the visible signal change.
+
+??? hint "💡 Hint 3 — The mapping makes yellow invisible"
+    signal <- IF color = "green" THEN "go" ELSE "stop". Both yellow and red map to "stop". YellowToRed doesn't change color-type ("stop") or aux_cycles, so it's a pure stutter on the abstract variables.
+
+??? hint "💡 Hint 4 — Multi-module composition: CONSTANT, ASSUME, INSTANCE, WITH"
+    Constants flow from cfg into AbstractSignal and ConcreteLight. Each INSTANCE binds them. The cfg lists PROPERTY Refines and INVARIANT TypeOK. All pieces work together.
+

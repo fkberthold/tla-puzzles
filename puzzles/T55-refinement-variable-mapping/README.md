@@ -151,3 +151,15 @@ tlc ConcreteDimmer
   - `StepDown` from 1 to 0: lampOn went TRUE → FALSE — abstract `Toggle`.
 
 If you delete the `>0` guards on `StepDown`, TLC will report `TypeOK` failing (and a refinement violation when brightness goes negative).
+
+## Hints
+
+??? hint "💡 Hint 1 — The abstract and concrete might have DIFFERENT variable names"
+    T54 was easy: both used `punches`. Here the abstract has `lampOn`, the concrete has `brightness`. The WITH clause tells TLC how to translate: lampOn <- (brightness > 0).
+
+??? hint "💡 Hint 2 — The mapping is an expression evaluated in concrete state"
+    It can be a simple variable (n <- n), a computation (seconds <- mins * 60 + secs), or a boolean expression (lampOn <- brightness > 0). Every value the mapping produces must match the abstract's TypeOK.
+
+??? hint "💡 Hint 3 — Stuttering steps are the key insight"
+    StepUp (brightness 1→2) leaves the abstract `lampOn = TRUE` unchanged — a stutter. OnSwitch (brightness 0→1) flips `lampOn` — a valid abstract `Toggle`. Both are allowed by [Next]_vars in the abstract.
+

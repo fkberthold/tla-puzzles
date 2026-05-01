@@ -97,3 +97,14 @@ Three pieces every translation gets for free:
 - If you ever need to write TLA+ that pcal can't express, you can edit *outside* the TRANSLATION block. Anything between `==== END TRANSLATION` and the closing `====` of the module is your territory. Tier 3 leaves PlusCal behind entirely.
 
 Done with Tier 0. You now have the toolchain in your hands. Tier 1 is where you start writing PlusCal yourself — but T01–T08 are already authored, so the curriculum continues at Tier 2 (R01, the first review).
+
+## Hints
+
+??? hint "💡 Hint 1 — The translation is pure text transformation"
+    `tlc -pcal` reads your `(*--algorithm ...*)` block and writes a `\* BEGIN TRANSLATION ... \* END TRANSLATION` block. It doesn't modify anything outside those marks. So you can always see the original PlusCal side-by-side with its translation in the same file.
+
+??? hint "💡 Hint 2 — Every PlusCal construct maps to TLA+"
+    A label becomes an action definition. A variable assignment `:=` becomes a primed equality `'`. A process becomes a disjunction. The `fair` keyword becomes `WF_vars(...)`. Can you trace which part of the translation corresponds to each piece of the original?
+
+??? hint "💡 Hint 3 — The program counter is hidden"
+    PlusCal adds a hidden variable `pc` to track where each process is. When a label fires, it updates `pc` to point to the next label (or "Done" at the end). This is how TLA+ encodes procedural flow without if-then-else in every step.

@@ -99,3 +99,14 @@ tlc Dice
 Now experiment: change `Init` to `left = 1 /\ right = 1`. Re-run. State count is still 36, but TLC reports **1 distinct initial state** — the same 36 reachable states, just discovered from one root via `Reroll` actions instead of being enumerated as initial. The reachable set is the same; the *initial set* differs.
 
 If you wrote `left = Faces` instead of `left \in Faces`, TLC would either reject the spec or treat `left` as the value `1..6` (a set), which `TypeOK` would catch — `1..6` is not in `1..6`.
+
+## Hints
+
+??? hint "💡 Hint 1 — Init is a predicate, not an assignment"
+    You learned in PlusCal: `variables x = 0` sets x to 0. In pure TLA+, `Init == x = 0` is a predicate that constrains initial states to those where x is 0. If you want multiple initial states, use `\in` instead of `=`. E.g., `Init == x \in 0..5` means "initially x can be any value from 0 to 5."
+
+??? hint "💡 Hint 2 — Multiple initial states via Cartesian product"
+    If you write `left \in Faces /\ right \in Faces`, TLC computes the Cartesian product: every combination. How many combinations are there? If `Faces = 1..6`, then left has 6 choices and right has 6 choices — that is 6 × 6 = 36 initial states. TLC will explore the state space starting from each.
+
+??? hint "💡 Hint 3 — Nondeterministically assign primed variables"
+    In `RerollLeft`, you assign `left' \in Faces` — notice the prime. This means "in the next state, left can be any value in Faces." This is how you model nondeterministic choice in actions. The pattern is the same as in `Init`: use `\in` to allow multiple values, `=` to fix one.

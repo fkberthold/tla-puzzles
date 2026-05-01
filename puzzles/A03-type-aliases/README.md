@@ -150,3 +150,14 @@ apalache-mc typecheck Catalog.tla
 - Reference an alias with `$name` in any subsequent `@type` annotation.
 - Aliases can nest: one alias can use another inside its body.
 - Aliases vs annotations: `@typeAlias` declares, `@type` uses. Both are TLA+ comments invisible to TLC.
+
+## Hints
+
+??? hint "💡 Hint 1 — Two aliases in order"
+    The lesson shows that a book has `title` and `pages`. A borrowing has a `book` (which is itself a book record) and a `patron` name. Write two `@typeAlias` declarations, and notice that the second one references the first with `$book`.
+
+??? hint "💡 Hint 2 — The marker operator pattern"
+    The lesson example uses `ChessTypes == TRUE` to "hold" the alias declarations in a comment block. This is a common pattern: aliases sit in `\*` comments just above an operator (which can be a no-op like `TRUE`). Write your two aliases above some operator to keep them organized.
+
+??? hint "💡 Hint 3 — Reference aliases with $ in @type"
+    Once you declare `\* @typeAlias: book = ...;`, use `\* @type: $book;` above the variable and `\* @type: Seq($borrowing);` for composite types. The dollar sign tells Apalache "substitute the alias body here."

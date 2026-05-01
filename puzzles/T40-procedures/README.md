@@ -121,3 +121,15 @@ fair process (refA = "RefA") {
 Each `call` ends an atomic step (the next step JUMPS into the procedure). Each `return` ends an atomic step (the next step JUMPS back). You don't manage the stack yourself — pcal does it for you.
 
 You'll need `EXTENDS Integers, Sequences` (Sequences because the call stack uses sequences under the hood).
+
+## Hints
+
+??? hint "💡 Hint 1 — A procedure is a named block you call from a process"
+    A procedure sits OUTSIDE the process, at the top level. It has its own labeled code, parameters, local variables, and a `return` statement. When a process executes `call award(team, pts)`, control jumps INTO the procedure's first label, runs the body, and on `return`, control jumps back to the next label in the caller. PlusCal manages the call stack invisibly.
+
+??? hint "💡 Hint 2 — Parameters are fresh copies per call"
+    Each `call award("home", 3)` sets up fresh local copies of the procedure's parameters (`team = "home"`, `pts = 3`). If two processes call the procedure concurrently, each gets its own copies — they don't interfere. That's why procedures are composable: the procedure body doesn't have to worry about what OTHER calls might have set the parameters.
+
+??? hint "💡 Hint 3 — The procedure's labeled body is where interleaving happens"
+    The body of `award` has a label `awardStep`. When `refA` calls `award`, control jumps to `awardStep`, does the work, and returns. Between any two labels — even though `awardStep` is inside the procedure — another process can interleave. That's why `FinalState` holds: even though `refA` and `refB` call the same procedure in different orders, all four calls eventually run, and the scores add up correctly.
+

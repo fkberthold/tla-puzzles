@@ -115,3 +115,14 @@ In the `define` block:
 - Notice: `level` has 4 students but `gradesPresent` ends up as a 3-element set. The map absorbed the duplicate level 9.
 
 **Bonus.** What's `{level[s] : s \in {}}`? Predict (a map over an empty domain). Then write it as an operator and run TLC to confirm.
+
+## Hints
+
+??? hint "💡 Hint 1 — Map syntax: expression before colon"
+    The map `{E(x) : x \in S}` puts the EXPRESSION (`E(x)`) BEFORE the colon, and the BINDING (`x \in S`) AFTER. Read it as "the set of E(x) for each x in S." You apply the expression to each element and collect the results. If two elements produce the same result, the set absorbs the duplicate.
+
+??? hint "💡 Hint 2 — Transforming via function lookup"
+    Your map is `{level[s] : s \in DOMAIN level}` — for each student `s`, look up `level[s]` (the grade level), and collect all those numbers into a set. Since `level` maps 4 students to grades, and two students are in grade 9, the result is a 3-element set `{9, 11, 12}` (no duplicate 9).
+
+??? hint "💡 Hint 3 — One label to derive, one to finish"
+    The `derive` label computes the map and assigns it to `gradesPresent`. The `finish` label just increments `phase`. The map is computed once and stored — no nondeterminism. The invariant `EndsCorrect` checks that after both labels run, `gradesPresent = {9, 11, 12}`.

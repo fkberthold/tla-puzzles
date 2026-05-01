@@ -114,3 +114,14 @@ Re-run. TLC will start generating states quickly — a million in a few seconds 
 - Use VIEW when you have unbounded debugging variables (history, log, trace counter) that don't affect safety.
 - Make sure your view INCLUDES every variable mentioned in invariants. If you project something away that an invariant tests, TLC might miss the bug.
 - VIEW is more general than SYMMETRY. SYMMETRY is automatic when applicable; VIEW gives you full control.
+
+## Hints
+
+??? hint "💡 Hint 1 — History vs. Hypothesis"
+    The Hopper spec has TWO variables: `level` (the hopper's fill) and `history` (a record of every action). The spec's safety properties only care about `level` — they're about capacity, not about tracing. If you let TLC explore the full state (level, history), it has to distinguish between two states that have the same level but different histories. As histories grow unboundedly, the state space explodes to infinity. VIEW says: "TLC, I only care about level. Two states with the same level but different histories are equivalent." Once you collapse them, the state space becomes finite.
+
+??? hint "💡 Hint 2 — The View Must Be Safe"
+    Before you write `VIEW LevelView`, ask: does any invariant or property mention the variable you're hiding? In Hopper, `history` is NOT mentioned by TypeOK or any other property. So it's safe to hide. If you tried `VIEW LevelView` on a spec where `NotEmpty == history # <<>>` is a property, TLC would miss bugs because it would deduplicate states that differ in history. The rule: your view must INCLUDE every variable tested by your invariants.
+
+??? hint "💡 Hint 3 — VIEW Is Not SYMMETRY"
+    T60 used SYMMETRY, which is automatic once you declare `Permutations`. T61 uses VIEW, which requires you to WRITE the operator that decides what matters. VIEW is more expressive (you have full control) but requires more thought (you must verify the projection is sound). You can use both in the same spec — SYMMETRY for interchangeable model values, VIEW for ephemeral variables.

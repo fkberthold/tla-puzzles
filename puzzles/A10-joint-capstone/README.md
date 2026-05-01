@@ -205,3 +205,20 @@ Both pass. **Same spec, two views, two strengths.**
 - **Same spec, two checkers**: this is possible when you use type annotations and `ConstInit` — and it's worth doing because each tool reveals what the other hides.
 
 Done. You have completed the full TLA+ curriculum — from PlusCal first steps through Apalache's symbolic reasoning, and now the capstone that shows both tools at work on a single, realistic spec.
+
+## Hints
+
+??? hint "💡 Hint 1 — One spec, two tools, zero edits"
+    This is the capstone: a pure-TLA+ spec that both TLC and Apalache accept. TLC reads the spec and concrete config; Apalache reads the spec and the `ConstInit` predicate. No edits between runs. The key is using `\* @type:` annotations (TLC ignores them; Apalache requires them) and `:=` (both tools understand it as `=`).
+
+??? hint "💡 Hint 2 — TLC enumerates, Apalache proves"
+    TLC with `MaxSize = 3` in the `.cfg` explores concrete states: empty buffer, buffer with one element, two elements, etc. It counts them. Apalache with `--cinit=ConstInit` (which says `MaxSize \in 1..10`) never enumerates states — it reasons symbolically. TLC tells you "I checked X states." Apalache tells you "I proved it for any MaxSize in this range."
+
+??? hint "💡 Hint 3 — Three actions: Push, Pop, Done"
+    `Push` appends a nondeterministic value (1..100) if the buffer is not full. `Pop` removes the head if the buffer is not empty. `Done` fires when the buffer is empty and leaves it unchanged (the terminal stutter from A06). No `Done` means deadlock; with `Done`, the spec terminates gracefully.
+
+??? hint "💡 Hint 4 — NeverOverflow is the safety property"
+    The invariant is simple: `Len(buffer) <= MaxSize`. This is what TLC checks against the concrete config, and what Apalache proves for all `MaxSize \in 1..10`. Both tools should report the invariant holds. If it doesn't, one of the actions violates the bound.
+
+??? hint "💡 Hint 5 — Symbolic advantage emerges at scale"
+    TLC with `MaxSize = 3` is fast but explores only that one case. Apalache with `MaxSize \in 1..10` is equally fast but proves all 10 cases at once. Scale `MaxSize` higher in Apalache's `ConstInit` and the time barely changes. Scale it in TLC's `.cfg` and the state explosion grows exponentially. This is why capstones matter: seeing complementary tools on one spec teaches what each is for.

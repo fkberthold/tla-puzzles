@@ -102,3 +102,14 @@ In the `define` block:
 - All three invariants pass.
 
 **Bonus.** Replace `@ + 1` with `clicks["u1"] + 1` (the verbose form) in the third label. Verify TLC still produces the same 5 states. The `@` form is shorter; the verbose form is equivalent.
+
+## Hints
+
+??? hint "💡 Hint 1 — `@` is the old value of THIS entry"
+    Inside `[clicks EXCEPT ![key] = @ + 1]`, the `@` refers to the current value AT THAT KEY. So `@ + 1` increments whatever was stored there. Each click increments a different user's counter — the first and third clicks increment u1 (so u1 ends at 2), the second increments u2, the fourth increments u3.
+
+??? hint "💡 Hint 2 — @ is scoped to one EXCEPT clause"
+    If you have multiple updates in one EXCEPT, each `@` refers to its own key's old value: `[f EXCEPT ![k1] = @ + 1, ![k2] = @ - 1]` increments k1 and decrements k2. They don't interfere. All `@`s see the OLD function before any updates.
+
+??? hint "💡 Hint 3 — Four clicks, one per label"
+    The `clickU1`, `clickU2`, `clickU1again`, `clickU3` labels each update ONE user's counter by 1 (using `@ + 1`). After all four, u1 has 2, u2 has 1, u3 has 1. The invariant `TotalEqualsStep` confirms: 4 clicks, total of 4 increments distributed across users.

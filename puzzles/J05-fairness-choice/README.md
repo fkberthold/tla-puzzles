@@ -124,3 +124,14 @@ Rough answers: (1) WF — basic worker loop. (2) SF on each thread's acquire —
 - Removing a fairness assumption never makes a safety violation appear — fairness only matters for liveness.
 
 Done. J06 zooms out: how do you classify properties as safety vs liveness in the first place? That decision precedes the fairness choice.
+
+## Hints
+
+??? hint "💡 Hint 1 — Can the action be disabled and re-enabled?"
+    Imagine the action's enabling condition turning on and off repeatedly — enabled, disabled, enabled, disabled, forever. With only WF, that's fine (WF only cares about *continuous* enablement). With SF, that action must fire at least once while enabled. Does your system have this on-off toggling? If yes, WF is insufficient.
+
+??? hint "💡 Hint 2 — Ask: what makes this action disabled?"
+    Is the action disabled by *other processes* (a lock held by someone else, a shared resource taken), or just by its own internal conditions? If other processes toggle the enabling, that's the hallmark of strong-fairness scenarios — two clients competing for a lock, a scheduler deciding which thread runs. If only the action's own conditions disable it (e.g., a buffer is full so append is disabled until someone empties it), WF often suffices.
+
+??? hint "💡 Hint 3 — Does the implementation guarantee this fairness?"
+    SF is a strong promise — your implementation must actually be a *fair scheduler*. If your real system is a single-threaded worker loop, WF (or no fairness) is honest. If you're modeling multiple threads and you want to claim "no thread starves," that's SF territory — but only if your OS scheduler actually gives you that. Don't let the spec pass liveness while production livelocks.

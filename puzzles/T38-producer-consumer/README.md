@@ -112,3 +112,15 @@ fair process (doctor = "Doctor") {
 ```
 
 Note: putting `await` and `queue := Tail(queue)` in the SAME label means the dequeue is atomic — there's no interleaving point between checking and taking. That's what you want for a correct dequeue.
+
+## Hints
+
+??? hint "💡 Hint 1 — Sequences in TLA+ are like arrays"
+    T10 introduced `Append`, `Head`, and `Tail`. `Append(queue, item)` adds an item to the end. `Head(queue)` gets the first element (fails if queue is empty). `Tail(queue)` returns the queue minus its head. Together they implement a FIFO queue. Here you're using them to synchronize producer and consumer.
+
+??? hint "💡 Hint 2 — The await guards the dequeue"
+    The Consumer's `await queue /= <<>>` disables the dequeue action while the queue is empty. TLC will not fire the dequeue label — the consumer is stuck. Once the Producer appends something, the queue becomes nonempty and the dequeue becomes enabled. Combined with fairness, the consumer eventually dequeues.
+
+??? hint "💡 Hint 3 — Why does atomicity matter here?"
+    When you write `await queue /= <<>>; queue := Tail(queue); treated := treated + 1;` all in one label, they're ATOMIC. The consumer checks the queue, removes the head, and increments the counter in a single step. There's no interleaving point in the middle where another process could interfere. That guarantees FIFO delivery and prevents underflow.
+

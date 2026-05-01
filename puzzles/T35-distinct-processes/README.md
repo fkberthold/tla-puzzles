@@ -104,3 +104,15 @@ fair process (server = "Server") {
 ```
 
 This puzzle MOTIVATES the next one (T36): how do you make the server WAIT until there's something cooked? Answer: `await`.
+
+## Hints
+
+??? hint "💡 Hint 1 — What's the syntax difference from process sets?"
+    In a process SET, you use `\in`: `fair process (worker \in {"W1", "W2"}) {...}` — one body run by multiple processes. For a distinct process, you use `=`: `fair process (chef = "Chef") {...}` — one identity, one process, one body. To add a SECOND distinct process, just write another `fair process` block with a different name.
+
+??? hint "💡 Hint 2 — Each process runs concurrently, independently"
+    The chef loops in the `cookLoop/bake` labels; the server loops in `serveLoop/deliver`. There is NO SHARED COORDINATION — they just interleave. TLC tries every possible order: chef's first step, then server's first step, then chef's second, etc. The invariant `NeverOverServe` will FAIL because the server can take a step before the chef does anything.
+
+??? hint "💡 Hint 3 — Same labeling rules apply"
+    Every label (including labels inside loops) is still an interleaving point. So the chef does `cookLoop` (the guard), then `bake` (the action), then back to `cookLoop`. The server does the same, and they can be interleaved at any label. That's why the race is so easy to trigger — no coordination at all.
+

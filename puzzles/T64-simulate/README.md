@@ -107,3 +107,14 @@ The output now ALSO shows action coverage: how often each `either/or` branch was
 - It is NEVER a substitute for full model checking on small specs.
 - Combining `-simulate` with `-coverage` shows whether your random walk is exercising all the actions.
 - Every simulate run prints its random seed. Reproduce a flaky run with `-seed N`.
+
+## Hints
+
+??? hint "💡 Hint 1 — When BFS Hits Its Wall"
+    Random Walk's state space is HUGE: x and y and z each range over ~400 values, steps over ~200. That's billions of reachable states. Breadth-first TLC would spend hours exploring all of them. `-simulate` says: "Don't explore all states. Walk a random path 10 times, each path 250 steps long, and check invariants along the way." If the invariant fails on any of those 2500 sampled states, TLC reports the violation. If it passes, you don't have PROOF of correctness (the bug might hide on path 10001), but you have strong evidence. This is the right tool when exhaustiveness is infeasible but quick feedback is valuable.
+
+??? hint "💡 Hint 2 — Invariants vs. Liveness Under Simulate"
+    Simulate checks TypeOK and StaysReachable at every sampled state — safety properties work fine. But if you tried to add a liveness property like `<> (x = 0 /\ y = 0 /\ z = 0)`, TLC would either reject it or give you a meaningless result. Why? Random traces can't witness "eventually reaches this state." You'd need full BFS for that. So: invariants with `-simulate` are sound; liveness with `-simulate` is nonsense.
+
+??? hint "💡 Hint 3 — Coverage Under Simulate"
+    Add `-coverage 1` to your simulate run. The coverage report shows which of the 6 `either/or` branches (increment/decrement each of x/y/z) the random walk actually took. With 10 traces of 250 steps each, you'd expect roughly 2500/6 ≈ 417 firings per branch. If one branch shows zero coverage, the randomized walk never tried it — but that might just be bad luck, not a dead action. For a definitive "is this branch dead," you'd need full BFS.

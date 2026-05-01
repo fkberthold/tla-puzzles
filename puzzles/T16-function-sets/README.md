@@ -105,3 +105,14 @@ A single fair process runs one label:
 - NotAlwaysSpot1 violated by the initial state — a 1-state trace.
 
 **Bonus.** Add `OneCarInTwo == \E c \in Cars : parked[c] = 2`. Will it always hold? In which reachable state does it FAIL? (Hint: same answer as the violation above.)
+
+## Hints
+
+??? hint "💡 Hint 1 — [S -> T] is a SET of functions"
+    `[Cars -> Spots]` names the SET of all functions from cars to spots. With 3 cars and 2 spots, there are 2^3 = 8 such functions. You use this set in `with (a \in AllAssignments) { parked := a; }` — the `with` picks one function nondeterministically, and TLC branches on each choice.
+
+??? hint "💡 Hint 2 — Arrow vs. bar-arrow"
+    `[S -> T]` (arrow) is a SET of functions. `[x \in S |-> e]` (bar-arrow) is ONE function. They're complementary: the first describes a type; the second constructs a value. Use `[Cars -> Spots]` in TypeOK and in the `with` clause.
+
+??? hint "💡 Hint 3 — One label that branches 8 ways"
+    The `assign` label uses `with (a \in AllAssignments) { parked := a; }`. This picks one of the 8 functions, setting `parked` to it. TLC creates a branch for each of the 8 possibilities. The initial state (everyone in spot 1) is one of those 8, so you might pick it again (hence `assigned` flag distinguishes the initial state from later ones).

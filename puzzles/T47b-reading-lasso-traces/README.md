@@ -136,3 +136,14 @@ The point here: a lasso shows you an infinite loop that violates a liveness prop
   - **A process with weak fairness when it needs strong fairness** — change `fair process` to `fair+ process` (see T47).
 
 Done. T48 next, where you'll fix a broken spec by diagnosing a lasso trace.
+
+## Hints
+
+??? hint "💡 Hint 1 — Understanding the back-edge"
+    In the lasso output, look for "Back to state N." That line tells you where the cycle CLOSES. Everything from that state onward repeats infinitely. If the property fails in the cycle, it ALWAYS fails.
+
+??? hint "💡 Hint 2 — Identifying the stuck action"
+    In the Clock example, `hour` stays at 11 in the cycle. The property requires `hour = 12`. But the resetter keeps toggling `reset` back and forth. Why can't the ticker advance `hour` if the resetter is enabled infinitely often?
+
+??? hint "💡 Hint 3 — The fairness pattern"
+    When you see a lasso where one action fires infinitely (resetter) and another never fires (ticker), look at the fairness annotations. The resetter is `process` (no fairness) — TLC can schedule it forever. The ticker is `fair process` (WF), but weak fairness only helps if the action is CONTINUOUSLY enabled. Here the enablement flickers, so WF isn't enough.

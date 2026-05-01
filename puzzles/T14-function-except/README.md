@@ -106,3 +106,14 @@ In the `define` block:
 - All three invariants pass.
 
 **Bonus.** Replace the `redTwo` label's body with `goals := [goals EXCEPT !["red"] = 1]` (idempotent). What happens to the state count? (Hint: a state where nothing actually changes is still a step in PlusCal — but the new state may be identical to the previous one if `step` weren't incremented.)
+
+## Hints
+
+??? hint "💡 Hint 1 — EXCEPT updates one entry at a time"
+    `[goals EXCEPT ![key] = newValue]` returns a function identical to `goals` EXCEPT at `key`, where the value is `newValue`. The DOMAIN never changes. You're updating VALUES, not keys. Each label updates one team's score — red, blue, red again, then green.
+
+??? hint "💡 Hint 2 — Absolute values, not relative"
+    T14 doesn't have `@` yet (that's T15). Write the new values directly: `redOne` sets red to 1, `blueTwo` sets blue to 2, etc. No arithmetic inside EXCEPT — just hardcoded numbers. The point is learning the syntax; T15 will add relative updates with `@`.
+
+??? hint "💡 Hint 3 — Four sequential labels with four goals"
+    Red scores, blue scores, red scores again, green scores. Four labels, four EXCEPT updates. Each increments `step`. The final invariant `EndsCorrect` checks that the final state matches the expected goal tallies (red=2, blue=2, green=3).

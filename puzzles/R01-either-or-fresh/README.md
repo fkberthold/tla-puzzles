@@ -67,3 +67,14 @@ Write a PlusCal spec with:
 - TLC should find **5 distinct states** (ground/closed, lobby/closed, office/closed, lobby/open, office/open)
 - AlwaysOffice violated in a 2-state trace ending at the lobby
 - EventuallyOpen passes under weak fairness — the elevator always eventually opens its doors
+
+## Hints
+
+??? hint "💡 Hint 1 — Compare to T03"
+    You've seen this exact pattern in T03: the hiker choosing a path. The difference here is your DOMAIN (an elevator, not a hiking trail). Reread the lesson's recap example. Which variable gets different values in the two branches?
+
+??? hint "💡 Hint 2 — Two labels, two outcomes"
+    Your spec needs two labels: one for the nondeterministic choice (the `either/or` that sets the floor), and a second for the deterministic action (doors open). The second label depends on the choice made in the first — no branching, just a follow-up.
+
+??? hint "💡 Hint 3 — Brace and or syntax"
+    The `either/or` shape is `either { stmt; } or { stmt; };`. Notice: no semicolon after the closing brace of the first branch, just `} or {`. And the whole statement ends with a semicolon after the final brace.

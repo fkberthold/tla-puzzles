@@ -144,3 +144,18 @@ fair process (patient \in Patients) {
 Notice the COMPOSITION: each patient's record is built with the record constructor (T09), updated via EXCEPT-on-a-record-field (T15), reached through a function indexed by `self` (T14, R06), with `await` synchronizing client and server (T36) — all sitting on top of distinct asymmetric processes (T35). This is the cross-tier point.
 
 If you set `CHECK_DEADLOCK FALSE` and your liveness check fails, the most common cause is the clerk's loop guard letting it exit too early — make sure the `while` condition includes `"empty"` slots (so the clerk waits for the patient to even submit). The `await` inside the loop body enforces "wait for an actually-pending one", and weak fairness on each process ensures eventual progress.
+
+## Hints
+
+??? hint "💡 Hint 1 — What does each process see?"
+    The patient process updates `appointment[self]` — a slot in the function keyed by the patient's identity. The clerk loops over `Patients` and picks a pending patient. Ask yourself: what is the KEY that selects each patient's record? How does the clerk use that key to read and write a specific patient's data?
+
+??? hint "💡 Hint 2 — Two tasks, two wait-points"
+    The patient has two labels: one that submits, one that waits for a decision. The clerk also has a loop with two phases: check-and-await, then pick-and-respond. Each `await` blocks on a different condition. Trace the patient's `status` field through both processes — when does it change, and who changes it?
+
+??? hint "💡 Hint 3 — The anatomy of a function update"
+    When you update `appointment[p]` with a new record, you're assigning via EXCEPT on a function. That's `appointment[p] := [appointment[p] EXCEPT !.field = value]` — a function EXCEPT wrapped around a record EXCEPT. The record constructor `[doctor |-> ..., when |-> ..., status |-> ...]` is the RHS; the `EXCEPT` preserves fields you don't touch.
+
+??? hint "💡 Hint 4 — Why does the clerk loop while empty slots exist?"
+    If the clerk exited as soon as all visible slots were pending or decided, it would exit before the last patient even submitted. The `while` loop guard must include `"empty"` — so the clerk spins (blocked on its `await`) until the patient fills in an empty slot, marks it pending, and the clerk can then decide it.
+

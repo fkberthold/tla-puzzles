@@ -104,3 +104,14 @@ Compare TLC's output to your prediction:
 - `TypeOK` should pass. No deadlock — at every state at least `Change` is enabled.
 
 If your prediction was off, walk back through `Next` and check which actions are enabled at each color/tick combination. Reading specs accurately is the foundation for writing them in T28 and beyond.
+
+## Hints
+
+??? hint "💡 Hint 1 — Name the variables and initial state"
+    Every spec starts with `VARIABLES`. List them. Then find `Init` — it tells you the starting values. For this spec, there are exactly two variables. Can you name them and their initial values? Once you've done that, count: how many initial states are there?
+
+??? hint "💡 Hint 2 — Trace the actions"
+    `Next` is a disjunction of actions. For each action, identify the guard (the condition that must hold) and the effect (what primes change). E.g., does `Tick` increment a counter? Does `Change` modify color? Write down the structure of each action, then ask: at each state, which actions can fire?
+
+??? hint "💡 Hint 3 — Count the reachable states"
+    The number of distinct states is the product of the ranges of the variables. If one variable has 3 values and another has 4, you expect 3 × 4 = 12 states. But check the guards: if a guard prevents certain combinations, the real count may be lower. Trace one action through a few states to build intuition.

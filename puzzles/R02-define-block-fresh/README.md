@@ -101,3 +101,14 @@ In the `define` block, create these operators:
 - TLC explores every combination of address and kind across 4 stops
 - TypeOK and PickupImpliesHolding pass
 - NeverDropoffEmpty is violated quickly — TLC finds a 2-state trace where the very first stop is a dropoff with the van still empty
+
+## Hints
+
+??? hint "💡 Hint 1 — Operators read fields like the lesson showed"
+    R02 builds on T06. Look at your parameterized operators in the worked example (`InRange(s, lo, hi)`, `Active(s)`). They read FIELDS from the record argument. What fields does your record have? Write operators that READ those same fields.
+
+??? hint "💡 Hint 2 — Parameter-free vs. parameterized"
+    You need both. Parameter-free operators (`IsPickup`, `IsDropoff`, `AtDepot`) read from the VARIABLE `last` directly — no arguments. Parameterized operators (`ValidAddress(s)`, `ValidKind(s)`) take a record and inspect it. Which ones are which?
+
+??? hint "💡 Hint 3 — Record syntax and EXCEPT"
+    To BUILD a record in PlusCal, use `[address |-> a, kind |-> k]`. To READ a field, use dot notation: `last.address`. The assignment `last := [address |-> a, kind |-> k]` replaces the whole record. You don't need EXCEPT here — just a full reconstruction each time.

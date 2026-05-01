@@ -141,3 +141,20 @@ The spec should run cleanly on **both** model checkers from the same source — 
 - A `.cfg` keyed to TLC's view of the same spec.
 
 If your spec passes both `tlc Pizzeria` (clean) and (when you have it installed) `apalache-mc typecheck Pizzeria.tla` plus `apalache-mc check`, you have written a *production-shape* TLA+ spec — typed, portable, foldable, and parameterizable. That's the Apalache track end-to-end.
+
+## Hints
+
+??? hint "💡 Hint 1 — Type aliases are reused"
+    You have two record shapes: an order and an oven. The oven's `holding` field is itself an order. The task shows both aliases — declare them once at the module level, then use `$order` and `$oven` in every variable annotation and composite type. This is why A03 matters: aliases avoid repetition and keep field renames to one edit.
+
+??? hint "💡 Hint 2 — Five variables, five :=" 
+    Every action must assign every variable. When a variable doesn't change, write `var' := var`. This is the `:=` discipline from A04. If you use `UNCHANGED` as a shortcut, Apalache will reject the spec. The task shows `Submit` leaving three variables unchanged — write them as `:=` assignments, not `UNCHANGED`.
+
+??? hint "💡 Hint 3 — One fold, one derived value"
+    `TotalSizeBaked` is a fold over `completed` (a set of orders). Use `ApaFoldSet(Plus, 0, completed)` where `Plus(acc, o) == acc + o.size`. The lesson from A05 applies: folds replace recursion and encode for Apalache. Record field access in the fold (`o.size`) is standard TLA+ syntax.
+
+??? hint "💡 Hint 4 — The Done action caps the state space"
+    The `Done` action fires when all three conditions hold: orders submitted (`nextId > MaxOrders`), queue empty, and all ovens idle. Write a conjunction `Finished` that tests all three, then `Done` guards on `Finished` and uses `UNCHANGED vars`. This prevents deadlock when the system naturally halts.
+
+??? hint "💡 Hint 5 — Sentinels make records type-stable"
+    An idle oven still has a `holding` field, but it holds no real order. Use the sentinel `idleOrder` (a fake order with `id = 0`) so the type signature stays `$oven` at all times. Apalache and TLC both require this: once a variable has type `Set($order)`, every element must be a valid order record, even idle placeholders.

@@ -109,3 +109,14 @@ The trace now shows the initial state in full, then EACH STEP shows only the var
 - For wide specs (many variables, many fields), it's the difference between a readable trace and a wall of unchanged values.
 - It's especially valuable for liveness counterexamples (lasso traces tend to be long).
 - Use it routinely when debugging — there's no downside.
+
+## Hints
+
+??? hint "💡 Hint 1 — The Signal-to-Noise Problem"
+    Inventory has 10 variables (9 fruits + sold). Most of them don't change at each step — only the chosen fruit and sold increment. Without `-difftrace`, every state prints all 10 values, and you scan and compare to find the differences. With `-difftrace`, TLC shows you only what CHANGED at each step, making the trace 4-5× shorter and the causality obvious. The violation becomes: "sold climbed to 8 (violating NotPastFive)" and "apples went negative (violating TypeOK)." The bug jumps out.
+
+??? hint "💡 Hint 2 — Full States at the Anchors"
+    `-difftrace` prints the initial state IN FULL (all 10 variables) and the final (violating) state IN FULL (all 10 variables). Everything in between is a diff. This is intentional: you can always recompute the state of ANY variable at ANY step by starting from the initial state and applying the diffs in sequence. The full anchors at the start and end let you verify your understanding and check edge cases.
+
+??? hint "💡 Hint 3 — It's a No-Cost Upgrade"
+    `-difftrace` is a CLI flag. It doesn't change the spec, doesn't change what TLC does, doesn't slow it down. It ONLY changes the presentation of the trace. Once you find a violation and print it with `-difftrace`, the trace is far more readable. Make it a habit: if your spec has many variables, always add `-difftrace` to your debugging run.

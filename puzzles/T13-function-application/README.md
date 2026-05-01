@@ -115,3 +115,14 @@ In the `define` block:
 - All four invariants pass.
 
 **Bonus.** What does `inventory["delta"]` evaluate to? Try writing `bad := inventory["delta"]` somewhere and see TLC's error message — it tells you the application is out of domain. This is a common bug.
+
+## Hints
+
+??? hint "💡 Hint 1 — Square brackets for function application"
+    A function is read with SQUARE BRACKETS, not parentheses. So `inventory[t]` is correct; `inventory(t)` is a syntax error. This is the application operator — same syntax as sequence indexing. If `inventory` is a function, `inventory["beta"]` looks up the value at key `"beta"`.
+
+??? hint "💡 Hint 2 — DOMAIN gives you the keys"
+    `DOMAIN inventory` returns the set of keys — the input set over which the function is defined. You can iterate over `DOMAIN` to process every entry. In this puzzle, you'll use it in the TypeOK invariant and in the `Count` helper operator.
+
+??? hint "💡 Hint 3 — Three simple sequential labels"
+    First label: look up one specific value. Second label: sum three looked-up values. Third label: just increment `phase`. No loops, no nondeterminism. The values are deterministic because the function is initialized with fixed IF expressions, and you never change it.

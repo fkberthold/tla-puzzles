@@ -166,3 +166,14 @@ Fill out a table of your observations after running:
 - TLC: concrete and exhaustive, no annotations, fast feedback. Default for finite single-config specs.
 - Apalache: symbolic, typed, parameterizable, depth-bounded. Reach for it when you need type safety, constant quantification, or a deep targeted trace.
 - A well-written spec runs on both. Annotations are TLA+ comments — TLC ignores them.
+
+## Hints
+
+??? hint "💡 Hint 1 — Two complementary tools"
+    The lesson compares TLC (enumerates all states, no types) vs Apalache (symbolic, typed, bounded by depth). Your spec will have a constant `Capacity`. TLC checks one concrete value at a time; Apalache uses `--cinit` to check all values in a range at once. What does that mean for your `ConstInit` operator?
+
+??? hint "💡 Hint 2 — No Done action needed here"
+    Unlike A06, this bucket spec doesn't need a terminal stutter. When `tokens = 0`, `Add` is enabled. When `tokens = Capacity`, `Take` is enabled. At any middle value, both are enabled. No state has zero enabled actions — no deadlock, no `Done` needed.
+
+??? hint "💡 Hint 3 — Both invariants, both checkers"
+    Write `NeverNegative == tokens >= 0` and `NeverOverflow == tokens <= Capacity`. TLC checks the first one explicitly (with the cfg). The lesson's comparison table shows that Apalache's symbolic encoding would verify both for all `Capacity \in 1..10` in one run via `--cinit=ConstInit`.

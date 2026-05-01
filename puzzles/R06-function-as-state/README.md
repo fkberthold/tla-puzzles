@@ -82,3 +82,15 @@ DoneImpliesClosed == \A m \in Members : pc[m] = "Done" => locker[m] = "closed"
 ## Hint
 
 Inside the process, `self` is the member's name. `locker[self] := "open"` is the EXCEPT update. To assert across all members in an invariant, use `\A m \in Members : ...`.
+
+## Hints
+
+??? hint "💡 Hint 1 — Which puzzle introduced functions?"
+    T12 introduced the function constructor `[x \in Set |-> value]`. T14 showed how to update a function element with `f' = [f EXCEPT ![key] = newValue]`. This review combines both: the function's domain is the process set, and each process updates its own slot.
+
+??? hint "💡 Hint 2 — How does `self` select your slot?"
+    Inside a process in a set `Members`, `self` evaluates to that member's identity (a string like `"Anna"`). When you write `locker[self]`, you're applying the function to `self` — getting that one member's locker. When you write `locker[self] := "open"`, PlusCal translates it to a function EXCEPT that updates only that slot.
+
+??? hint "💡 Hint 3 — What does the invariant quantify over?"
+    An invariant like `\A m \in Members : locker[m] \in {...}` checks EVERY member's locker slot in EVERY state. The variable `m` ranges over `Members`, not the processes — it's a pure math statement about the function's range, decoupled from which process is executing. That's why you can assert invariants about all members even though only one process runs at a time.
+

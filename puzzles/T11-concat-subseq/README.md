@@ -101,3 +101,14 @@ In the `define` block:
 - Trace through by hand: after `combine`, `fullDay = <<"A","B","C","D","E","F">>`. `SubSeq(fullDay, 2, 4)` is indices 2 through 4: `<<"B","C","D">>`. Confirm with TLC.
 
 **Bonus.** What does `SubSeq(fullDay, 1, Len(fullDay))` evaluate to? What about `SubSeq(fullDay, 4, 2)`? Predict, then add an operator that returns each and check.
+
+## Hints
+
+??? hint "💡 Hint 1 — Concat before slice"
+    You have two sequences initialized at the top level (`morning` and `afternoon`). The first label's job is to combine them using `\o` (concat). After that, `fullDay` should hold the result. The second label then slices the result. Does the slice happen on `fullDay` or on the original sequences?
+
+??? hint "💡 Hint 2 — SubSeq is inclusive on both ends"
+    `SubSeq(s, i, j)` returns elements from index `i` through index `j`, INCLUSIVE. So `SubSeq(s, 2, 4)` gives you THREE elements (indices 2, 3, 4). Both indices are 1-based, just like sequence indexing. Check your indices carefully against the expected result `<<"B", "C", "D">>`.
+
+??? hint "💡 Hint 3 — Three labels with phase incrementing"
+    The `combine` label concatenates and increments `phase`. The `slice` label slices and increments `phase`. The `finish` label just increments `phase`. No loop here — three sequential labels, one phase increment per label. After `finish`, `phase = 3`.

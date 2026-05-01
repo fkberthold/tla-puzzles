@@ -132,3 +132,14 @@ Rough answers:
 - A useful diagnostic: if TLC says "no error" on a known-buggy concurrent design, your labels are too coarse. If TLC says "violation" on a design you know is correct (under a held lock, say), your labels are too fine for the model you're trying to express.
 
 This closes the judgment intersticials. Each judgment was a *choice* between TLA+ idioms — records vs scattered, PlusCal vs pure TLA+, TLC vs Apalache, single-level vs refinement, fairness strength, safety vs liveness, label granularity. Building these reflexes is how you go from *writing specs* to *designing specs*.
+
+## Hints
+
+??? hint "💡 Hint 1 — Is this gap observable by other processes?"
+    Between the two operations, can another process sneak in and see an intermediate state? Can another process *affect* whether the second operation succeeds? If yes to either, you need separate labels. If no (because a lock is held, or the process is alone), combine.
+
+??? hint "💡 Hint 2 — Look for the real-world gap"
+    Does each operation correspond to a separate network round-trip, system call, or hardware instruction in your actual implementation? Then: separate labels. Are both operations guaranteed atomic by hardware (compare-and-swap), or protected by a lock your spec models? Then: one label. The spec should match the *real* concurrency model.
+
+??? hint "💡 Hint 3 — Run both and read the trace"
+    Write the spec with one label, run TLC. Then split it. If split version finds a bug (like lost-update) that the combined version misses, the split was necessary — you were hiding a race. If both report "no error," combined was safer and cleaner. Let TLC guide you: trust the trace.

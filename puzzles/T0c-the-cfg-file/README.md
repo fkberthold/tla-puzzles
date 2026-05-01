@@ -107,3 +107,14 @@ Re-run. TLC errors out — without `SPECIFICATION`, it has no behavior to check.
 - Removing `SPECIFICATION` or required `CONSTANT` lines causes TLC to refuse to run.
 
 Done. T0d covers the last piece of the toolchain: what `tlc -pcal` actually does to your file.
+
+## Hints
+
+??? hint "💡 Hint 1 — The .cfg is instruction, not specification"
+    The .cfg doesn't change what the spec DOES — it changes what TLC CHECKS. Commenting out an invariant doesn't fix a bug; it silences the question. What does changing `CONSTANT MaxTicks = 3` to a different value do to the state space?
+
+??? hint "💡 Hint 2 — Four directives, four purposes"
+    The four kinds of lines in a .cfg each do different jobs: CONSTANT fills in unknowns, SPECIFICATION names the system, INVARIANT checks states, PROPERTY checks behaviors. Which of these four are strictly required for TLC to run at all?
+
+??? hint "💡 Hint 3 — The constant flows into the state space"
+    When you change `MaxTicks = 3` to `MaxTicks = 5`, the clock runs longer. The loop bound grows. More loop iterations mean more states. That's why "distinct states found" changes — not because the spec changed, but because the parameter TLC is checking with is different.

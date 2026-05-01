@@ -78,3 +78,14 @@ Apply the same lens whenever you see scattered state:
 When in doubt, ask: *"would I want to add a fifth field next month?"* If yes, bundle. If the four fields are independent and the answer is "what fifth field?", scatter is fine.
 
 Done. The next judgments concern bigger choices — PlusCal vs pure TLA+ (J02), TLC vs Apalache (J03), and so on.
+
+## Hints
+
+??? hint "💡 Hint 1 — Ask: does this look like a struct?"
+    In your code (Go, Python, Rust), would these fields live together in a struct/class? If your answer is "yes, they're part of an Order," bundled is likely right. If "no, they're independent state that happens to be in the same spec," scattered is fine.
+
+??? hint "💡 Hint 2 — Think about the next field"
+    Imagine the requirements change next month and you need to add a fifth field (e.g., `cancelReason`). Which choice makes the change a one-line fix? Which forces you to update every `UNCHANGED` list? That friction is the real cost.
+
+??? hint "💡 Hint 3 — Look at your operators"
+    If you find yourself writing operators like `IsReady(orderId, orderQty, orderPaid, orderShipped)`, you're passing four parameters for one logical thing — strong signal that bundled would fit better. If each field has its own separate life (different update frequencies, different constraints), scattered lets each one stand alone naturally.

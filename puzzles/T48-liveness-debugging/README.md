@@ -114,3 +114,14 @@ CHECK_DEADLOCK FALSE
 - Fixed-spec output: 8 distinct states, no error.
 - The fix: `process (robot = "Robot")` → `fair process (robot = "Robot")`. WF is sufficient here. The action `work` is enabled exactly while `available` is TRUE, and only the robot's own firing makes `available` FALSE — between "available becomes TRUE" and "robot fires," the action is continuously enabled. WF says: take it.
 - After the fix, the bottom of `Vacuum.tla` should contain `WF_vars(robot)` in the `Spec ==` definition, where the broken version had no fairness conjunct for the robot.
+
+## Hints
+
+??? hint "💡 Hint 1 — Reading the lasso"
+    When you see "Stuttering" at the end of the trace, that means the system stopped doing anything new. Which process should have fired but didn't? Look at the `pc` (program counter) values to see which process is stuck waiting.
+
+??? hint "💡 Hint 2 — The fairness diagnosis"
+    The puzzle says "change EXACTLY ONE keyword on ONE process declaration." That keyword is either `fair` or `fair+`. The lasso will show you which process is starved. Is it the dock or the robot?
+
+??? hint "💡 Hint 3 — Continuous vs. repeated enablement"
+    Ask yourself: when this action fires, does it disable itself? Or does it stay enabled until something else disables it? If it disables itself, you might need `fair+` (SF); if not, `fair` (WF) is enough.

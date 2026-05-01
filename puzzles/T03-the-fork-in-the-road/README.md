@@ -61,3 +61,14 @@ Write a PlusCal spec with:
 - TLC should find **5 distinct states** (fork, lake-standing, summit-standing, lake-seated, summit-seated)
 - AlwaysAtLake violated in a 2-state trace
 - EventuallySits should PASS (with weak fairness, the hiker always eventually sits)
+
+## Hints
+
+??? hint "💡 Hint 1 — Either/or is about behavior, not data"
+    `with` picks a VALUE from a set. `either/or` picks which BRANCH of code to execute. At the fork, you either go left (location becomes lake) OR right (location becomes summit) — never both, never a third option. TLC explores both branches separately.
+
+??? hint "💡 Hint 2 — Two independent state variables"
+    The hiker makes a choice (left or right), then sits down. After sitting, two terminal states are reachable: (lake, seated) and (summit, seated). If you write an invariant claiming the hiker is ALWAYS at the lake, TLC will show a branch where they're at the summit.
+
+??? hint "💡 Hint 3 — Temporal properties use PROPERTY, not INVARIANT"
+    `EventuallySits` is a PROPERTY (`<>(seated = TRUE)`) because it talks about the BEHAVIOR — "at some point in the future, seated is true." Invariants check individual states. Properties check entire execution paths. Use the right cfg directive.

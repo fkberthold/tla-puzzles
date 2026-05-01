@@ -120,3 +120,14 @@ tlc Bulb
 If `Dim` forgets to mention `power'` (or `UNCHANGED power`), TLC throws "Successor state is not completely specified" the moment `Dim` fires. If `PowerOn` forgets `brightness'`, same error.
 
 A subtler bug: writing `Dim` as `brightness' \in 0..3 /\ UNCHANGED power` *without* the `power = "on"` guard. TLC would accept it, but `Dim` would fire even when the bulb is off — every off state would have a transition to `<<"off", 0>>` (already known) and to `<<"off", b>>` for other `b`, except `<<"off", b>>` for `b > 0` doesn't satisfy the description "off means no brightness." Add the guard so the spec stays honest.
+
+## Hints
+
+??? hint "💡 Hint 1 — Next is a disjunction of actions"
+    When there are multiple actions, write `Next == ActionA \/ ActionB \/ ActionC`. This says each step is *one* of those actions. TLC explores all enabled actions at every state. An action is enabled when its guard (the conjuncts before the primed assignments) is true. A step takes one of the enabled actions.
+
+??? hint "💡 Hint 2 — Every action constrains both variables"
+    Each action must mention both `power'` and `brightness'`, either with an assignment or `UNCHANGED`. If `PowerOn` sets `power' = "on"` but forgets about `brightness'`, TLC treats `brightness'` as unconstrained and explores every value, usually violating `TypeOK`. The pattern: write the guard, then updates for changed variables, then `UNCHANGED` for steady variables.
+
+??? hint "💡 Hint 3 — Nondeterminism in assignments"
+    `Dim` sets `brightness' \in 0..3`, which means "in the next state, brightness can be any value in 0..3." This is nondeterministic — TLC creates a successor for each choice. But the guard `power = "on"` ensures this only happens when the bulb is powered. Without that guard, `Dim` could fire even when off, and the spec would allow unintended behavior.

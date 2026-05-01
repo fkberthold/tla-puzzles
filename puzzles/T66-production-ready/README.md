@@ -121,3 +121,14 @@ After working through every step, you should be able to:
 - `-difftrace` is free — always use it on wide-variable specs.
 - These techniques are independent. Use whichever fit. Skip whichever don't.
 - Tier 7 is the last tier of CORE TLA+. Apalache (parallel track) and judgment intersticials extend the toolkit horizontally.
+
+## Hints
+
+??? hint "💡 Hint 1 — Boundary Values Start the Reduction"
+    In Scheduler, `WorkerSlots = 1` might seem too small — can you really test job scheduling with only 1 worker at a time? Yes. The spec doesn't care WHAT the slots are, only whether a job fits. With 1 slot, you test the contention case (job arrives while a slot is busy, goes to queue). With 10 slots, you test the same logic but TLC explores 10× more state space. Boundary values says: start with the smallest constant that exercises every behavior. The lab lets you MEASURE the difference by comparing state counts at different bounds.
+
+??? hint "💡 Hint 2 — SYMMETRY and VIEW Multiply, Not Add"
+    Read the table in the Check section. With Jobs=3 and no reduction: 31 states. With SYMMETRY alone: 7 states. With VIEW alone: 31 states. With both: 7 states. Why does VIEW alone NOT reduce? Because VIEW projects away `log`, but the remaining state (queue, running, completed) is still fully enumerated — TLC still sees all 31 distinct configurations. SYMMETRY reduces because it groups job-set orbits. Add both, and SYMMETRY's orbit reduction kicks in, giving 7. Together they're powerful; separately, SYMMETRY does the heavy work here.
+
+??? hint "💡 Hint 3 — Coverage + Simulate in the Production Workflow"
+    The lab's Step 1 runs `-coverage 1` on the full spec. This verifies every action fires (no dead code). Step 3 runs `-simulate` with small depth to do a fast sanity check on a random walk — you're not trying to exhaust the state space, just confirm the spec doesn't immediately crash. In production, you'd do this before deploying a spec: full BFS with coverage to catch bugs, then simulate at production scale as a smoke test. The tools are different (BFS vs. random walk, deterministic vs. stochastic) but complementary.

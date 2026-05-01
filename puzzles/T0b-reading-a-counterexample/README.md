@@ -76,3 +76,14 @@ Two invariants are declared. TLC checks both in every state. `TypeOK` (`charge \
 - Removing an invariant from the `.cfg` doesn't fix the bug. It just stops asking.
 
 Done. T0c next, where you'll edit the `.cfg` file directly to change what TLC checks.
+
+## Hints
+
+??? hint "💡 Hint 1 — Start at the bottom"
+    The trace has multiple states. The violating state (the one where the invariant breaks) is listed LAST, not first. Start there and read upward to understand "how did we get to this violation?"
+
+??? hint "💡 Hint 2 — Which invariant fired?"
+    TLC checks two invariants in the .cfg. Only ONE of them failed. Look at the error message — it names the invariant by name. The other invariant held true in every state.
+
+??? hint "💡 Hint 3 — Battery drain is step-by-step"
+    The Battery spec drains one unit of charge per step: 3, then 2, then 1, then 0. The invariant `StaysCharged` claims charge > 0. When does 0 first appear? What state does that violate?

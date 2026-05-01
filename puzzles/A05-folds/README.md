@@ -155,3 +155,14 @@ SumW(S) == IF S = {} THEN 0
 - For sets, `Op` must be associative + commutative (no order guarantee).
 - Common patterns: sum, max, count-if, set-union, forall-flag.
 - Folds replace `RECURSIVE` everywhere it's a reduction. Apalache requires this; TLC tolerates both, so writing fold-style is portable.
+
+## Hints
+
+??? hint "💡 Hint 1 — Replace RECURSIVE with a fold"
+    The lesson says: when you reach for `RECURSIVE`, stop and ask whether you're reducing a collection to one value. Your three operators (`TotalWeight`, `HeaviestWeight`, `FragileCount`) each take `boxes` and compute a single number. That's a fold pattern. Look up `ApaFoldSet` in the lesson: what are its three arguments?
+
+??? hint "💡 Hint 2 — Define Op with LET-IN"
+    Each fold needs a two-argument operator `Op(accumulator, element)`. The lesson shows: `LET Plus(acc, x) == acc + x IN ApaFoldSet(Plus, 0, S)`. For `TotalWeight`, your element is a box record. Access `b.weight` to get the weight field.
+
+??? hint "💡 Hint 3 — Three different Op functions"
+    `TotalWeight` uses `Plus` (sum weights). `HeaviestWeight` uses `Max` (track largest). `FragileCount` uses an `IF` check (count how many pass a predicate). Each fold has a different reducer; the pattern table in the lesson shows all three.

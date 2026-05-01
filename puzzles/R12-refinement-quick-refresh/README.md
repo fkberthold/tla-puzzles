@@ -110,3 +110,14 @@ Restore the mapping when you're done.
 - Refinement is one `INSTANCE ... WITH` line plus one `PROPERTY` line in the cfg. The instance gives the mapping, the property tells TLC what to check.
 - If the mapping is wrong, TLC catches it — usually at Init, sometimes at the first transition.
 - `CHECK_DEADLOCK FALSE` is the standard companion when the concrete spec terminates; without it, TLC complains about the terminal state.
+
+## Hints
+
+??? hint "💡 Hint 1 — Understanding the Mapping"
+    Re-read the lesson's worked example (Coins/Scale). In that example, the abstract spec had a variable `n` and the concrete spec had `pile`. The mapping said `n <- Cardinality(pile)`. In R12, what is the abstract variable and what is the concrete variable? How does the mapping bridge them?
+
+??? hint "💡 Hint 2 — Instance Syntax"
+    The `INSTANCE` line is your gateway. After you write `C == INSTANCE Counter WITH ...`, every symbol from Counter becomes accessible through `C`. So `C!Spec` is the Counter's Spec formula, but with the variables you supplied in the WITH clause. The same pattern would give you `C!Init`, `C!Next`, `C!TypeOK`. The mapping tells TLC: "when checking `C!Spec`, substitute MY expressions for Counter's variables."
+
+??? hint "💡 Hint 3 — Why the Mapping Must Match at Init"
+    If your mapping is wrong, TLC will detect it first at the initial state. Counter!Init says `n = 0`. If your mapping makes `n` start at something else (e.g., `Cardinality(inside) + 1` would be 1 at init), then the very first state won't satisfy Counter!Init. TLC reports "property violated" after just one state. Restore the correct mapping so both specs agree on what the initial abstract state must be.

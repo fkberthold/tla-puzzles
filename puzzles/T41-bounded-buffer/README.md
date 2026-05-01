@@ -127,3 +127,21 @@ PlaceEnabledIffRoom ==
 If you want to keep the invariant simpler and skip the `ENABLED` clause, that's fine — TypeOK + BoundedCounter + Conservation already form a complete safety story for the buffer.
 
 This is the canonical bounded-buffer spec. Real systems run on this pattern: thread pools, message queues, audio buffers, log shippers. The spec captures the essential synchronization in a few labels.
+
+## Hints
+
+??? hint "💡 Hint 1 — Three patterns compose here"
+    Producer-Consumer with bounded capacity combines THREE Tier 4 patterns: (1) **distinct asymmetric processes** (T35) — brewers and server have different bodies; (2) **await for blocking** (T36) — producers wait when full, consumer waits when empty; (3) **atomic Append/Tail** (T38) — the queue operations respect FIFO order. There's no new syntax; you're just fitting pieces together.
+
+??? hint "💡 Hint 2 — The await guards are the synchronization points"
+    Producer side: `await Len(counter) < CAPACITY;` disables the place action when the buffer is full. Consumer side: `await counter /= <<>>` disables the deliver action when the buffer is empty. These two awaits are what prevent overflow and underflow. Without them, the buffer could grow unboundedly or the consumer could try to take from nothing.
+
+??? hint "💡 Hint 3 — Atomicity across await and update"
+    Each `await` and the subsequent update must be in the SAME label. `place` holds `await Len(counter) < CAPACITY; counter := Append(...)` atomically. That means: no other brewer can slip in and fill the last slot between the check and the append. The atomic sequence is essential to the buffer's correctness.
+
+??? hint "💡 Hint 4 — ENABLED for the invariant"
+    The hint shows how to assert `PlaceEnabledIffRoom`: for each brewer at the `place` label, `ENABLED place(b)` should equal `Len(counter) < CAPACITY`. This is a formal check that the action's enabling condition matches your intuition. You can skip it if you want — just checking BoundedCounter and Conservation is sufficient.
+
+??? hint "💡 Hint 5 — This is the canonical pattern"
+    Bounded buffers appear everywhere in real systems: thread pools, message queues, producer-consumer architectures. The TLA+ spec you write here is the mathematical skeleton that those systems run on. Every detail — capacity, atomicity, fairness — matters to correctness.
+

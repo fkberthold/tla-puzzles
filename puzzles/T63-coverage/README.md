@@ -94,3 +94,14 @@ You should be able to identify, by reading the coverage report alone:
 - ZERO coverage on an action body is a red flag. It means the action is dead — either logically impossible or untestable at this scale.
 - Always run `-coverage` once before declaring a spec "done." A passing spec with dead actions is a spec you don't actually understand.
 - Coverage is reported at action and at line granularity. Read both — actions tell you which labeled steps fired; line numbers tell you which sub-expressions fired.
+
+## Hints
+
+??? hint "💡 Hint 1 — Coverage Is a Sanity Check"
+    Before you declare a spec "done," run with `-coverage 1`. Read the output: every action should have nonzero firing counts on at least one distinct state. If an action has ZERO across all states, it's dead code — either logically impossible given your guards, or unreachable at your chosen constants. Finding a zero-coverage action means either your bounds are too tight (increase the constant) or your action is broken (rewrite or remove it). Coverage is TLC's equivalent of test code coverage — it warns you about untested paths.
+
+??? hint "💡 Hint 2 — The Refund Precondition"
+    In Vending, the Refunder process tries to execute only when `coins >= 5`. But what's the maximum `coins` can reach in this spec? If the Buyer and Inserter together can't build up to 5 coins, then `coins >= 5` is always false, and the Refund's inner actions (the state changes) never fire. Coverage will report the label as "visited" (because the loop itself executed) but the BODY actions as zero-coverage. This is the key distinction: label-level vs. line-level coverage reporting.
+
+??? hint "💡 Hint 3 — You Choose: Tighten Bounds or Remove Dead Code"
+    If Refunder's body has zero coverage, your spec is telling you one of two things: (1) the bound on coins is too low, so the refund scenario is unreachable at this scale (raise the constant), or (2) the refund behavior is logically impossible and you should remove it. Read the spec and the bounds carefully. Dead code at zero coverage is a spec quality issue — it means you wrote something you don't actually need or test.

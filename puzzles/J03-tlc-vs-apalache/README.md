@@ -104,3 +104,14 @@ Rough answers: (1) TLC — needs liveness. (2) Apalache — TLC won't fit. (3) A
 The Apalache tier (A01–A09) teaches the type annotations and the workflow in detail. This judgment is the bird's-eye view: which tool, for which problem, for which reason.
 
 Done. J04 turns to a *structural* judgment: when do you split a spec into abstract and concrete levels and prove refinement?
+
+## Hints
+
+??? hint "💡 Hint 1 — What's your bottleneck?"
+    Think about the thing that would make your spec *fail* to check. Is it the *size* of the state space (TLC runs out of memory or time enumerating states)? Or is it that you have a CONSTANT you want to leave unbounded, or a complex formula TLC struggles with? TLC hits memory limits; Apalache hits formula complexity.
+
+??? hint "💡 Hint 2 — Do your constraints match the solver?"
+    TLC is a state enumerator — great for concrete values and small bounds. Apalache is an SMT solver — great at reasoning abstractly about constraints (e.g., "for any MaxN ≥ 1"). If your CONSTANT is `MaxN = 1_000_000`, can TLC even *instantiate* that? If your spec has liveness properties, does Apalache support them yet? Mismatch = wrong tool.
+
+??? hint "💡 Hint 3 — Debugging output: which tells you more?"
+    When TLC finds a violation, it prints a concrete counterexample trace: `n = 3, x = "ready"` (you can *see* the bug). When Apalache finds a violation, it's proving "a violation exists by these constraints" — higher-level proof, but less concrete visibility. Both are sound; the question is which feedback loop helps your design.

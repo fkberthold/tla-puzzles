@@ -123,3 +123,17 @@ CHECK_DEADLOCK FALSE
   - **T45 strip**: replace `[]<>(slot = "empty")` with `<>(slot = "empty")`. Still passes — but now allows behaviors where the server processes one request and then halts forever with `slot = "empty"` (which is technically still <>"empty" satisfied). To see a real difference, swap to `<>[](slot = "empty")` (eventually always) — passes too because `slot` does end up "empty" forever after both clients done. The genuine `[]<>` shape catches mid-behavior re-occupations, which are present here while requests are in flight.
   - **T47 strip**: change `fair+ process (server ...)` to `fair process (server ...)`. With WF, TLC may find a behavior where the server is enabled infinitely often (a request keeps appearing) but never serves. The lasso shape depends on TLC's exact fairness analysis; the source change is the lesson.
 - The capstone shows leads-to, infinitely-often, and strong fairness composing into one spec. Each piece carries weight: removing any one breaks a real property.
+
+## Hints
+
+??? hint "💡 Hint 1 — Quantified leads-to"
+    Your `EveryRequestServed` property is a UNIVERSAL claim: for each client, their pending request leads to a response. That's `\A c \in Clients : (pending[c] = TRUE) ~> (served[c] = TRUE)`. Why does the quantifier sit OUTSIDE the `~>`?
+
+??? hint "💡 Hint 2 — Two processes, both `fair+`"
+    Both the client and server processes should use `fair+` (strong fairness). Why? Each action disables itself when it fires: the client's action clears `pending` (disables itself), and the server's action clears `slot` (disables itself). That's the pattern that needs SF.
+
+??? hint "💡 Hint 3 — Correct server flow across labels"
+    The server's three-label sequence must: (1) pick a pending client and put them in `slot`, (2) set `served[slot]` and clear `pending[slot]`, (3) reset `slot` to "empty." The order matters. Why must `pending` be cleared BEFORE `slot`?
+
+??? hint "💡 Hint 4 — The property checklist"
+    Before submitting, verify your spec contains: (a) `TypeOK` as an invariant, (b) `EveryRequestServed` as a property with `~>`, (c) `ServerStaysAvailable` with `[]<>`, and (d) `fair+ process` on both client and server.

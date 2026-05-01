@@ -115,3 +115,14 @@ In the `define` block:
 - Examine TLC's reported state count and depth. Notice how the depth equals the number of labels traversed.
 
 **Bonus.** What is `DOMAIN <<>>`? What is `Len(<<>>)`? Try evaluating them in your head, then write `EmptyDom == DOMAIN orders` as an operator and trace what TLC reports for the initial state.
+
+## Hints
+
+??? hint "💡 Hint 1 — 1-indexed, not 0-indexed"
+    Sequences in TLA+ use 1-based indexing. The first element is `s[1]`, not `s[0]`. Remember: `orders[1]` is the first order in the queue. When you refer to "the most recent," think `orders[Len(orders)]` — the element at index equal to the length.
+
+??? hint "💡 Hint 2 — Append adds to the END"
+    `Append(s, x)` produces a new sequence with `x` at the end. It does NOT prepend. Head/Tail look at the FRONT: `Head(s)` is the first, `Tail(s)` is everything except the first. `Append(s, x)` is equivalent to `s \o <<x>>` (concatenation).
+
+??? hint "💡 Hint 3 — Two phases: take orders, then serve"
+    The `take` label runs inside a `while (phase < 3)` loop, appending each order and incrementing `phase`. After the loop exits, the `serve` label runs exactly once (not in a loop). Check: does the `serve` body need to be inside the while, or AFTER it?

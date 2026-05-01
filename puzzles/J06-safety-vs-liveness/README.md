@@ -122,3 +122,14 @@ When stakeholders speak in *English*, "the system should be reliable" / "things 
 - A vague "the system should be reliable" is either (a) safety in disguise, (b) liveness in disguise, or (c) both — never neither. Force the disambiguation.
 
 Done. J07 closes the judgment set with the smallest-grained choice yet — when do two operations belong in one PlusCal label vs two?
+
+## Hints
+
+??? hint "💡 Hint 1 — Can you see the violation in a single state?"
+    If someone showed you a *snapshot* of the system at one moment and asked "is the property violated?", could you answer yes by looking at that state alone? If yes, it's safety (like "the balance is negative" — bad state, done). If you need to see the *sequence* of states (or argue about forever), it's liveness.
+
+??? hint "💡 Hint 2 — Listen for the modals: always vs eventually"
+    Scan the English requirement for "always," "never," "must not" → safety. Look for "eventually," "must at some point," "will reach," "always eventually," "leads-to" → liveness. Vague properties like "the system should be reliable" are half-specified — push the stakeholder until they pick one language or the other.
+
+??? hint "💡 Hint 3 — Test with fairness"
+    Temporarily write the property without any fairness assumption (`Init /\ [][Next]_vars`). Does it pass? Then it's probably safety — fairness doesn't matter. Does it fail immediately? Then you need fairness, which means it's liveness. Safety violations exist regardless of fairness; liveness violations depend on it.

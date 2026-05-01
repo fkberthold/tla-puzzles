@@ -107,3 +107,15 @@ tlc PunchCard
 - `TypeOK` passes.
 
 The abstract is intentionally tiny. Tier 6's later puzzles (T54+) will write the CONCRETE side — a more detailed spec — and prove it refines this abstract.
+
+## Hints
+
+??? hint "💡 Hint 1 — Abstract is the contract; concrete is the implementation"
+    Don't describe HOW the punch card works (one per customer, stored in a database). Describe WHAT it does (punches tick up, then reset). The abstract is nondeterministic — it allows any jump to a higher value, up to the max.
+
+??? hint "💡 Hint 2 — Punch nondeterministically jumps, not incrementally"
+    Use \E n \in (punches+1)..MaxPunches to pick ANY legal next value. This is maximally nondeterministic — a concrete implementation might increment by 1 OR by 2, and both must refine the abstract.
+
+??? hint "💡 Hint 3 — Don't add mechanism (like a total counter)"
+    The abstract doesn't track cumulative coffees earned — that's not observable in the contract. It only tracks the current punch count. Save mechanism for the concrete spec (T54).
+

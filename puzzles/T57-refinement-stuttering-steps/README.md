@@ -148,3 +148,15 @@ Spec == Init /\ [][Next]_<<n, lastLog>>
 Wait — `lastLog` isn't even declared in `Counter`. So you can't just append it. Instead, edit `LoggedCounter.tla` and try: change the INSTANCE substitution to provide a different mapping. Or, more directly: in `Counter.tla` change `[Next]_<<n>>` to plain `Next` (no brackets, no `_<<n>>`). Re-run TLC on `LoggedCounter`. You should see TLC report a refinement violation: a `Log` step that doesn't satisfy the un-bracketed abstract `Next` (which would require `n' = n + 1`).
 
 This is what the brackets buy you. They are the formal hook on which refinement hangs.
+
+## Hints
+
+??? hint "💡 Hint 1 — [Next]_vars allows stuttering; plain Next does not"
+    [Next]_vars = Next \/ UNCHANGED vars. The concrete Log action doesn't change `n`, so it's a stutter on `n`. Without the brackets, Log would have to match an abstract step, which it doesn't — refinement breaks.
+
+??? hint "💡 Hint 2 — Stuttering is not a hack; it's the refinement glue"
+    The concrete has internal events (Log) that the abstract doesn't see. From the abstract's projection (just `n`), those events disappear. That's what stuttering formalizes — invisible implementation details.
+
+??? hint "💡 Hint 3 — Check the square brackets in the abstract"
+    Your abstract MUST say Spec == Init /\ [][Next]_vars (with brackets and _vars). If it said just Next (no brackets), refinement would require every concrete step to match a real abstract step — impossible if the concrete has internal-only actions.
+

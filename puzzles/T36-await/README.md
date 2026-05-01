@@ -76,3 +76,15 @@ Write a PlusCal spec with:
 ## Hint
 
 Compare what happens if you replace `await handoffReady;` with `if (handoffReady) { runnerBFinished := TRUE; };`. Without `await`, Runner B's `wait` step can FIRE before A has acted — the `if` evaluates to false and B falls through without finishing. With `await`, B's step doesn't fire at all until the condition holds. The liveness property catches the difference: under `if`, eventually finishing requires that B's step happens AFTER A's, which fairness alone doesn't enforce.
+
+## Hints
+
+??? hint "💡 Hint 1 — How is `await` different from `if`?"
+    With `if (cond) { ... }`, the condition is checked ONCE; if false, the code inside doesn't run but the action still completes. With `await cond`, if the condition is false, the ENTIRE action is disabled — TLC won't take that step at all. The process BLOCKS until the condition becomes true (because some other process changed state), then the action fires.
+
+??? hint "💡 Hint 2 — The await is part of one atomic step"
+    When you write `await handoffReady; runnerBFinished := TRUE;` in the same label, BOTH the await-check and the assignment happen together. If `handoffReady` is false, the step doesn't fire. If it's true, the step fires and B finishes in the same atomic operation — there's no window where the check passes but B hasn't updated yet.
+
+??? hint "💡 Hint 3 — Fairness makes awaits eventually fire"
+    Under weak fairness, if a process is stuck at an `await` waiting for a condition, and another process DOES change state to make that condition true, then eventually the waiting process's action will fire. Without fairness, the process could wait forever even after the condition became true. That's why `fair process` matters here.
+

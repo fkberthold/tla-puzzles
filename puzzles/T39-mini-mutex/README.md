@@ -92,3 +92,15 @@ fair process (user \in {"Alice", "Bob"}) {
     printerInUse := FALSE;
 }
 ```
+
+## Hints
+
+??? hint "💡 Hint 1 — Why does T04's naive split fail here?"
+    In T04, if you split a test-and-set into two labels, both processes see the flag as false and both "lock" it. Here, `await ~printerInUse; printerInUse := TRUE;` in the same label means the entire sequence is ATOMIC. While the flag is true, both processes are disabled. Once one fires, the flag flips and the other is locked out.
+
+??? hint "💡 Hint 2 — The await must be in the same label as the set"
+    The invariant `MutualExclusion` will FAIL if you put the `await ~printerInUse` check in one label and the `printerInUse := TRUE` in another. The atomicity is essential. That's the entire lesson of T39: atomic test-and-set as a pattern, not a bug.
+
+??? hint "💡 Hint 3 — Track both the flag and the process set"
+    You have two state variables: `printerInUse` (the boolean flag) and `printing` (the set of users currently using the printer). The acquire label updates both; the release label clears both. The invariant `FlagMatchesSet` says these two should always agree: the flag is true IFF at least one user is in the set. That's your synchronization check.
+

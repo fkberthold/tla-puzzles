@@ -108,3 +108,14 @@ Both runs check `TypeOK` successfully. The reduction does not lose any safety in
 - **`SYMMETRY name`** — cfg directive, names an operator that returns the permutation set.
 - Symmetry is safety-only. If you turn on liveness, TLC will reject the symmetry directive.
 - Use this on every spec where you have indistinguishable processes, clients, requests, lockers, jobs. The speedup is the difference between a spec that checks in 1 second and one that runs all night.
+
+## Hints
+
+??? hint "💡 Hint 1 — Why Model Values Matter"
+    The lesson says "model values are opaque tokens, equal only to themselves." In Lockers, the model values `s1, s2, s3, s4` are interchangeable — the spec never branches on `assigned = {s1}` specifically. Because they're interchangeable, any permutation (renaming s1→s2, s2→s3, etc.) produces an equivalent behavior. That's where Permutations comes in. If you had written `CONSTANT Students = {"alice", "bob", "carol", "dave"}` (strings), TLC would reject the Permutations because strings have a built-in ordering — they're NOT interchangeable in TLC's eyes.
+
+??? hint "💡 Hint 2 — Orbits and Representatives"
+    Without SYMMETRY, TLC visits all 2^4 = 16 subsets of Students: {}, {s1}, {s2}, {s3}, {s4}, {s1,s2}, ... With SYMMETRY, TLC groups states into orbits (equivalence classes under permutation). All 1-element subsets {s1}, {s2}, {s3}, {s4} are in the same orbit; TLC visits only ONE representative. Same for all 2-element, 3-element, and 4-element subsets. Result: 5 distinct views instead of 16. The coverage is identical because every cardinality class has the same structure.
+
+??? hint "💡 Hint 3 — SYMMETRY Rejects Liveness"
+    If you try to add a PROPERTY like Termination (a liveness property with <>) to Lockers, TLC will refuse to use SYMMETRY. Why? Because liveness counterexamples are lasso traces (a prefix followed by a loop). Symmetry reduction can hide a liveness bug in a skipped orbit. TLC plays it safe: SYMMETRY is safety-only. For this puzzle, stick with TypeOK.

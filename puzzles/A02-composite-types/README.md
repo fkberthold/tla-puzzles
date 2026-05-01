@@ -131,3 +131,14 @@ apalache-mc typecheck Tracker.tla
 - Five Apalache type constructors: `Set(T)`, `Seq(T)`, `<<T1, T2>>`, `{ field: T, ... }`, `T -> U`.
 - Sets and sequences are homogeneous; tuples and records can mix per slot.
 - Snowcat catches type mismatches before model checking begins, with line-precise errors.
+
+## Hints
+
+??? hint "💡 Hint 1 — Which constructor for which shape?"
+    The task describes five data structures: a collection with no order, a FIFO collection, a fixed pair, a record with labeled fields, and a lookup table. The lesson shows five type constructors in a table. Which constructor maps to each structure?
+
+??? hint "💡 Hint 2 — Record and function syntax"
+    Records use curly braces `{ field: Type, ... }` in Apalache. Functions use an arrow `Domain -> Codomain`. One variable is a lookup table (function) — what are its domain and codomain types from the description?
+
+??? hint "💡 Hint 3 — Multi-line VARIABLES with five annotations"
+    All five variables go in a single `VARIABLES` block. Each one gets a `\* @type: ...;` comment above it, just like A01. The function type for `status` is `Int -> Str` — order ID (domain) maps to status string (codomain).

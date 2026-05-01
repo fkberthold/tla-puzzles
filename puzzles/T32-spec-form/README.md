@@ -131,3 +131,14 @@ tlc Counter
 Total reachable states either way: **4** (`count \in 0..3`).
 
 The lesson: the bracket `[Next]_vars` lets the system stutter; weak fairness rules out *eternally* stuttering. Both pieces are necessary in real specs.
+
+## Hints
+
+??? hint "💡 Hint 1 — Spec is always Init and bracketed Next"
+    The standard shape is `Init /\ [][Next]_vars`. The square brackets `[...]_vars` allow stuttering — the system can do nothing for a step. The `[]` (always) means "this is true at every position in the behavior." If you just wrote `Init /\ Next`, you'd require every step to be a `Next` step — too strict.
+
+??? hint "💡 Hint 2 — Stuttering: either move or stay still"
+    `[Next]_vars == Next \/ (vars' = vars)`. The system either takes a real `Next` step or does nothing. This is baked in because real systems coexist with the world — while waiting for something, the spec does nothing (stutters), and that's OK. The `_vars` subscript tells TLA+ which variables to check for "no change."
+
+??? hint "💡 Hint 3 — Weak fairness: force progress on liveness"
+    `WF_vars(Next)` says "if `Next` is continuously enabled, it must eventually fire." Without it, `[Next]_vars` alone admits the behavior where `Next` stays enabled but the system stutters forever. This breaks liveness properties (`<>`) but leaves safety (invariants) intact. Add `WF_vars(Next)` to the spec when you want to check `<>` properties.

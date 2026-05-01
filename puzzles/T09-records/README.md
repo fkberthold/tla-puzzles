@@ -116,3 +116,14 @@ In the `define` block, write:
 - Inspect the trace by hand to confirm: balance goes 0 → 100 → 70 → 70 → 70, frozen flips false → false → false → true → true.
 
 **Bonus to try.** Replace `EndsCorrect` with `BalanceMonotone == Balance >= 0`. Will TLC pass it for THIS puzzle? Will it pass it if the withdraw amount were larger? (You don't need to actually fail it — just think about why it currently passes.)
+
+## Hints
+
+??? hint "💡 Hint 1 — EXCEPT is shorthand for reassignment"
+    The lesson section shows that `[contact EXCEPT !.age = 37]` returns a NEW record. You don't mutate the original — TLA+ has no mutation. So to "update" a variable, you write `account := [account EXCEPT !.field = newValue]`. What are the four field updates you need (one per label)?
+
+??? hint "💡 Hint 2 — Use `@` for "the old value""
+    Inside EXCEPT, `@` refers to the CURRENT value of that field. So `[account EXCEPT !.balance = @ + 100]` means "add 100 to the balance." For the second label, you'll use `@ - 30`. For the third label, you DON'T use EXCEPT on balance — which field does that label touch?
+
+??? hint "💡 Hint 3 — Four sequential labels, one per action"
+    The labels are `deposit`, `withdraw`, `freeze`, `finish`. PlusCal falls through naturally — after `deposit` completes, control passes to `withdraw` without needing a `goto`. Within each label, update the account once (using EXCEPT), then increment `step`. The fourth label just increments `step` and does nothing to the account.

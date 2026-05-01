@@ -66,3 +66,14 @@ In `Chef.cfg`: `INVARIANT TypeOK` and `PROPERTY EveryoneEventuallyPlates`.
 - TLC finds **8 distinct states** — the powerset of the chef set: every subset of `{Alice, Bob, Carol}` corresponds to a "who has plated so far" state.
 - No invariant or property violation. "No error has been found."
 - If you change `fair process` to `process` (no fairness), TLC reports a liveness violation: in the unfair behavior, some chef may stutter forever and never plate.
+
+## Hints
+
+??? hint "💡 Hint 1 — Reading the property definition"
+    Look at the `EveryoneEventuallyPlates` property in the expected result. You have a `\A` sitting OUTSIDE the temporal operator. Why does the quantifier go there instead of inside the `<>`?
+
+??? hint "💡 Hint 2 — Fairness structure"
+    The lesson uses `fair process` on the student. Why is `fair` needed for a `<>` property to hold? What does `fair` add to the generated TLA+ spec?
+
+??? hint "💡 Hint 3 — The formula shape"
+    Your property should look like `\A c \in Chefs : <>(plated[c] = TRUE)`. The `/\` from T24 (quantified invariants) shows up here too: you're writing a universal claim over processes.

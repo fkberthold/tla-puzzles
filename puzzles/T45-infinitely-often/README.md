@@ -92,3 +92,14 @@ In `Heartbeat.cfg`: `INVARIANT TypeOK` and `PROPERTY BeatsForever`.
   ```
   Now run TLC. `<>(pulse = TRUE)` would still pass (the heart did beat once). But `[]<>(pulse = TRUE)` is violated: after the single beat, the system stutters forever with `pulse = FALSE`, so `pulse = TRUE` does not recur. TLC produces a short lasso trace ending at the `Done` self-loop. Only `[]<>` catches this "stops beating" bug.
 - **Recap**: `<>` is one-shot. `[]<>` is recurring. They are answers to different questions about the system's longevity.
+
+## Hints
+
+??? hint "💡 Hint 1 — One event vs. repeating events"
+    Compare `<>(pulse = TRUE)` and `[]<>(pulse = TRUE)`. Why does the first pass even if the heart beats once and stops, but the second fails?
+
+??? hint "💡 Hint 2 — Two-label structure"
+    The task says "use two labels." One label sets `pulse := TRUE`. What does the other label do? How do the two labels together create a cycle?
+
+??? hint "💡 Hint 3 — The property formula"
+    `BeatsForever == []<>(pulse = TRUE)` means "in every state, eventually the heart beats again." Your loop with two labels ensures that this property holds by cycling through the two states infinitely with weak fairness.

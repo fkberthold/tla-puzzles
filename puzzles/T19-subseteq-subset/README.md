@@ -115,3 +115,14 @@ In the `define` block:
 - Notice the difference: `SUBSET roster` ENUMERATES all 16 subsets and feeds them into `with`; `team \subseteq roster` is a one-line BOOLEAN test in the invariant. Same noun ("subset") but different operator.
 
 **Bonus.** Replace `with (t \in SUBSET roster)` with `with (t \in {{}, roster})` — only two choices: empty team or whole roster. Predict the new state count, run TLC, and confirm. Then revert.
+
+## Hints
+
+??? hint "💡 Hint 1 — Subset test vs. power set"
+    `\subseteq` is a BOOLEAN operator — `team \subseteq roster` is TRUE or FALSE. `SUBSET` is a function that RETURNS A SET — `SUBSET roster` is the power set (all 16 subsets of the 4-element roster). Use `\subseteq` in invariants; use `SUBSET` in `with` to branch on choices.
+
+??? hint "💡 Hint 2 — Power set blows up fast"
+    `|SUBSET S| = 2^|S|`. With 4 roster members, `SUBSET roster` has 16 subsets. Each subset branches the `with`, creating 16 paths. Then for each team, `with (c \in team \cup {"none"})` creates |team|+1 branches (to pick captain). Total state count is roughly 1 initial + 16 teams * (1-5 captain choices) = 100+.
+
+??? hint "💡 Hint 3 — Handle the empty team case"
+    When the team is empty, there's no one to pick as captain. The expression `team \cup {"none"}` adds the placeholder `"none"` so you can always pick. The invariant `CaptainConsistent` uses `captain \in roster \cup {"none"}` to allow the placeholder, and checks that the captain is either "none" or actually on the team.

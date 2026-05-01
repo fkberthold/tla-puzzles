@@ -98,3 +98,14 @@ A single process loops while `~ShutDown`:
 - TLC explores all customer decision orderings — buying or walking in every combination
 - TicketConservation should PASS
 - AllSold should be VIOLATED — trace shows 5 customers where enough walked away that tickets remain
+
+## Hints
+
+??? hint "💡 Hint 1 — Reuse every T01–T07 technique here"
+    Variables and initialization (T01), nondeterminism with `with` (T02), control flow with `either/or` (T03), label atomicity (T04), operators in `define` (T06) — they all combine. Asserts and deliberate bugs (T05, T07) are optional. Build incrementally.
+
+??? hint "💡 Hint 2 — Composition of operators"
+    `ShutDown == SoldOut \/ MaxCustomers` uses the two smaller operators. In your invariant `TicketConservation`, you're checking that sold + tickets always equals 3. That's the fundamental property — the machine never creates or destroys tickets.
+
+??? hint "💡 Hint 3 — AllSold should fail because closure happens early"
+    The machine closes when `ShutDown` is true — either all tickets sold OR 5 customers served. But if 4 customers buy and 1 walks away, the 5th customer causes closure even though tickets remain. TLC finds this path and shows the violation.

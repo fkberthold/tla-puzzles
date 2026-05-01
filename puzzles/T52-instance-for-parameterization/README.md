@@ -141,3 +141,15 @@ tlc Kitchen
 - TLC reports parsing `Timer.tla` because of the two INSTANCE statements.
 
 If you want to confirm the namespacing: try writing `Range` (no prefix) somewhere in `Kitchen.tla`. You'll get a parse error — `Range` is not in scope; only `Oven!Range` and `Microwave!Range` are.
+
+## Hints
+
+??? hint "💡 Hint 1 — INSTANCE vs EXTENDS: one is for multiple uses"
+    EXTENDS brings names into your namespace. INSTANCE lets you USE THE SAME MODULE TWICE with different constants. H == INSTANCE Helper WITH N <- 4 means "call H a name for this instantiation" — the constants are bound inline.
+
+??? hint "💡 Hint 2 — After INSTANCE, use the H! prefix to access operations"
+    You write Oven!Range, not just Range. This keeps the two Timer instances (Oven and Microwave) in separate namespaces. Oven!Range is 0..60; Microwave!Range is 0..5.
+
+??? hint "💡 Hint 3 — WITH lists all the constants the helper needs"
+    Timer.tla has CONSTANT MaxMinutes. Your INSTANCE statements bind MaxMinutes <- 60 for Oven and MaxMinutes <- 5 for Microwave. Every CONSTANT in the helper must appear in the WITH clause.
+

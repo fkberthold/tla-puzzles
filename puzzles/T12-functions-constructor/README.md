@@ -113,3 +113,14 @@ readings := [s \in {"north", "south", "east"} |->
 ```
 
 Predict whether `AllSame` still holds. Run TLC. Confirm the violation. (You'll see the IF/THEN/ELSE expression formally in T22.)
+
+## Hints
+
+??? hint "💡 Hint 1 — Constructor syntax: domain and range"
+    The function constructor `[s \in S |-> e]` says "for each `s` in the set `S`, map it to `e`." The domain is `S` (the set of keys); the range is determined by `e`. So `[s \in {"north", "south", "east"} |-> 65]` creates a function with domain `{"north", "south", "east"}` and all values are 65.
+
+??? hint "💡 Hint 2 — Replace the entire function, not update fields"
+    Unlike EXCEPT in T09 (which updates one field of a record), here you're REPLACING the entire function value. The `measure` label should assign a fresh function — built with the constructor — that maps all stations to 65. You don't use EXCEPT; you use the full constructor.
+
+??? hint "💡 Hint 3 — DOMAIN and quantifiers preview"
+    `Stations == DOMAIN readings` extracts the set of keys from the function. The invariant `\A s \in Stations : readings[s] = readings["north"]` says "every station has the same reading." Initially all are 50; after `measure`, all are 65. Use square brackets `readings[s]` to access the function, not dot notation.

@@ -98,3 +98,14 @@ fair process (person \in {"Alice", "Bob"}) {
 ```
 
 Use `self` inside the process body for the person's identity.
+
+## Hints
+
+??? hint "💡 Hint 1 — The race lives in the gap between labels"
+    Alice can check the door is unlocked, then Bob can check it (still unlocked — Alice hasn't walked through yet!), then both walk through. This interleaving is possible BECAUSE check and walk are separate labels. Where in your spec is the race exposed?
+
+??? hint "💡 Hint 2 — Use two labels to create the vulnerability"
+    One label for the check, a second label for walking through. Between these two atomic steps, the other process can run. If you put both in the same label, the race disappears (you can't observe an intermediate state). But the puzzle asks you to MODEL the race, so split them.
+
+??? hint "💡 Hint 3 — Self and fairness"
+    Inside `fair process (person \in {"Alice", "Bob"})`, the identifier is `self`. Use `self` in your add-to-set operation: `through := through \cup {self}`. And use `fair` so TLC doesn't get stuck — each person eventually gets a turn.

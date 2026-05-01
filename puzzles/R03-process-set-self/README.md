@@ -85,3 +85,14 @@ Use `self` inside the `borrow` label to record which patron took a copy.
 - **NoOverborrow WILL BE VIOLATED.** TLC finds a trace where both patrons borrow, leaving `available = -1`.
 - The trace shows the interleaving: Pat1 inspects (sees 1), Pat2 inspects (still 1 — Pat1 hasn't borrowed yet!), Pat1 borrows, Pat2 borrows.
 - This is the same TOCTOU race as T04's door, in a fresh domain. Different setting; same shape; same `self`-keyed audit set.
+
+## Hints
+
+??? hint "💡 Hint 1 — The race is between check and claim"
+    T04 taught you about the TOCTOU bug (time of check, time of use): two processes read the SAME state before either updates it. Here, the library's shared state is `available`. Where do the two patrons CHECK it? Where do they CLAIM it? The gap between those two is where Pat2 sneaks in.
+
+??? hint "💡 Hint 2 — Two labels, deterministic flow"
+    After `inspect`, a patron either jumps to `borrow` or `done` (no nondeterminism — just the if-guard decides). One patron might inspect while another is at `borrow`. The overlap is the bug. Use `self` to record WHO borrowed so you can audit the race in `holders`.
+
+??? hint "💡 Hint 3 — Set union with self"
+    To add the current patron to a set, use `holders := holders \cup {self}`. The `self` keyword evaluates to the running patron's name (`"Pat1"` or `"Pat2"`). The set `{self}` is a singleton set containing just that name.

@@ -195,3 +195,21 @@ If you DROP `SF_vars(ServerProcess)` (replace with WF, or remove entirely), the 
 - A real-world distributed-style system uses ALL of Tiers 4–6: multi-process structure, fairness for liveness, and refinement to a clean external contract.
 - The abstract spec is your high-level intent; the concrete spec is your design; the refinement check is your proof that the design implements the intent.
 - Auxiliaries let you keep the concrete spec FAITHFUL TO THE IMPLEMENTATION (no extra fields the real system wouldn't have) while still mapping cleanly to the abstract.
+
+## Hints
+
+??? hint "💡 Hint 1 — Which Tier are you in?"
+    This capstone composes Tier 4 (distinct processes with await), Tier 5 (liveness: ~>, SF), and Tier 6 (refinement). The README recap explicitly lists which earlier puzzle teaches each piece. Stuck? Pick the technique that feels weakest and re-read that puzzle first.
+
+??? hint "💡 Hint 2 — Two distinct actions, shared state"
+    You need ClientSubmit and ServerProcess as separate actions in Next. ClientSubmit guards on queue length; ServerProcess guards on queue non-emptiness. Ask: what happens if the queue is full when the client wants to submit? What happens if it's empty when the server wants to process?
+
+??? hint "💡 Hint 3 — Refinement maps aux to abstract"
+    Your concrete state has four variables; the abstract has two. Create auxiliary variables aux_submitted and aux_completed that track the abstract counters. Then use INSTANCE with `WITH` to map them. TLC will check that every concrete behavior respects the abstract spec.
+
+??? hint "💡 Hint 4 — Strong fairness, not weak"
+    SF_vars(ServerProcess) means: if the server action is ENABLED infinitely often, it eventually fires. This matters for liveness (~>) when the queue keeps refilling. WF would let the server sleep forever if the queue empties and stays empty.
+
+??? hint "💡 Hint 5 — Auxiliary doesn't change abstract behavior"
+    Aux variables are purely for the refinement mapping—they don't change the outcome of Next. They tick up in lockstep with the real actions. aux_submitted bumps in ClientSubmit only; aux_completed bumps in ServerProcess only. Both are UNCHANGED in the other action.
+

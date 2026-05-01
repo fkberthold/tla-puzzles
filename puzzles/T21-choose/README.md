@@ -113,3 +113,14 @@ A single fair process runs two labels:
 - `winner` ends up as a SPECIFIC ticket (some number 1–4); rerun TLC and you'll see the same number every time. That's the deterministic "single value" of `CHOOSE`.
 
 **Bonus.** Replace `AnyTicket` in the `announceWinner` body with a `with (t \in Tickets) { winner := t; }`. Predict the new state count, then run. (Hint: 4 branches at `announceWinner`, then 4 at `announceMinValid` — but the second one is still `CHOOSE`, not `with`.) This contrast pins down what `CHOOSE` is and isn't.
+
+## Hints
+
+??? hint "💡 Hint 1 — CHOOSE picks ONE value, deterministically"
+    `CHOOSE x \in S : TRUE` picks a SPECIFIC element from `S` — the same element every time. It does NOT branch. Compare with `with (x \in S)`, which branches on every element. If you use `with`, TLC explores 4 branches; if you use `CHOOSE`, TLC picks one and ignores the rest.
+
+??? hint "💡 Hint 2 — Predicate must be satisfiable"
+    `CHOOSE x \in S : P(x)` returns one element that satisfies `P`. If NO element satisfies `P`, TLC errors. In the `SmallestAtLeast2` operator, the predicate `t >= 2 /\ \A u \in Tickets : (u >= 2 => t <= u)` is satisfiable (ticket 2 satisfies it), so TLC won't complain.
+
+??? hint "💡 Hint 3 — Two operators, two different tools"
+    `AnyTicket == CHOOSE t \in Tickets : TRUE` deterministically picks ONE ticket (the same one every run). `SmallestAtLeast2 == CHOOSE t \in Tickets : t >= 2 /\ \A u \in Tickets : (u >= 2 => t <= u)` deterministically picks the SMALLEST ticket >= 2 (which is 2). Neither branches — both are stable, deterministic choices.

@@ -108,3 +108,15 @@ Then experiment:
 - With `Capacity = 3`: a small reachable state space (under 100 distinct states).
 - All invariants pass.
 - Setting `Capacity = 0` triggers the assumption failure — TLC reports "Assumption line ... is false."
+
+## Hints
+
+??? hint "💡 Hint 1 — CONSTANT declares a parameter; ASSUME checks it"
+    CONSTANT makes a name available like a defined value. ASSUME is a STATIC precondition — TLC verifies it at startup on the constants alone, not on every reachable state. Use ASSUME for "N must be a positive integer."
+
+??? hint "💡 Hint 2 — Bind constants in the .cfg, not the .tla"
+    Your .tla file declares CONSTANT Capacity. The .cfg file says CONSTANT Capacity = 3. TLC reads the cfg, binds the constant, then explores. If you want to change the Capacity for a new run, edit the cfg (don't touch the .tla).
+
+??? hint "💡 Hint 3 — Your guards implicitly use the constant"
+    The clerk loops 5 times, borrowing if books > 0 and returning if books < Capacity. The second condition depends on the CONSTANT Capacity. TLC will respect the parameterization.
+

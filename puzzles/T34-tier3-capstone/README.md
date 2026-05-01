@@ -97,3 +97,14 @@ State count for the full reachable space (with the bad invariant disabled, e.g.,
 If your spec deadlocks, the most common cause is a committed direction with no useful destination. The `GoIdle` action exists for exactly this reason — without it, an elevator on floor 3 with `direction = "up"` and a request only on floor 1 would have no enabled action.
 
 If your state count is much higher than 100, you may have left a primed variable unconstrained somewhere. Re-check every action: every variable, every time.
+
+## Hints
+
+??? hint "💡 Hint 1 — Start with state, then transitions"
+    The elevator has four variables: floor, door, direction, requests. Write `TypeOK` to constrain each. Then sketch the actions on paper: which ones change floor? Which change door? Which change direction or requests? This ensures you list every action and know which variables each affects.
+
+??? hint "💡 Hint 2 — Every action mentions every variable"
+    You have four variables. Every action (Request, StartUp, StartDown, MoveUp, MoveDown, OpenDoor, CloseDoor, GoIdle) must assign or `UNCHANGED` all four. If an action only updates `direction`, the other three must be `UNCHANGED <<floor, door, requests>>`. This is the most common source of error in multi-variable specs.
+
+??? hint "💡 Hint 3 — The flawed invariant teaches a lesson"
+    `NeverStuckClosedAtRequest` says `floor \in requests => door = "open"`. This *seems* true, but TLC will violate it. Why? Because the elevator can arrive at a requested floor (state has `floor \in requests`) but before `OpenDoor` fires, the door is still closed. That is a valid transient state. Use TLC's counterexample to trace the violation and understand why it is not a bug in the elevator—it's a bug in the invariant's expectation.

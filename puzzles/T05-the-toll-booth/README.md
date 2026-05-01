@@ -67,3 +67,14 @@ Write a PlusCal spec with:
 - The assert never fires (because 50 cents is reachable well before 100)
 - GateEventuallyOpens passes with weak fairness
 - Explore: what's the maximum `paid` value TLC discovers? (Hint: all dimes = 50, but what if the last insert is a quarter on top of 40?)
+
+## Hints
+
+??? hint "💡 Hint 1 — Nondeterminism in the loop"
+    Inside the loop, `either/or` picks whether to insert a quarter or a dime. TLC explores both branches at each iteration. The loop runs until paid >= 50. How many different orderings of coins can reach exactly 50 (or exceed it)?
+
+??? hint "💡 Hint 2 — Asserts are line-specific checks"
+    `assert paid <= 100` fires ONLY at that line, only when execution passes through. It's a sanity check: "if we ever get here, this must be true." It's not an invariant (checked in every state). The assert only cares about THIS moment in the computation.
+
+??? hint "💡 Hint 3 — MaxFairness ensures liveness"
+    With `fair process`, weak fairness means TLC doesn't deadlock — the process eventually takes a step if it can. Without `fair`, TLC might get stuck and falsely report a deadlock. The temporal property `<>(gate = "open")` relies on fairness to guarantee eventually someone inserts a coin.

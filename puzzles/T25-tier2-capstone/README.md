@@ -185,3 +185,14 @@ A single fair process runs three labels:
   Trace through by hand: alice gets 2 apples (total = 2 because bread and coffee are still 0), alice pays (history = `<<"opened", "paid">>`, so `HasPaid("alice") = TRUE`), bob never pays. The filter set is `{"alice"}`. The map-via-filter `stockedAlice` is `{"apple"}` (the only item with positive qty).
 
 **Bonus.** Add a fourth label `shipAlice` that appends `"shipped"` to alice's history. Update `EndsCorrect` for `phase = 4`. The shape is the same as `payAlice`; you're testing your fluency, not learning new syntax.
+
+## Hints
+
+??? hint "💡 Hint 1 — Nested EXCEPT for nested records"
+    Alice's cart is a FIELD of her order record, which is an ENTRY in the `orders` function. To update apple qty in alice's cart, use two EXCEPT layers: outer updates alice's record, inner updates the apple entry. The pattern `[orders EXCEPT !["alice"].cart = [@ EXCEPT !["apple"] = @ + 2]]` has TWO `@`s, each scoped to its own EXCEPT.
+
+??? hint "💡 Hint 2 — Append for sequences"
+    Alice's history is a SEQUENCE. To add an event, use `Append(@, "paid")` — the outer EXCEPT applies to the history field, and Append adds to the sequence. So `[orders EXCEPT !["alice"].history = Append(@, "paid")]` appends "paid" to alice's event log.
+
+??? hint "💡 Hint 3 — Capstone composes all of T09–T24"
+    The `summarize` label builds a RECORD (T09) with computed fields. Use `LET` (T23) to name intermediate values. The `total` sums function lookups (T13). The `paidCustomers` is a FILTER (T17) using an existential quantifier (T24). The `nPaid` uses CARDINALITY (T20). The `allItems` is a FILTER (T17) on the items with qty > 0. Every piece is a tool from earlier puzzles.

@@ -81,3 +81,15 @@ Add a property:
 - TLC finds about **9–11 distinct states** (depends on label boundaries) with `EventuallyDone` PASSING.
 - All invariants pass.
 - If you remove the `await ~dish` from the chef's loop, you'll see TLC report a state where the chef wrote `TRUE` over an existing `TRUE` — the second cook would silently overwrite. (Optional exploration.)
+
+## Hints
+
+??? hint "💡 Hint 1 — Which puzzle taught distinct processes?"
+    T35 introduced two separate process blocks with different code running concurrently. This puzzle drills that again: chef and server are distinct processes, each with its own loops and awaits.
+
+??? hint "💡 Hint 2 — await blocks until the condition becomes true"
+    The chef awaits ~dish (window must be empty); the server awaits dish (window must be full). These awaits create a handshake: the chef cannot cook again until the server has cleared the window. Think: what sequencing do the awaits FORCE?
+
+??? hint "💡 Hint 3 — fair process + liveness property"
+    Both processes are fair, and EventuallyDone = <>(delivered = 3) requires that the loop eventually terminates. If you remove fair, the processes might both idle forever even when enabled — TLC would find a counterexample.
+

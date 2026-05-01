@@ -140,3 +140,14 @@ Apalache reports the same deadlock without `Done`, and accepts the spec with it.
 - The fix is a stutter action — typically named `Done` — guarded by the terminal condition, with `UNCHANGED vars` as its body.
 - Disjunct `Done` into `Next` so it's available from terminal states.
 - PlusCal generates a `Terminating` clause that does this for you. In pure TLA+, you write it by hand.
+
+## Hints
+
+??? hint "💡 Hint 1 — The deadlock symptom"
+    The lesson says: run TLC on your spec without `Done`. What error does TLC report? The puzzle asks you to observe this error first, then add `Done` to fix it. What should the guard condition for `Done` be?
+
+??? hint "💡 Hint 2 — The stutter pattern"
+    `Done` fires when the main work action (`Tick`) can no longer fire. In this spec, `Tick` requires `n < 5`. So `Done` fires when `~(n < 5)`, i.e. when `n >= 5`. What's the simplest form of that condition?
+
+??? hint "💡 Hint 3 — One action, N disjuncts"
+    The `Next` formula disjuncts the main action and the stutter: `Next == Tick \/ Done`. This means on every step, either `Tick` (if enabled) or `Done` (if work is finished) is available. With both, no state reaches a deadlock.

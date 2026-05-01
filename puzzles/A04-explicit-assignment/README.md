@@ -126,3 +126,14 @@ apalache-mc check --inv=TypeOK --length=10 Door.tla
 - It is `=` to TLC; to Apalache, it's a syntactic marker that "this line is THE assignment for this primed variable."
 - Apalache requires every variable to be assigned in every action and in `Init`. Use `:=` for *all* primed-variable conjuncts, even unchanged ones, to make the contract visible.
 - This is style discipline that pays off as specs grow: ambiguity at scale is the enemy.
+
+## Hints
+
+??? hint "💡 Hint 1 — Where does := come from?"
+    The lesson mentions that `:=` is defined in a standard library. Look at the `EXTENDS` line in the lesson's worked example — which module do you need to include to use `:=`?
+
+??? hint "💡 Hint 2 — Both variables, every action"
+    The key rule: every variable must be assigned in every action. If an action doesn't change a variable, you don't use `UNCHANGED` — you write `var' := var` with `:=`. That's the "explicit assignment" in the puzzle name.
+
+??? hint "💡 Hint 3 — Init also needs :="
+    Init is a special action that defines the starting state. In Apalache, it's subject to the same rule: every variable gets `:=` with its initial value. The worked example shows `elapsed := 0` and `running := FALSE` in `Init`.

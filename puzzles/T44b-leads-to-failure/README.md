@@ -162,3 +162,14 @@ CHECK_DEADLOCK FALSE
 - **The fix**: change `process (subscriber = "Subscriber")` to `fair process (subscriber = "Subscriber")` — one word added.
 
 - **Strip test (QG #3)**: Remove the leads-to property. Change `PROPERTY PublishedEventuallyReceived` to `\* PROPERTY PublishedEventuallyReceived`. Re-run TLC on the broken spec. There's no property violation because TLC only checks the invariant `TypeOK`, which holds trivially. The leads-to property is the load-bearing concept. With it, TLC forces you to add fairness; without it, the bug hides.
+
+## Hints
+
+??? hint "💡 Hint 1 — Identifying the stuck state"
+    When you run TLC on the broken spec, the lasso will show `published=TRUE` but `received=FALSE` in the final stuttering state. Which process should have fired at that point but didn't?
+
+??? hint "💡 Hint 2 — The fairness diagnosis"
+    The subscriber's action has the right GUARD: `await published` is true. But the process has NO FAIRNESS annotation. What does TLC do when a process has no fairness and an enabled action? Is the action guaranteed to fire?
+
+??? hint "💡 Hint 3 — The one-word fix"
+    Change `process (subscriber = "Subscriber")` to `fair process (subscriber = "Subscriber")`. That single word addition makes TLC require the subscriber to eventually take an enabled step. After the fix, re-translate and re-run — the property should hold.

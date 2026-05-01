@@ -100,3 +100,15 @@ Cross ==
 The first two conjuncts are unprimed — those become `ENABLED Cross`. The next two are primed — they don't appear in `ENABLED`. To check this against your guard, plug it into the invariant: `(ENABLED Cross) <=> (light = "red" /\ crossings < 3)`.
 
 In your `.cfg`, add `CHECK_DEADLOCK FALSE` so TLC doesn't flag terminal states (where `Cross` is exhausted but `Flip` is still going) — actually here `Flip` is always enabled, so deadlock isn't a concern. But include it just in case.
+
+## Hints
+
+??? hint "💡 Hint 1 — ENABLED is asking 'could this action fire here?'"
+    An action like `Cross` is a relation between states. `ENABLED Cross` flips that perspective: it's a STATE PREDICATE that asks "from THIS state, is there ANY next state in which Cross is true?" In other words: "from here, would Cross be allowed to fire?" That's decided solely by the unprimed (guards) part of the action, not the primed (updates) part.
+
+??? hint "💡 Hint 2 — ENABLED extracts only the unprimed guards"
+    Look at your `Cross` action. It has both unprimed conjuncts (`light = "red"`, `crossings < 3`) and primed conjuncts (`crossings' = ...`, `light' = ...`). The `ENABLED Cross` operator throws away the primed part and keeps only the guards — so `ENABLED Cross` is equivalent to `light = "red" /\ crossings < 3`. The invariant `EnabledMatchesGuard` verifies this equivalence.
+
+??? hint "💡 Hint 3 — Why does this matter?"
+    In Tier 5 you'll use `ENABLED` in fairness statements like `WF_v(A)` (weak fairness: if A's enabling condition holds continuously, A must eventually fire). Here you're just verifying the principle: `ENABLED A` correctly captures the action's unprimed preconditions. That's the foundation for reasoning about fairness.
+

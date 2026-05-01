@@ -128,3 +128,14 @@ The `CHECK_DEADLOCK FALSE` line tells TLC not to flag a deadlock when the user r
 - `JobsServed` passes with `fair+ process` on the printer.
 - **Strip test**: change `fair+ process` to `fair process` on the printer (downgrade SF to WF). Re-translate (`tlc -pcal Printer.tla`) and re-run. The property's checked behavior depends on TLC's interpretation: depending on TLC's WF semantics for this exact pattern you may or may not see a violation directly. The point of the lesson is mechanical: `fair+` produces `SF_vars(...)` in the translation; `fair` produces `WF_vars(...)`. Open `Printer.tla` after both translations and read the `Spec ==` block to see the difference. The cfg never changes.
 - **Inspect the translation**: at the bottom of `Printer.tla`, look for the `Spec ==` definition. With `fair+` on the printer, you should see `SF_vars(printer)` (not `WF_vars(printer)`). That generated formula is the new concept this puzzle teaches.
+
+## Hints
+
+??? hint "💡 Hint 1 — The enabled/disabled flickering"
+    The printer's action fires when `hasJob = TRUE`, and firing SETS `hasJob = FALSE`. So after the printer fires, the action becomes disabled. When does it become enabled again? What fairness does that pattern require?
+
+??? hint "💡 Hint 2 — Why weak fairness fails here"
+    WF says "if continuously enabled, eventually fires." But the printer's action is never CONTINUOUSLY enabled — it disables itself. SF says "if repeatedly enabled, eventually fires." That's what the flickering pattern needs.
+
+??? hint "💡 Hint 3 — The `fair+ process` syntax"
+    Use `fair+ process (printer = "Printer")` (note the `+`). After pcal translates, look at the `Spec ==` block: you should see `SF_vars(printer)` instead of `WF_vars(printer)`.

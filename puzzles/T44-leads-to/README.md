@@ -109,3 +109,14 @@ In `Server.cfg`: `INVARIANT TypeOK` and `PROPERTY RequestServed`.
 - `RequestServed` passes with `fair process` on both client and server.
 - **Strip test 1**: replace `~>` with `=>` (drop the `[]`-wrap) and write `RequestServed_BAD == pending => <>served`. TLC will only check this in the INITIAL state, where `pending = FALSE`, so the implication is vacuously true. The check passes for the wrong reason. The failure mode of `=>` for a recurring obligation is the canonical motivation for `~>`.
 - **Strip test 2**: drop `fair` from the server's `process`. TLC reports a leads-to violation: a behavior in which the server stutters forever after a request, so the implied `<>served` never realizes. Trace under 5 states.
+
+## Hints
+
+??? hint "💡 Hint 1 — The meaning of `~>`"
+    The lesson says `~>` is "whenever P, eventually Q." But it's not a one-time promise — it's a REPEATED promise. What does that mean for a system that cycles through request/response many times?
+
+??? hint "💡 Hint 2 — Two process structure"
+    Leads-to typically involves a REQUEST side and a RESPONSE side. The task hint suggests writing the client as ONE process with two `either/or` branches. What are those two branches modeling?
+
+??? hint "💡 Hint 3 — The atomic response"
+    The server's response step must set BOTH `served` and clear `pending` atomically in ONE label. Why? What would happen if they were in separate labels?

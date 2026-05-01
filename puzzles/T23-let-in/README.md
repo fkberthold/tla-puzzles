@@ -132,3 +132,14 @@ A single fair process runs two labels:
 - The traced final value is **50** (50 base - 5 discount + 5 shipping).
 
 **Bonus.** Move `Final`'s body to the top level of the `define` block (no `LET`). The result should be the same. Now move the helpers `discountAmt` and `subtotal` from inside `LET` to the top level. Why does that pollute the namespace? (Answer: any other operator in `define` could now reference them, even if they're only meaningful for `Final`. `LET` keeps helpers private.)
+
+## Hints
+
+??? hint "💡 Hint 1 — LET introduces local names"
+    `LET name == expr IN body` binds `name` to `expr` within `body`. The name is ONLY visible inside `body`; outside, it doesn't exist. Use `LET` when you need a helper that's only used in one place — it keeps the namespace clean.
+
+??? hint "💡 Hint 2 — Multiple bindings, order matters"
+    You can write `LET x == 7 \n y == x + 1 IN x * y`. The second binding `y` can reference the first one `x`. Bindings are visible to all later bindings and to the body. Use this to build up complex results step by step.
+
+??? hint "💡 Hint 3 — Compute discount, then subtract from base"
+    The `Final` operator takes three arguments: base, discount percent, shipping. Inside `LET`, compute `discountAmt` as `b * d \div 100`, then compute `subtotal` as `b - discountAmt`. Finally, return `subtotal + s`. This builds the result step by step, with intermediate names for clarity.

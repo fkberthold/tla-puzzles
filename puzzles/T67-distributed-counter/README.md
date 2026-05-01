@@ -195,3 +195,20 @@ guarantees use the right fairness, and whose aggregation is written as a
 fold annotated for symbolic verification.
 
 That is the toolkit. Congratulations.
+
+## Hints
+
+??? hint "💡 Hint 1 — Start with the abstract spec as your north star"
+    Before diving into DistributedCounter.tla, read AbstractCounter.tla first. It's only 62 lines and it shows you the endpoint: a counter that increments to N and then signals done. Every mechanism in the concrete spec exists to make this abstract behavior true. Ask yourself: "How does each concrete action map to an abstract action?" The `WITH` clause tells you the answer.
+
+??? hint "💡 Hint 2 — The heartbeat is the reason strong fairness exists"
+    ToggleReady flips `ready` back and forth while the system is running. This means Aggregate is enabled (ready=TRUE), then disabled (ready=FALSE), then enabled again — intermittently enabled. Weak fairness fires actions that remain continuously enabled; strong fairness fires actions that are infinitely-often enabled even if they keep being disabled. Which fairness does Aggregate need? Look at the first experiment to see what happens if you guess wrong.
+
+??? hint "💡 Hint 3 — The `WITH` mapping encodes the design choice"
+    Three state variables appear in DistributedCounter: `local`, `ready`, `agg`, `aggDone`. But AbstractCounter only cares about `c` and `done`. The `WITH` clause tells TLC: `c <- SumLocals` and `done <- aggDone`. This isn't a whim — it's a choice. The `ready` flag and the heartbeat exist at the concrete level only; they are invisible to the abstract spec. Why does the mapping use SumLocals instead of `agg`? Try experiment 3 and you'll see.
+
+??? hint "💡 Hint 4 — Type annotations are bridges between TLC and Apalache"
+    Every CONSTANT and VARIABLE carries a `\* @type:` comment. TLC ignores these; Apalache reads them. When you run `apalache check`, it uses the type information to verify the spec symbolically without enumerating all states. If you remove the type annotations, TLC still works fine — but Apalache will complain. This is why capstones for the Apalache track include these annotations even though TLC doesn't need them.
+
+??? hint "💡 Hint 5 — ApaFoldSet is the tool for aggregation over sets"
+    SumLocals uses ApaFoldSet to fold (aggregate) over all nodes. It looks like: `ApaFoldSet(Add, 0, Nodes)` — accumulate with the Add operator, starting from 0, across the set Nodes. The `Add(acc, n)` operator adds the current node's local cell to the accumulator. Both TLC and Apalache accept this syntax because the Apalache.tla module is included in the solution directory, providing the definition.

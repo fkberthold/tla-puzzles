@@ -84,3 +84,15 @@ Next == Borrow
 Notice we don't need to handle the "nothing happens" case explicitly — `[Next]_books` already allows stuttering steps where `books` is unchanged. (You'll learn more about `[A]_v` and stuttering in T32, but the short version: stuttering is built in.)
 
 In your `.cfg`, add `CHECK_DEADLOCK FALSE` so TLC doesn't flag the `books = 0` terminal state as a deadlock — we WANT the spec to stutter there, which is exactly what `[Next]_books` permits.
+
+## Hints
+
+??? hint "💡 Hint 1 — Which puzzle introduced nondeterministic init?"
+    T02 showed you PlusCal's `with` statement to make a variable choose nondeterministically at the start. In pure TLA+, there's no `with` — but `Init` is just a predicate, so ANY state satisfying it is a valid start. That means you can write `Init == books \in 0..5` or `Init == \E n \in 0..5 : books = n` to say "let `books` be some value in that range — we don't know which."
+
+??? hint "💡 Hint 2 — Init is existential, not imperative"
+    Don't think of `Init` as an instruction ("set `books` to something"). Think of it as a constraint: "a state is initial if it satisfies this formula." TLC finds ALL states satisfying `Init` and explores from each one. With `\E n \in 0..5 : books = n`, TLC discovers 6 initial states.
+
+??? hint "💡 Hint 3 — Stuttering is implicit in `[Next]_var`"
+    The notation `[Next]_books` means "`Next` is true OR `books` is unchanged." So if `Next` (the `Borrow` action) is disabled because `books = 0`, the step is still valid — the spec allows stuttering. You don't need to write a separate "do nothing" action; stuttering is built in.
+

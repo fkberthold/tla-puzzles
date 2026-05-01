@@ -116,3 +116,14 @@ A single fair process runs two labels:
 - Notice that for SOME of the explored states, `IsFull` holds (the all-chairs-occupied subset).
 
 **Bonus.** Add the invariant `count \neq NumOccupied`. Predict: does TLC violate it? Where in the trace? (Hint: ANY state before `read` runs has `count = 0` while `NumOccupied` could be anything.)
+
+## Hints
+
+??? hint "💡 Hint 1 — Cardinality counts elements in a set"
+    `Cardinality(S)` returns an integer — the number of elements in `S`. So `Cardinality(occupied)` is the count of occupied chairs. Sets absorb duplicates, so `Cardinality({1, 1, 2})` is 2, not 3. Use `Cardinality` to derive a count from a set.
+
+??? hint "💡 Hint 2 — Cardinality is recomputed, not stored"
+    TLA+ has no "length" field on sets like some languages do. `Cardinality` traverses the set every time you use it. So `NumOccupied` is an operator that computes fresh each time — if `occupied` changes, `NumOccupied` automatically changes (no update needed).
+
+??? hint "💡 Hint 3 — Two phases: fill, then read"
+    The `fill` label uses `with (s \in SUBSET Chairs)` to nondeterministically pick a subset and assign it to `occupied`. This creates many branches (64, one per subset). The `read` label then reads the count into the `count` variable. The invariant `CountAccurate` checks that after `read`, count matches the cardinality.

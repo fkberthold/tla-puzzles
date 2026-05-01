@@ -105,3 +105,14 @@ Compare your answers to the patterns in this lesson. (Roughly: 1, 3, 5 are PlusC
 - When a spec starts to fight you — when you keep adding labels for things that aren't really sequential, or you can't find a natural process — that's the signal to switch notation.
 
 Done. J03 takes the same kind of choice up a level: which model checker — TLC or Apalache — fits the spec you just wrote?
+
+## Hints
+
+??? hint "💡 Hint 1 — Describe the system in English first"
+    Without mentioning TLA+, how would you describe the system to a colleague? Do you say "the vending machine inserts a coin, *then* picks an item, *then* dispenses" (sequential, procedural)? Or do you say "clients can put or delete any key at any time" (a set of allowed actions)? The word "then" often signals PlusCal; "any time" signals pure TLA+.
+
+??? hint "💡 Hint 2 — Can you draw a state machine?"
+    Does the system have natural states (like "awaiting-coin," "dispensing," "done") that transition in a predictable order? That's procedural — PlusCal fits. Or is it a mesh of possible transitions where you can't name a canonical "next step" (like a concurrent KV store)? That's relational — pure TLA+ is more natural.
+
+??? hint "💡 Hint 3 — Who cares about `pc`?"
+    PlusCal introduces a `pc` variable tracking which label each process is at. If the system you're modeling actually cares about control flow (`if the machine is in state "dispensing" it can't accept coins"`), that's good — `pc` is useful. If `pc` is just bookkeeping with no real meaning (`the KV store doesn't have a "phase"; any key can be written any time`), PlusCal is adding noise.

@@ -140,3 +140,15 @@ tlc ConcreteCard
 - Why it works: the concrete `Punch` (stock += 1) is a special case of the abstract `Punch` (stock' \in (stock+1)..MaxPunches), since `n = punches + 1` is in that range. The concrete `Redeem` matches the abstract `Redeem` exactly. The extra variable `lastAction` is invisible to the abstract because the abstract's `vars` is just `<< punches >>`.
 
 If you change concrete `Punch` to `punches' = punches + 2`, TLC will report a refinement violation: from `punches = 1`, the abstract allows the next value to be in `2..3`, but `2` was reachable from `1` only through the existential — actually `2 \in (1+1)..3 = 2..3`, so `+2` (giving 3) is `3 \in 2..3` — still in range! Try `punches' = punches - 1` instead to break the refinement and see TLC find a counterexample.
+
+## Hints
+
+??? hint "💡 Hint 1 — The concrete must be a valid spec on its own"
+    Write your concrete spec (variables, Init, Next, Spec) as if you were specifying a fresh system. Don't worry yet about refinement. Get TypeOK passing first — TLC should explore concrete states without errors.
+
+??? hint "💡 Hint 2 — INSTANCE brings the abstract into scope"
+    L0 == INSTANCE AbstractCard (no WITH clause yet — variable names match). Then Refines == L0!Spec wraps the abstract's spec formula. The cfg lists PROPERTY Refines; TLC verifies it.
+
+??? hint "💡 Hint 3 — Refinement is a property of the concrete"
+    TLC projects every concrete behavior onto the abstract. If the mapping works, the projection must match an abstract behavior. A concrete `Punch` (+=1) is a special case of abstract `Punch` (\E n \in ... : =n), so it refines.
+

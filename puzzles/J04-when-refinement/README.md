@@ -93,3 +93,14 @@ Rough answers: (1, 3, 6) single-level — there's no contract / implementation g
 - The second signal: someone asks "what does this spec *mean*?" and your honest answer is "well, it's basically just X, but..."
 
 Done. Tier 6 covers the mechanics — `INSTANCE`, `INSTANCE WITH`, refinement mappings, stuttering, auxiliary variables, debugging failed refinements. This judgment is the *strategic* layer above all that: should you reach for those tools at all?
+
+## Hints
+
+??? hint "💡 Hint 1 — Is there a contract vs implementation gap?"
+    Describe the system two different ways: once as "what does it do from the outside?" (the contract), once as "how is it built internally?" (the implementation). If both descriptions are the same, single-level is fine. If the implementation has machinery (buffers, retries, internal state) that the external contract doesn't mention, that gap is exactly what refinement formalizes.
+
+??? hint "💡 Hint 2 — Would a domain expert recognize this?"
+    Show a domain expert (a database admin, a protocol designer, a business analyst) your spec. Do they immediately understand what it's *for* (it's "a FIFO queue" or "a leader-election protocol")? Or do they see 50 variables and ask "wait, what does this *mean*?" If it's the latter, there's probably an abstract spec hiding inside waiting to be extracted.
+
+??? hint "💡 Hint 3 — Ask yourself: is this my implementation or my goal?"
+    If the spec describes the system you're *implementing*, single-level is correct — you check that your implementation doesn't crash, deadlock, or violate invariants. If the spec describes your *goal* and you want to check that an implementation reaches it, that's when you split into abstract spec (the goal) and concrete spec (the implementation) and prove refinement (the goal is reachable via this implementation).

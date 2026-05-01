@@ -155,3 +155,14 @@ For the puzzle's primary verification, list `LowConsistent` as a checked invaria
 - The trace shows a single drone with battery=1 and state="flying" (or similar mismatch).
 
 **Bonus.** Replace `LowConsistent` with its de Morgan dual: `~\E d \in Drones : (battery[d] <= 2 /\ state[d] /= "low")`. Predict whether the violation set is the same. (Answer: yes — they're logically equivalent. The traces should agree.)
+
+## Hints
+
+??? hint "💡 Hint 1 — Universal says 'for every'"
+    `\A d \in Drones : P(d)` is TRUE if EVERY drone `d` satisfies `P(d)`. If even ONE drone violates `P`, the universal is FALSE. Use `\A` when you need a property to hold EVERYWHERE.
+
+??? hint "💡 Hint 2 — Existential says 'there exists at least one'"
+    `\E d \in Drones : P(d)` is TRUE if AT LEAST ONE drone `d` satisfies `P(d)`. If NO drone satisfies `P`, it's FALSE. Use `\E` when you need to assert that SOMETHING exists.
+
+??? hint "💡 Hint 3 — LowConsistent checks consistency"
+    The invariant `LowConsistent == \A d \in Drones : (battery[d] <= 2 => state[d] = "low")` says "for every drone, if its battery is low, its state MUST be 'low'." TLC will find drones where battery <= 2 but state is "flying" or "docked" — that violates the implication. The trace will show one such drone as the counterexample.

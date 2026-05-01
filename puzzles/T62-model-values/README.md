@@ -124,3 +124,14 @@ The two failures map to the two halves of the rule: model values give you symmet
 - **Use concrete values** when the spec needs arithmetic, ordering, string operations, or shape inspection.
 - Set up your specs with model values from the start whenever symmetry is plausible — switching later is mechanical but tedious.
 - One model value in a set CAN be distinguished (Boss) — symmetry then permutes only the interchangeable ones via `Permutations(Workers \ {Boss})`.
+
+## Hints
+
+??? hint "💡 Hint 1 — Equality vs. Ordering"
+    The lesson stated the rule: use model values when the spec ONLY cares about equality (e.g., `worker = manager` or `w \in done`). Use concrete values when the spec needs comparison (`<`, `>`, `<=`), arithmetic, or string operations. In Tasks, do any of the spec's guards or actions compare workers with `<` or `+`? Or do they only test equality? The answer decides whether model values or strings are appropriate.
+
+??? hint "💡 Hint 2 — Permutations Require Model Values"
+    When you try `SYMMETRY Permutations(Workers)` with concrete values like strings, TLC throws "Symmetry function must have model values as domain and range." Why? Because strings have a built-in total order (lexicographic), and TLC can't permute something with an intrinsic identity. Permutations only work on opaque tokens (model values) that have NO semantics beyond equality. The error is TLC protecting you: if it allowed string permutation, it would be unsound.
+
+??? hint "💡 Hint 3 — Boss As a Distinguished Value"
+    The Boss is special — they never finish a task. This asymmetry means you can't apply `Permutations(Workers)` to the full set; Boss would be treated like any other worker, and the reduction would be unsound. The fix: `Permutations(Workers \ {Boss})` permutes only the interchangeable workers, leaving Boss fixed. This is the right pattern when a spec has one privileged process among a symmetric set.

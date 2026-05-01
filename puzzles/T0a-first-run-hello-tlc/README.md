@@ -56,3 +56,14 @@ INVARIANT TypeOK
 - The actual claim TLC verified — that `count` always stays in `0..3` — is encoded in the `INVARIANT` line, not in the spec.
 
 Done. Move on to T0b, where TLC will report a *failure* and you will learn to read the trace.
+
+## Hints
+
+??? hint "💡 Hint 1 — What's the success signal?"
+    The puzzle says to look for three specific lines in TLC's output. Search backwards from the bottom of the output — the signal you want is near the very end. What counts are you looking for?
+
+??? hint "💡 Hint 2 — Understanding 'distinct states found'"
+    The Tick spec models a clock counting from 0 to 3. The initial state is one state. Each tick is a state. When done, that's another state. Multiply that out — how many reachable states should exist?
+
+??? hint "💡 Hint 3 — The translation step is always first"
+    Remember: `tlc -pcal` translates PlusCal to TLA+. Without that translation, the second command has nothing to model-check. The two commands are a sequence: translate first, then check.

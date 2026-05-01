@@ -87,3 +87,14 @@ tlc PrintQueue
 - No deadlock — at any reachable state, either `Submit` (pool not full) or `Print` (queue non-empty) is enabled.
 
 If you forget the "not already in queue" guard on `Submit`, the queue can grow past length 3 and `TypeOK` will fail. If you forget `Len(queue) > 0` on `Print`, TLC reports an evaluation error from `Tail(<<>>)`.
+
+## Hints
+
+??? hint "💡 Hint 1 — Where is the nondeterminism?"
+    T10 introduced `\E` (existential quantification) to nondeterministically choose a value. The `Submit` action must pick a job number and append it. Use `\E j \in Jobs : ...` to nondeterministically try each job in the pool. Inside the quantifier, write the guard and the assignment.
+
+??? hint "💡 Hint 2 — Checking uniqueness"
+    The puzzle says a job number can only appear once in the queue. To check if job `j` is not already in the queue, iterate over all indices and check that none of them hold `j`. The pattern is `\A i \in 1..Len(queue) : queue[i] # j` — this says "for all indices, the element is not equal to `j`."
+
+??? hint "💡 Hint 3 — Head and Tail"
+    Sequences are 1-indexed. `Head(s)` gives the first element, `Tail(s)` gives everything but the first. The `Print` action removes the front of the queue, so use `Tail(queue)`. Don't forget the guard `Len(queue) > 0` — you can't take the tail of an empty sequence.

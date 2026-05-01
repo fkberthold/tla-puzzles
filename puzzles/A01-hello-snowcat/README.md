@@ -110,3 +110,14 @@ apalache-mc check --inv=TypeOK --length=10 VendingMachine.tla
 - Base types: `Int`, `Bool`, `Str`.
 - Snowcat is Apalache's type checker, runnable independently with `apalache-mc typecheck`.
 - Annotations have no effect on TLC behavior — they are pure TLA+ comments.
+
+## Hints
+
+??? hint "💡 Hint 1 — Where do the annotations go?"
+    The lesson shows that type annotations are written as special `\*` comments. Look carefully at the worked example: what exact syntax appears immediately above each `VARIABLE` line?
+
+??? hint "💡 Hint 2 — Annotations for both variables"
+    You have two variables to annotate: one holds a number (how much money), the other holds a true/false state. The base types `Int` and `Bool` are your answer — but both lines need the comment.
+
+??? hint "💡 Hint 3 — Multi-line VARIABLES block"
+    The lesson groups variables with a single `VARIABLES` keyword, then annotates each one with a comment above it. Notice the syntax: `\* @type: T;` immediately above the variable name, all within one `VARIABLES` block.

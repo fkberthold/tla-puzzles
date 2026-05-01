@@ -101,3 +101,14 @@ Answer key (don't peek until you've classified yourself):
 TLC summary on the clean cfg: **2 distinct states** (locked / unlocked), `TypeOK` passes, `EventuallyUnlocked` passes (with weak fairness, the system is forced to unlock).
 
 If you classified `Stable` as state-level, you'd expect `INVARIANT Stable` to work — but `UNCHANGED` always introduces primes, so it does not. Re-read the table whenever you find yourself surprised.
+
+## Hints
+
+??? hint "💡 Hint 1 — Does it mention a prime?"
+    The level of a formula depends on whether it mentions primed variables (`x'`, `y'`, etc.). State formulas have no primes. Action formulas have at least one prime. Read each named formula in `Lock.tla` and ask: do I see any primed variables? If yes, it's action level. If no, it's state level (unless it uses `[]` or `<>`, which makes it temporal).
+
+??? hint "💡 Hint 2 — What does UNCHANGED expand to?"
+    The keyword `UNCHANGED x` is a shorthand. It expands to `x' = x` — which contains a prime. So even though `Stable == UNCHANGED state` looks like it just talks about the current state, it actually mentions `state'`, making it **action level**. This is a common trap: many students think `UNCHANGED` is state-level.
+
+??? hint "💡 Hint 3 — Temporal operators: `[]` and `<>`"
+    If a formula contains `[]` (always), `<>` (eventually), or other temporal operators, it is **temporal level**. `NeverDoubleLocked == []...` uses `[]`, so it is temporal. Even if the inner expression is state-level, wrapping it in `[]` lifts the whole thing to temporal. Similarly, `EventuallyUnlocked` uses `<>`.

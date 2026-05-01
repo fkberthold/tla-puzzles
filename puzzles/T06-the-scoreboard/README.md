@@ -79,3 +79,14 @@ In the `define` block, create these operators:
 - TLC should find **27 distinct states**
 - PointsConserved should PASS (it's a real invariant of the system)
 - HomeAlwaysLeads should be violated by the INITIAL STATE — TLC catches it immediately because 0-0 is a tie, not a lead. Invariants check the initial state too!
+
+## Hints
+
+??? hint "💡 Hint 1 — Define is vocabulary, not state"
+    A `define` block is pure logic — it defines operators (like functions) that return true or false. `HomeLeads == home > away` doesn't CHANGE state; it names a condition so you can reference it elsewhere. Use it in invariants, conditions, other operators.
+
+??? hint "💡 Hint 2 — Operator composition builds understanding"
+    `TotalPoints == home + away` is simple. `ValidScore(s) == s \in 0..5` is a parameterized helper. In TypeOK, use both: `ValidScore(home) /\ ValidScore(away)`. Each operator is one piece of the puzzle. Combine them to describe the full state.
+
+??? hint "💡 Hint 3 — Invariants check EVERY state, including the start"
+    `HomeAlwaysLeads` is violated in the INITIAL state where home = 0, away = 0 (a tie, not a lead). TLC checks invariants before ANY steps are taken. If an invariant fails at the start, TLC reports it immediately with a trace of length 1.

@@ -71,3 +71,14 @@ Write a PlusCal spec with:
 
 - TLC should find **DoneImpliesZero violated** — the trace shows the counter stopping at 1 and claiming it's done
 - The trace should be SHORT (4-5 states) and clearly show the bug
+
+## Hints
+
+??? hint "💡 Hint 1 — Intentional bugs are a feature, not a bug"
+    Write a deliberate mistake in your loop. Make the condition just SLIGHTLY wrong — off by one, or the wrong relational operator. Then write an invariant that SHOULD be true if the code were correct. TLC will show you exactly where they diverge.
+
+??? hint "💡 Hint 2 — The invariant names your intent"
+    `DoneImpliesZero == done = TRUE => count = 0` says: "if done is true, count must be zero." Your buggy code violates this because done becomes true BEFORE count reaches zero. The implication fails. That's the bug captured as a formula.
+
+??? hint "💡 Hint 3 — Read the trace bottom-up"
+    The violating state (where the invariant breaks) is the LAST state in the trace. Walk backwards: what was count at that step? At the previous step? The trace shows the countdown and where it stalled. That's the off-by-one, visible.

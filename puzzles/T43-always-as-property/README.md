@@ -110,3 +110,14 @@ Both should pass. Both check the same thing.
 - Both the `INVARIANT` and the `PROPERTY` pass. They are checking the same predicate at different syntactic levels.
 - **Strip test**: drop the guard on the decrease branch (`temp := temp - 1` unconditionally). Now `temp` can fall to 59. Both `INVARIANT TypeOK` and `PROPERTY AlwaysInRange` fail with the same 2- to 3-state trace. Same diagnosis, different directive.
 - **The point**: when you graduate to `<>`, `[]<>`, `<>[]`, or leads-to, only the PROPERTY form will work. `[]InRange` is the gateway: a temporal formula that happens to be equivalent to an invariant, but lives in the same grammar as the harder properties coming up.
+
+## Hints
+
+??? hint "💡 Hint 1 — Comparing state-level and temporal-level"
+    The cfg asks for both `INVARIANT TypeOK` and `PROPERTY AlwaysInRange`. If they're equivalent, why does TLA+ let you write them both ways? When would only one form be valid?
+
+??? hint "💡 Hint 2 — Nesting the operator"
+    `AlwaysInRange` should be defined in your `define` block as `[]InRange`. The `InRange` predicate is just a name for the plain state predicate `temp \in 60..80`. Wrapping it in `[]` lifts it to the temporal level.
+
+??? hint "💡 Hint 3 — The loop guard"
+    Your process loops forever with three branches. Each branch must respect the invariant: `temp` never leaves the range 60..80. Two branches increment/decrement conditionally (with guards). The third branch does nothing (`skip`).

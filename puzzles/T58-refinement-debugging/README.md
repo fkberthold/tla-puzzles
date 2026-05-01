@@ -135,3 +135,15 @@ After your fix:
 - How to READ a refinement-violation trace.
 - How to TELL whether the bug is in the mapping or in the concrete Next.
 - That `Refines` violations can usually be diagnosed in 3–4 trace lines.
+
+## Hints
+
+??? hint "💡 Hint 1 — A refinement violation is a trace where concrete behavior breaks abstract rules"
+    Read the trace step by step. At each concrete state, compute what the abstract sees (apply the WITH mapping). At the failing step, check: did that abstract state follow a valid abstract action, or did the abstract forbid it?
+
+??? hint "💡 Hint 2 — Three kinds of bug: mapping wrong, concrete wrong, fairness weak"
+    This puzzle focuses on bugs 1 and 2. Bug 1: the mapping doesn't yield abstract values correctly. Bug 2: the concrete action really does violate the abstract. The hint says the bug is in the concrete Next.
+
+??? hint "💡 Hint 3 — Look for broken guards on the concrete"
+    Typically the trace shows a concrete action firing when its guard should have been false. E.g., Reset firing from n=1 when it should only fire from n=Max. Fix the guard and re-run TLC.
+

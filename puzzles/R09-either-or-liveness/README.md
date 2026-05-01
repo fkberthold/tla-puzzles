@@ -67,3 +67,14 @@ In `Faucet.cfg`: `INVARIANT TypeOK` (define `TypeOK == dropFell \in BOOLEAN`) an
 - TLC finds **2 distinct states**: the initial `dropFell = FALSE` and the post-step `dropFell = TRUE`. The two `either` branches collapse to the same state because both assign the same value.
 - `EventuallyDrips` passes with `fair process`.
 - **Experiment**: change `fair process` to `process` (no fairness) and re-run with `tlc -pcal Faucet.tla && tlc Faucet`. TLC reports a temporal violation: a 1-state stuttering trace where the faucet never takes any step. The state count for the violation is 1 — about as instructive a counterexample as you can get for "fairness is what makes liveness work."
+
+## Hints
+
+??? hint "💡 Hint 1 — The role of `fair` in the cfg"
+    The cfg asks for `PROPERTY EventuallyDrips`. Without `fair process`, what does TLC think is allowed to happen to the faucet? Why would that break `<>`?
+
+??? hint "💡 Hint 2 — Two branches, one outcome"
+    Both `either` branches do the same thing: `dropFell := TRUE`. Why would TLC collapse these into a single state even though there are two code paths?
+
+??? hint "💡 Hint 3 — The minimal process"
+    For this puzzle, your process needs exactly one labeled block. Inside that block, use `either` with two branches. Both branches set the same variable to the same value.
