@@ -23,10 +23,11 @@ jobs:
         with:
           python-version: '3.x'
           cache: 'pip'
+          cache-dependency-path: docs-requirements.txt
       - name: Install MkDocs Material
         run: |
           pip install --upgrade pip
-          pip install mkdocs-material
+          pip install -r docs-requirements.txt
       - name: Build docs tree from puzzle READMEs
         run: bash scripts/build-docs.sh
       - name: Build site
