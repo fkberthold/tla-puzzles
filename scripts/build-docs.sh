@@ -44,7 +44,7 @@ EOF
 classify() {
   local prefix="$1"
   case "$prefix" in
-    T0a|T0b|T0c|T0d) echo "tier-0" ;;
+    T0a|T0b|T0c|T0d|T0e) echo "tier-0" ;;
     T67)             echo "final" ;;
     A*)              echo "apalache" ;;
     J*)              echo "judgments" ;;
@@ -191,7 +191,7 @@ for dir in puzzles/*/; do
   tier=$(classify "$prefix")
   # Sort key: pad T0a-T0d so they sort before T01.
   case "$prefix" in
-    T0a|T0b|T0c|T0d) sk="T00${prefix: -1}" ;;
+    T0a|T0b|T0c|T0d|T0e) sk="T00${prefix: -1}" ;;
     *)               sk="$prefix" ;;
   esac
   echo -e "${tier}\t${sk}\t${prefix}\t${dir}" >> "$puzzle_index"
@@ -492,7 +492,7 @@ for tier_slug in tier-0 tier-1 tier-2 tier-3 tier-4 tier-5 tier-6 tier-7 apalach
       fname=$(basename "$f" .md)
       [ "$fname" = "index" ] && continue
       # Pad T0a-T0d for sorting
-      case "$fname" in T0a|T0b|T0c|T0d) sk="T00${fname: -1}";; *) sk="$fname";; esac
+      case "$fname" in T0a|T0b|T0c|T0d|T0e) sk="T00${fname: -1}";; *) sk="$fname";; esac
       echo -e "${sk}\t${fname}.md"
     done | LC_ALL=C sort | cut -f2 | sed 's/^/  - /'
   } > "$tier_dir/.pages"

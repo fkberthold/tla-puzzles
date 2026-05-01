@@ -104,7 +104,7 @@ def prefix_of_dir(d: pathlib.Path) -> str:
 
 def order_key(prefix: str):
     """Curriculum-order sort key for prereqs."""
-    if re.match(r"^T0[a-d]$", prefix):
+    if re.match(r"^T0[a-e]$", prefix):
         return (0, ord(prefix[2]))
     if re.match(r"^T(\d+)$", prefix):
         return (1, int(prefix[1:]))
