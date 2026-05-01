@@ -25,6 +25,21 @@ cp CURRICULUM_MAP.md "$DOCS/reference/curriculum-map.md"
 cp JUDGMENTS.md     "$DOCS/reference/judgments.md"
 { echo "# License"; echo; cat LICENSE; } > "$DOCS/about/license.md"
 
+# ---- concept index (built by separate Python script) ----
+if command -v python3 >/dev/null && [ -f /tmp/puzzle_concepts.json ]; then
+  python3 scripts/build-concept-index.py >/dev/null 2>&1 || true
+fi
+
+# Reference dir nav order (awesome-pages)
+cat > "$DOCS/reference/.pages" <<'EOF'
+title: Reference
+nav:
+  - Curriculum Map: curriculum-map.md
+  - Quality Gate: quality-gate.md
+  - Judgment Decision Tree: judgments.md
+  - Concept Index: concepts.md
+EOF
+
 # ---- helper: classify prefix into tier slug ----
 classify() {
   local prefix="$1"
@@ -117,12 +132,46 @@ labels = data.get(prefix, [])
 if not labels: sys.exit(0)
 chips = []
 for l in labels:
-    # concept:foo-bar → Foo bar
     cls, _, name = l.partition(':')
     pretty = name.replace('-', ' ').replace('_', ' ')
     cls_emoji = {'concept':'•', 'apa':'⚡', 'workflow':'🛠'}.get(cls, '·')
     chips.append(f'`{cls_emoji} {pretty}`')
 print(' '.join(chips))
+PYEOF
+}
+
+# ---- helper: render "Builds on:" prereq links from /tmp/builds_on.json ----
+render_builds_on() {
+  local prefix="$1"
+  if [ ! -f /tmp/builds_on.json ]; then return; fi
+  python3 - "$prefix" <<'PYEOF'
+import json, sys, re
+prefix = sys.argv[1]
+data = json.load(open('/tmp/builds_on.json'))
+prereqs = data.get(prefix, [])
+if not prereqs: sys.exit(0)
+
+def tier_of(p):
+    if re.match(r'^T0[a-d]$', p): return 'tier-0'
+    if p == 'T67': return 'final'
+    if p.startswith('A'): return 'apalache'
+    if p.startswith('J'): return 'judgments'
+    if p == 'C01': return 'tier-4'
+    if p == 'C02': return 'tier-6'
+    if p.startswith('R'):
+        n = int(re.match(r'^R(\d+)', p).group(1))
+        return ('tier-2' if 1<=n<=3 else 'tier-3' if 4<=n<=5 else 'tier-4' if 6<=n<=7
+                else 'tier-5' if 8<=n<=9 else 'tier-6' if n in (10,11)
+                else 'tier-7' if n in (12,13) else 'tier-?')
+    if p.startswith('T'):
+        m = re.match(r'^T(\d+)', p); n = int(m.group(1)) if m else 0
+        return ('tier-1' if 1<=n<=8 else 'tier-2' if 9<=n<=25 else 'tier-3' if 26<=n<=34
+                else 'tier-4' if 35<=n<=41 else 'tier-5' if 42<=n<=49
+                else 'tier-6' if 50<=n<=59 else 'tier-7' if 60<=n<=66 else 'tier-?')
+    return 'tier-?'
+
+links = [f'[{p}](../{tier_of(p)}/{p}.md)' for p in prereqs]
+print(f"**Builds on:** {', '.join(links)}")
 PYEOF
 }
 
@@ -163,16 +212,13 @@ while IFS=$'\t' read -r tier sk prefix dir; do
   {
     # Title comes from the puzzle's own README (its first H1)
     cp_chips=$(render_chips "$prefix")
-    if [ -n "$cp_chips" ]; then
-      # Pull the H1 line from the README so the page title matches
+    cp_builds_on=$(render_builds_on "$prefix")
+    if [ -n "$cp_chips" ] || [ -n "$cp_builds_on" ]; then
       h1=$(grep -m1 '^# ' "$dir/README.md" | head -1)
       echo "$h1"
       echo ""
-      echo "$cp_chips"
-      echo ""
-      # Then emit the rest of the README (skip the H1 we just used)
-      tail -n +2 "$dir/README.md" | sed '/^# /,$!d;1d' > /dev/null 2>&1 || true
-      # Simpler: emit everything *after* the first H1.
+      [ -n "$cp_chips" ]    && { echo "$cp_chips"; echo ""; }
+      [ -n "$cp_builds_on" ] && { echo "$cp_builds_on"; echo ""; }
       awk 'BEGIN{seen=0} /^# /{if(!seen){seen=1;next}} seen{print}' "$dir/README.md"
     else
       cat "$dir/README.md"
