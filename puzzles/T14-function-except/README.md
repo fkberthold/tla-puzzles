@@ -102,8 +102,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **5 distinct states** (one per `step` value: 0, 1, 2, 3, 4).
+- TLC should report `No error has been found`.
 - All three invariants pass.
+- The canonical solution reports **5 distinct states** (one per `step` value: 0, 1, 2, 3, 4). Your deterministic spec will likely match this count; state count depends on your label choices.
 
 **Bonus.** Replace the `redTwo` label's body with `goals := [goals EXCEPT !["red"] = 1]` (idempotent). What happens to the state count? (Hint: a state where nothing actually changes is still a step in PlusCal — but the new state may be identical to the previous one if `step` weren't incremented.)
 

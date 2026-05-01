@@ -96,8 +96,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **4 distinct states** (one per phase value).
+- TLC should report `No error has been found`.
 - All three invariants pass.
+- The canonical solution reports **4 distinct states** (one per phase value). Your label choices will be deterministic and likely produce the same count, but the metric is passing invariants, not state count.
 - Trace through by hand: after `combine`, `fullDay = <<"A","B","C","D","E","F">>`. `SubSeq(fullDay, 2, 4)` is indices 2 through 4: `<<"B","C","D">>`. Confirm with TLC.
 
 **Bonus.** What does `SubSeq(fullDay, 1, Len(fullDay))` evaluate to? What about `SubSeq(fullDay, 4, 2)`? Predict, then add an operator that returns each and check.

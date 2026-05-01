@@ -4,15 +4,41 @@
 
 ## What this puzzle is
 
-A pre-written PlusCal spec lives in `solution/Switch.tla`. It's the smallest possible spec: a single boolean `on` that gets toggled exactly once. You will translate it, then read both halves of the output file side-by-side and map each PlusCal construct to the TLA+ it became.
+A pre-written PlusCal spec — the smallest possible: a single boolean `on` that gets toggled exactly once. You will translate it, then read both halves of the output file side-by-side and map each PlusCal construct to the TLA+ it became.
+
+## The spec
+
+Save these two files into a working directory.
+
+`Switch.tla`:
+
+```
+---- MODULE Switch ----
+
+(*--algorithm Switch {
+  variables on = FALSE;
+
+  fair process (toggler = "Toggler") {
+    flip:
+      on := ~on;
+  }
+}
+*)
+====
+```
+
+`Switch.cfg`:
+
+```
+SPECIFICATION Spec
+```
 
 ## Run it
 
-From this directory:
+From the directory containing both files:
 
 ```bash
-cd solution
-cat Switch.tla        # see the original — 11 lines
+cat Switch.tla        # see the original — about 11 lines
 tlc -pcal Switch.tla
 cat Switch.tla        # see what got added — about 30 more lines
 tlc Switch

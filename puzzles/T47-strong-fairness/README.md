@@ -124,7 +124,7 @@ The `CHECK_DEADLOCK FALSE` line tells TLC not to flag a deadlock when the user r
 
 ## Expected Result
 
-- TLC finds a small state space — about **8 distinct states** covering combinations of `hasJob`, `printed`, and the two pcs.
+- TLC should report `No error has been found`. The canonical solution explores a small state space — about 8 distinct states covering combinations of `hasJob`, `printed`, and the two pcs; your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - `JobsServed` passes with `fair+ process` on the printer.
 - **Strip test**: change `fair+ process` to `fair process` on the printer (downgrade SF to WF). Re-translate (`tlc -pcal Printer.tla`) and re-run. The property's checked behavior depends on TLC's interpretation: depending on TLC's WF semantics for this exact pattern you may or may not see a violation directly. The point of the lesson is mechanical: `fair+` produces `SF_vars(...)` in the translation; `fair` produces `WF_vars(...)`. Open `Printer.tla` after both translations and read the `Spec ==` block to see the difference. The cfg never changes.
 - **Inspect the translation**: at the bottom of `Printer.tla`, look for the `Spec ==` definition. With `fair+` on the printer, you should see `SF_vars(printer)` (not `WF_vars(printer)`). That generated formula is the new concept this puzzle teaches.

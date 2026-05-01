@@ -127,9 +127,10 @@ A single fair process runs two labels:
 
 ## Expected Result
 
-- TLC reports **3 distinct states** (one per `phase` value).
+- TLC should report `No error has been found`.
 - All three invariants pass.
-- The traced final value is **50** (50 base - 5 discount + 5 shipping).
+- The canonical solution reports **3 distinct states** (one per `phase` value). Your spec will be deterministic and likely match.
+- The computed final value is **50** (50 base - 5 discount + 5 shipping).
 
 **Bonus.** Move `Final`'s body to the top level of the `define` block (no `LET`). The result should be the same. Now move the helpers `discountAmt` and `subtotal` from inside `LET` to the top level. Why does that pollute the namespace? (Answer: any other operator in `define` could now reference them, even if they're only meaningful for `Final`. `LET` keeps helpers private.)
 

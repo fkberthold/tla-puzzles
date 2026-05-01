@@ -175,9 +175,10 @@ A single fair process runs three labels:
 
 ## Expected Result
 
-- TLC reports **4 distinct states** (one per `phase` value).
+- TLC should report `No error has been found`.
 - All four invariants pass.
-- After phase 3, the summary record is exactly:
+- The canonical solution reports **4 distinct states** (one per `phase` value). Your deterministic spec will likely match.
+- After phase 3, the summary record is:
   ```
   [total |-> 2, paidCustomers |-> {"alice"}, nPaid |-> 1, allItems |-> {"apple"}]
   ```

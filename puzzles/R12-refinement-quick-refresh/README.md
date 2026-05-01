@@ -66,7 +66,7 @@ TLC checks `CoinsSpec` (the abstract spec, with concrete state plugged in) holds
 
 A bag fills with marbles, one at a time. Once every kind of marble is in the bag, no more steps happen. We claim this matches an abstract counter that ticks 0 → 1 → 2 → 3 (where 3 is the bag's capacity).
 
-A pre-written abstract spec lives in `solution/Counter.tla`. A pre-written concrete spec lives in `solution/Bag.tla`. The configuration is in `solution/Bag.cfg`.
+A pre-written abstract spec is shown below as the file `Counter.tla` (also visible in the 🔒 spoiler at the bottom of this page). A pre-written concrete spec is shown below as the file `Bag.tla` (also visible in the 🔒 spoiler at the bottom of this page). The configuration is in `solution/Bag.cfg`.
 
 ## Task
 

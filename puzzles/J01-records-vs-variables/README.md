@@ -11,7 +11,7 @@ You have a chunk of state — say, the four fields of an `Order`: id, quantity, 
 
 Both are valid. Both pass the same invariants. The difference is *cost of change* and *cost of reading*.
 
-The two specs in `solution/` model exactly the same workflow — placing, paying, and shipping an order — one as scattered variables, one as a record. Run both and compare them.
+The two specs below (`Scattered.tla` and `Bundled.tla`) model exactly the same workflow — placing, paying, and shipping an order — one as scattered variables, one as a record. Run both and compare them.
 
 ## Run both sides
 
@@ -21,7 +21,7 @@ tlc -pcal Scattered.tla && tlc Scattered
 tlc -pcal Bundled.tla   && tlc Bundled
 ```
 
-Both finish with **4 distinct states** and "No error has been found." Same model, same state space, same invariants pass.
+Both report **`No error has been found.`** The canonical solutions each report 4 distinct states; your spec may produce more if you split the operations into multiple labels — that's fine, the behavior and invariants are what matter.
 
 ## Read both sides side-by-side
 

@@ -103,7 +103,7 @@ Write a PlusCal spec with:
 
 - TypeOK and NoContradiction PASS.
 - EventuallyAllTerminal PASSES under default weak fairness — the clerk eventually picks each pending patient.
-- TLC explores roughly 1k–10k distinct states (3 patients × small choice spaces × interleavings).
+- TLC should report `No error has been found`. The canonical solution explores roughly 1k–10k distinct states (3 patients × small choice spaces × interleavings); your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 
 ## Hint
 

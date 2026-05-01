@@ -148,8 +148,9 @@ A single fair process:
 
 ## Expected Result
 
-- TLC reports **6 distinct states** (one per `tick` value: 0, 1, 2, 3, 4, 5).
+- TLC should report `No error has been found`.
 - All three invariants pass.
+- The canonical solution reports **6 distinct states** (one per `tick` value: 0, 1, 2, 3, 4, 5). Your deterministic spec will likely match.
 - Trace through by hand: at tick 2, `display = "yellow"` and `goFlag = FALSE`. At tick 4, `display = "green"` and `goFlag = TRUE`.
 
 **Bonus.** Replace the `CASE` with a nested `IF/THEN/ELSE`. Confirm TLC still gets the same answers. The `CASE` is just sugar for nested `IF`s — same semantics, prettier with many branches.

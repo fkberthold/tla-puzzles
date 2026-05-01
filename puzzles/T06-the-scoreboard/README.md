@@ -76,9 +76,10 @@ In the `define` block, create these operators:
 
 ## Expected Result
 
-- TLC should find **27 distinct states**
+- TLC should report `No error has been found` (TypeOK and PointsConserved pass; HomeAlwaysLeads is violated)
 - PointsConserved should PASS (it's a real invariant of the system)
 - HomeAlwaysLeads should be violated by the INITIAL STATE — TLC catches it immediately because 0-0 is a tie, not a lead. Invariants check the initial state too!
+- The canonical solution reports **27 distinct states**; your label choices may yield different counts, but both the structure (5 scoring rounds with home/away choice) and the invariant outcomes remain
 
 ## Hints
 

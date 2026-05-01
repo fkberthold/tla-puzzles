@@ -98,7 +98,7 @@ In the `define` block, create these operators:
 
 ## Expected Result
 
-- TLC explores every combination of address and kind across 4 stops
+- TLC should report `No error has been found` (after exploring every combination of address and kind across 4 stops).
 - TypeOK and PickupImpliesHolding pass
 - NeverDropoffEmpty is violated quickly — TLC finds a 2-state trace where the very first stop is a dropoff with the van still empty
 

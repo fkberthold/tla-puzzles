@@ -67,9 +67,10 @@ Add these invariants:
 
 ## Expected Result
 
-- TLC should find **5 distinct states** (1 initial + 3 toggles + 1 done)
+- TLC should report `No error has been found`
 - The "always off" invariant should be **violated** — TLC shows you the first toggle
 - TypeOK should **pass**
+- The canonical solution reports **5 distinct states** (1 initial + 3 toggles + 1 done); your spec may produce more if you split the toggle into multiple labels — that's fine, the behavior is what matters
 
 ## Hints
 

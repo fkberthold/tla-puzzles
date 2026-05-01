@@ -80,7 +80,7 @@ In `Heartbeat.cfg`: `INVARIANT TypeOK` and `PROPERTY BeatsForever`.
 
 ## Expected Result
 
-- TLC finds **2 distinct states** alternating: `pulse = FALSE` and `pulse = TRUE`.
+- TLC should report `No error has been found`. The canonical solution reports 2 distinct states alternating: `pulse = FALSE` and `pulse = TRUE`; your spec may produce more if you split the loop into multiple labels — that's fine, the behavior is what matters.
 - `BeatsForever` passes with `fair process` — weak fairness on the heart action keeps the cycle going.
 - **Strip test**: replace the body of the loop (everything inside `while (TRUE)`) with a single beat then a permanent rest:
   ```

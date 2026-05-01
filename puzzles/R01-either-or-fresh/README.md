@@ -64,7 +64,7 @@ Write a PlusCal spec with:
 
 ## Expected Result
 
-- TLC should find **5 distinct states** (ground/closed, lobby/closed, office/closed, lobby/open, office/open)
+- TLC should report `No error has been found`. State count for the reference solution: 5 (ground/closed, lobby/closed, office/closed, lobby/open, office/open).
 - AlwaysOffice violated in a 2-state trace ending at the lobby
 - EventuallyOpen passes under weak fairness — the elevator always eventually opens its doors
 

@@ -4,16 +4,52 @@
 
 ## What this puzzle is
 
-A pre-written spec lives in `solution/Battery.tla`. It models a battery that drains from `3` down to `0`. The `.cfg` file asks TLC to verify two invariants — and one of them is **deliberately wrong**. TLC will find the violation, print a trace, and report which invariant fired.
+A pre-written spec models a battery that drains from `3` down to `0`. The `.cfg` declares two invariants — and one of them is **deliberately wrong**. TLC will find the violation, print a trace, and report which invariant fired.
 
 You are not expected to understand the spec yet. The goal is reading TLC's failure output.
 
+## The spec
+
+Save these two files into a working directory of your choice.
+
+`Battery.tla`:
+
+```
+---- MODULE Battery ----
+EXTENDS Integers
+
+(*--algorithm Battery {
+  variables charge = 3;
+
+  define {
+    TypeOK == charge \in 0..3
+    StaysCharged == charge > 0
+  }
+
+  fair process (drain = "Drain") {
+    deplete:
+      while (charge > 0) {
+        charge := charge - 1;
+      }
+  }
+}
+*)
+====
+```
+
+`Battery.cfg`:
+
+```
+SPECIFICATION Spec
+INVARIANT TypeOK
+INVARIANT StaysCharged
+```
+
 ## Run it
 
-From this directory:
+From the directory containing both files:
 
 ```bash
-cd solution
 tlc -pcal Battery.tla
 tlc Battery
 ```
@@ -50,7 +86,7 @@ Three things to notice:
 
 2. **The trace is bottom-up.** State 1 is the initial state. The last state (State 4 here) is the *violating* state — the one where the invariant was false. To understand the failure, read upward from the bottom: "TLC ended at `charge = 0`. How did it get there?" Then walk up: state 3 had `charge = 1`, state 2 had `charge = 2`, initial had `charge = 3`. The drain process subtracted 1 each step until it hit 0, where `StaysCharged == charge > 0` finally broke.
 
-3. **What the invariant actually claimed.** Open `solution/Battery.tla` (or click the 🔒 spoiler below) and find this block:
+3. **What the invariant actually claimed.** In the `define` block of `Battery.tla`:
 
    ```tla
    StaysCharged == charge > 0
@@ -60,13 +96,7 @@ Three things to notice:
 
 ## What's in the .cfg
 
-```
-SPECIFICATION Spec
-INVARIANT TypeOK
-INVARIANT StaysCharged
-```
-
-Two invariants are declared. TLC checks both in every state. `TypeOK` (`charge \in 0..3`) is true throughout — `charge` only takes values 3, 2, 1, 0, all in range. `StaysCharged` is the one that fails. If you remove or comment out the `INVARIANT StaysCharged` line, TLC will accept the spec — but the spec is unchanged; you've just stopped asking the question.
+Both `INVARIANT` lines were declared. TLC checks both in every state. `TypeOK` (`charge \in 0..3`) is true throughout — `charge` only takes values 3, 2, 1, 0, all in range. `StaysCharged` is the one that fails. If you remove or comment out the `INVARIANT StaysCharged` line, TLC will accept the spec — but the spec is unchanged; you've just stopped asking the question.
 
 ## What to take away
 

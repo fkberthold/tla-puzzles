@@ -78,8 +78,7 @@ Write a PlusCal spec with:
 
 - TLC explores all interleavings of the chef's three steps and the server's three steps.
 - `TypeOK` PASSES.
-- `NeverOverServe` is VIOLATED in roughly 2 steps: the server takes its first step before the chef takes any, so `served = 1` while `cooked = 0`.
-- The trace is the simplest possible: server runs first.
+- TLC should report **`Invariant NeverOverServe is violated`** with a 2-state counterexample (initial state + the violating state where `served = 1` while `cooked = 0`). The total state count varies by label choice (canonical: ~6 states explored) but is not the metric — the violation finding is.
 
 ## Hint
 

@@ -64,7 +64,7 @@ Reading reflex: you can describe the system in one sentence. *"The thermostat si
 
 ## Setup
 
-A pure-TLA+ spec for a **traffic light** sits in `solution/TrafficLight.tla`. It is short — about 20 lines of real content. There is no PlusCal block; the file is hand-written TLA+.
+A pure-TLA+ spec for a **traffic light** is shown below as the file `TrafficLight.tla` (also in the 🔒 spoiler). It is short — about 20 lines of real content. There is no PlusCal block; the file is hand-written TLA+.
 
 Your job is to **read** it and answer the questions below in your head (or on paper). Then run TLC and confirm the state count matches your reasoning.
 

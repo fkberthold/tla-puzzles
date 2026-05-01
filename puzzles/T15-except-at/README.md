@@ -98,8 +98,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **5 distinct states** (one per `step` value: 0, 1, 2, 3, 4).
+- TLC should report `No error has been found`.
 - All three invariants pass.
+- The canonical solution reports **5 distinct states** (one per `step` value: 0, 1, 2, 3, 4). Your deterministic spec will likely produce the same count.
 
 **Bonus.** Replace `@ + 1` with `clicks["u1"] + 1` (the verbose form) in the third label. Verify TLC still produces the same 5 states. The `@` form is shorter; the verbose form is equivalent.
 

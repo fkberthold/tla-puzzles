@@ -80,7 +80,7 @@ A pair of counters models a simple clock display: `minutes` (0..59) and `seconds
 - **Tick** — increments `seconds`. When `seconds` hits 59, the next tick rolls it to 0 and increments `minutes` (mod 60).
 - **Reset** — sets `minutes` and `seconds` both to 0.
 
-A starter spec lives in `solution/Clock_buggy.tla`. It has a deliberate bug: one action forgets to mention one of the variables. You will run it, see the type violation, then write the fixed version (a corrected reference is in `solution/Clock.tla` for comparison after you've made your own attempt).
+A starter spec is shown below as the file `Clock_buggy.tla` (also visible in the 🐛 spoiler at the bottom of this page). It has a deliberate bug: one action forgets to mention one of the variables. You will run it, see the type violation, then write the fixed version (a corrected reference shown below as `Clock.tla` (in the 🔒 spoiler) for comparison after you've made your own attempt).
 
 ## Task
 

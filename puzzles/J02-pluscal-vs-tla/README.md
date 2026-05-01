@@ -29,7 +29,7 @@ Run it:
 tlc -pcal Sequential.tla && tlc Sequential
 ```
 
-6 distinct states. The PlusCal source reads as a small program: insert *then* choose *then* dispense. The control-flow is the structure.
+TLC reports `No error has been found.` The canonical PlusCal solution reports 6 distinct states; the control-flow boundaries you choose may yield more, which is fine as long as the vending behavior is correct.
 
 ## Side B — Pure TLA+ feels right
 
@@ -57,7 +57,7 @@ tlc Relational
 
 (No `-pcal` — there is no PlusCal source. The TLA+ is the source.)
 
-9 distinct states. The system is described as "Put OR Delete, on any key" — no `pc`, no labels, no while loop. Trying to write this in PlusCal would mean inventing a process and a label structure that doesn't really exist in the problem.
+TLC reports `No error has been found.` The canonical pure-TLA+ solution reports 9 distinct states. The system is described as "Put OR Delete, on any key" — no `pc`, no labels, no while loop. Trying to write this in PlusCal would mean inventing a process and a label structure that doesn't really exist in the problem. Your label choices may produce different state counts, which is expected.
 
 ## When to choose PlusCal (Side A)
 

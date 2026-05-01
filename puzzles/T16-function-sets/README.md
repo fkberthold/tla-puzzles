@@ -97,12 +97,9 @@ A single fair process runs one label:
 
 ## Expected Result
 
-- TLC finds **9 distinct states** total: the initial state (everyone in spot 1) plus 8 reachable post-`assign` states (one per function in `AllAssignments`).
-
-  Wait — the initial state IS one of the 8 functions (the all-ones assignment). So distinct states are: 1 initial + 8 post-assign, but one of those post-assign states equals the initial because `with` could pick "all in spot 1" again. With the `assigned` flag flipping, the post-assign states are all distinguishable from the initial state. So 9 distinct.
-
-- TypeOK passes.
-- NotAlwaysSpot1 violated by the initial state — a 1-state trace.
+- TLC should report `No error has been found` (for TypeOK).
+- NotAlwaysSpot1 is violated by the initial state — a 1-state trace.
+- The canonical solution finds **9 distinct states**: the initial state plus 8 post-`assign` states (one per function in `AllAssignments`). The `assigned` flag ensures post-assign states are distinguishable from the initial. Your label choices may affect the exact state count, but the violation and invariant behavior remain the same.
 
 **Bonus.** Add `OneCarInTwo == \E c \in Cars : parked[c] = 2`. Will it always hold? In which reachable state does it FAIL? (Hint: same answer as the violation above.)
 

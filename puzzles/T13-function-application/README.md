@@ -111,8 +111,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **4 distinct states** (one per phase value).
+- TLC should report `No error has been found`.
 - All four invariants pass.
+- The canonical solution reports **4 distinct states** (one per phase value). Your spec will be deterministic and likely produce the same count, with the key metric being invariant satisfaction.
 
 **Bonus.** What does `inventory["delta"]` evaluate to? Try writing `bad := inventory["delta"]` somewhere and see TLC's error message — it tells you the application is out of domain. This is a common bug.
 

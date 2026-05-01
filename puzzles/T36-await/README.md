@@ -70,7 +70,7 @@ Write a PlusCal spec with:
 ## Expected Result
 
 - All invariants PASS — `await` enforces the ordering.
-- Around 5 distinct states.
+- TLC should report `No error has been found`. The canonical solution reports around 5 distinct states; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 - A liveness property (optional bonus): `<>(runnerBFinished = TRUE)` — eventually B finishes. Should hold under weak fairness.
 
 ## Hint

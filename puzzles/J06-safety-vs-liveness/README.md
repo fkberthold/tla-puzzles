@@ -42,7 +42,7 @@ cd solution
 tlc -pcal SafetyDemo.tla && tlc SafetyDemo
 ```
 
-All three pass. 4 distinct states.
+All three pass. The canonical solution reports 4 distinct states; your label choices may produce more, which is fine as long as all three properties pass.
 
 ## How to tell — three tests
 

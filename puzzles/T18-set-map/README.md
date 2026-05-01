@@ -110,9 +110,10 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **3 distinct states** (one per `phase` value).
+- TLC should report `No error has been found`.
 - All three invariants pass.
-- Notice: `level` has 4 students but `gradesPresent` ends up as a 3-element set. The map absorbed the duplicate level 9.
+- The canonical solution reports **3 distinct states** (one per `phase` value). Your deterministic spec will likely match this count.
+- Notice: `level` has 4 students but `gradesPresent` ends up as a 3-element set. The map absorbs the duplicate level 9.
 
 **Bonus.** What's `{level[s] : s \in {}}`? Predict (a map over an empty domain). Then write it as an operator and run TLC to confirm.
 

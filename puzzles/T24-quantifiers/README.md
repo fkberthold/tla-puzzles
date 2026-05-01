@@ -150,9 +150,9 @@ For the puzzle's primary verification, list `LowConsistent` as a checked invaria
 
 ## Expected Result
 
-- Without the `LowConsistent` invariant, TLC sweeps through ~6500+ states and TypeOK passes.
-- WITH `LowConsistent` enabled, TLC reports a violation in 2 states (initial + report).
-- The trace shows a single drone with battery=1 and state="flying" (or similar mismatch).
+- TLC should report `No error has been found` (without the `LowConsistent` invariant).
+- WITH `LowConsistent` enabled, TLC reports **`Invariant LowConsistent is violated`** with a 2-state trace (initial + report).
+- The trace shows a single drone with battery=1 and state="flying" (or similar mismatch). The canonical solution explores roughly 6500+ post-report states; your label choices may affect the count, but the violation and trace are what matter.
 
 **Bonus.** Replace `LowConsistent` with its de Morgan dual: `~\E d \in Drones : (battery[d] <= 2 /\ state[d] /= "low")`. Predict whether the violation set is the same. (Answer: yes — they're logically equivalent. The traces should agree.)
 

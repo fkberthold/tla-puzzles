@@ -89,7 +89,7 @@ In `Counter.cfg`: `INVARIANT TypeOK` and `PROPERTY Settles`.
 
 ## Expected Result
 
-- TLC finds **4 distinct states**: `n` in `{0, 1, 2, 3}`.
+- TLC should report `No error has been found`. The canonical solution reports 4 distinct states: `n` in `{0, 1, 2, 3}`; your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - `Settles` passes. Once `n = 3`, the increment branch is disabled (`n < 3` is false), only `skip` remains, and the counter is permanently at 3. Weak fairness on the loop ensures the increment fires until `n = 3`.
 - **Compare with `[]<>`**: `PROPERTY []<>(n = 3)` would also pass on this spec, because once `n = 3` it stays at 3 forever. But the two are not equivalent in general — see the strip test.
 - **Strip test**: change the increment guard so `n` can go up AND down — replace the increment branch with `if (n < 3) n := n + 1 else n := 0` (when at max, reset). Rerun. Now the counter cycles 0→1→2→3→0→1→.... With the cycle:

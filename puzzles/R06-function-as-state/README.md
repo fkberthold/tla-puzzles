@@ -77,7 +77,7 @@ DoneImpliesClosed == \A m \in Members : pc[m] = "Done" => locker[m] = "closed"
 
 - TLC explores all interleavings of three members opening, using, and closing their lockers.
 - Both `TypeOK` and `DoneImpliesClosed` should PASS.
-- State count: roughly 64 distinct states (each of 3 members can be at one of 4 pc values independently — 4^3 = 64, minus a few unreachable).
+- TLC should report `No error has been found`. The canonical solution reports roughly 64 distinct states (each of 3 members can be at one of 4 pc values independently — 4^3 = 64, minus a few unreachable); your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 
 ## Hint
 

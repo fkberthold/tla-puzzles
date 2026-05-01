@@ -66,11 +66,10 @@ Add these invariants:
 
 ## Expected Result
 
-- TLC should find **30 distinct states** (5 initial + 25 outcomes)
+- TLC should report `No error has been found`
 - NeverWins should be violated with a short trace — TLC finds the lucky guess
 - TypeOK should pass
-
-> **Note on state counts:** TLC reports both "states generated" and "distinct states found." You should see 55 generated and 30 distinct — the difference is TLC re-checking terminal states (stuttering steps). If you split your logic across two labels (e.g., a separate `choose:` and `check:` step), you'll see 55 distinct instead, because TLC can observe the intermediate state between choosing and checking. Both answers are correct — they reflect different modeling choices about atomicity.
+- The canonical solution reports **30 distinct states** (5 initial + 25 outcomes); your label choices may produce more or fewer. TLC reports both "states generated" and "distinct states found." Different label boundaries (e.g., a separate `choose:` and `check:` step vs. one combined label) produce different state counts. Both answers are correct — they reflect different modeling choices about atomicity. What matters is that NeverWins violation is found.
 
 ## Hints
 

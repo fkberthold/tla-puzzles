@@ -64,9 +64,9 @@ In `Faucet.cfg`: `INVARIANT TypeOK` (define `TypeOK == dropFell \in BOOLEAN`) an
 
 ## Expected Result
 
-- TLC finds **2 distinct states**: the initial `dropFell = FALSE` and the post-step `dropFell = TRUE`. The two `either` branches collapse to the same state because both assign the same value.
+- TLC should report `No error has been found`. The canonical solution reports 2 distinct states: the initial `dropFell = FALSE` and the post-step `dropFell = TRUE`. The two `either` branches collapse to the same state because both assign the same value; your spec's label choices may affect the state count — that's fine, the behavior is what matters.
 - `EventuallyDrips` passes with `fair process`.
-- **Experiment**: change `fair process` to `process` (no fairness) and re-run with `tlc -pcal Faucet.tla && tlc Faucet`. TLC reports a temporal violation: a 1-state stuttering trace where the faucet never takes any step. The state count for the violation is 1 — about as instructive a counterexample as you can get for "fairness is what makes liveness work."
+- **Experiment**: change `fair process` to `process` (no fairness) and re-run with `tlc -pcal Faucet.tla && tlc Faucet`. TLC reports a temporal violation: a 1-state stuttering trace where the faucet never takes any step. The violation shape is what matters — fairness is what makes liveness work.
 
 ## Hints
 

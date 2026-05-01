@@ -108,9 +108,10 @@ A single fair process runs two labels:
 
 ## Expected Result
 
-- TLC reports **3 distinct states** — one per `phase` value. The state count is small precisely BECAUSE `CHOOSE` is deterministic.
+- TLC should report `No error has been found`.
 - All three invariants pass.
-- `winner` ends up as a SPECIFIC ticket (some number 1–4); rerun TLC and you'll see the same number every time. That's the deterministic "single value" of `CHOOSE`.
+- The canonical solution reports **3 distinct states** — one per `phase` value. The state count is small because `CHOOSE` is deterministic, not branching.
+- `winner` ends up as a specific ticket (some number 1–4); rerun TLC and you'll see the same number every time. That's the deterministic nature of `CHOOSE`.
 
 **Bonus.** Replace `AnyTicket` in the `announceWinner` body with a `with (t \in Tickets) { winner := t; }`. Predict the new state count, then run. (Hint: 4 branches at `announceWinner`, then 4 at `announceMinValid` — but the second one is still `CHOOSE`, not `with`.) This contrast pins down what `CHOOSE` is and isn't.
 

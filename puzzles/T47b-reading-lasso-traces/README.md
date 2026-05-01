@@ -4,7 +4,7 @@
 
 ## What this puzzle is
 
-A pre-written spec lives in `solution/Clock.tla`. It models a clock that should eventually reach noon (a liveness property: `ReachesNoon == <>( hour = 12 )`). The spec has two processes: a resetter that keeps flipping a flag, and a ticker that waits for the flag to be stable before advancing the hour. Without fairness on the resetter, TLC finds a behavior where the resetter flips the flag forever, preventing the ticker from ever firing.
+A pre-written spec is shown below as the file `Clock.tla` (also visible in the 🔒 spoiler at the bottom of this page). It models a clock that should eventually reach noon (a liveness property: `ReachesNoon == <>( hour = 12 )`). The spec has two processes: a resetter that keeps flipping a flag, and a ticker that waits for the flag to be stable before advancing the hour. Without fairness on the resetter, TLC finds a behavior where the resetter flips the flag forever, preventing the ticker from ever firing.
 
 You are not expected to understand the spec yet. The goal is reading TLC's lasso output.
 

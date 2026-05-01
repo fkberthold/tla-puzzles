@@ -4,21 +4,55 @@
 
 ## What this puzzle is
 
-A pre-written tiny spec lives in `solution/Tick.tla`. It models a clock that ticks from 0 to 3. You will translate it, model-check it, and read TLC's output.
+A tiny pre-written spec models a clock that ticks from 0 to 3. You will translate it, model-check it, and read TLC's output. You are NOT expected to understand the spec yet — Tier 1 covers PlusCal, Tier 0 is purely about the workflow.
 
-You are NOT expected to understand the spec yet. Tier 1 covers PlusCal. Tier 0 is purely about the workflow: command in, output out, what does each line mean.
+## The spec
+
+Save the following two files into a working directory of your choice (call it whatever you like — the repo provides them under `puzzles/T0a-first-run-hello-tlc/solution/` if you have a local clone, but a fresh `~/tla-attempts/T0a/` works just as well):
+
+`Tick.tla`:
+
+```
+---- MODULE Tick ----
+EXTENDS Integers
+
+(*--algorithm Tick {
+  variables count = 0;
+
+  define {
+    TypeOK == count \in 0..3
+  }
+
+  fair process (clock = "Clock") {
+    tick:
+      while (count < 3) {
+        count := count + 1;
+      }
+  }
+}
+*)
+====
+```
+
+`Tick.cfg`:
+
+```
+SPECIFICATION Spec
+INVARIANT TypeOK
+```
+
+The filename **must** match the module name on line 1 (`MODULE Tick` ↔ `Tick.tla`). The `====` on the last line closes the module. T0e covers the structure in detail; for now, just copy the text exactly.
 
 ## Run it
 
-From this directory:
+From the directory containing both files:
 
 ```bash
-cd solution
 tlc -pcal Tick.tla     # PlusCal → TLA+ translation
 tlc Tick               # model-check
 ```
 
-The first command rewrites `Tick.tla` in place, adding a `\* BEGIN TRANSLATION ... \* END TRANSLATION` block. That's the actual TLA+ that TLC will check. (T0d will explain what just happened. For now, just notice the file got bigger.)
+The first command rewrites `Tick.tla` in place, adding a `\* BEGIN TRANSLATION ... \* END TRANSLATION` block. That's the actual TLA+ that TLC will check. (T0d explains what just happened. For now, just notice the file got bigger.)
 
 The second command runs TLC against `Tick.tla` using the configuration in `Tick.cfg`.
 
@@ -30,17 +64,17 @@ Skim TLC's output until you find this line near the bottom:
 6 states generated, 5 distinct states found, 0 states left on queue.
 ```
 
-That's the success signal. Specifically:
+That's the success signal. Three specific things to spot:
 
-- **"5 distinct states found"** — TLC explored 5 reachable states (initial + 3 ticks + 1 done). One reachable state per value of `count` plus the post-loop state.
+- **"5 distinct states found"** — TLC explored 5 reachable states (initial + 3 ticks + 1 done). One reachable state per value of `count`, plus the post-loop state.
 - **"0 states left on queue"** — TLC finished. The state space is fully explored, not truncated.
-- **"Model checking completed. No error has been found."** — every invariant in `Tick.cfg` held in every state.
+- **"Model checking completed. No error has been found."** — every invariant declared in `Tick.cfg` held in every state.
 
 If you see all three lines, the toolchain works.
 
 ## What's in the .cfg
 
-Open `solution/Tick.cfg` (or click the ⚙️ spoiler below). Two real lines:
+Open the `Tick.cfg` you saved. Two real lines:
 
 ```
 SPECIFICATION Spec

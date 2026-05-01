@@ -74,8 +74,7 @@ Both users run once each, then stop.
 ## Expected Result
 
 - All three invariants PASS — the atomic acquire is correct.
-- TLC explores around 7 distinct states.
-- A trace that violates `MutualExclusion` does NOT exist. (If you broke the lock by splitting the acquire across two labels, TLC would find a violating trace in under 6 states.)
+- TLC should report `No error has been found`. The canonical solution explores around 7 distinct states; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters. A trace that violates `MutualExclusion` does NOT exist. (If you broke the lock by splitting the acquire across two labels, TLC would find a violating trace in under 6 states.)
 
 ## Hint
 

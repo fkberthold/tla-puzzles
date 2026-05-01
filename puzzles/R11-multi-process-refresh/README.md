@@ -78,8 +78,8 @@ Add a property:
 
 ## Expected Result
 
-- TLC finds about **9–11 distinct states** (depends on label boundaries) with `EventuallyDone` PASSING.
-- All invariants pass.
+- TLC should report `No error has been found` with `EventuallyDone` PASSING.
+- All invariants pass. The canonical solution reports 9–11 distinct states (the exact count depends on where you place labels between operations); your spec may produce more if you add extra labels — that's fine, the behavior is what matters.
 - If you remove the `await ~dish` from the chef's loop, you'll see TLC report a state where the chef wrote `TRUE` over an existing `TRUE` — the second cook would silently overwrite. (Optional exploration.)
 
 ## Hints

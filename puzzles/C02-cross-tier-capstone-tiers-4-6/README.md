@@ -31,7 +31,7 @@ CONCRETE VIEW: client and server processes share a queue (a Sequence). Client ap
 
 ## Task
 
-Three files in `solution/`:
+Three pre-written files (also in the 🔒 spoilers below):
 
 ### `solution/AbstractTicketing.tla`
 

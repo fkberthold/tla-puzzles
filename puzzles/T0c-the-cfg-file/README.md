@@ -4,16 +4,52 @@
 
 ## What this puzzle is
 
-A pre-written spec lives in `solution/Timer.tla`. It models a clock that ticks up to a maximum, where the maximum is left as a parameter — a `CONSTANT`. The `.cfg` file fills that parameter in and tells TLC what to check.
+A pre-written spec models a clock that ticks up to a maximum, where the maximum is left as a parameter — a `CONSTANT`. The `.cfg` file fills that parameter in and tells TLC what to check. You will run TLC, then edit the `.cfg`, then run TLC again, and notice what changes.
 
-You will run TLC, then edit the `.cfg`, then run TLC again, and notice what changes.
+## The spec
+
+Save these two files into a working directory.
+
+`Timer.tla`:
+
+```
+---- MODULE Timer ----
+EXTENDS Integers
+
+CONSTANT MaxTicks
+
+(*--algorithm Timer {
+  variables ticks = 0;
+
+  define {
+    TypeOK == ticks \in 0..MaxTicks
+  }
+
+  fair process (clk = "Clock") {
+    tick:
+      while (ticks < MaxTicks) {
+        ticks := ticks + 1;
+      }
+  }
+}
+*)
+====
+```
+
+`Timer.cfg`:
+
+```
+CONSTANT MaxTicks = 3
+SPECIFICATION Spec
+INVARIANT TypeOK
+PROPERTY Termination
+```
 
 ## Run it once
 
-From this directory:
+From the directory containing both files:
 
 ```bash
-cd solution
 tlc -pcal Timer.tla
 tlc Timer
 ```
@@ -22,7 +58,7 @@ You should see "5 distinct states found" and "No error has been found." The same
 
 ## Anatomy of the .cfg
 
-Open `solution/Timer.cfg` (or click the ⚙️ spoiler below). Four real lines:
+Look at `Timer.cfg`. Four real lines:
 
 ```
 CONSTANT MaxTicks = 3

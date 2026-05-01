@@ -152,12 +152,13 @@ CHECK_DEADLOCK FALSE
 
 ## Expected Result
 
-- **Broken-spec lasso**: roughly 3 states —
+- **Broken-spec lasso**: TLC reports **`Invariant PublishedEventuallyReceived is violated`** with a roughly 3-state counterexample (a finite stem plus a cycle):
   - State 1: `published=FALSE, received=FALSE` (initial)
   - State 2: `published=TRUE, received=FALSE` (publisher fires)
   - State 3: Stuttering (subscriber never runs, system stuck)
+  The total state count for a violation trace is not the metric — the violation finding and its lasso shape are what matter.
 
-- **Fixed-spec output**: TLC explores roughly 4–6 distinct states, verifies both the invariant and the property, and reports success.
+- **Fixed-spec output**: TLC reports `No error has been found`. The canonical solution explores roughly 4–6 distinct states, verifies both the invariant and the property.
 
 - **The fix**: change `process (subscriber = "Subscriber")` to `fair process (subscriber = "Subscriber")` — one word added.
 

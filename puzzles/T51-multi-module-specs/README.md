@@ -74,7 +74,7 @@ You'll put the state machine VOCABULARY (the set of states, the transition relat
 
 ## Task
 
-Create TWO files in `solution/`:
+Create TWO files in your working directory:
 
 ### `solution/OrderStates.tla` — the helper
 

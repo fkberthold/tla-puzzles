@@ -106,7 +106,7 @@ Both should pass. Both check the same thing.
 
 ## Expected Result
 
-- TLC finds **21 distinct states** (`temp` values from 60 to 80 inclusive).
+- TLC should report `No error has been found`. The canonical solution reports 21 distinct states (`temp` values from 60 to 80 inclusive); your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - Both the `INVARIANT` and the `PROPERTY` pass. They are checking the same predicate at different syntactic levels.
 - **Strip test**: drop the guard on the decrease branch (`temp := temp - 1` unconditionally). Now `temp` can fall to 59. Both `INVARIANT TypeOK` and `PROPERTY AlwaysInRange` fail with the same 2- to 3-state trace. Same diagnosis, different directive.
 - **The point**: when you graduate to `<>`, `[]<>`, `<>[]`, or leads-to, only the PROPERTY form will work. `[]InRange` is the gateway: a temporal formula that happens to be equivalent to an invariant, but lives in the same grammar as the harder properties coming up.

@@ -91,7 +91,7 @@ After both refs finish, `homeScore = 5` and `awayScore = 5`.
 ## Expected Result
 
 - All invariants PASS regardless of interleaving — each procedure body is one atomic label, so adds compose correctly.
-- TLC explores around 30–40 distinct states.
+- TLC should report `No error has been found`. The canonical solution explores around 30–40 distinct states; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 
 ## Hint
 

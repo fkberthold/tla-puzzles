@@ -58,9 +58,9 @@ Write a PlusCal spec with:
 
 ## Expected Result
 
-- TLC should find **5 distinct states** (fork, lake-standing, summit-standing, lake-seated, summit-seated)
-- AlwaysAtLake violated in a 2-state trace
-- EventuallySits should PASS (with weak fairness, the hiker always eventually sits)
+- TLC should report `No error has been found` (TypeOK and EventuallySits should pass)
+- AlwaysAtLake should be violated in a 2-state trace
+- The canonical solution reports **5 distinct states** (fork, lake-standing, summit-standing, lake-seated, summit-seated); label choices may yield different counts, but the structure (either branch, then sit) is what matters
 
 ## Hints
 

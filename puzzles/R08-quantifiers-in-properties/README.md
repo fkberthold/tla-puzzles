@@ -63,8 +63,8 @@ In `Chef.cfg`: `INVARIANT TypeOK` and `PROPERTY EveryoneEventuallyPlates`.
 
 ## Expected Result
 
-- TLC finds **8 distinct states** — the powerset of the chef set: every subset of `{Alice, Bob, Carol}` corresponds to a "who has plated so far" state.
-- No invariant or property violation. "No error has been found."
+- TLC should report `No error has been found`. The canonical solution reports 8 distinct states (the powerset of the chef set: every subset of `{Alice, Bob, Carol}` corresponds to a "who has plated so far" state); your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
+- No invariant or property violation.
 - If you change `fair process` to `process` (no fairness), TLC reports a liveness violation: in the unfair behavior, some chef may stutter forever and never plate.
 
 ## Hints

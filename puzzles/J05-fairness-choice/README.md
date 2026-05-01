@@ -31,7 +31,7 @@ State 1: brewed = FALSE
 State 2: Stuttering
 ```
 
-A 2-state counterexample. The machine just... never brewed. Without fairness, "the machine sits there forever doing nothing" is a legal behavior, and `<>(brewed = TRUE)` fails on it.
+TLC reports a 2-state counterexample (initial state + stuttering). The machine just... never brewed. Without fairness, "the machine sits there forever doing nothing" is a legal behavior, and `<>(brewed = TRUE)` fails on it. The state count varies by your label choices, but the violation finding is what matters here.
 
 ## Side B — weak fairness rescues it
 

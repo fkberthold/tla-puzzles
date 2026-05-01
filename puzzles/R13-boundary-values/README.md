@@ -41,7 +41,7 @@ This is how production specs stay tractable. Real systems may have a thousand cu
 
 ## Setup
 
-A pre-written PlusCal spec lives in `solution/Pantry.tla`: a cook adds and removes jars from a pantry up to `MaxJars`. The `.cfg` already uses a small `MaxJars`. Your job is to feel the size difference between a sloppy choice and a tight one.
+A pre-written PlusCal spec is shown below as the file `Pantry.tla` (also visible in the 🔒 spoiler at the bottom of this page): a cook adds and removes jars from a pantry up to `MaxJars`. The `.cfg` already uses a small `MaxJars`. Your job is to feel the size difference between a sloppy choice and a tight one.
 
 ## Task
 

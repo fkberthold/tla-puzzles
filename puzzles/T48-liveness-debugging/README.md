@@ -69,7 +69,7 @@ When `fair process` (WF) IS NOT enough, the next step up is `fair+ process` (SF 
 
 A robot vacuum charges at a dock. The dock cycles between unavailable (some other consumer is using power) and available; the robot waits and tops up its battery whenever the dock is available. We want the robot to keep charging — `[]<>(charged > 0)` — meaning the battery doesn't sit at zero forever.
 
-The starting spec in `solution/Vacuum.tla` has a deliberate fairness bug. Run TLC; you'll see a liveness violation with a 2- or 3-state lasso. Find the bug, fix it, verify.
+The starting spec below (`Vacuum.tla` in the 🔒 spoiler) has a deliberate fairness bug. Run TLC; you'll see a liveness violation with a 2- or 3-state lasso. Find the bug, fix it, verify.
 
 ## Task
 
@@ -111,7 +111,7 @@ CHECK_DEADLOCK FALSE
 ## Expected Result
 
 - Broken-spec output: a short lasso ending in "Stuttering," roughly 3 states. The robot is the missing actor.
-- Fixed-spec output: 8 distinct states, no error.
+- Fixed-spec output: TLC reports `No error has been found`. The canonical solution explores 8 distinct states; your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - The fix: `process (robot = "Robot")` → `fair process (robot = "Robot")`. WF is sufficient here. The action `work` is enabled exactly while `available` is TRUE, and only the robot's own firing makes `available` FALSE — between "available becomes TRUE" and "robot fires," the action is continuously enabled. WF says: take it.
 - After the fix, the bottom of `Vacuum.tla` should contain `WF_vars(robot)` in the `Spec ==` definition, where the broken version had no fairness conjunct for the robot.
 

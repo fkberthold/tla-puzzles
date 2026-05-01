@@ -110,8 +110,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports a substantial state count (2^4 = 16 possible teams; for each team, |team|+1 possible captains).
+- TLC should report `No error has been found`.
 - Both invariants pass.
+- The canonical solution explores many states: 2^4 = 16 possible teams; for each team, |team|+1 possible captains (total roughly 100+). Your label choices may affect this count, but invariant satisfaction is the metric.
 - Notice the difference: `SUBSET roster` ENUMERATES all 16 subsets and feeds them into `with`; `team \subseteq roster` is a one-line BOOLEAN test in the invariant. Same noun ("subset") but different operator.
 
 **Bonus.** Replace `with (t \in SUBSET roster)` with `with (t \in {{}, roster})` — only two choices: empty team or whole roster. Predict the new state count, run TLC, and confirm. Then revert.

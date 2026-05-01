@@ -109,10 +109,10 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC explores every choice of order at each iteration. With 3 orders chosen from 3 options, that's 3^3 = 27 distinct queue contents.
-- Total state count is on the order of a few hundred (each queue value × phase × served value).
+- TLC should report `No error has been found`.
 - All invariants pass.
-- Examine TLC's reported state count and depth. Notice how the depth equals the number of labels traversed.
+- The canonical solution explores every choice of order at each iteration — 3^3 = 27 distinct queue contents, totaling roughly a few hundred states. Your label choices may produce a different count, but the behavior and invariant success remain the same.
+- Examine TLC's reported state count and depth. Notice how the depth relates to the number of labels traversed.
 
 **Bonus.** What is `DOMAIN <<>>`? What is `Len(<<>>)`? Try evaluating them in your head, then write `EmptyDom == DOMAIN orders` as an operator and trace what TLC reports for the initial state.
 

@@ -110,10 +110,10 @@ A single fair process runs two labels:
 
 ## Expected Result
 
-- TLC enumerates all 2^6 = 64 possible occupancy sets, plus a `read` step for each.
-- Total state count is on the order of 100+ (1 initial + 64 after fill + 64 after read).
+- TLC should report `No error has been found`.
 - All three invariants pass.
-- Notice that for SOME of the explored states, `IsFull` holds (the all-chairs-occupied subset).
+- The canonical solution enumerates all 2^6 = 64 possible occupancy sets, totaling roughly 100+ states. Your label choices may affect the exact count, but invariant satisfaction is what matters.
+- Notice that for some explored states, `IsFull` holds (the all-chairs-occupied subset).
 
 **Bonus.** Add the invariant `count \neq NumOccupied`. Predict: does TLC violate it? Where in the trace? (Hint: ANY state before `read` runs has `count = 0` while `NumOccupied` could be anything.)
 

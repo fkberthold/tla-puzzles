@@ -29,7 +29,7 @@ cd solution
 tlc -pcal Atomic.tla && tlc Atomic
 ```
 
-"No error has been found." 4 distinct states. The invariant `Correct == (both Done) => counter = 2` holds.
+TLC reports `No error has been found.` The canonical solution reports 4 distinct states; your label choices may produce more, which is fine as long as the invariant `Correct == (both Done) => counter = 2` holds.
 
 ## Side B — split (interleavable)
 
@@ -52,7 +52,7 @@ Run it:
 tlc -pcal Split.tla && tlc Split
 ```
 
-TLC reports a violation:
+TLC reports **`Invariant Correct is violated`** with a trace showing the classic **lost update bug**:
 
 ```
 State 1: counter = 0, both at "read"
@@ -62,7 +62,7 @@ State 4: A writes → counter = 1,  A Done, B at "write"
 State 5: B writes → counter = 1,  both Done   ← LOST UPDATE
 ```
 
-A 5-state trace of the classic **lost update bug**. Both clients read 0, both compute "0+1," both write 1. Net effect: counter increased by 1, not 2.
+Both clients read 0, both compute "0+1," both write 1. Net effect: counter increased by 1, not 2. The trace length varies by label choice, but the violation finding is what matters here.
 
 The two specs differ *only* in label structure. The bug exists or doesn't exist depending on where you drew the atomicity boundaries.
 

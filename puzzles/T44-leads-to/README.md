@@ -105,7 +105,7 @@ In `Server.cfg`: `INVARIANT TypeOK` and `PROPERTY RequestServed`.
 
 ## Expected Result
 
-- TLC finds **3 distinct states** cycling: `(pending=F, served=F)` → `(pending=T, served=F)` → `(pending=F, served=T)` and back.
+- TLC should report `No error has been found`. The canonical solution reports 3 distinct states cycling: `(pending=F, served=F)` → `(pending=T, served=F)` → `(pending=F, served=T)` and back; your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - `RequestServed` passes with `fair process` on both client and server.
 - **Strip test 1**: replace `~>` with `=>` (drop the `[]`-wrap) and write `RequestServed_BAD == pending => <>served`. TLC will only check this in the INITIAL state, where `pending = FALSE`, so the implication is vacuously true. The check passes for the wrong reason. The failure mode of `=>` for a recurring obligation is the canonical motivation for `~>`.
 - **Strip test 2**: drop `fair` from the server's `process`. TLC reports a leads-to violation: a behavior in which the server stutters forever after a request, so the implied `<>served` never realizes. Trace under 5 states.

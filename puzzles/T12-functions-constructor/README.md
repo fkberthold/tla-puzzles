@@ -102,8 +102,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **2 distinct states** — one before `measure`, one after.
+- TLC should report `No error has been found`.
 - All three invariants pass.
+- The canonical solution reports **2 distinct states** — one before `measure`, one after. Your spec will be deterministic and likely match this count, though label placement may affect the exact number of states.
 
 **Bonus.** Replace the `measure` body with a non-uniform rebuild, like:
 

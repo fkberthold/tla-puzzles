@@ -110,9 +110,9 @@ In the `define` block, write:
 
 ## Expected Result
 
-- TLC runs the linear sequence (it's deterministic — no nondeterminism).
+- TLC should report `No error has been found`.
 - All three invariants pass.
-- TLC reports **5 distinct states** (one per value of `step`: 0, 1, 2, 3, 4).
+- The canonical solution reports **5 distinct states** (one per value of `step`: 0, 1, 2, 3, 4); your spec will also be deterministic — no nondeterminism — and may produce the same count, but the number of states depends on your label placement, not your correctness.
 - Inspect the trace by hand to confirm: balance goes 0 → 100 → 70 → 70 → 70, frozen flips false → false → false → true → true.
 
 **Bonus to try.** Replace `EndsCorrect` with `BalanceMonotone == Balance >= 0`. Will TLC pass it for THIS puzzle? Will it pass it if the withdraw amount were larger? (You don't need to actually fail it — just think about why it currently passes.)

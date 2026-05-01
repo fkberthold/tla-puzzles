@@ -63,10 +63,11 @@ Write a PlusCal spec with:
 
 ## Expected Result
 
+- TLC should report `No error has been found`
 - TLC explores multiple coin-insertion orderings (quarters and dimes in different sequences)
 - The assert never fires (because 50 cents is reachable well before 100)
 - GateEventuallyOpens passes with weak fairness
-- Explore: what's the maximum `paid` value TLC discovers? (Hint: all dimes = 50, but what if the last insert is a quarter on top of 40?)
+- The state count varies by label choice, but the key outcomes (no assert fire, gate opens eventually) are invariant. Explore: what's the maximum `paid` value TLC discovers? (Hint: all dimes = 50, but what if the last insert is a quarter on top of 40?)
 
 ## Hints
 

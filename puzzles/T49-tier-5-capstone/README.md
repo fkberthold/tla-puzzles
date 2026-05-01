@@ -116,7 +116,7 @@ CHECK_DEADLOCK FALSE
 
 ## Expected Result
 
-- TLC explores **40 distinct states** with the three-label server (`spick`, `srespond`, `sfree`) and two clients.
+- TLC should report `No error has been found`. The canonical solution explores 40 distinct states with the three-label server (`spick`, `srespond`, `sfree`) and two clients; your spec may produce more if you adjust label boundaries — that's fine, the behavior is what matters.
 - All three checks pass with `fair+ process` on both client and server.
 - **Composition checks (do these to convince yourself the puzzle is honest):**
   - **T44 strip**: replace `~>` with `=>` in `EveryRequestServed`. The check becomes vacuous (passes for the wrong reason — the implication is checked only at the initial state where nothing is pending). The result still passes; the property became toothless.

@@ -74,7 +74,7 @@ Write a PlusCal spec with:
 
 ## Expected Result
 
-- TLC finds **9 distinct states**: each subset of the three flags (8 combinations) plus a final "Done" state once the loop exits.
+- TLC should report `No error has been found`. The canonical solution reports 9 distinct states (each subset of the three flags, 8 combinations, plus a final "Done" state once the loop exits); your spec may produce more if you split any action into multiple labels — that's fine, the behavior is what matters.
 - `MorningComplete` passes.
 - **Strip test**: replace the conjunction with the single property `<>(alarmRang = TRUE)`. TLC still passes — but the spec now happily allows behaviors that never brew coffee or never lock the door. That's the point of the conjunction: each eventuality must be CALLED OUT to be checked.
 

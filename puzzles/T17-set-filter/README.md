@@ -108,8 +108,9 @@ In the `define` block:
 
 ## Expected Result
 
-- TLC reports **4 distinct states** (one per `phase` value).
+- TLC should report `No error has been found`.
 - All three invariants pass.
+- The canonical solution reports **4 distinct states** (one per `phase` value). Your deterministic spec will produce a similar count.
 
 **Bonus.** Replace `loaned[b] /= "none"` with `loaned[b] \in {"alice", "bob"}` — this filter "by membership in a set" is a common shape. Predict whether the result is the same (only alice has a loan), then run TLC and confirm.
 

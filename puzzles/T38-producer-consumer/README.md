@@ -78,7 +78,7 @@ Write a PlusCal spec with:
 
 - TLC enumerates all interleavings of nurse-appends and doctor-dequeues.
 - All four invariants PASS.
-- State count: roughly 16–25 distinct states, depending on how you wrote the nurse loop.
+- TLC should report `No error has been found`. The canonical solution reports roughly 16–25 distinct states, depending on loop structure; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 
 ## Hint
 

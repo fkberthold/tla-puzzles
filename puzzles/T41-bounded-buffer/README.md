@@ -95,7 +95,7 @@ Optional liveness:
 
 - All four invariants PASS.
 - Liveness `EventuallyServedAll` PASSES under default weak fairness.
-- TLC explores roughly 100–200 distinct states.
+- TLC should report `No error has been found`. The canonical solution explores roughly 100–200 distinct states; your spec may produce more if you split actions into multiple labels — that's fine, the behavior is what matters.
 
 ## Hint
 
