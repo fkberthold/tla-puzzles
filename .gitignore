@@ -16,3 +16,4 @@ entities.json
 .dolt/
 *.db
 .beads-credential-key
+/issues.jsonl
