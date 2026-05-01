@@ -8,7 +8,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DOCS=docs
-mkdir -p "$DOCS/curriculum" "$DOCS/reference" "$DOCS/about" "$DOCS/stylesheets"
+mkdir -p "$DOCS/curriculum" "$DOCS/reference" "$DOCS/reference/modules" "$DOCS/about" "$DOCS/stylesheets"
+
+# Copy hand-authored module reference pages from module-docs/
+if [ -d module-docs ]; then
+  cp module-docs/*.md "$DOCS/reference/modules/"
+fi
 
 # ---- index.md (top-level landing) ----
 cp README.md "$DOCS/index.md"
@@ -38,6 +43,19 @@ nav:
   - Quality Gate: quality-gate.md
   - Judgment Decision Tree: judgments.md
   - Concept Index: concepts.md
+  - Standard Modules: modules
+EOF
+
+# Modules dir nav order
+cat > "$DOCS/reference/modules/.pages" <<'EOF'
+title: Standard Modules
+nav:
+  - Integers.md
+  - Naturals.md
+  - Sequences.md
+  - FiniteSets.md
+  - TLC.md
+  - Apalache.md
 EOF
 
 # ---- helper: classify prefix into tier slug ----
@@ -140,6 +158,48 @@ print(' '.join(chips))
 PYEOF
 }
 
+# ---- helper: render "Useful Modules:" line from puzzle solution EXTENDS ----
+# Parses the canonical solution .tla (the one matching the puzzle dir name),
+# extracts EXTENDS, filters to stdlib modules, emits links to reference pages.
+render_useful_modules() {
+  local dir="$1"
+  local prefix="$2"
+  if [ ! -d "$dir/solution" ]; then return; fi
+  python3 - "$dir" "$prefix" <<'PYEOF'
+import re, sys, os, glob
+dir_path, prefix = sys.argv[1], sys.argv[2]
+sol = os.path.join(dir_path, 'solution')
+
+# Find canonical .tla — prefer one whose name matches the dir's main module,
+# otherwise take the first non-buggy non-Apalache file.
+candidates = []
+for f in sorted(glob.glob(os.path.join(sol, '*.tla'))):
+    base = os.path.basename(f)
+    if 'Apalache.tla' == base or '_buggy' in base or '_TTrace_' in base:
+        continue
+    candidates.append(f)
+if not candidates: sys.exit(0)
+
+stdlib = {'Integers', 'Naturals', 'Sequences', 'FiniteSets', 'TLC', 'Apalache'}
+seen = set()
+for f in candidates:
+    try:
+        text = open(f).read()
+    except Exception:
+        continue
+    for m in re.finditer(r'^EXTENDS\s+([^\n]+)$', text, flags=re.MULTILINE):
+        for name in m.group(1).split(','):
+            name = name.strip()
+            if name in stdlib:
+                seen.add(name)
+
+if not seen: sys.exit(0)
+order = ['Integers', 'Naturals', 'Sequences', 'FiniteSets', 'TLC', 'Apalache']
+chips = [f'[`{m}`](../../reference/modules/{m}.md)' for m in order if m in seen]
+print(f"**Useful modules:** {' · '.join(chips)}")
+PYEOF
+}
+
 # ---- helper: render "Builds on:" prereq links from /tmp/builds_on.json ----
 render_builds_on() {
   local prefix="$1"
@@ -212,12 +272,14 @@ while IFS=$'\t' read -r tier sk prefix dir; do
   {
     # Title comes from the puzzle's own README (its first H1)
     cp_chips=$(render_chips "$prefix")
+    cp_modules=$(render_useful_modules "$dir" "$prefix")
     cp_builds_on=$(render_builds_on "$prefix")
-    if [ -n "$cp_chips" ] || [ -n "$cp_builds_on" ]; then
+    if [ -n "$cp_chips" ] || [ -n "$cp_modules" ] || [ -n "$cp_builds_on" ]; then
       h1=$(grep -m1 '^# ' "$dir/README.md" | head -1)
       echo "$h1"
       echo ""
       [ -n "$cp_chips" ]    && { echo "$cp_chips"; echo ""; }
+      [ -n "$cp_modules" ]  && { echo "$cp_modules"; echo ""; }
       [ -n "$cp_builds_on" ] && { echo "$cp_builds_on"; echo ""; }
       awk 'BEGIN{seen=0} /^# /{if(!seen){seen=1;next}} seen{print}' "$dir/README.md"
     else
