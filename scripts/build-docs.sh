@@ -21,6 +21,7 @@ sed -i \
   -e 's|](JUDGMENTS\.md)|](reference/judgments.md)|g' \
   -e 's|](CURRICULUM_MAP\.md)|](reference/curriculum-map.md)|g' \
   -e 's|](QUALITY_GATE\.md)|](reference/quality-gate.md)|g' \
+  -e 's|](SCAFFOLDING_MAP\.md)|](reference/scaffolding-map.md)|g' \
   -e 's|](LICENSE)|](about/license.md)|g' \
   "$DOCS/index.md"
 
@@ -28,6 +29,17 @@ sed -i \
 cp QUALITY_GATE.md  "$DOCS/reference/quality-gate.md"
 cp CURRICULUM_MAP.md "$DOCS/reference/curriculum-map.md"
 cp JUDGMENTS.md     "$DOCS/reference/judgments.md"
+cp SCAFFOLDING_MAP.md "$DOCS/reference/scaffolding-map.md"
+
+# In the canonical root files, links use ALL_CAPS sibling filenames; in the
+# rendered site they need lowercase sibling filenames. Rewrite cross-refs.
+sed -i \
+  -e 's|](SCAFFOLDING_MAP\.md\(#[a-z0-9-]*\)\?)|](scaffolding-map.md\1)|g' \
+  -e 's|](CURRICULUM_MAP\.md\(#[a-z0-9-]*\)\?)|](curriculum-map.md\1)|g' \
+  -e 's|](JUDGMENTS\.md\(#[a-z0-9-]*\)\?)|](judgments.md\1)|g' \
+  -e 's|](QUALITY_GATE\.md\(#[a-z0-9-]*\)\?)|](quality-gate.md\1)|g' \
+  "$DOCS/reference/quality-gate.md" \
+  "$DOCS/reference/scaffolding-map.md"
 { echo "# License"; echo; cat LICENSE; } > "$DOCS/about/license.md"
 
 # ---- concept index (built by separate Python script) ----
@@ -41,6 +53,7 @@ title: Reference
 nav:
   - Curriculum Map: curriculum-map.md
   - Quality Gate: quality-gate.md
+  - Scaffolding Map: scaffolding-map.md
   - Judgment Decision Tree: judgments.md
   - Concept Index: concepts.md
   - Standard Modules: modules

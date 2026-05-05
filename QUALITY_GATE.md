@@ -14,9 +14,11 @@ If they need two new things, split the puzzle.
 Exception: T01 (the "hello world" puzzle) may introduce multiple basics simultaneously.
 
 ## 3. The Strip Test
-Remove the new concept. Does the puzzle collapse into a previous puzzle?
-- If yes: the new concept is load-bearing. The puzzle is justified. Pass.
-- If no: the puzzle is decoration around something already covered. Cut it.
+Strip the new concept from the puzzle's task. What remains must contain at least one *non-trivial prior concept* the learner must compose — not just "assign a variable" or "increment a counter." If the residual task is trivial, the puzzle is demo-with-renames: revise it by composing the new concept with one or more prior concepts as scaffolding.
+
+When picking scaffolding for a new puzzle, consult [SCAFFOLDING_MAP.md](SCAFFOLDING_MAP.md); avoid concepts already heavily used in the recent stretch. The map's per-puzzle table records what each puzzle composes; the histogram surfaces concept overuse.
+
+See [Exemptions](#exemptions) for puzzles where this gate doesn't apply.
 
 ## 4. The 15-Minute Test
 Could someone who JUST solved the previous puzzle write this one in 15 minutes?
@@ -46,9 +48,25 @@ The lesson at the top of the puzzle must include a WORKED EXAMPLE that:
 
 If a learner could solve the puzzle by copying the lesson-example with variables renamed, the lesson gives it away and fails. Description alone does not count as demonstration — the example must be runnable PlusCal in a different domain, so the learner has to ABSTRACT the technique from the example and APPLY it to the puzzle.
 
+**Demo bareness.** The worked demo must teach **only** the new concept, with the minimum state variables, processes, and labels needed to demonstrate it. The demo carries no scaffolding from prior concepts. The asymmetry is deliberate: **bare demo, composed puzzle** — the demo isolates the new technique so the learner can see it pure; the puzzle composes it with scaffolding so the learner can't shortcut by renaming.
+
 Exception: capstone puzzles that introduce no new concept (T08) replace the worked demo with a recap of prior techniques shown in a fresh composition.
 
 This rule pairs with the Strip Test. Together they enforce the same meta-principle: the learner must GENERALIZE. No shortcut from prior puzzles (strip test), no shortcut from the intro (domain-disjoint demo).
+
+See [Exemptions](#exemptions) for puzzles where the prior-load expectation doesn't apply.
+
+---
+
+## Exemptions
+
+Gate 3 (Strip Test) and Gate 7's prior-load expectation both assume the puzzle has prior concepts available to compose with. Three classes of puzzle are exempt:
+
+- **T01** — already exempt from Gate 2 (Minimal Novelty); no prior concept exists to scaffold against.
+- **Capstones that introduce no new concept** — pass by construction. Their job is to compose existing concepts, and they replace Gate 7's worked demo with a fresh composition of prior techniques. Cross-tier capstones (C01, C02) are in this class.
+- **Tier 0 prelude (T0a–T0e)** — workflow puzzles, not concept puzzles. Whether the prior-load expectation applies at all is decided as part of the Tier 0 audit and recorded in [SCAFFOLDING_MAP.md](SCAFFOLDING_MAP.md) once confirmed.
+
+Reviews (R-puzzles) and judgments (J-puzzles) introduce no new concept by definition; their treatment under the gates is part of the audit and not yet final.
 
 ---
 
