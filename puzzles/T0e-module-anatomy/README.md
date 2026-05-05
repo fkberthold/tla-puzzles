@@ -8,7 +8,7 @@ T0a–T0d ran a pre-written file end-to-end. T01 will ask you to *write* a spec 
 
 ## A complete TLA+ module — annotated
 
-Save this as `Counter.tla`:
+The diagram below shows what the module looks like **after `tlc -pcal` has run**. The file you save and the version shipped in the repo (under `puzzles/T0e-module-anatomy/solution/Counter.tla`) start with empty `\* BEGIN TRANSLATION` / `\* END TRANSLATION` markers — pcal fills the body in. Save this as `Counter.tla` (omitting the annotation arrows and the placeholder text on lines 33–34):
 
 ```
 ---- MODULE Counter ----            ◀ (1) MODULE header — name MUST match filename
@@ -30,7 +30,7 @@ EXTENDS Integers                    ◀ (2) standard-library imports
 }
 *)                                  ◀ (7) PlusCal block close
 
-\* BEGIN TRANSLATION (...)          ◀ (8) pcal will append the translation here
+\* BEGIN TRANSLATION (...)          ◀ (8) pcal fills in between these markers
 \* ... TLA+ Init / Next / Spec ...
 \* END TRANSLATION
 

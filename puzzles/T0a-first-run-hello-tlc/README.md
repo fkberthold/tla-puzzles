@@ -8,7 +8,9 @@ A tiny pre-written spec models a clock that ticks from 0 to 3. You will translat
 
 ## The spec
 
-Save the following two files into a working directory of your choice (call it whatever you like — the repo provides them under `puzzles/T0a-first-run-hello-tlc/solution/` if you have a local clone, but a fresh `~/tla-attempts/T0a/` works just as well):
+Save the following two files into a working directory of your choice (call it whatever you like — the repo provides them under `puzzles/T0a-first-run-hello-tlc/solution/` if you have a local clone, but a fresh `~/tla-attempts/T0a/` works just as well).
+
+> **Convention.** Every solution `.tla` in this curriculum ships with empty `\* BEGIN TRANSLATION` / `\* END TRANSLATION` markers as placeholders. Running `tlc -pcal` fills them in. You author the PlusCal; `pcal` writes the rest.
 
 `Tick.tla`:
 
@@ -31,6 +33,8 @@ EXTENDS Integers
   }
 }
 *)
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ====
 ```
 
@@ -52,7 +56,7 @@ tlc -pcal Tick.tla     # PlusCal → TLA+ translation
 tlc Tick               # model-check
 ```
 
-The first command rewrites `Tick.tla` in place, adding a `\* BEGIN TRANSLATION ... \* END TRANSLATION` block. That's the actual TLA+ that TLC will check. (T0d explains what just happened. For now, just notice the file got bigger.)
+The first command rewrites `Tick.tla` in place, filling the empty `\* BEGIN TRANSLATION ... \* END TRANSLATION` markers with the actual TLA+ that TLC will check. (T0d explains what just happened. For now, just notice the file got bigger.)
 
 The second command runs TLC against `Tick.tla` using the configuration in `Tick.cfg`.
 

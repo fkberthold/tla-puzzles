@@ -24,6 +24,8 @@ Save these two files into a working directory.
   }
 }
 *)
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ====
 ```
 
@@ -38,13 +40,13 @@ SPECIFICATION Spec
 From the directory containing both files:
 
 ```bash
-cat Switch.tla        # see the original — about 11 lines
+cat Switch.tla        # see the original — about 13 lines, with empty markers
 tlc -pcal Switch.tla
-cat Switch.tla        # see what got added — about 30 more lines
+cat Switch.tla        # see what got filled in — about 30 more lines between the markers
 tlc Switch
 ```
 
-The first `cat` shows your input: a `(*--algorithm Switch { ... } *)` block sitting inside a TLA+ comment. The second `cat` shows the input *unchanged* plus a new `\* BEGIN TRANSLATION ... \* END TRANSLATION` block that pcal appended. The TLC run uses only the translated part.
+The first `cat` shows your input: a `(*--algorithm Switch { ... } *)` block sitting inside a TLA+ comment, plus an empty `\* BEGIN TRANSLATION` / `\* END TRANSLATION` placeholder. The second `cat` shows the input *unchanged*, with the empty placeholder now filled in by pcal. The TLC run uses only the translated part.
 
 Expected: TLC reports 2 distinct states (`on=FALSE`, then `on=TRUE`) with no errors.
 

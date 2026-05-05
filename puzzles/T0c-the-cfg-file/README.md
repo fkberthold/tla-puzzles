@@ -33,6 +33,8 @@ CONSTANT MaxTicks
   }
 }
 *)
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ====
 ```
 
