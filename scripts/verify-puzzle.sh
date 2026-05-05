@@ -32,6 +32,15 @@ VERBOSE="${VERBOSE:-0}"
 PUZZLE_NAME=$(basename "$PUZZLE_DIR")
 SOLUTION_DIR="$PUZZLE_DIR/solution"
 
+# Per-puzzle opt-out: presence of solution/.verify-skip means standard TLC
+# verification isn't the right gate (e.g., T64 teaches -simulate mode for
+# intractable state spaces). The file's first line is the skip reason.
+if [ -f "$SOLUTION_DIR/.verify-skip" ]; then
+  reason=$(head -1 "$SOLUTION_DIR/.verify-skip" 2>/dev/null)
+  printf "%-18s %s  (%s)\n" "SKIP" "$PUZZLE_NAME" "${reason:-no reason given}"
+  exit 0
+fi
+
 # Collect (.tla, .cfg) pairs to verify.
 # Skip: Apalache.tla (shim, no cfg), _TTrace_*.tla (TLC trace dumps).
 PAIRS=()

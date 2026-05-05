@@ -1,0 +1,82 @@
+name: Verify puzzle solutions
+
+on:
+  pull_request:
+    paths:
+      - 'puzzles/**'
+      - 'scripts/verify-puzzle.sh'
+      - '.github/workflows/verify-puzzles.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'puzzles/**'
+      - 'scripts/verify-puzzle.sh'
+      - '.github/workflows/verify-puzzles.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install tla2tools (provides pcal + tlc)
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/lib" "$HOME/bin"
+          curl -fsSL -o "$HOME/lib/tla2tools.jar" \
+            https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar
+          cat > "$HOME/bin/tlc" <<EOF
+          #!/usr/bin/env bash
+          exec java -XX:+UseParallelGC -cp "$HOME/lib/tla2tools.jar" tlc2.TLC "\$@"
+          EOF
+          cat > "$HOME/bin/pcal" <<EOF
+          #!/usr/bin/env bash
+          exec java -XX:+UseParallelGC -cp "$HOME/lib/tla2tools.jar" pcal.trans "\$@"
+          EOF
+          chmod +x "$HOME/bin/tlc" "$HOME/bin/pcal"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Smoke check tools
+        run: |
+          which tlc pcal
+          tlc -h 2>&1 | head -3 || true
+          pcal -help 2>&1 | head -3 || true
+
+      - name: Verify every puzzle
+        run: |
+          set -uo pipefail
+          fail_count=0
+          pass_count=0
+          fail_list=""
+          : > /tmp/verify_results.log
+          for dir in puzzles/*/; do
+            puzzle="${dir%/}"
+            if [ ! -d "$puzzle/solution" ]; then continue; fi
+            output=$(scripts/verify-puzzle.sh "$puzzle" 2>&1)
+            rc=$?
+            echo "$output" | tee -a /tmp/verify_results.log
+            if [ $rc -ne 0 ]; then
+              fail_count=$((fail_count + 1))
+              fail_list="$fail_list $puzzle"
+            else
+              pass_count=$((pass_count + 1))
+            fi
+          done
+          echo
+          echo "=== Verify summary ==="
+          echo "Passed:  $pass_count"
+          echo "Failed:  $fail_count"
+          if [ $fail_count -ne 0 ]; then
+            echo "Failed puzzles:$fail_list"
+            exit 1
+          fi
