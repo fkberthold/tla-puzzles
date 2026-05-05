@@ -35,37 +35,6 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c62e2973" /\ chksum(tla) = "ec1a8f63")
-VARIABLES published, received
-
-(* define statement *)
-TypeOK == published \in BOOLEAN /\ received \in BOOLEAN
-PublishedEventuallyReceived == published ~> received
-
-
-vars == << published, received >>
-
-ProcSet == {"Publisher"} \cup {"Subscriber"}
-
-Init == (* Global variables *)
-        /\ published = FALSE
-        /\ received = FALSE
-
-publisher == \/ /\ ~published /\ ~received
-                /\ published' = TRUE
-                /\ UNCHANGED received
-             \/ /\ ~published /\ received
-                /\ received' = FALSE
-                /\ UNCHANGED published
-
-subscriber == /\ published
-              /\ received' = TRUE
-              /\ published' = FALSE
-
-Next == publisher \/ subscriber
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(publisher)
-
+\* BEGIN TRANSLATION
 \* END TRANSLATION
 ================================

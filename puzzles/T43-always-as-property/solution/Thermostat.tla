@@ -29,37 +29,6 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a80ff0bc" /\ chksum(tla) = "dae3cdf9")
-VARIABLE temp
-
-(* define statement *)
-TypeOK == temp \in 60..80
-InRange == temp \in 60..80
-AlwaysInRange == []InRange
-
-
-vars == << temp >>
-
-ProcSet == {"Board"}
-
-Init == (* Global variables *)
-        /\ temp = 70
-
-board == \/ /\ IF temp < 80
-                  THEN /\ temp' = temp + 1
-                  ELSE /\ TRUE
-                       /\ temp' = temp
-         \/ /\ IF temp > 60
-                  THEN /\ temp' = temp - 1
-                  ELSE /\ TRUE
-                       /\ temp' = temp
-         \/ /\ TRUE
-            /\ temp' = temp
-
-Next == board
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(board)
-
-\* END TRANSLATION 
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ================================

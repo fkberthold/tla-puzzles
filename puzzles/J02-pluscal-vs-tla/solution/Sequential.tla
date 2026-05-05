@@ -29,55 +29,5 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES coins, chosen, dispensed, pc
-
-(* define statement *)
-TypeOK ==
-  /\ coins \in 0..2
-  /\ chosen \in {"none", "snack", "drink"}
-  /\ dispensed \in BOOLEAN
-
-
-vars == << coins, chosen, dispensed, pc >>
-
-ProcSet == {"Vending"}
-
-Init == (* Global variables *)
-        /\ coins = 0
-        /\ chosen = "none"
-        /\ dispensed = FALSE
-        /\ pc = [self \in ProcSet |-> "insert"]
-
-insert == /\ pc["Vending"] = "insert"
-          /\ coins' = 1
-          /\ pc' = [pc EXCEPT !["Vending"] = "choose"]
-          /\ UNCHANGED << chosen, dispensed >>
-
-choose == /\ pc["Vending"] = "choose"
-          /\ \/ /\ chosen' = "snack"
-             \/ /\ chosen' = "drink"
-          /\ pc' = [pc EXCEPT !["Vending"] = "dispense"]
-          /\ UNCHANGED << coins, dispensed >>
-
-dispense == /\ pc["Vending"] = "dispense"
-            /\ dispensed' = TRUE
-            /\ coins' = 0
-            /\ pc' = [pc EXCEPT !["Vending"] = "Done"]
-            /\ UNCHANGED chosen
-
-machine == insert \/ choose \/ dispense
-
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
-
-Next == machine
-           \/ Terminating
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(machine)
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-
 \* END TRANSLATION
 ================================

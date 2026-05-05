@@ -20,39 +20,5 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES counter, pc
-
-(* define statement *)
-TypeOK == counter \in 0..2
-
-Correct == (\A self \in {"A", "B"} : pc[self] = "Done") => counter = 2
-
-
-vars == << counter, pc >>
-
-ProcSet == ({"A", "B"})
-
-Init == (* Global variables *)
-        /\ counter = 0
-        /\ pc = [self \in ProcSet |-> "bump"]
-
-bump(self) == /\ pc[self] = "bump"
-              /\ counter' = counter + 1
-              /\ pc' = [pc EXCEPT ![self] = "Done"]
-
-client(self) == bump(self)
-
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
-
-Next == (\E self \in {"A", "B"}: client(self))
-           \/ Terminating
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in {"A", "B"} : WF_vars(client(self))
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-
 \* END TRANSLATION
 ================================

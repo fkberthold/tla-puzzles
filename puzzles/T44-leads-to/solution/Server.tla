@@ -35,38 +35,6 @@ EXTENDS TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "fe5422bd" /\ chksum(tla) = "4a1b4822")
-VARIABLES pending, served
-
-(* define statement *)
-TypeOK == pending \in BOOLEAN /\ served \in BOOLEAN
-RequestServed == pending ~> served
-
-
-vars == << pending, served >>
-
-ProcSet == {"Client"} \cup {"Server"}
-
-Init == (* Global variables *)
-        /\ pending = FALSE
-        /\ served = FALSE
-
-client == \/ /\ ~pending /\ ~served
-             /\ pending' = TRUE
-             /\ UNCHANGED served
-          \/ /\ served /\ ~pending
-             /\ served' = FALSE
-             /\ UNCHANGED pending
-
-server == /\ pending
-          /\ served' = TRUE
-          /\ pending' = FALSE
-
-Next == client \/ server
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(client)
-        /\ WF_vars(server)
-
-\* END TRANSLATION 
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ================================

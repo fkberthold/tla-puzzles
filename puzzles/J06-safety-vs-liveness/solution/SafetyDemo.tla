@@ -30,50 +30,5 @@ EXTENDS Integers, TLC
 }
 *)
 \* BEGIN TRANSLATION
-VARIABLES state, flips, pc
-
-(* define statement *)
-StateOK == state \in {"on", "off"}
-
-
-FlipsNonNeg == flips >= 0
-
-
-EventuallyOn == <>(state = "on")
-
-
-vars == << state, flips, pc >>
-
-ProcSet == {"Toggler"}
-
-Init == (* Global variables *)
-        /\ state = "off"
-        /\ flips = 0
-        /\ pc = [self \in ProcSet |-> "flip"]
-
-flip == /\ pc["Toggler"] = "flip"
-        /\ IF flips < 2
-              THEN /\ IF state = "off"
-                         THEN /\ state' = "on"
-                         ELSE /\ state' = "off"
-                   /\ flips' = flips + 1
-                   /\ pc' = [pc EXCEPT !["Toggler"] = "flip"]
-              ELSE /\ pc' = [pc EXCEPT !["Toggler"] = "Done"]
-                   /\ UNCHANGED << state, flips >>
-
-toggler == flip
-
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
-
-Next == toggler
-           \/ Terminating
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(toggler)
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-
 \* END TRANSLATION
 ================================

@@ -37,39 +37,6 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "f784ec3c" /\ chksum(tla) = "f7b5ec45")
-VARIABLES hasJob, printed
-
-(* define statement *)
-TypeOK == hasJob \in BOOLEAN /\ printed \in 0..3
-JobsServed == []<>(printed = 3)
-
-
-vars == << hasJob, printed >>
-
-ProcSet == {"User"} \cup {"Printer"}
-
-Init == (* Global variables *)
-        /\ hasJob = FALSE
-        /\ printed = 0
-
-user == /\ \/ /\ ~hasJob
-              /\ hasJob' = TRUE
-           \/ /\ hasJob
-              /\ hasJob' = FALSE
-        /\ UNCHANGED printed
-
-printer == /\ hasJob
-           /\ IF printed < 3
-                 THEN /\ printed' = printed + 1
-                 ELSE /\ printed' = 0
-           /\ hasJob' = FALSE
-
-Next == user \/ printer
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(user)
-        /\ SF_vars(printer)
-
+\* BEGIN TRANSLATION
 \* END TRANSLATION
 ================================

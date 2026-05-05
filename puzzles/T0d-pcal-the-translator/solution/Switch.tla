@@ -9,34 +9,6 @@
   }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "89eb4d73" /\ chksum(tla) = "672d3c2")
-VARIABLES on, pc
-
-vars == << on, pc >>
-
-ProcSet == {"Toggler"}
-
-Init == (* Global variables *)
-        /\ on = FALSE
-        /\ pc = [self \in ProcSet |-> "flip"]
-
-flip == /\ pc["Toggler"] = "flip"
-        /\ on' = ~on
-        /\ pc' = [pc EXCEPT !["Toggler"] = "Done"]
-
-toggler == flip
-
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
-
-Next == toggler
-           \/ Terminating
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(toggler)
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-
-\* END TRANSLATION 
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ====

@@ -36,36 +36,6 @@ EXTENDS Integers, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "2c37a41b" /\ chksum(tla) = "d7136a9")
-VARIABLES available, charged
-
-(* define statement *)
-TypeOK == available \in BOOLEAN /\ charged \in 0..3
-
-
-Charges == []<>(charged > 0)
-
-
-vars == << available, charged >>
-
-ProcSet == {"Dock"} \cup {"Robot"}
-
-Init == (* Global variables *)
-        /\ available = FALSE
-        /\ charged = 0
-
-dock == /\ ~available
-        /\ available' = TRUE
-        /\ UNCHANGED charged
-
-robot == /\ available
-         /\ charged' = (charged + 1) % 4
-         /\ available' = FALSE
-
-Next == dock \/ robot
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(dock)
-
-\* END TRANSLATION 
+\* BEGIN TRANSLATION
+\* END TRANSLATION
 ================================
