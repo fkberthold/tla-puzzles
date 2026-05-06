@@ -23,9 +23,10 @@ RULES = [
     (r"\bassert\s*\(",                                  "T05", "assert"),
     (r"\bdefine\s*\{",                                  "T06", "define block"),
 
-    # Tier 1 multi-process race (process set with self)
-    (r"\bprocess\s*\([^=]*\bin\s",                      "T04", "process set"),
-    (r"\bself\b",                                       "T04", "self in process set"),
+    # Tier 1 process set with self (introduced in T03b before T04 layers
+    # on the multi-label race).
+    (r"\bprocess\s*\([^=]*\bin\s",                      "T03b", "process set"),
+    (r"\bself\b",                                       "T03b", "self in process set"),
 
     # Tier 2 — records, sequences, functions
     (r"\[\s*\w+\s*\|->",                                "T09", "record / function literal"),

@@ -107,7 +107,11 @@ classify() {
         *)
           if [[ "$prefix" =~ ^T([0-9]+)[a-z]$ ]]; then
             local base="${BASH_REMATCH[1]}"
-            if   [ "$base" -ge 42 ] && [ "$base" -le 49 ]; then echo "tier-5"
+            if   [ "$base" -ge 1 ]  && [ "$base" -le 8 ];  then echo "tier-1"
+            elif [ "$base" -ge 9 ]  && [ "$base" -le 25 ]; then echo "tier-2"
+            elif [ "$base" -ge 26 ] && [ "$base" -le 34 ]; then echo "tier-3"
+            elif [ "$base" -ge 35 ] && [ "$base" -le 41 ]; then echo "tier-4"
+            elif [ "$base" -ge 42 ] && [ "$base" -le 49 ]; then echo "tier-5"
             elif [ "$base" -ge 50 ] && [ "$base" -le 59 ]; then echo "tier-6"
             elif [ "$base" -ge 60 ] && [ "$base" -le 66 ]; then echo "tier-7"
             else echo "tier-?"

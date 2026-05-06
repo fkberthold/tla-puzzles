@@ -47,7 +47,8 @@ Audited against sharpened Gate 3 + extended Gate 7 by the tla-4ln pilot (2026-05
 | T01 | The Light Switch | first-spec (variables, label, while, invariant) | exempt (no priors) |
 | T02 | The Guessing Game | concept:with, concept:nondet-init | concept:if-pluscal (residue: comparison drives result) |
 | T03 | The Fork in the Road | concept:either-or | concept:with (residue: snack-picking nondeterminism) |
-| T04 | The Broken Door | concept:multi-label-race | concept:label, concept:variables (Gate 2 note: bundles new process-set + self) |
+| T03b | Roll Call (Group Photo) | concept:process-set + concept:self (bundled — `self` is meaningful only inside a process set; treated as one concept per audit principle 2 data-structure-introduction reading) | concept:fair-process, concept:variables, concept:label (race-free single-label demo of the new syntax) |
+| T04 | The Broken Door | concept:multi-label-race + concept:multiple-labels | concept:process-set, concept:self (T03b), concept:label, concept:variables, concept:if-pluscal — note: post-2026-05-06 fix, T04 no longer smuggles process-set + self (those moved to T03b); `goto` keyword is introduced in lesson via demonstrative-form-with-annotation recipe (contrived form for naming, idiomatic nested-label form alongside) |
 | T05 | The Toll Booth | concept:assert | concept:while, concept:either-or, concept:eventually |
 | T06 | The Scoreboard | concept:define-block | concept:while, concept:either-or, concept:variables |
 | T07 | The Off-By-One | concept:deliberate-violation | concept:while, concept:if-pluscal |
@@ -60,7 +61,9 @@ Audited against sharpened Gate 3 + extended Gate 7 by the tla-4ln pilot (2026-05
 - **T06** — demo replaced. Original weather-station demo used `while` + `with` + multiple operators; revised demo (`TempName`) shows `define` with one operator assigned in one label, no prior-concept scaffolding. Puzzle unchanged.
 - **T07** — demo replaced. Original recipe-scaler demo used `while` + 2 labels; revised demo (`Claim`) shows the deliberate-violation pattern with `done := TRUE` while `pending` is still `TRUE`, no loop. Puzzle unchanged.
 
-**T02 and T04 are borderline** — both passed Gate 3 by reading the strip-test residue charitably (T02: if/else comparison composition; T04: multi-process structure beyond the new race concept). T04 also surfaces a Gate 2 concern (the puzzle introduces process-set + `self` alongside multi-label-race); that's outside this pilot's scope and is parked for a future Gate 2 sweep.
+**T02 and T04 are borderline** — both passed Gate 3 by reading the strip-test residue charitably (T02: if/else comparison composition; T04: multi-process structure beyond the new race concept). T04's previously-flagged Gate 2 concern (smuggling process-set + `self` alongside multi-label-race) was resolved by the 2026-05-06 audit (tla-0w8.1) and the T03b insertion (tla-0w8.2): process-set + self moved to the new T03b puzzle, and T04 now teaches multi-label-race + multiple-labels cleanly with the goto demo carrying a demonstrative-form-with-annotation note.
+
+**T03b** is a deliberate suffix-style insertion (precedent: T44b, T47b, T0e, A10) that introduces process-set + self as ONE bundled concept in a race-free single-label setting, so that T04 can layer multi-label race on top without smuggling. It's race-free by design (Roll Call lesson + Group Photo puzzle each use one label per process), exercising `done := done \union {self}` over a 2-element process set; no deliberate-violation invariant. Updated R03's verbal references to point at T03b for process-set introduction and T04 for multi-label-race introduction.
 
 ## Tier 2 — PlusCal Data Structures
 

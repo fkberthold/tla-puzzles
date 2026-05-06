@@ -24,6 +24,7 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 | ✓ | tla-a1s | T0b: Reading a Counterexample | prelude | none | 1 | workflow:read-output,workflow:read-trace |
 | ✓ | tla-rm6 | T0c: The .cfg File — Anatomy and Editing | prelude | none | 1 | workflow:cfg-anatomy,workflow:cfg-edit |
 | ✓ | tla-8gm | T0d: pcal — The Translator | prelude | none | 1 | workflow:pcal-translate,workflow:read-translation |
+| ✓ | tla-b0q | T0e: Anatomy of a TLA+ Module | prelude | none | 1 | workflow:module-anatomy,workflow:read-translation |
 
 ## Tier 1 — PlusCal Basics (Done)
 
@@ -31,8 +32,9 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 |---|---|---|---|---|---|---|
 | ✓ | tla-5fv | T01: The Light Switch | puzzle | PC | 1 | concept:assign,concept:deliberate-violation,concept:fair-process,concept:if-pluscal,concept:invariant,concept:label,concept:typeok,concept:variables,concept:while |
 | ✓ | tla-06t | T02: The Guessing Game | puzzle | PC | 1 | concept:deliberate-violation,concept:nondet-init,concept:typeok,concept:with |
+| ✓ | tla-1ad | T03b: Roll Call | puzzle | PC | 1 | concept:process-set,concept:self |
 | ✓ | tla-xyl | T03: The Fork in the Road | puzzle | PC | 1 | concept:either-or,concept:eventually,concept:property-eventually |
-| ✓ | tla-m0b | T04: The Broken Door | puzzle | PC | 2 | concept:multi-label-race,concept:multiple-labels,concept:process-set,concept:self |
+| ✓ | tla-m0b | T04: The Broken Door | puzzle | PC | 2 | concept:multi-label-race,concept:multiple-labels |
 | ✓ | tla-ci3 | T05: The Toll Booth | puzzle | PC | 1 | concept:assert,concept:either-or,concept:property-eventually |
 | ✓ | tla-zt6 | T06: The Scoreboard | puzzle | PC | 1 | concept:define-block,concept:either-or,concept:operator,concept:operator-params |
 | ✓ | tla-0hh | T07: The Off-By-One | puzzle | PC | 2 | concept:deliberate-violation,concept:if-pluscal,concept:while |

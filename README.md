@@ -1,6 +1,6 @@
 # TLA+ Practice Puzzles
 
-A 106-puzzle progressive curriculum for learning **TLA+** and **PlusCal** by doing — small, self-contained exercises that each teach one new concept and verify with `tlc` (and, where annotated, `apalache`).
+A 107-puzzle progressive curriculum for learning **TLA+** and **PlusCal** by doing — small, self-contained exercises that each teach one new concept and verify with `tlc` (and, where annotated, `apalache`).
 
 Modeled on the [99 Prolog Problems](https://www.ic.unicamp.br/~meidanis/courses/mc336/2009s2/prolog/problemas/). Designed for engineers who want a hands-on path from "I've heard of TLA+" to "I can specify a distributed system and verify both safety and liveness."
 
@@ -11,7 +11,7 @@ Modeled on the [99 Prolog Problems](https://www.ic.unicamp.br/~meidanis/courses/
 ## What this teaches
 
 - **Tier 0 — Prelude (5):** the toolchain. Run TLC, read a counterexample, edit a `.cfg`, understand what `tlc -pcal` does.
-- **Tier 1 — PlusCal Basics (8):** variables, processes, labels, loops, nondeterminism (`with`, `either/or`), assertions, the `define` block, TLC as a debugger.
+- **Tier 1 — PlusCal Basics (9):** variables, processes, labels, loops, nondeterminism (`with`, `either/or`), process sets and `self`, multi-label race, assertions, the `define` block, TLC as a debugger.
 - **Tier 2 — PlusCal Data Structures (20):** records, sequences, functions (constructor / EXCEPT / `@` / function sets), set comprehension, cardinality, CHOOSE, IF/CASE, LET-IN, quantifiers.
 - **Tier 3 — Pure TLA+ Pivot (11):** the relational view. Init / Next / Spec, UNCHANGED, action disjunction, the level system, `[A]_v`, weak fairness.
 - **Tier 4 — Multi-Process & Synchronization (10):** distinct processes, `await`, ENABLED, producer/consumer, mini-mutex, procedures, cross-tier capstone.
@@ -93,7 +93,7 @@ tla-puzzles/
 ├── puzzles/                     # the curriculum
 │   ├── T0a-first-run-hello-tlc/
 │   ├── T01-the-light-switch/
-│   ├── ... (106 dirs)
+│   ├── ... (107 dirs)
 │   └── T67-distributed-counter/
 ├── scripts/
 │   └── gen-curriculum-map.sh    # regenerates CURRICULUM_MAP.md from bd state

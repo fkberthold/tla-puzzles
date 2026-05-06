@@ -30,6 +30,20 @@ Two ATMs share one bank account with $60. Each ATM independently checks whether 
 
 **`goto LABEL` in PlusCal.** The example uses `goto debit` and `goto done` to jump to specific labels. `goto LABEL` ends the current atomic step and schedules the named label as the next one to execute. Think of it as `break` or `continue` but by name — useful when you want to skip past the next sequential label or jump to an explicit endpoint instead of falling through. Without `goto`, execution falls through to whichever label appears next in the code. You only need `goto` when you want to divert that flow.
 
+**A note on this demo's shape.** The ATM example uses three explicit `goto`s to make the keyword visible. Two of them are *gratuitous* under PlusCal's atomic-step semantics: `goto debit` from the `if`-true branch and `goto done` after the debit assignment both jump where execution would fall through anyway. Only `goto done` from the `else` branch actually diverts flow (skipping over `debit` so the `if`-false case doesn't accidentally run the debit). If you were writing this spec for production, you would not write the explicit `goto`s — you would NEST the labels inside the `if`-block:
+
+```
+check:
+  if (balance >= 50) {
+    debit:
+      balance := balance - 50;
+  };
+done:
+  skip;
+```
+
+This still has the multi-label race (interleaving lives between `check` and `debit`) but contains zero `goto`s. Use the `goto` form when you want to NAME the keyword for a lesson; use the nested-label form for the actual specs you write. Both forms produce the same atomic-step boundaries and the same race.
+
 Sample invariants:
 
 - `TypeOK == balance \in -40..60`
@@ -56,7 +70,7 @@ lockAndDebit:
 
 In real systems, you'd use a database transaction or a lock to collapse the race. The spec models this as "one label."
 
-**The `self` keyword** inside a process body gives the identity of the currently running process — `"ATM1"` or `"ATM2"` in this example. You'll need it in the puzzle.
+**Process set + `self`** were introduced in T03b (Roll Call / Group Photo). The same shape applies here: `fair process (atm \in {"ATM1", "ATM2"})` declares two concurrent processes, and `self` evaluates to `"ATM1"` or `"ATM2"` inside the body. T04's new ingredient is the MULTI-LABEL race that the process set now exposes.
 
 ## Setup
 

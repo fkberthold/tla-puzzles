@@ -2,7 +2,7 @@
 
 ## Lesson: Per-Process State via Functions
 
-You learned functions in Tier 2 (T12–T15) and process sets with `self` in Tier 1 (T04). This review combines them: when you have a SET of processes, the natural way to give each one its own private state is a FUNCTION whose domain is the process set.
+You learned functions in Tier 2 (T12–T15) and process sets with `self` in Tier 1 (T03b). This review combines them: when you have a SET of processes, the natural way to give each one its own private state is a FUNCTION whose domain is the process set.
 
 ```
 state = [p \in ProcSet |-> initialValue]
@@ -36,7 +36,7 @@ A polling station has booths, one per voter. Each voter walks to their booth and
 Two things to notice:
 
 - `ballot = [v \in {"V1", "V2", "V3"} |-> "unmarked"]` — the function constructor (T12) builds a function with one slot per voter, each starting `"unmarked"`.
-- `ballot[self] := choice` — inside a process, `self` is this process's identity (T04), so `ballot[self]` reads/writes ONLY this voter's slot. PlusCal translates this to `ballot' = [ballot EXCEPT ![self] = choice]` — the EXCEPT update from T14.
+- `ballot[self] := choice` — inside a process, `self` is this process's identity (T03b), so `ballot[self]` reads/writes ONLY this voter's slot. PlusCal translates this to `ballot' = [ballot EXCEPT ![self] = choice]` — the EXCEPT update from T14.
 
 After translation, an invariant like `\A v \in {"V1","V2","V3"} : ballot[v] \in {"unmarked","yes","no","abstain"}` checks every voter's ballot.
 

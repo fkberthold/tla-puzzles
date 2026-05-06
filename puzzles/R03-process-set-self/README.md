@@ -2,7 +2,7 @@
 
 ## Lesson: Recap — Multi-Process Race Through Two Labels
 
-You met process sets in T04 (Alice and Bob racing through a door) and the multi-label race that exposed the TOCTOU bug. This is a recap drill in a fresh domain — two processes, two labels, same shape, different story.
+You met process sets in T03b (Ann and Ben smiling for a Group Photo) and the multi-label race in T04 (Alice and Bob racing through a door, exposing the TOCTOU bug). This is a recap drill in a fresh domain — two processes, two labels, same shape, different story.
 
 The pieces:
 
@@ -51,7 +51,7 @@ Trace:
 
 Two buyers, ONE seat, BOTH claim it — `seats < 0` is the smoking gun. The fix is to collapse `check` and `buy` into one label so the read-and-decrement is atomic.
 
-Notice `buyers \cup {self}` — `self` is the running buyer's name, added to the set so we can audit who got what. Same pattern T04 used for the `through` set, just a different theme.
+Notice `buyers \cup {self}` — `self` is the running buyer's name, added to the set so we can audit who got what. Same pattern as T03b's `smiled` set and T04's `through` set, just a different theme.
 
 ## Setup
 
