@@ -64,7 +64,7 @@ Gate 3 (Strip Test) and Gate 7's prior-load expectation both assume the puzzle h
 
 - **T01** — already exempt from Gate 2 (Minimal Novelty); no prior concept exists to scaffold against.
 - **Capstones that introduce no new concept** — pass by construction. Their job is to compose existing concepts, and they replace Gate 7's worked demo with a fresh composition of prior techniques. Cross-tier capstones (C01, C02) are in this class.
-- **Tier 0 prelude (T0a–T0e)** — workflow puzzles, not concept puzzles. Whether the prior-load expectation applies at all is decided as part of the Tier 0 audit and recorded in [SCAFFOLDING_MAP.md](SCAFFOLDING_MAP.md) once confirmed.
+- **Tier 0 prelude (T0a–T0e)** — workflow puzzles, not concept puzzles. Each prelude puzzle presents a single pre-written spec and walks the learner through running it; there is no demo + puzzle dual structure for Gate 3 (Strip Test) or Gate 7 (Demo Bareness, Demo–Puzzle Domain Disjoint) to apply against. Confirmed by the Tier 0 audit (2026-05-05); per-puzzle exemption tags recorded in [SCAFFOLDING_MAP.md](SCAFFOLDING_MAP.md).
 
 Reviews (R-puzzles) and judgments (J-puzzles) introduce no new concept by definition; their treatment under the gates is part of the audit and not yet final.
 

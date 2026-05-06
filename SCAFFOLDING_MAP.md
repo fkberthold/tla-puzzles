@@ -17,7 +17,7 @@ When picking scaffolding for a new puzzle, consult the histogram and avoid conce
 > - `TBD` — not yet audited.
 > - `exempt (no priors)` — T01, the curriculum's first concept puzzle.
 > - `exempt (capstone)` — capstone whose job is to compose prior concepts; passes Gate 3 by construction.
-> - `exempt-pending (Tier 0 audit)` — T0a–T0e; whether the prior-load expectation applies is part of tla-3vt.1.
+> - `exempt (prelude — workflow, not concept)` — T0a–T0e; toolchain puzzles with no demo/puzzle dual structure for Gate 3 or Gate 7 to apply against. Confirmed by tla-3vt.1.
 > - `(review)` — R-puzzles introduce no new concept; treatment under the gates is part of the audit.
 > - `(judgment)` — J-puzzles teach a meta-skill (when to use which technique); treatment under the gates is part of the audit.
 
@@ -25,13 +25,15 @@ When picking scaffolding for a new puzzle, consult the histogram and avoid conce
 
 ## Tier 0 — Prelude (Workflow Basics)
 
+Audited against sharpened Gate 3 + extended Gate 7 by tla-3vt.1 (2026-05-05). All five prelude puzzles are exempt from Gate 3 and Gate 7's prior-load and demo-bareness expectations: each prelude puzzle presents a single pre-written spec and walks through running it (no demo + puzzle dual structure), and each teaches a `workflow:*` operation rather than a `concept:*` from the curriculum's concept taxonomy. The remaining gates (Concept Uniqueness, 15-Minute, TLC Verification, Trace Quality) apply and hold by inspection.
+
 | ID | Title | New concept | Scaffolding |
 |---|---|---|---|
-| T0a | First Run — Hello, TLC | workflow:tlc-run | exempt-pending (Tier 0 audit) |
-| T0b | Reading a Counterexample | workflow:read-trace | exempt-pending (Tier 0 audit) |
-| T0c | The .cfg File — Anatomy and Editing | workflow:cfg-anatomy | exempt-pending (Tier 0 audit) |
-| T0d | pcal — The Translator | workflow:pcal-translate | exempt-pending (Tier 0 audit) |
-| T0e | Anatomy of a TLA+ Module | workflow:module-anatomy | exempt-pending (Tier 0 audit) |
+| T0a | First Run — Hello, TLC | workflow:tlc-run | exempt (prelude — workflow, not concept) |
+| T0b | Reading a Counterexample | workflow:read-trace | exempt (prelude — workflow, not concept) |
+| T0c | The .cfg File — Anatomy and Editing | workflow:cfg-anatomy | exempt (prelude — workflow, not concept) |
+| T0d | pcal — The Translator | workflow:pcal-translate | exempt (prelude — workflow, not concept) |
+| T0e | Anatomy of a TLA+ Module | workflow:module-anatomy | exempt (prelude — workflow, not concept) |
 
 ## Tier 1 — PlusCal Basics
 
