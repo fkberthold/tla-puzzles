@@ -66,12 +66,12 @@ for module in "${PAIRS[@]}"; do
   scratch=$(mktemp -d -t verify_puzzle.XXXXXX)
   trap 'rm -rf "$scratch"' EXIT
 
-  cp "$SOLUTION_DIR/$module.tla" "$scratch/"
+  # Copy every .tla in solution/ so helper modules referenced via EXTENDS or
+  # INSTANCE (e.g., OrderStates, Counter, AbstractCard, Apalache shim) resolve.
+  # Without this, multi-module specs fail TLC parse with "Cannot find source
+  # file ..." which the classifier below now catches as FAIL-TLC.
+  cp "$SOLUTION_DIR"/*.tla "$scratch/"
   cp "$SOLUTION_DIR/$module.cfg" "$scratch/"
-  # Some specs EXTENDS Apalache (when present in solution dir alongside the canonical spec).
-  if [ -f "$SOLUTION_DIR/Apalache.tla" ]; then
-    cp "$SOLUTION_DIR/Apalache.tla" "$scratch/"
-  fi
 
   verdict="UNKNOWN"
 
@@ -91,6 +91,9 @@ for module in "${PAIRS[@]}"; do
     if [ "$tlc_rc" = "124" ]; then
       verdict="FAIL-TIMEOUT"
     elif echo "$tlc_out" | grep -q "Error: TLC threw an unexpected exception"; then
+      verdict="FAIL-TLC"
+      [ "$VERBOSE" = "1" ] && echo "$tlc_out" >&2
+    elif echo "$tlc_out" | grep -qE "Cannot find source file|Parsing or semantic analysis failed|Fatal errors while parsing"; then
       verdict="FAIL-TLC"
       [ "$VERBOSE" = "1" ] && echo "$tlc_out" >&2
     elif echo "$tlc_out" | grep -q "Model checking completed. No error has been found"; then

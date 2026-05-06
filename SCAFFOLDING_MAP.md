@@ -290,7 +290,7 @@ Cross-cutting audit covering the 13 review puzzles (R01–R13), the two cross-ti
 
 **Cross-tier capstones (C01, C02) and Final Capstone (T67).** All three composes prior concepts from multiple tiers. They pass Gate 3 by construction (their job is composition) and replace Gate 7's worked demo with a fresh-domain recap — the same treatment as in-tier capstones (T08, T25, T34, etc.). T67 additionally exercises the Apalache track (`@type:` annotations + `ApaFoldSet`) so it doubles as the joint TLC + Apalache capstone. Per-row tag remains `exempt (capstone)`; the existing capstone exemption clause in [QUALITY_GATE.md](QUALITY_GATE.md#exemptions) was extended to name C01, C02, and T67 explicitly.
 
-**Verification.** Every puzzle in scope verified green via `scripts/verify-puzzle.sh`: 14 PASS-CLEAN and 3 PASS-OTHER (R12 and C02 use `CHECK_DEADLOCK FALSE` for terminal stutter; T67's `DistributedCounter` likewise). No revisions were required to puzzle source.
+**Verification.** Every puzzle in scope verified green via `scripts/verify-puzzle.sh`: 17 PASS-CLEAN. No revisions were required to puzzle source. (Note: an earlier draft of this section recorded R12, C02, and T67's `DistributedCounter` as PASS-OTHER and attributed it to `CHECK_DEADLOCK FALSE` terminal stutter; that misread was actually the tla-xpv bug — `verify-puzzle.sh` was omitting INSTANCE helpers (`Counter`, `AbstractTicketing`, `AbstractCounter`) from the scratch dir, so TLC failed parse silently and fell through to PASS-OTHER. After the tla-xpv fix all three verify PASS-CLEAN.)
 
 ## Coverage Histogram
 

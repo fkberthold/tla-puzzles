@@ -5,12 +5,14 @@ on:
     paths:
       - 'puzzles/**'
       - 'scripts/verify-puzzle.sh'
+      - 'scripts/test-verify-puzzle.sh'
       - '.github/workflows/verify-puzzles.yml'
   push:
     branches: [main]
     paths:
       - 'puzzles/**'
       - 'scripts/verify-puzzle.sh'
+      - 'scripts/test-verify-puzzle.sh'
       - '.github/workflows/verify-puzzles.yml'
   workflow_dispatch:
 
@@ -51,6 +53,9 @@ jobs:
           which tlc pcal
           tlc -h 2>&1 | head -3 || true
           pcal -help 2>&1 | head -3 || true
+
+      - name: Regression tests for verify-puzzle.sh
+        run: bash scripts/test-verify-puzzle.sh
 
       - name: Verify every puzzle
         run: |
