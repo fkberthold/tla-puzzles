@@ -30,3 +30,6 @@ _apalache-out/
 
 # Loom per-session ephemeral state
 .claude/workflow-state.json
+
+# Git worktrees (project-local isolation)
+.worktrees/
