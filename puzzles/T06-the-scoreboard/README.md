@@ -4,44 +4,31 @@
 
 The `define` block lets you name expressions so your spec reads like prose instead of algebra. It sits between the `variables` declaration and the `process` body. Each operator becomes reusable vocabulary throughout the spec — used in invariants, in conditions, in other operators.
 
-**Worked example — a weather station.**
+**Worked example — naming a temperature reading.**
 
-A sensor tracks temperature and humidity. Instead of writing `temp > 85 \/ temp < 55 \/ humidity < 30 \/ humidity > 70` every time we want to know whether a reading is uncomfortable, we name the conditions once and build on them.
+A sensor reads a temperature and stores whether it's hot. Instead of inlining the comparison `temp > 85`, we name it once with a `define` block and use the name as the value.
 
 ```
-(*--algorithm Weather {
-  variables temp = 70, humidity = 40, readings = 0;
+(*--algorithm TempName {
+  variables temp = 90, hot = FALSE;
 
   define {
     TooHot == temp > 85
-    TooCold == temp < 55
-    Dry == humidity < 30
-    Muggy == humidity > 70
-    Comfortable == ~TooHot /\ ~TooCold /\ ~Dry /\ ~Muggy
   }
 
-  fair process (sensor = "Station") {
-    measure:
-      while (readings < 3) {
-        with (t \in 50..90) { temp := t; };
-        with (h \in 20..80) { humidity := h; };
-        readings := readings + 1;
-      }
+  fair process (sensor = "Sensor") {
+    label_it:
+      hot := TooHot;
   }
 }*)
 ```
 
-Sample invariants:
-
-- `TypeOK == temp \in 50..90 /\ humidity \in 20..80`
-- `SometimesUncomfortable == ~Comfortable` — TLC WILL violate this (70°F, 40% is comfortable)
+The `define` block sits between `variables` and `fair process`. `TooHot == temp > 85` introduces the operator name; the body `temp > 85` is its definition. In the label, `hot := TooHot` reads the operator's current value and stores it. With `temp = 90`, `TooHot` evaluates to `TRUE`, so `hot` becomes `TRUE`. Change the initial `temp` to `70` and `TooHot` evaluates to `FALSE`. The operator is a *named expression*, not a function call — it has no arguments here, just a definition that depends on the current state.
 
 Three gifts from `define`:
 
-1. **READABILITY.** `Comfortable` explains itself at first read. `~(temp > 85) /\ ~(temp < 55) /\ ~(humidity < 30) /\ ~(humidity > 70)` does not.
-
-2. **REUSABILITY.** `Comfortable` is built from four smaller operators. Change any one (a heat wave redefines `TooHot` as `temp > 82`), and every operator that depends on it updates automatically.
-
+1. **READABILITY.** `hot := TooHot` reads as prose. `hot := temp > 85` reads as algebra.
+2. **REUSABILITY.** Use the name everywhere — in invariants, in conditions, in other operators (`Comfortable == ~TooHot /\ ~TooCold` if you've also defined `TooCold`).
 3. **PARAMETERS.** Operators can take arguments: `InRange(x, lo, hi) == x >= lo /\ x <= hi`. Then use `InRange(temp, 50, 90)` anywhere.
 
 **Operators are pure expressions.** They describe values; they never change state. They're vocabulary, not verbs. Keep state change in the process body.

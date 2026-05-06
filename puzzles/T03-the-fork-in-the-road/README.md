@@ -36,39 +36,41 @@ Note that `either` branches can assign DIFFERENT variables. In this example, the
 
 ## Setup
 
-A hiker reaches a fork in a trail. They can go left or right. The left path leads to a lake. The right path leads to a summit. After arriving, the hiker sits down.
+A hiker reaches a fork in a trail. They can go left to a lake or right to a summit. The destination is determined by the choice: left always means lake, right always means summit — the nondeterminism is in the *choice* itself, not the geography. After arriving at either spot, the hiker eats a snack from their pack: granola, an apple, or trail mix. Which snack they pull out is also unknown until they reach into the pack.
 
-There's no randomness in the *destination* — left always means lake, right always means summit. The nondeterminism is in the *choice* itself. TLC explores both.
+Two independent sources of nondeterminism stack here. `either/or` (the new concept) decides the branch of code; `with` (from T02) picks the snack value. TLC explores every combination.
 
 ## Task
 
 Write a PlusCal spec with:
 
 - A variable `location` starting at `"fork"`
-- A variable `seated` starting at `FALSE`
+- A variable `snack` starting at `"none"`
 - A single process where the hiker:
   1. Uses `either/or` to choose: go left (location becomes `"lake"`) OR go right (location becomes `"summit"`)
-  2. Then sits down (`seated` becomes `TRUE`)
+  2. Then uses `with (s \in {"granola", "apple", "trail_mix"}) { snack := s; }` to pick a snack
+
+The `with` selection composes with the `either/or` choice — your spec must combine both kinds of nondeterminism, not just one.
 
 ## Check
 
-1. **TypeOK**: `location` is in `{"fork", "lake", "summit"}`, `seated` is in `{TRUE, FALSE}`
+1. **TypeOK**: `location` is in `{"fork", "lake", "summit"}`, `snack` is in `{"none", "granola", "apple", "trail_mix"}`
 2. **AlwaysAtLake**: `location /= "summit"` — TLC should violate this (the hiker CAN reach the summit)
-3. **EventuallySits**: `<>(seated = TRUE)` — a TEMPORAL property (add as PROPERTY in cfg, not INVARIANT)
+3. **EventuallyHasSnack**: `<>(snack /= "none")` — a TEMPORAL property (add as PROPERTY in cfg, not INVARIANT)
 
 ## Expected Result
 
-- TLC should report `No error has been found` (TypeOK and EventuallySits should pass)
-- AlwaysAtLake should be violated in a 2-state trace
-- The canonical solution reports **5 distinct states** (fork, lake-standing, summit-standing, lake-seated, summit-seated); label choices may yield different counts, but the structure (either branch, then sit) is what matters
+- TLC should report `No error has been found` (TypeOK and EventuallyHasSnack should pass)
+- AlwaysAtLake should be violated in a short trace
+- The canonical solution reports **9 distinct states** — initial (fork, none), two intermediate (lake/summit, none), and six terminal (lake/summit × granola/apple/trail_mix). The state-space multiplication is the point: 2 paths × 3 snacks = 6 outcomes, plus the path-only intermediates. Label choices may yield different counts, but the multiplicative structure stays.
 
 ## Hints
 
-??? hint "💡 Hint 1 — Either/or is about behavior, not data"
-    `with` picks a VALUE from a set. `either/or` picks which BRANCH of code to execute. At the fork, you either go left (location becomes lake) OR right (location becomes summit) — never both, never a third option. TLC explores both branches separately.
+??? hint "💡 Hint 1 — `either/or` is about behavior; `with` is about data"
+    `either/or` picks which BRANCH of code to execute. `with` picks a VALUE from a set. The puzzle uses both: `either/or` decides where the hiker goes, `with` decides what they eat. Neither alone explains the state space — the multiplication does.
 
-??? hint "💡 Hint 2 — Two independent state variables"
-    The hiker makes a choice (left or right), then sits down. After sitting, two terminal states are reachable: (lake, seated) and (summit, seated). If you write an invariant claiming the hiker is ALWAYS at the lake, TLC will show a branch where they're at the summit.
+??? hint "💡 Hint 2 — Two labels, two kinds of nondeterminism"
+    Put the `either/or` in one label (e.g., `choose:`) and the `with` in the next label (e.g., `eat:`). Inside the `eat:` label, `with (s \in {"granola", "apple", "trail_mix"}) { snack := s; }` binds `s` for the scope of the block and assigns it to `snack`. Both nondeterministic constructs are exhaustively explored by TLC.
 
 ??? hint "💡 Hint 3 — Temporal properties use PROPERTY, not INVARIANT"
-    `EventuallySits` is a PROPERTY (`<>(seated = TRUE)`) because it talks about the BEHAVIOR — "at some point in the future, seated is true." Invariants check individual states. Properties check entire execution paths. Use the right cfg directive.
+    `EventuallyHasSnack` is a PROPERTY (`<>(snack /= "none")`) because it talks about BEHAVIOR — "at some point in the future, the snack is no longer `none`." Invariants check individual states. Properties check entire execution paths. Use the right cfg directive. Without `fair process`, TLC might not guarantee the eat step ever runs, and the property could fail.

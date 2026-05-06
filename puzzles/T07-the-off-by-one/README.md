@@ -4,47 +4,40 @@
 
 Most of TLA+ is about verifying that your spec matches your intentions. But TLC is just as useful in the REVERSE direction — write a spec with a deliberate mistake, write an invariant that expresses what SHOULD be true, and let TLC find the gap. The gap is the bug. The counterexample trace shows EXACTLY where the code and the intent diverge.
 
-**Worked example — a recipe scaler with a broken loop condition.**
+**Worked example — claiming `done` while still pending.**
 
-A cook wants to scale a recipe: one cup of flour per serving. The code adds cups until the count reaches the serving target, then marks the work as done. But a bug in the loop condition makes it stop one cup short.
+A worker has one task to finish (`pending = TRUE`) and a `done` flag that should only be `TRUE` when the task is finished. The deliberately-buggy spec sets `done := TRUE` without ever clearing `pending`. The invariant `DoneImpliesFinished == done = TRUE => pending = FALSE` names the intent. TLC catches the gap.
 
 ```
-(*--algorithm RecipeScaler {
-  variables servings = 4, cups = 0, done = FALSE;
+(*--algorithm Claim {
+  variables pending = TRUE, done = FALSE;
 
-  fair process (cook = "Cook") {
-    scale:
-      while (cups < servings - 1) {   \* BUG: should be cups < servings
-        cups := cups + 1;
-      };
-    finish:
-      done := TRUE;
+  fair process (worker = "Worker") {
+    step:
+      done := TRUE;   \* BUG: claiming done while pending is still TRUE
   }
 }*)
 ```
 
 Sample invariants:
 
-- `TypeOK == servings \in 1..10 /\ cups \in 0..10 /\ done \in BOOLEAN`
-- `DoneImpliesFull == done = TRUE => cups = servings` — TLC WILL violate this
+- `TypeOK == pending \in BOOLEAN /\ done \in BOOLEAN`
+- `DoneImpliesFinished == done = TRUE => pending = FALSE` — TLC WILL violate this
 
-TLC reports the violation with a short trace:
+TLC reports the violation in two states:
 
-1. Initial state: `servings = 4, cups = 0, done = FALSE`
-2. Three iterations raise `cups` to 3
-3. Loop condition `cups < servings - 1` = `3 < 3` fails — exit the loop
-4. `done := TRUE` fires with `cups = 3` and `servings = 4`
-5. Invariant `DoneImpliesFull` checks: `TRUE => 3 = 4`, which is FALSE. Violation.
+1. Initial state: `pending = TRUE, done = FALSE` — invariant holds (the antecedent is false)
+2. After `step:` — `done = TRUE, pending = TRUE`. The implication `TRUE => FALSE` evaluates to `FALSE`. Violation, one step deep.
 
-The trace SHOWS the bug — not just that something's wrong, but WHERE. The assignment of `done` happened while `cups` was still less than `servings`. The condition `< servings - 1` instead of `< servings` is the off-by-one.
+The trace SHOWS the bug — not just that something's wrong, but WHERE. The assignment of `done` happened while `pending` was still TRUE. The bug is the *missing* assignment to `pending`.
 
 This is the formal-methods workflow in miniature:
 
-1. State your intention as an invariant (`done => cups = servings`)
+1. State your intention as an invariant (`done => pending = FALSE`)
 2. Write the code you think does the thing
 3. Let the model checker point at the disagreement
 
-If you only wrote correct code, you'd never practice this workflow. Writing deliberately-broken code and catching the bug with TLC is how you build the muscle.
+If you only wrote correct code, you'd never practice this workflow. Writing deliberately-broken code and catching the bug with TLC is how you build the muscle. The puzzle below is the same trick at a slightly larger scale — a counter that claims it's reached zero before it actually has.
 
 ## Setup
 

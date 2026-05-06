@@ -6,34 +6,24 @@ INVARIANTS check properties from OUTSIDE the algorithm — they apply to every r
 
 Use invariants for global properties ("this is true in every state"). Use asserts for local sanity checks ("at THIS point, this had better be true").
 
-**Worked example — a pressure cooker.**
+**Worked example — a doorman checking ID.**
 
-A cooker heats water, pressure rising each tick. The design intent is to vent at 15 psi and cap at 20 as a safety limit. We `assert` the safety limit inside the heating loop to catch any design error.
+A doorman checks one customer's age. The line `assert age >= 21` fires only at that line, only when execution reaches it. No loop, no invariant, no broader machinery — `assert` alone, used in the smallest possible spec.
 
 ```
-(*--algorithm PressureCooker {
-  variables pressure = 0;
+(*--algorithm Doorman {
+  variables age = 22;
 
-  fair process (cooker = "Cooker") {
-    heat:
-      while (pressure < 15) {
-        pressure := pressure + 2;
-        assert pressure <= 20;  \* sanity check inside the loop
-      }
+  fair process (door = "Doorman") {
+    check:
+      assert age >= 21;
   }
 }*)
 ```
 
-Sample invariants:
+With `age = 22` the assert holds and TLC reports `No error has been found`. Change `age = 18` and re-run: TLC reports the assert failure at the exact line `assert age >= 21`, with a one-state trace, and stops exploring that branch.
 
-- `TypeOK == pressure \in 0..20`
-
-Trace the assert's behavior:
-
-- Starting at 0, pressure goes 2, 4, 6, 8, 10, 12, 14, 16 — loop exits when pressure >= 15, so the last increment produces 16. The assert `pressure <= 20` holds throughout. No firing. Safe design.
-- If you changed the increment from 2 to 11, pressure goes 0, 11, 22. The assert fires at the line `assert pressure <= 20` with pressure = 22. TLC reports the error at the assert's exact line and stops exploring that branch.
-
-Asserts are checked EVERY time execution passes through them — unlike invariants (checked against every state), asserts are checked against execution flow. They catch "impossible" internal states that may become possible under unexpected inputs.
+Asserts are checked EVERY time execution passes through them — unlike invariants (checked against every state), asserts are checked against execution flow. They catch "impossible" internal states that may become possible under unexpected inputs. The doorman demo isolates that mechanism: one variable, one process, one label, one assert. Everything else (loops, choices, multiple labels) is the *puzzle's* job to compose.
 
 **When to reach for which:**
 - "This value should always be in [0, 20]" → invariant

@@ -35,16 +35,27 @@ When picking scaffolding for a new puzzle, consult the histogram and avoid conce
 
 ## Tier 1 — PlusCal Basics
 
+Audited against sharpened Gate 3 + extended Gate 7 by the tla-4ln pilot (2026-05-05).
+
 | ID | Title | New concept | Scaffolding |
 |---|---|---|---|
 | T01 | The Light Switch | first-spec (variables, label, while, invariant) | exempt (no priors) |
-| T02 | The Guessing Game | concept:with | TBD |
-| T03 | The Fork in the Road | concept:either-or | TBD |
-| T04 | The Broken Door | concept:multi-label-race | TBD |
-| T05 | The Toll Booth | concept:assert | TBD |
-| T06 | The Scoreboard | concept:define-block | TBD |
-| T07 | The Off-By-One | concept:deliberate-violation | TBD |
+| T02 | The Guessing Game | concept:with, concept:nondet-init | concept:if-pluscal (residue: comparison drives result) |
+| T03 | The Fork in the Road | concept:either-or | concept:with (residue: snack-picking nondeterminism) |
+| T04 | The Broken Door | concept:multi-label-race | concept:label, concept:variables (Gate 2 note: bundles new process-set + self) |
+| T05 | The Toll Booth | concept:assert | concept:while, concept:either-or, concept:eventually |
+| T06 | The Scoreboard | concept:define-block | concept:while, concept:either-or, concept:variables |
+| T07 | The Off-By-One | concept:deliberate-violation | concept:while, concept:if-pluscal |
 | T08 | The Ticket Machine (capstone) | (capstone — composes prior) | exempt (capstone) |
+
+**Pilot revisions shipped (tla-4ln, branch tla-4ln):**
+
+- **T03** — full puzzle revision. Original puzzle's strip-test residue was two trivial assignments; revised puzzle composes `either/or` (new) with `with` (T02 prior) — hiker chooses lake/summit, then `with` picks a snack. State count: 9 distinct (was 5).
+- **T05** — demo replaced. Original pressure-cooker demo used `while` loop (T01 scaffolding); revised demo (`Doorman` checking ID) shows `assert` in 1 var / 1 process / 1 label, no scaffolding. Puzzle unchanged.
+- **T06** — demo replaced. Original weather-station demo used `while` + `with` + multiple operators; revised demo (`TempName`) shows `define` with one operator assigned in one label, no prior-concept scaffolding. Puzzle unchanged.
+- **T07** — demo replaced. Original recipe-scaler demo used `while` + 2 labels; revised demo (`Claim`) shows the deliberate-violation pattern with `done := TRUE` while `pending` is still `TRUE`, no loop. Puzzle unchanged.
+
+**T02 and T04 are borderline** — both passed Gate 3 by reading the strip-test residue charitably (T02: if/else comparison composition; T04: multi-process structure beyond the new race concept). T04 also surfaces a Gate 2 concern (the puzzle introduces process-set + `self` alongside multi-label-race); that's outside this pilot's scope and is parked for a future Gate 2 sweep.
 
 ## Tier 2 — PlusCal Data Structures
 
@@ -188,11 +199,21 @@ When picking scaffolding for a new puzzle, consult the histogram and avoid conce
 
 ## Coverage Histogram
 
-For each prior concept, the later puzzles that reuse it as scaffolding. Populated as audits land — empty until the tla-4ln Tier 1 pilot fills its share.
+For each prior concept, the later puzzles that reuse it as scaffolding. Populated as audits land. Tier 1 reuse below; the rest of the curriculum fills in as `tla-3vt.*` audits land.
+
+### Tier 1 reuse (after tla-4ln, 2026-05-05)
 
 | Prior concept | Reused as scaffolding in |
 |---|---|
-| (empty — populated by tla-4ln + tla-3vt audits) | |
+| concept:while (T01) | T05, T06, T07 |
+| concept:variables (T01) | T04, T06 |
+| concept:label (T01) | T04 |
+| concept:if-pluscal (T01) | T02, T07 |
+| concept:with (T02) | T03 |
+| concept:either-or (T03) | T05, T06 |
+| concept:eventually (T03) | T05 |
+
+Reading the histogram: T01's foundational concepts (`while`, `variables`, `if`) carry most of the load — expected, since they're the building blocks. `concept:either-or` (T03) gets two uses in T05/T06 driving runtime choice; `concept:with` (T02) gets one use in revised T03. No single concept dominates (max reuse: 3 of 6 non-exempt rows = 50% for `while`), so the variety constraint holds for Tier 1. Sparse concepts to watch as the curriculum grows: `concept:eventually` (T03), `concept:label` (T01) — both single-use so far; reinforce in later tiers.
 
 When this histogram is non-trivial, watch for:
 
