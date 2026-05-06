@@ -28,38 +28,26 @@ You'll use this constantly in invariants:
 
 **Worked example — a guest list filtered by RSVP.**
 
-A wedding has 4 invited guests. The host tracks each guest's RSVP status. The kitchen needs the set of guests who've actually said yes — to set the table.
+**Worked example — picking the evens out of a small set.**
+
+Two variables, one process, one label. Nothing but the filter.
 
 ```
-(*--algorithm Wedding {
-  variables
-    rsvp = [g \in {"alice", "bob", "carol", "dave"} |-> "pending"],
-    confirmed = {};
+(*--algorithm EvenFilter {
+  variables nums = {1, 2, 3, 4, 5}, evens = {};
 
-  define {
-    Guests == DOMAIN rsvp
-    Yeses == {g \in Guests : rsvp[g] = "yes"}    \* filter: just the confirmed
-  }
-
-  fair process (host = "Host") {
-    collect:
-      \* Each guest answers nondeterministically.
-      with (a \in [Guests -> {"yes", "no"}]) {
-        rsvp := a;
-      };
-    settable:
-      confirmed := Yeses;     \* read the filtered set into a variable
+  fair process (sieve = "S") {
+    pick:
+      evens := {n \in nums : n % 2 = 0};
   }
 }*)
 ```
 
-Sample invariants:
+After `pick`, `evens = {2, 4}`. The expression `{n \in nums : n % 2 = 0}` runs over every element of `nums`, keeps those satisfying the predicate, and gathers them into a set. There's no order, no iteration, no helper operator — just a set defined by membership.
 
-- `TypeOK == \A g \in Guests : rsvp[g] \in {"pending", "yes", "no"} /\ confirmed \subseteq Guests`
-- `ConfirmedAreYes == \A g \in confirmed : rsvp[g] = "yes"` — by construction; passes
-- `NoMaybes == \A g \in confirmed : rsvp[g] /= "maybe"` — passes; only "yes" makes the cut
+Sample invariant (added to the `.cfg`, not the spec body):
 
-The filter `{g \in Guests : rsvp[g] = "yes"}` runs over EVERY guest, applies the predicate, and gathers those that pass. There's no order, no iteration — just a set defined by membership.
+- `TypeOK == nums = {1, 2, 3, 4, 5} /\ evens \subseteq nums`
 
 (In T18 you'll meet the second comprehension form — the MAP, where the expression before the colon transforms each element. Today is filter only: the binding variable appears verbatim in the result.)
 

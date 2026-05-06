@@ -30,37 +30,26 @@ Tail(<<7, 11, 13>>)        \* <<11, 13>>   (everything except the first)
 Append(<<7, 11>>, 13)      \* <<7, 11, 13>>   (add one to the END)
 ```
 
-**Worked example — a recipe ingredient log.**
+**Worked example — a stamp album.**
 
-A chef adds ingredients one at a time to a pot. The first one added gets sautéed (it sat in the hot pan longest). The chef wants the count and the latest addition.
+A collector starts with two stamps and adds one more. The demo shows the literal, the `Append`, and (in the trace) what indexing produces — nothing else. No loop, no choice, no helper operators.
 
 ```
-(*--algorithm Recipe {
-  variables ingredients = <<"oil">>, additions = 0;
+(*--algorithm Stamps {
+  variables stamps = <<"penny", "dime">>;
 
-  define {
-    Total == Len(ingredients)
-    First == Head(ingredients)
-    Latest == ingredients[Len(ingredients)]
-  }
-
-  fair process (chef = "Chef") {
-    cook:
-      while (additions < 3) {
-        with (i \in {"onion", "garlic", "tomato"}) {
-          ingredients := Append(ingredients, i);
-        };
-        additions := additions + 1;
-      }
+  fair process (collector = "C") {
+    add:
+      stamps := Append(stamps, "nickel");
   }
 }*)
 ```
 
-Sample invariants:
+After `add`, `stamps = <<"penny", "dime", "nickel">>`. By hand: `stamps[1] = "penny"`, `stamps[3] = "nickel"`, `Head(stamps) = "penny"`, `Tail(stamps) = <<"dime", "nickel">>`, `Len(stamps) = 3`. One variable, one process, one label, one `Append` — sequences in their bare mechanism.
 
-- `TypeOK == Len(ingredients) \in 1..4 /\ additions \in 0..3`
-- `OilFirst == First = "oil"` — `Head` always returns the first ingredient added; that was "oil"
-- `LatestIsRecent == additions > 0 => Latest \in {"onion", "garlic", "tomato"}` — the LATEST element changes; the FIRST one doesn't
+Sample invariant (would be added to the `.cfg`, not the spec):
+
+- `TypeOK == Len(stamps) \in 2..3 /\ \A i \in 1..Len(stamps) : stamps[i] \in {"penny", "dime", "nickel"}`
 
 Three things to internalize:
 

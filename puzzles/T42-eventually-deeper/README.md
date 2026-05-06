@@ -12,39 +12,32 @@ is a property that says all three flags individually become true at some point �
 
 This matters because beginners often write one `<>` and assume it covers the whole behavior. It doesn't. You need one `<>` per thing-that-must-eventually-happen.
 
-**Worked example — a packet clearing three security checkpoints.**
+**Worked example — a stopwatch ticking up.**
 
-A network packet starts unprocessed. It must (in some order) be encrypted, signed, and ack'd. Different orderings are valid; the spec allows any.
+A stopwatch's reading `t` starts at `0` and ticks up by 1 each step until it reaches `3`. The claim: `t` eventually visits every value 1, 2, 3 along the way.
 
 ```
-(*--algorithm Packet {
-  variables encrypted = FALSE, signed = FALSE, acked = FALSE;
+(*--algorithm Stopwatch {
+  variables t = 0;
 
   define {
-    PassesChecks ==
-      /\ <>(encrypted = TRUE)
-      /\ <>(signed = TRUE)
-      /\ <>(acked = TRUE)
+    HitsAll == <>(t = 1) /\ <>(t = 2) /\ <>(t = 3)
   }
 
-  fair process (handler = "Handler") {
-    work:
-      while (~encrypted \/ ~signed \/ ~acked) {
-        either {
-          encrypted := TRUE;
-        } or {
-          signed := TRUE;
-        } or {
-          acked := TRUE;
-        };
-      }
+  fair process (clock = "Clock") {
+    tick:
+      t := 1;
+    tick2:
+      t := 2;
+    tick3:
+      t := 3;
   }
 }*)
 ```
 
-The `either/or/or` lets TLC explore every order. The conjunction of three `<>` properties holds: with weak fairness on the loop, every flag must eventually flip.
+The conjunction of three `<>` properties holds: each label fires once and `t` passes through 1, 2, and 3 in turn. No branching, no choice — just three `<>` claims, one per value the property cares about.
 
-Now suppose you wrote `<>(encrypted = TRUE)` ALONE as the property and removed the other two. TLC would still pass — but only because that one specific flag becomes true. The packet could in principle never get signed and the property wouldn't notice. That's why each eventuality needs its own `<>`.
+Now suppose you wrote `<>(t = 1)` ALONE as the property and removed the other two. TLC would still pass — but only because that one specific value is reached. The stopwatch could in principle never reach `t = 2` or `t = 3` and the property wouldn't notice. That's why each eventuality needs its own `<>`.
 
 Compare two near-identical lines:
 

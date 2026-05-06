@@ -19,41 +19,35 @@ fair process (waiter = "Waiter") { ... }   \* a second process with a totally di
 
 The `=` in `(chef = "Chef")` declares a SINGLE process whose identity is `"Chef"`. PlusCal lets you put as many of these blocks as you want side by side, in addition to (or instead of) process-set blocks.
 
-**Worked example — a mailroom.**
+**Worked example — a stage.**
 
-A `Postman` walks routes and delivers letters. A `Sorter` works the back room sorting incoming mail. They share a `pendingPile` integer.
+A `Spotlight` flips a stage light on. An `Actor` walks onstage. Two distinct processes, two completely different bodies.
 
 ```
-(*--algorithm Mailroom {
-  variables pendingPile = 0, delivered = 0;
+(*--algorithm Stage {
+  variables lightOn = FALSE, onstage = FALSE;
 
-  fair process (postman = "Postman") {
-    routeLoop:
-      while (delivered < 3) {
-        deliver:
-          delivered := delivered + 1;
-      }
+  fair process (spotlight = "Spotlight") {
+    flip:
+      lightOn := TRUE;
   }
 
-  fair process (sorter = "Sorter") {
-    sortLoop:
-      while (pendingPile < 5) {
-        sort:
-          pendingPile := pendingPile + 1;
-      }
+  fair process (actor = "Actor") {
+    enter:
+      onstage := TRUE;
   }
 }*)
 ```
 
-Two distinct processes. The postman knows nothing about sorting; the sorter knows nothing about delivery. TLC interleaves them: postman might take three steps, then sorter five, or they alternate, or any combination. Both eventually finish.
-
-Note that EVERY label inside an asymmetric process — `routeLoop`, `deliver`, `sortLoop`, `sort` — is still an interleaving point, just like in T04. The processes are different, but the rules are the same.
+That's the whole demo. Each process has ONE label and ONE assignment; the bodies are textually different. TLC interleaves the two: spotlight first, actor first, or either order. The point isn't the work each does — it's the SHAPE: two `fair process` blocks declared with `=` (not `\in`), each with its own body.
 
 The pieces:
 
-- `fair process (NAME = "ID") { ... }` declares one named process.
-- Each process has its own labels and its own loop, independent of any other.
-- Variables can be shared (`pendingPile`, `delivered`) or each process can keep its own state — your call.
+- `fair process (NAME = "ID") { ... }` declares one named process. The `=` makes `NAME` a single-process identity (contrast with `\in` for a process set).
+- Each process has its own labels and its own body. Add as many `fair process` blocks as you want, side by side.
+- Variables can be shared or per-process — your call.
+
+Every label in an asymmetric process is still an interleaving point, just like in T04. The processes are different, but the rules are the same.
 
 ## Setup
 
