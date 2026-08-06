@@ -50,14 +50,36 @@ Retrieve with `mempalace_get_drawer`, or search `tla_puzzles/decisions`. There a
 `provenance:mined` drawers** filed 2026-08-05 covering v1's design rationale as recovered from
 git history — search by the `provenance:mined` tag.
 
-**Open beads:**
+**The implementation epic is `tla-kl5`** — 22 children, filed 2026-08-06 from this document.
+Every child cites the section it implements, so the mapping is one hop in either direction:
 
-- `tla-qpm` (P1) — this plan
-- `tla-syn` (P2) — `verify-puzzle.sh` should branch on `$?`, not stdout greps; must pin `-workers 1`
+| Stage | § | Beads |
+|---|---|---|
+| 1 — refinement chapter | §4 | `tla-kl5.1` author · `tla-kl5.2` verify |
+| 2 — harness | §5 | `tla-kl5.3` TLAiBench survey · `.4` verdict channel · `.5` grading · `.6` vacuity · `.7` refinement · `.8` seeded bugs · `.9` comment gate · `.10` screens |
+| 3 — pilot | §6 | `tla-kl5.11` |
+| 4 — tutor directory | §6b | `tla-kl5.12` isolation · `.13` tutor · `.14` grader · `.15` logging |
+| 5 — batched production | §7 | `tla-kl5.16` batch 1 · `.17` holdout set |
+| 6 — assembly | §8 | `tla-kl5.18` coverage audit · `.19` ordering · `.20` J01–J07 rewrite · `.21` final screen |
+| — | §11 | `tla-kl5.22` open research gaps |
+
+Ready to start now, in parallel: `tla-kl5.1`, `.3`, `.4`, `.9`, `.10`. Everything else is
+dependency-blocked in the order above. Stages 5 and 6 are filed **coarse on purpose** — batch 1's
+telemetry is expected to reshape them (§7.1), so they get decomposed when the pilot lands.
+
+**Other open beads:**
+
+- `tla-qpm` (P1) — this plan; `tla-kl5` is the epic it called for
+- `tla-syn` (P2) — `verify-puzzle.sh` should branch on `$?`, not stdout greps; must pin `-workers 1`.
+  Now depends on `tla-kl5.4`, which owns the canonical rc table — rewire, don't reimplement
 - `tla-5b4` (P2) — CI downloads `tla2tools.jar` from `latest`; pin the release
 - `tla-xme` (P2) — wire the 8 scaffolded `scripts/` stubs, or mark N/A
 - `tla-nov` (P3) — review the 35 mined drawers; 6 have bodies truncated at a backslash
 - `tla-9ic` (P3) — `bd preflight` runs Go-hardcoded checks here; misleading
+- `tla-9h1` (P2, epic) — the pangram-set notation-fluency appendix. **Not superseded by v2**, but
+  it carries an unresolved tension with §3.1 (a "pangram" is coverage-as-generator by definition).
+  Its own notes say to settle that consciously before resuming, rather than letting the two
+  documents quietly disagree.
 
 **The goal, in Frank's words:** *"get good at thinking in TLA, the way it's meant to be used"* —
 ending able to write entirely in TLA+.
@@ -176,6 +198,26 @@ domain-learning cost each one carries.
 Approved, with Frank's framing as the thesis: **refinement is what makes it reasonable to model
 large and complex systems** (§4.1). Remaining open detail is only length, and whether it ships
 as one document or as chapter + worked example.
+
+### 2.4 Repo layout — SETTLED 2026-08-06
+
+`harness/` and `chapter/` are **new top-level directories in this repo**. v1's `puzzles/` and
+`scripts/` are left untouched — v2 replaces the content, not the infrastructure, and there is no
+reason to disturb a working docs build to make room for it.
+
+```
+tla-puzzles/
+├── harness/     verdict.sh · grade.sh · Gate.tla · vacuity.sh · refinement.sh
+│                seeded-bugs.sh · comment-gate.sh · screen.sh · PUZZLE-SCREEN.md
+├── chapter/     refinement.md + snippets/
+├── pilot/       the one Stage-3 problem
+├── puzzles/     v1, untouched
+└── scripts/     build/docs, untouched
+```
+
+`tla-practice/` and `tla-answers/` are **separate repos** created at Stage 4 (§6b.2). That
+separation is a leak defense, not a preference — see §6b.1 — so it does not get "simplified" into
+two directories of this repo later.
 
 ---
 
