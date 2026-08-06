@@ -71,3 +71,16 @@ _Add a brief overview of your project architecture_
 ## Conventions & Patterns
 
 _Add your project-specific conventions here_
+
+## Loom's shipped conventions
+
+Loom's project-agnostic working conventions — dispatch defaults, the
+`Files:` / `RED:` / `AUTOFAN-EXCLUDE:` bead lines, the splitting
+heuristic, drawer-first capture, gate-don't-advise, and the
+explore → design → build ladder — live in
+[`.claude/rules/loom-conventions.md`](.claude/rules/loom-conventions.md).
+
+**Do not edit that file.** Loom owns it and overwrites it in place on
+every resync (`/audit-project --apply-drift`). Project-specific rules
+belong here in `CLAUDE.md` and in your own `.claude/rules/*.md`, which
+loom never touches.
