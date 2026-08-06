@@ -1,0 +1,14 @@
+# Fixture code-search counts for the self-test's stubbed `gh`.
+# Format: <search-term> <count>       (term as it appears before "language:tla")
+#
+# Knapsack's 56 is the real number recorded in V2-PLAN.md §2.2; the rest are
+# chosen to pin the >3 boundary.
+RestaurantSeating 7
+SkiPassBlackout 1
+ThreeHitName 3
+FourHitName 4
+NovelSoundingName 0
+Knapsack 56
+BinPacking 2
+Allocation 12
+AssignmentProblem 5

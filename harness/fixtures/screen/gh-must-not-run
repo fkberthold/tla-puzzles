@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stub. screen.sh --offline must never invoke `gh`. If this runs, it
+# prints a marker the self-test asserts is ABSENT and exits nonzero.
+printf 'gh-must-not-run WAS CALLED with: %s\n' "$*" >&2
+exit 99

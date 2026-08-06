@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#
+# Test stub for `gh`. Answers exactly the two calls screen.sh makes, from
+# fixture data, so the self-test exercises the online paths with no network.
+#
+#   gh api -X GET search/code -f q='<Term> language:tla' --jq '.total_count'
+#   gh api repos/tlaplus/Examples/contents/README.md --jq '.content'
+#
+# Counts come from $SCREEN_STUB_COUNTS (see gh-stub-counts.txt).
+
+set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COUNTS="${SCREEN_STUB_COUNTS:-$HERE/gh-stub-counts.txt}"
+
+args="$*"
+
+# --- README fetch -----------------------------------------------------------
+if printf '%s' "$args" | grep -q 'contents/README.md'; then
+	base64 -w0 <"$HERE/examples-README.md" 2>/dev/null || base64 <"$HERE/examples-README.md"
+	printf '\n'
+	exit 0
+fi
+
+# --- code search ------------------------------------------------------------
+q=""
+for a in "$@"; do
+	case "$a" in
+	q=*) q="${a#q=}" ;;
+	esac
+done
+
+if [ -z "$q" ]; then
+	printf 'gh-stub: unrecognized invocation: %s\n' "$args" >&2
+	exit 2
+fi
+
+term="${q% language:tla}"
+
+count="$(awk -v t="$term" '$1 == t { print $2; exit }' "$COUNTS")"
+printf '%s\n' "${count:-0}"
