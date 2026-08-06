@@ -32,11 +32,27 @@ jobs:
           java-version: '21'
 
       - name: Install tla2tools (provides pcal + tlc)
+        env:
+          # PINNED DELIBERATELY — do not replace with `latest` (bead tla-5b4).
+          #
+          # `releases/latest/download/` resolved to v1.7.4, published 2024-08-05,
+          # because v1.8.0 is flagged as a PRERELEASE and GitHub's `latest`
+          # skips prereleases. CI was therefore running a 2024 build while every
+          # empirical constant in V2-PLAN.md §5 — the exit-code table, the
+          # frozen-mapping probe, the total==0 dead-action predicate — was
+          # verified against a 2026 build. Nothing failed loudly; the versions
+          # simply had never matched.
+          #
+          # v1.8.0 "The Clarke release" is the canonical version for this
+          # project as of 2026-08-06. The tla-kl5.3 survey independently
+          # re-ran the rc table and the frozen-mapping probe on this build
+          # (TLC2 2026.07.31.184830) and both held.
+          TLA_RELEASE: v1.8.0
         run: |
           set -euo pipefail
           mkdir -p "$HOME/lib" "$HOME/bin"
           curl -fsSL -o "$HOME/lib/tla2tools.jar" \
-            https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar
+            "https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
           cat > "$HOME/bin/tlc" <<EOF
           #!/usr/bin/env bash
           exec java -XX:+UseParallelGC -cp "$HOME/lib/tla2tools.jar" tlc2.TLC "\$@"
@@ -49,9 +65,18 @@ jobs:
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
       - name: Smoke check tools
+        env:
+          # The version v1.8.0 actually reports. Asserted, not logged: a pin
+          # nobody checks is how CI drifted onto a 2024 build unnoticed in the
+          # first place. If this fails, do not just bump the string — the §5
+          # constants were verified against a specific build, so a version
+          # change means re-verifying them (bead tla-5b4).
+          EXPECT_TLC: '2026.07.31'
         run: |
+          set -euo pipefail
           which tlc pcal
-          tlc -h 2>&1 | head -3 || true
+          tlc 2>&1 | head -1
+          tlc 2>&1 | head -1 | grep -qF "TLC2 Version ${EXPECT_TLC}"
           pcal -help 2>&1 | head -3 || true
 
       - name: Regression tests for verify-puzzle.sh
