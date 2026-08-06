@@ -302,10 +302,13 @@ Refinement is the technique that makes modeling large and complex systems tracta
 formalism to be admired. Supporting evidence to use in the chapter:
 
 - Lamport & Merz, *Prophecy Made Simple* §5: rather than adding prophecy variables to Afek's
-  snapshot algorithm, they **invent an intermediate spec** so one link needs only history
-  variables and the other needs prophecy on a *simple* spec. Their justification: *"the
-  specification of what an algorithm is supposed to do is generally much simpler than the
-  algorithm."*
+  snapshot algorithm, they **invent an intermediate spec** (`NewLinearSnap`) so one link needs
+  only history variables and the other needs prophecy on a *simple* spec. The justification —
+  *"the specification of what an algorithm is supposed to do is generally much simpler than the
+  algorithm"* — is from ***Auxiliary Variables in TLA+* §6.4**, not PMS §5.
+  **Attribution corrected 2026-08-06** (`tla-kl5.1`, quoting from a clone): this section
+  originally put that sentence in PMS §5. PMS §5 has the intermediate-spec move; it does not have
+  that sentence. Cite both separately.
 - `ewd998/EWD998ChanID.cfg` chains three instance hops (`EWD998Chan!EWD998!TD!Live`) —
   transitivity as practiced.
 - Properties proved of the abstract transfer to the concrete for free.
@@ -322,7 +325,13 @@ substitution, `EXTENDS` vs `INSTANCE`, and partial parameterization. Core ch.12 
 stuttering via `[A]_v`, `ENABLED`, and formal `WF`/`SF` — but **to reading depth, as a bridge
 from PlusCal**.
 
-**The gap is narrow:** the *idea* that a concrete spec implements an abstract one, refinement
+**The gap is narrower than it looks, but WIDER than this section originally claimed.** Corrected
+2026-08-06 (`tla-kl5.1`, reading a clone of learntla-v2): `topics/modules.rst` teaches
+`INSTANCE ... WITH` for **CONSTANTS ONLY** — *variable* substitution is an unwritten `.. todo::`
+stub at lines 137-149. Since a refinement mapping *is* variable substitution, the chapter has to
+close that gap itself rather than assuming core covered it.
+
+The remaining gap: the *idea* that a concrete spec implements an abstract one, refinement
 mappings, and the `Spec => Abstract!Spec` check. `learntla topics/refinement` is a **stub** —
 the topics index says outright *"Most of the topics haven't been written yet."*
 
@@ -367,8 +376,11 @@ the topics index says outright *"Most of the topics haven't been written yet."*
   End(seq)` — there is no `seq` in scope; it must be `End(queue)`.
 - **Do not quote from WebFetch.** WebFetch runs a summarizer and returns paraphrase, not bytes.
   Quote from a clone or from your own runs.
-- Use the `Refines == Abstract!Spec` + `PROPERTY Refines` idiom — 18 of 20 real configs in
-  `tlaplus/Examples` do.
+- Use the `Refines == Abstract!Spec` + `PROPERTY Refines` idiom. **Measured 2026-08-06, correcting
+  the "18 of 20" this section used to assert:** 20 modules in `tlaplus/Examples` define
+  `Name == Instance!Spec`; **17** have a config naming it under `PROPERTY`/`PROPERTIES`; one
+  (`btree`) has it commented out; two are `byzpaxos` proof modules whose configs check invariants
+  only. So 17 of 20, and the three exceptions are explainable rather than counterexamples.
 - Teach `MCIProp == [][V!Next]_<<vars>>` as the debugging rung below full refinement, and
   `Inv!N` for conjunct localization (verified: TLC reports `Error: Invariant Inv2 is violated.`).
 - Teach the `ALIAS` trick for reading refinement failures.
@@ -532,6 +544,16 @@ INVARIANT HarnessProbe
 **The guard goes on run A alone.** Attached to run B it fires on run B's *missing* `PROPERTY` and
 masks the frozen verdict — measured: a frozen mapping returns rc=10 instead of rc=0, so the
 trapdoor silently reopens.
+
+**THE PROBE IS A FLOOR, NOT A CEILING — a second trapdoor, found 2026-08-06 (`tla-kl5.1`).**
+The probe catches a mapping that never moves. It does **not** catch a mapping that moves and
+means nothing. Verified: a mapping to `[i \in 1..num |-> 1]` — a sequence of ones that grows with
+the concrete state's length and ignores its content entirely — gives **probe rc=12** ("moves,
+not frozen") and **refinement rc=0** ("passes"). Both green; the mapping tracks nothing.
+
+So "frozen" and "meaningful" are different questions, and we have a mechanical answer only to the
+first. There is no cheap mechanical test for the second — which is the strongest argument for the
+grading consequence below. Do not let a green probe be read as a certified mapping.
 
 **The harness owns the probe; never the submitted module's.** A submission carrying its own
 `Probe` operator can define one that always varies. Verified: pointing the harness at the
