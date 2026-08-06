@@ -11,8 +11,16 @@ Read §1 and §3 before doing anything. §3 is a list of decisions that are *clo
 them wastes a session and usually re-derives a worse answer, because most were settled against
 measured evidence rather than intuition.
 
-Stages 1–5 are ordered by dependency. Within each stage, the work is decomposed into units
-that are meant to be **dispatched to subagents**, with copy-pasteable briefs in §9.
+Six stages, ordered by dependency: **Stage 1** refinement chapter (§4) · **Stage 2** harness
+(§5) · **Stage 3** pilot problem (§6) · **Stage 4** tutor directory (§6b) · **Stage 5** batched
+production (§7) · **Stage 6** assembly (§8). Stages 1 and 2 are parallel; everything else is
+sequential. Within each stage the work decomposes into units meant to be **dispatched to
+subagents**, with copy-pasteable briefs in §9.
+
+**The production model is BATCHED, not one big fan-out.** Frank works through each batch
+before the next is authored, so real learner telemetry informs the remaining problems. See
+§7 — this is a change from the original plan and it reshapes everything downstream of the
+pilot.
 
 **Why subagents specifically.** Isolation is load-bearing, not just parallelism:
 
@@ -56,37 +64,91 @@ ending able to write entirely in TLA+.
 
 ---
 
-## 2. Decisions still owed by Frank
+## 2. Decisions — settled and outstanding
 
-These block Stage 3 and beyond. Do not guess them.
+### 2.1 The taxonomy — SETTLED 2026-08-06
 
-### 2.1 The modeling-situation taxonomy (BLOCKING)
+The problem set is a **two-axis grid**. Conflating the axes into a flat list is what produces a
+tier structure by accident, which is what v1 did.
 
-The problem set is organized around **modeling situations**, not language constructs (see §3).
-The taxonomy — which situations, how many problems each, what order — is not yet chosen.
+**Axis 1 — the situation** (what kind of system is being modeled):
 
-Inputs available: the five confirmed-unserved gaps (§7.1), the four surviving problem veins,
-and the interleaving constraint (§3.4). Frank has approved ~40–60 problems with ~25 in pure
-TLA+, back-loaded.
+| # | Situation | Note |
+|---|---|---|
+| S1 | Shared mutable state under concurrency | most classic instances are burned; re-skin structurally, not nominally |
+| S2 | Resource allocation and contention | |
+| S3 | Unreliable messaging — loss, duplication, reordering **as a modeling choice** | |
+| S4 | **Time, expiry, and leases** | gap #6 — unserved anywhere |
+| S5 | Lifecycle state machines — orders, claims, approvals | |
+| S6 | Data consistency under concurrent mutation — lost update, versioning | |
+| S7 | **Version coexistence and migration** | gap #7 — entire public corpus is one blog post |
+| S8 | **Human-process and UI flows** | gap #13 |
+| S9 | Business rules with **no concurrency at all** | pure invariants over entities |
 
-Bring him a proposed taxonomy of 8–12 situations with a problem-count allocation. Do not start
-authoring problems before this is settled — the taxonomy determines the interleave order, and
-retrofitting an interleave onto an already-written set is how you end up with blocked practice
-wearing an interleaved label.
+**Axis 2 — the task shape** (what the learner is asked to do):
 
-### 2.2 Domain list
+| | Shape | Note |
+|---|---|---|
+| A | Model from prose | the backbone |
+| B | Write the **property**, given a spec | ships with one satisfying + one violating trace |
+| C | **Critique — "what does this spec fail to say?"** | gap #11; format exists nowhere in TLA+ pedagogy |
+| D | Diagnose — given a failing trace, or a **vacuous pass** | nothing public covers vacuous passes |
+| E | Most-permissive correct design | no memorizable canonical answer |
+| F | Small-scale refinement | everything extant is Paxos-sized |
 
-Problems must sit in domains Frank does **not** already have a schema for (§3.7). He works in
+**A problem is a CELL.** Three consequences, all load-bearing:
+
+- **Interleaving falls out mechanically.** Walk the grid **diagonally**; you then never get two
+  consecutive problems sharing either a situation or a task shape. This turns §3.4 from a
+  judgment call into a checkable ordering rule.
+- **Coverage-as-audit becomes natural** — audit which *cells* are filled, not which constructs
+  are hit. This is what keeps §3.1 honest.
+- **Gap #1 (choosing the abstraction) stops being a corner case.** If statements follow §3.2 and
+  §3.3, every column-A problem *is* an abstraction-choice problem. The highest-value gap is
+  served by the bulk of the set rather than by a few specials.
+
+**Allocation, 60 total:** A 18 (two per situation) · B 8 · C 8 · D 8 · E 6 · F 8 · **+4 reserved
+for the closing coverage audit (§8)**.
+
+**Pure TLA+ ~25:** column F is inherently pure TLA+ (8); back-load ~17 more across A/B/D in the
+final third, concentrated rather than sprinkled.
+
+### 2.2 Domain list — OUTSTANDING, needs Frank's strikes
+
+Problems must sit in domains Frank does **not** already have a schema for (§3.10). He works in
 industrial IoT / facility management (CrossnoKaye Atlas: facility status, control state,
-alarms, sensors, refrigeration). **Those domains are disqualified for judgment problems.**
+alarms, sensors, refrigeration, HVAC, energy). **Those domains are disqualified for judgment
+problems.**
 
-Propose 15–20 candidate domains and get them checked against "do you already think in this?"
+Candidates proposed 2026-08-06, chosen for crisp rules and low likelihood of a stored
+decomposition. **Frank has not yet struck from this list — get that before authoring.**
 
-### 2.3 Refinement chapter scope
+library hold queues · restaurant seating with party sizes and table combining · clinical trial
+cohort assignment · tournament brackets with byes and forfeits · airline standby and upgrade
+lists · museum exhibit loans with conservation limits · ski pass validation with blackout dates
+· shared-custody calendars with holiday overrides · community garden plot allocation · blood
+bank inventory with type compatibility and expiry · apprenticeship hour logging with
+per-category minimums · seed library checkout with return obligations · change-ringing method
+rules · orchestra audition rounds · beekeeping hive splits · escape room booking with reset
+time · municipal permit review with parallel department sign-offs
 
-Frank has approved it and supplied the framing: **refinement is what makes it reasonable to
-model large and complex systems.** That framing is the chapter's thesis (§4). Remaining
-question is length and whether it ships as one document or as chapter + worked example.
+**Two caveats recorded at proposal time:**
+
+1. **Several collide by mechanism, not name**, and none have been pre-screened. Ferry loading is
+   bin-packing; conference scheduling is graph colouring. Every candidate must pass the §5.7
+   mechanism screen before it ships.
+2. **Situations S7 and S8 break the domain-novelty rule and cannot be fixed.** Migration and UI
+   flows are inherently software-shaped, and Frank knows software. The mitigation is that the
+   *situation* is still novel to him — he has presumably never formally specified a schema
+   migration or a double-submit — but those ~10 problems are weaker instruments for measuring
+   modeling ability even though they remain valuable to work through. Do not site the
+   **holdout set** (§7.2) in S7 or S8.
+
+### 2.3 Refinement chapter scope — SETTLED 2026-08-06
+
+Approved, with Frank's framing as the thesis: **refinement is what makes it reasonable to model
+large and complex systems** (§4.1). Remaining open detail is only length, and whether it ships
+as one document or as chapter + worked example.
 
 ---
 
@@ -134,6 +196,29 @@ Multiple *positive* instances had no measured effect; *negative* instances did.
 **3.10 Problems go in domains the learner does not already know.**
 A designer holding a matching prior schema behaves ~3× more top-down and you learn nothing
 about their modeling ability.
+
+---
+
+## 3b. The learner path — reading and practice order
+
+Settled with Frank 2026-08-06. His instinct was to read learntla core up to but not including
+the TLA+ chapter, then work PlusCal problems. That is right, with one correction.
+
+1. **Read learntla core ch.1–11.** Do not skip ch.10 (More Operators) or ch.11 (Action
+   Properties) — action properties are load-bearing for the grading harness.
+2. **Work batch 1** (§7.2) — PlusCal.
+3. **Read core ch.12 (TLA+) and ch.13 (Modules), then the refinement chapter (§4).**
+4. **Everything after that interleaves both notations**, with the pure-TLA+-only problems
+   concentrated in the final third.
+
+**Why not all PlusCal first, then all TLA+.** That is blocked practice at the coarsest grain
+(§3.4), and it means hitting ~25 consecutive problems in an unfamiliar notation months after
+last reading the material.
+
+**Why stopping before ch.12 is right, though.** learntla teaches pure TLA+ *to reading depth,
+as a bridge from PlusCal* — the chapter is framed as "here's what the translator produced and
+what it means." Arriving there with real PlusCal fluency means it lands as *"oh, that's what my
+code becomes,"* which is the best available entry point. Reading it cold would waste it.
 
 ---
 
@@ -409,18 +494,118 @@ A first-try clean solve from every solver should always flag for human review.
 
 ---
 
-## 7. Stage 4 — Fan-out
+## 6b. Stage 4 — The tutor directory
 
-**Dependency:** pilot complete and pipeline debugged.
+**Dependency:** harness (§5) + pilot (§6).
+**Dispatch:** ~3 agents. Briefs §9.10–§9.11.
 
-Run the §6 pipeline per problem. Problems are independent; use a pipeline (no barriers) rather
-than staged batches, so a problem in step 7 does not wait on a problem in step 2.
+Frank works the problems through a live Claude configuration rather than reading static text —
+it presents the problem, answers questions, and drives review. He raised the leakage risk
+himself, and it is the whole design constraint.
 
-Budget roughly 8 agent invocations per problem (1 author + 1 verifier + 1 statement + 1 leakage
-+ 3 solvers + 1 commenter). At 40 problems that is ~320 invocations. This is the intended
-scale — Frank has explicitly allocated the tokens.
+### 6b.1 Instruction isolation is NOT isolation
 
-### 7.1 Where the problems come from
+**Telling an agent not to look at the answers does not work.** An agent debugging a harness
+failure will `cat` the reference, and it will be right to. Isolation must be structural.
+
+| Leak vector | Fix |
+|---|---|
+| Filesystem — reference readable from the working tree | two directories, not one |
+| Context bleed — one agent both answers questions and holds the reference | two agents, different filesystem views |
+| Git history — reference ever committed alongside | separate repo, never co-committed |
+| Grader output — "you're missing conjunct 3 of the reference" leaks the decomposition | return a verdict object, never a diff |
+| **Training data — the model already knows burned problems** | **unclosable.** This is the operational reason §5.7 screening is not optional |
+
+### 6b.2 Architecture
+
+- **`tla-practice/`** — statements, Frank's attempts, the harness *client*, its own `.claude/`.
+  This is where Frank and the tutor live.
+- **`tla-answers/`** — references, seeded variants, expected state counts, post-hoc commentary.
+  **Separate repo, not co-located**, denied in `tla-practice/.claude/settings.json`.
+- **Tutor agent** runs in `tla-practice/` and genuinely does not possess the answer. Not "is
+  instructed not to peek" — does not have it.
+- **Grader** is a separate invocation with read access to `tla-answers/`. Takes
+  `(learner spec, problem id)`; returns a **verdict object**: pass/fail per obligation plus
+  **error location** (§3.7). Never reference conjuncts, never a diff.
+
+### 6b.3 The tutor is a LANGUAGE tutor, not a solution tutor
+
+It knows TLA+/PlusCal and learntla content. It does not know this problem's answer. It
+**declines "is my approach right?"** — that is the thing being measured.
+
+This constraint is not merely safe, it is the evidence-backed intervention. Perkins & Martin
+(ERIC ED295618): content-free strategic prompts alone resolved **32% (conservative) to 55%
+(liberal)** of impasses; specific hints added only ~15–17% on top — *"if the knowledge is there
+to be marshalled, strategic questions usually suffice."* An agent that structurally cannot give
+the answer is forced into the intervention that works best anyway.
+
+Diagnostic bonus: when a strategic prompt unlocks Frank, the knowledge was **inert, not
+absent** — a different problem with a different remedy, and one you can only distinguish by
+prompting before hinting.
+
+### 6b.4 Log everything — this is a research artifact
+
+There is **no published record of TLA+ learner errors anywhere** — no misconception catalogue,
+no corpus, no controlled study (see the pedagogy findings in
+`drawer_tla_puzzles_decisions_be8cc4b03efbea276e444a12` and its companions). A tutor directory
+that logs attempts, impasses, what unlocked each one, and how many edits preceded a pass
+produces exactly the artifact the field lacks, for a language where nobody has it.
+
+Log per attempt: timestamp, problem id, spec submitted, verdict object, questions asked, prompts
+given, and whether the unlock was strategic or specific.
+
+---
+
+## 7. Stage 5 — Batched production
+
+**Dependency:** pilot (§6) + tutor directory (§6b).
+
+### 7.0 Batched, NOT one big fan-out — deliberate reversal
+
+An earlier draft of this plan said to pipeline all problems with no barriers, for throughput.
+**That was superseded 2026-08-06 and should not be "fixed" back.** The batching is
+*pedagogical*, not operational: Frank works each batch before the next is authored, so real
+learner telemetry informs the remaining problems. Batch 1's data then shapes ~48 problems
+instead of 0.
+
+Within a batch, still pipeline freely — the barrier is between batches, at the point where a
+human works them.
+
+**Batch 1 = the DIAGONAL of the §2.1 grid**, ~12 problems. Walking the diagonal maximizes
+situation × task-shape variety in the smallest possible set, so the first telemetry is broad
+rather than deep. Batch 1 is PlusCal (§3b step 2).
+
+Budget ~8 agent invocations per problem (1 author + 1 verifier + 1 statement + 1 leakage +
+3 solvers + 1 commenter). At 60 problems that is ~480 invocations. This is the intended scale.
+
+### 7.1 Progressive refinement policy
+
+Problems get revised between batches. The line that keeps this honest:
+
+> **Refine problems that are BROKEN, not problems that are HARD.**
+
+- **Fix:** ambiguous statement, misfiring harness, a mechanism that turns out to be burned, a
+  problem whose blind-solve spread was wrong (§6).
+- **Leave alone:** frustrating but well-formed.
+
+Two reasons the line matters:
+
+1. Frank is simultaneously the subject and the instrument. You cannot measure progress with a
+   ruler you are bending.
+2. **78% of Kornell & Bjork's participants preferred the format that taught them worst.** His
+   in-the-moment sense that a problem is *bad* is an unreliable signal for difficulty — though
+   it is a **reliable** signal for ambiguity. Treat "this was confusing" as a bug report and
+   "this was hard" as a non-event.
+
+### 7.2 The holdout set
+
+Build ~5 problems early, **never tune them**, and reserve them for a **delayed transfer check
+on a different system**. This is the only honest measurement the research endorses — performance
+during practice is an unreliable index of learning.
+
+Do not site the holdout in S7 or S8 (§2.2 caveat 2).
+
+### 7.3 Where the problems come from
 
 Confirmed unserved across ~18 university courses plus the entire community corpus. The five
 **safest** — pedagogically central, publicly unserved, structurally recall-resistant:
@@ -442,7 +627,7 @@ refinement (everything extant is Paxos-sized); modeling from existing code; unde
 problems requiring elicitation. Partially served: failure/adversary modeling — but
 **retry/idempotency, exactly-once, and partition-and-heal have no exercise anywhere.**
 
-### 7.2 Format techniques worth using
+### 7.4 Format techniques worth using
 
 - **ENSEEIHT's split** — withhold practice solutions, publish fully-worked *exam* solutions.
   Calibration without spoiling the thing currently being attempted. This is also where the
@@ -454,7 +639,7 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
   with meta-analytic support (g=0.55), and requiring a prediction commitment *before* running
   TLC is the defense against grader-gaming.
 
-### 7.3 Calibration
+### 7.5 Calibration
 
 - Difficulty tracks **nesting depth, not size**. Nested quantifiers ~34% success vs ~53%
   unnested; anything temporal ~27%. Budget ~2× attempts for temporal problems.
@@ -463,7 +648,7 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 
 ---
 
-## 8. Stage 5 — Assembly
+## 8. Stage 6 — Assembly
 
 1. **Coverage audit** (not before this point). Enumerate learntla core constructs; find the
    uncovered ones; add 2–3 problems at most. Do not let this reshape the set.
@@ -625,6 +810,54 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 >
 > If the spec is PlusCal, remember the algorithm lives inside `(* --algorithm ... *)`; comments
 > you add there must not alter the generated TRANSLATION block.
+
+### 9.10 Tutor-directory builder
+
+> Build `tla-practice/` — a Claude working directory in which a learner solves TLA+ modeling
+> problems with an agent's help. Architecture spec is §6b of `V2-PLAN.md`; read it first.
+>
+> **The single hard requirement: the tutor must not be able to reach the reference solutions.**
+> Not "must be instructed not to" — must not be *able to*. References live in a separate,
+> non-co-located `tla-answers/` repo. Add a deny rule for it in
+> `tla-practice/.claude/settings.json`. Assume any agent debugging a harness failure will read
+> whatever it can reach, and design so that reaching it is impossible rather than forbidden.
+>
+> Build:
+> 1. A problem-presentation flow (statement, working area, submit).
+> 2. A **grader invocation** that runs OUTSIDE the tutor's filesystem view, takes
+>    `(learner spec, problem id)`, and returns a verdict object: pass/fail per obligation plus
+>    **error location**. It must never return reference conjuncts or a diff against the
+>    reference — that leaks the decomposition.
+> 3. An **attempt log** (§6b.4): timestamp, problem id, spec submitted, verdict, questions
+>    asked, prompts given, whether the unlock was strategic or specific.
+>
+> Do NOT give the tutor the answers "so it can help better." That is the entire failure mode.
+
+### 9.11 Tutor system prompt author
+
+> Write the system prompt for the tutor agent in `tla-practice/`.
+>
+> **Framing: it is a LANGUAGE tutor, not a solution tutor.** It knows TLA+/PlusCal and
+> learntla.com content. It does not know the current problem's answer and has no access to it.
+>
+> Behaviour:
+> - Answers questions about TLA+ and PlusCal language, semantics, tooling, and learntla content.
+> - **Declines "is my approach right?" / "is this the intended model?"** — that is the thing
+>   being measured, and answering it destroys the measurement.
+> - **Offers content-free strategic prompts BEFORE any specific hint.** Evidence: strategic
+>   prompts alone resolve 32–55% of impasses; specific hints add only ~15–17% on top. If a
+>   strategic prompt unlocks the learner, the knowledge was inert rather than absent — note that
+>   in the log, because it is a different diagnosis with a different remedy.
+> - When relaying a grader verdict, give **error location**, never prose explanation of what is
+>   wrong and never a prettified trace. The only RCT on this found location hints beat control
+>   (9.12 vs 5.67 tasks solved), counterexample hints statistically indistinguishable from no
+>   hint, and natural-language descriptions *below* control and the most demoralizing arm tested.
+> - Requires a **prediction commitment before running TLC** ("what do you expect to happen?"),
+>   and grades the prediction. This is the defense against grader-gaming — students otherwise
+>   "learn the grader, not the concepts."
+>
+> It should be warm but not reassuring-by-default. The learner will systematically prefer the
+> interaction style that teaches worst; do not optimize for their in-the-moment comfort.
 
 ---
 
