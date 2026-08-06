@@ -122,8 +122,9 @@ problems.**
 
 Frank's verdict on the 17 candidates: *"I don't think it would be safe to say I can think
 cleanly enough in any of them to model them. I'd call them all in."* So none are struck — but
-**"in play" is not "approved."** Every one must still pass the §5.7 mechanism screen, and
-several are expected to fail it (see the suspicion table below).
+**"in play" is not "approved."** Every one must still pass **both** screens — §5.7 (mechanism
+collision) and §5.7b (puzzle-versus-system) — and several are expected to fail one or the other
+(see the suspicion table below).
 
 library hold queues · restaurant seating with party sizes and table combining · clinical trial
 cohort assignment · tournament brackets with byes and forfeits · airline standby and upgrade
@@ -141,7 +142,7 @@ time · municipal permit review with parallel department sign-offs
 | restaurant seating with table combining | bin-packing / knapsack — 56 public `Knapsack` specs |
 | library hold queues · community garden plots · airline standby | the `Resource Allocator` spec in different dress |
 | orchestra audition rounds | tournament ranking — same mechanism as brackets, so at most one of the two survives |
-| change-ringing method rules | **category error, not a collision.** It is a permutation-search puzzle: state space handed to you, work is search. That is precisely the corpus category §7.3 says to avoid |
+| change-ringing method rules | **fails the §5.7b puzzle screen, not the §5.7 collision screen.** The rules (permutation, adjacent-swap only, no repeats, start and end on rounds) are the complete action set, stated in the domain's own terms before you write a line. Also does not scale: a full extent on 7 bells is 5,040 rows, on 8 it is 40,320, and explicit history puts a subset of rows in the state. **Rescuable** by the §5.7b agents-and-fallibility pattern (a band of ringers who mistime, refining the method) — but do not put that in batch one |
 | beekeeping hive splits | rules may be too biologically fuzzy to state crisply enough for §3.2 |
 
 **Three caveats:**
@@ -472,6 +473,65 @@ not the name**, against the `tlaplus/Examples` README table. "Warehouse robot co
 `MisraReachability` + mutual exclusion; "seat reservation" is the allocator; "leader failover"
 is Paxos. **Name novelty is not mechanism novelty.**
 
+### 5.7b Component: the puzzle screen
+
+A **second, independent** screen. §5.7 asks "has someone already solved this?" This one asks
+"is it even the right *kind* of thing?" A candidate can pass §5.7 cleanly and still be useless.
+
+> **The screen: if you hand the learner the legal moves, is there anything left to model?**
+> If no, it is a puzzle. Cut it, or add agents and failure until it isn't.
+
+**Puzzle and system are two different things you can write in TLA+, and they exercise different
+skills:**
+
+| | Puzzle | System |
+|---|---|---|
+| The legal moves | **given by the domain** | **the thing you have to decide** |
+| The question | "is the goal reachable?" | "is this design correct?" |
+| Who does the work | TLC searches | you model, TLC checks |
+| Where the difficulty lives | state-space size | abstraction choice |
+
+**Why this is not pedantry.** Every puzzle in `tlaplus/Examples` — Die Hard, Tower of Hanoi,
+N-Queens, missionaries and cannibals, the sliding block puzzle — is flagged **Beginner**. Not
+because they are small, but because the modeling was pre-done by whoever wrote the rules. And
+"puzzles where the state space is handed to you and the work is search" is the **first of the
+four categories** the corpus survey found the entire public corpus consists of. It is the
+category this project is defined against (§7.3).
+
+**Local representation choices do not rescue a puzzle.** A puzzle usually still offers real
+choices — for change-ringing: model bells→positions or positions→bells (inverse functions,
+and picking wrong makes half the constraints awkward), or track visited rows explicitly versus
+noticing that a repeated row *is* a repeated state so TLC's own deduplication enforces
+no-repeats for free. Those are genuine and interesting. But they are **local** — about
+transcribing a given action set tidily, not about deciding what the actions are. That is the
+difference between good taste and modeling judgment, and only the second is what we are
+teaching.
+
+**The rescue pattern: add agents and fallibility.** This converts search into specification.
+Change-ringing as a puzzle is "find a Hamiltonian path through the Cayley graph of Sₙ." Change-
+ringing as a system is:
+
+> Model a *band* — one ringer per bell, each with a reaction time, each able to mistime or lose
+> their place, plus a conductor who can call corrections. The method they are attempting is the
+> abstract spec. Does the band's actual behaviour refine it?
+
+Now the actions are not given: you decide what a ringer's step is, what "losing your place"
+means as state, and how much timing to model. It also lands naturally in **column F** — the
+method is the abstract spec, the band is the concrete one, and the refinement question is
+exactly "did they ring what they meant to ring."
+
+**The screen has teeth beyond change-ringing.** From the §2.2 candidates:
+
+- **Tournament brackets** — borderline. Advancement rules are given, but byes interacting with
+  forfeits create genuine state questions.
+- **Restaurant seating** — *fails* under one framing ("seat this party optimally" = bin-packing
+  puzzle) and *passes* under another ("model the host stand with walk-ins and reservations
+  arriving concurrently" = system). **The screen is what tells you which framing you wrote.**
+
+Apply it at statement time (§6 step 4) as well as at domain-selection time — the same domain
+can yield a puzzle or a system depending on how the statement is worded, so passing once does
+not immunize the domain.
+
 ### 5.8 Read before building
 
 `github.com/tlaplus/TLAiBench` (MIT) already checks specs against a gold reference via two-stage
@@ -796,6 +856,13 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 >   what it must expose — but not how their state is shaped.
 > - State a property to establish or refute. Never ask for an algorithm to be implemented.
 > - Target 20–40 minutes for someone who has read learntla.com core.
+>
+> **Then apply the §5.7b puzzle screen to your own statement before delivering:** if you have
+> handed the learner the complete set of legal moves, you have written a puzzle, and TLC will do
+> all the remaining work. The same domain yields a puzzle or a system depending purely on how
+> you word it — "seat this party optimally" is bin-packing; "model the host stand with walk-ins
+> and reservations arriving concurrently" is a system. If your statement fails the screen,
+> rewrite it with agents and fallibility until it passes, and say in your delivery that you did.
 >
 > Deliver the statement only.
 
