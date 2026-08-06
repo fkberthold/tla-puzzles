@@ -394,9 +394,17 @@ Replace stdout greps with exit codes throughout:
 | 11 | deadlock |
 | 12 | safety violation (`INVARIANT`) |
 | 13 | liveness / action-property violation (`PROPERTY`, incl. refinement) |
-| 150 | parse / semantic failure |
-| 151 | config failure |
-| 255 | file not found |
+| 150 | parse / semantic failure — **including a missing `.tla` module** |
+| 151 | config failure (*semantic*: the `.cfg` parsed but names something the spec lacks) |
+| 255 | TLC's generic unexpected-exception catch-all — a missing `.cfg`, a malformed `.cfg` |
+
+**Corrected 2026-08-06 while building `tla-kl5.4`.** The row for 255 previously read "file not
+found", which was wrong twice over. A missing **module** is 150, not 255 (`Fatal errors while
+parsing TLA+ spec in file NoSuchModule`); only a missing **config** reaches 255 — and so does a
+`.cfg` full of garbage tokens, via the same `ConfigFileException` path. So 255 is not about files
+at all. Name the verdict token for the catch-all, never for missing files: a token called
+`FILE_NOT_FOUND` would have the tutor tell a learner with a typo'd `.cfg` that their file is
+missing. Verified on TLC 2026.03.04.183147.
 
 Canonical invocation:
 
@@ -446,6 +454,26 @@ NonVacuous == TLCGet("distinct") >= 4
 ====
 ```
 
+- **The check that was never configured — a SECOND vacuity vector, found 2026-08-06.** A `.cfg`
+  keyword with no operand is not an error. Given `SPECIFICATION Spec` + a bare `INVARIANT` line,
+  TLC reports `Model checking completed. No error has been found.` at **rc=0**, having checked no
+  invariant whatsoever. **The gate above does not catch this**: the state space is perfectly
+  healthy (3 distinct states in the reproduction), so `TLCGet("distinct") >= N` passes. It is not
+  the state space that is empty — it is the *checking*.
+
+  The mechanical guard, verified on TLC 2026.03.04.183147 (rc=10 on the dangling keyword, rc=0 on
+  a real invariant):
+
+  ```tla
+  InvariantConfigured == TLCGet("spec").invariants # {}
+  ```
+
+  This generalizes. TLAiBench guards the same failure one field over — `impliedinits` /
+  `impliedactions` for "the `.cfg` never declared the refinement `PROPERTY`" (§5.4). Treat
+  **"the check was actually configured"** as a guard *family* over `TLCGet("spec")`, and run the
+  relevant member alongside `NonVacuous` on every problem. The two catch disjoint failures: an
+  empty state space, versus an empty obligation over a healthy one.
+
 - **Dead-action detection** via `-coverage 1`: the predicate is **`total == 0`, NEVER
   `distinct == 0`.** An action can fire and discover nothing new; PlusCal's generated
   `Terminating` shows `0:1` on *every* terminating spec (verified on the real
@@ -469,6 +497,31 @@ INVARIANT Probe        \* MappedExpr = <initial value>
 
 **A passing probe is a failing refinement check.** If TLC cannot violate `Probe`, the mapping
 is frozen and the refinement proved nothing.
+
+**The probe is vindicated, and the wording above is if anything too mild** (survey `tla-kl5.3`,
+2026-08-06). TLAiBench — the only public TLA+ benchmark that grades refinement — has this
+trapdoor wide open. A completely frozen mapping (`WITH big <- 0, small <- 0`) passes both its
+plain refinement check *and* its `Gold!Refinement` postcondition at rc=0, while our `INVARIANT
+Probe` cleanly separates frozen (rc=0 → fail) from correct (rc=12 → pass). Its `Gold!Stats`
+postcondition discriminates nothing about the mapping — it rejects correct and frozen mappings
+alike, on an unrelated diameter mismatch.
+
+**Steal TLAiBench's configuration guard, though** — it closes a hole we did not name. It catches
+a `.cfg` that never declared the refinement `PROPERTY` at all, which otherwise exits 0 silently:
+
+```tla
+\* Adapted from tlaplus/TLAiBench, gold/DieHardGold.tla (MIT, (c) 2025 TLA+ Foundation).
+RefinementConfigured ==
+    /\ TLCGet("spec").impliedinits   # {}
+    /\ TLCGet("spec").impliedactions # {}
+```
+
+Run it **alongside** the probe, never instead of it — they catch disjoint failures. No `PROPERTY`
+in the cfg: guard fires, probe silent. `PROPERTY` present but mapping frozen: guard silent, probe
+fires. This is the §5.3 "check was actually configured" family applied to refinement.
+
+**Do not copy TLAiBench's config ownership.** It lets the subject under evaluation author its own
+`.cfg` — which is *how* the trapdoor stays open. Our `.cfg` stays harness-owned.
 
 **Grading consequence of Lamport's caveat (§4.4 item 9): WE supply the mapping and grade only
 the concrete spec.** Where the mapping is itself the exercise, grade by probe + inspection,
@@ -574,7 +627,19 @@ Apply it at statement time (§6 step 4) as well as at domain-selection time — 
 can yield a puzzle or a system depending on how the statement is worded, so passing once does
 not immunize the domain.
 
-### 5.8 Read before building
+### 5.8 Read before building — **DONE 2026-08-06** (`tla-kl5.3`)
+
+> Survey complete. Findings in `drawer_tla_puzzles_decisions_6251f5ad5930c77a531e9917`. Headlines:
+> steal the `impliedinits`/`impliedactions` **configuration guard** (§5.4); keep our `>= N`
+> threshold over their exact-equality fingerprint; steal **nothing** of the grading semantics —
+> refinement-against-gold is one-sided and structurally blind to over-constraint. TLAiBench has
+> the frozen-mapping trapdoor **wide open**, which vindicates §5.4's probe. And its `Gold!Stats`
+> originally demanded the submission's state space equal the reference's *numerically*, then was
+> relaxed in the field — third-party corroboration of §3.5 from the benchmark's own author.
+> Do **not** copy its config ownership: it lets the subject under evaluation author its own
+> `.cfg`, which is how the trapdoor stays open.
+
+The original note, kept for context:
 
 `github.com/tlaplus/TLAiBench` (MIT) already checks specs against a gold reference via two-stage
 refinement plus `-postcondition Gold!Refinement` and **`Gold!Stats`** — that Stats postcondition
@@ -906,6 +971,14 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 > and reservations arriving concurrently" is a system. If your statement fails the screen,
 > rewrite it with agents and fallibility until it passes, and say in your delivery that you did.
 >
+> **Run the screens as the tools, not from memory of this brief.** The rubric is
+> `harness/PUZZLE-SCREEN.md` — an 8-question checklist where Q1 is the screen and Q2–Q8 exist to
+> catch a wrong Q1; work it in order and record your answers. Then run
+> `./harness/screen.sh --name '<SystemName>'` for the §5.7 mechanism-collision check and paste
+> its verdict. A `CLEAR` from `screen.sh` is **not** a clean bill when it reports no mechanism
+> derived — that means its synonym table did not recognize your phrasing, so name the mechanism
+> yourself before trusting it.
+>
 > Deliver the statement only.
 
 ### 9.7 Leakage checker (step 5)
@@ -920,6 +993,12 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 > nearly automatic.
 >
 > Report flagged sentences with the reference element each one leaks. Do not rewrite.
+>
+> **Then run `harness/PUZZLE-SCREEN.md` against the statement independently of its author.** The
+> author already screened their own work and is attached to it; you are the second, adversarial
+> pass. A statement can leak nothing and still be a puzzle — those are different defects, and
+> §5.7b explicitly says passing the screen once does not immunize a domain, because the wording
+> is what decides it. Report a screen verdict alongside your leakage findings.
 
 ### 9.8 Blind solver (step 6 — dispatch THREE, independently)
 
