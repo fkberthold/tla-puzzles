@@ -454,6 +454,19 @@ NonVacuous == TLCGet("distinct") >= 4
 ====
 ```
 
+- **`FALSE` has two routes and only one works.** The CLI form above is correct — `tlc -inv FALSE`
+  gives rc=12 on a healthy spec. But `INVARIANT FALSE` written into a `.cfg` is rejected outright
+  at rc=151, `The invariant of <M> is equal to FALSE`: TLC constant-folds it before the search
+  starts. That matters for §5.2, which generates judge modules and so cannot use CLI injection.
+  Its workaround is the pattern to copy: assert `Observe # Observe`, which is state-dependent so
+  TLC cannot fold it, **and which fails loudly if the learner never defined the observation
+  operator at all** — one check covering two failures.
+
+- **An undeclared `CONSTANT` in a `.cfg` is completely silent** — rc=0, no warning, even without
+  `-nowarning`. Compare: an `INVARIANT` or `PROPERTY` naming an unknown operator is a hard 151.
+  Same family as the dangling keyword below; the harness must supply and verify constants itself
+  rather than trusting a `.cfg` to fail when they are missing.
+
 - **The check that was never configured — a SECOND vacuity vector, found 2026-08-06.** A `.cfg`
   keyword with no operand is not an error. Given `SPECIFICATION Spec` + a bare `INVARIANT` line,
   TLC reports `Model checking completed. No error has been found.` at **rc=0**, having checked no
@@ -489,11 +502,43 @@ fails with a misleading message about `A`.
 **The probe (mandatory on every refinement problem).** Name the mapped expression, assert as an
 ordinary invariant that it never leaves its initial value, and require TLC to **violate** it:
 
+**This takes TWO TLC RUNS, not one. Corrected 2026-08-06 while building `tla-kl5.7`.** The
+config below is how this section originally drew it — all three lines together — and it **cannot
+certify a refinement**:
+
 ```
+\* BROKEN — kept only to name the mistake.
 SPECIFICATION Spec
 PROPERTY  Refines
 INVARIANT Probe        \* MappedExpr = <initial value>
 ```
+
+Measured against a *correct* refinement on TLC 2026.03.04.183147: **rc=12, 4 states generated, 4
+distinct** — against a full reachable space of **7**. The invariant violation stops the search, so
+the temporal property was never evaluated over the three states never generated. A combined run
+reports only that the probe fired. Run the two channels separately:
+
+```
+\* run A — does it refine?          expects rc=0
+SPECIFICATION Spec
+PROPERTY  Refines
+\* plus -postCondition "Gate!RefinementConfigured"
+
+\* run B — is the mapping live?     expects rc=12
+SPECIFICATION Spec
+INVARIANT HarnessProbe
+```
+
+**The guard goes on run A alone.** Attached to run B it fires on run B's *missing* `PROPERTY` and
+masks the frozen verdict — measured: a frozen mapping returns rc=10 instead of rc=0, so the
+trapdoor silently reopens.
+
+**The harness owns the probe; never the submitted module's.** A submission carrying its own
+`Probe` operator can define one that always varies. Verified: pointing the harness at the
+module's `Probe` instead of its own flips a forged frozen mapping to a pass. The default that
+needs no per-problem data is `<instance>!Init` — the abstract's `Init` *after substitution*,
+which cannot be forged and which turns the "the abstract's `vars` tuple is substituted too" trap
+into the mechanism.
 
 **A passing probe is a failing refinement check.** If TLC cannot violate `Probe`, the mapping
 is frozen and the refinement proved nothing.
