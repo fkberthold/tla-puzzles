@@ -113,15 +113,17 @@ for the closing coverage audit (§8)**.
 **Pure TLA+ ~25:** column F is inherently pure TLA+ (8); back-load ~17 more across A/B/D in the
 final third, concentrated rather than sprinkled.
 
-### 2.2 Domain list — OUTSTANDING, needs Frank's strikes
+### 2.2 Domain list — SETTLED 2026-08-06 (all 17 in play, none approved)
 
 Problems must sit in domains Frank does **not** already have a schema for (§3.10). He works in
 industrial IoT / facility management (CrossnoKaye Atlas: facility status, control state,
 alarms, sensors, refrigeration, HVAC, energy). **Those domains are disqualified for judgment
 problems.**
 
-Candidates proposed 2026-08-06, chosen for crisp rules and low likelihood of a stored
-decomposition. **Frank has not yet struck from this list — get that before authoring.**
+Frank's verdict on the 17 candidates: *"I don't think it would be safe to say I can think
+cleanly enough in any of them to model them. I'd call them all in."* So none are struck — but
+**"in play" is not "approved."** Every one must still pass the §5.7 mechanism screen, and
+several are expected to fail it (see the suspicion table below).
 
 library hold queues · restaurant seating with party sizes and table combining · clinical trial
 cohort assignment · tournament brackets with byes and forfeits · airline standby and upgrade
@@ -132,17 +134,41 @@ per-category minimums · seed library checkout with return obligations · change
 rules · orchestra audition rounds · beekeeping hive splits · escape room booking with reset
 time · municipal permit review with parallel department sign-offs
 
-**Two caveats recorded at proposal time:**
+**Pre-screen suspicions — record these so §5.7 is not run blind:**
 
-1. **Several collide by mechanism, not name**, and none have been pre-screened. Ferry loading is
-   bin-packing; conference scheduling is graph colouring. Every candidate must pass the §5.7
-   mechanism screen before it ships.
-2. **Situations S7 and S8 break the domain-novelty rule and cannot be fixed.** Migration and UI
+| Domain | Suspected problem |
+|---|---|
+| restaurant seating with table combining | bin-packing / knapsack — 56 public `Knapsack` specs |
+| library hold queues · community garden plots · airline standby | the `Resource Allocator` spec in different dress |
+| orchestra audition rounds | tournament ranking — same mechanism as brackets, so at most one of the two survives |
+| change-ringing method rules | **category error, not a collision.** It is a permutation-search puzzle: state space handed to you, work is search. That is precisely the corpus category §7.3 says to avoid |
+| beekeeping hive splits | rules may be too biologically fuzzy to state crisply enough for §3.2 |
+
+**Three caveats:**
+
+1. **Unfamiliarity is the design goal, not a handicap.** The statement *gives* the domain rules;
+   what it withholds is the representation. Frank not knowing blood-bank compatibility costs
+   nothing — that is the point of §3.10.
+2. **But unfamiliar domains raise the bar on statements, and create a confound.** Frank cannot
+   repair an ambiguity from experience, so the system description must be genuinely
+   self-contained. And difficulty can migrate from *modeling* to *understanding the rules*
+   without being visible from outside: a blind-solve round where all three fail reads as
+   "underspecified" (§6), and you would go rewrite a statement that was fine.
+   **Therefore the tutor log (§6b.4) MUST distinguish a domain impasse from a modeling impasse.**
+   This is load-bearing for §7.1 — domain-opacity is *broken* and gets fixed; modeling
+   difficulty is *hard* and gets left alone. Without the distinction the refinement policy
+   cannot be applied.
+3. **Situations S7 and S8 break the domain-novelty rule and cannot be fixed.** Migration and UI
    flows are inherently software-shaped, and Frank knows software. The mitigation is that the
    *situation* is still novel to him — he has presumably never formally specified a schema
    migration or a double-submit — but those ~10 problems are weaker instruments for measuring
    modeling ability even though they remain valuable to work through. Do not site the
    **holdout set** (§7.2) in S7 or S8.
+
+**Reuse across cells is a feature.** 17 domains over 60 problems means each recurs ~3–4 times.
+Same domain under a different situation or task shape is exactly the "criss-crossing the
+conceptual landscape" the ill-structured-domain literature recommends, and it amortizes whatever
+domain-learning cost each one carries.
 
 ### 2.3 Refinement chapter scope — SETTLED 2026-08-06
 
@@ -553,6 +579,17 @@ produces exactly the artifact the field lacks, for a language where nobody has i
 
 Log per attempt: timestamp, problem id, spec submitted, verdict object, questions asked, prompts
 given, and whether the unlock was strategic or specific.
+
+**Also log the impasse KIND — this is load-bearing, not nice-to-have.** Every problem sits in a
+domain Frank does not know (§2.2), so an impasse can be either:
+
+- **domain** — "I don't understand the rules of the system" → the statement is **broken**; fix it
+- **modeling** — "I understand the system, I don't know how to represent it" → the problem is
+  **hard**; leave it alone
+
+These look identical from outside, and §7.1's refinement policy cannot be applied without the
+distinction. The tutor should ask directly when an impasse is reached — "is it the rules of the
+system that are unclear, or how to model them?" — and record the answer. Do not infer it.
 
 ---
 
