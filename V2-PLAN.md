@@ -392,8 +392,21 @@ the topics index says outright *"Most of the topics haven't been written yet."*
 **Dependency:** none. Parallel with Stage 1.
 **Dispatch:** ~5 agents, one per component. Components are independent. Briefs in §9.3.
 
-Everything below was **empirically verified** on TLC 2026.03.04 / tla2tools 1.8.0 and
-Apalache 0.57.0. Do not re-derive; do re-verify if you change TLC versions.
+Everything below was **empirically verified** on the TLC 2026.03.04.183147 nightly and
+Apalache 0.57.0, then **re-verified unchanged** on tla2tools v1.8.0 (TLC 2026.07.31.184830)
+on 2026-08-07 — 10 harness suites, 292 assertions, all green, and not one constant moved
+(bead `tla-wl7`).
+
+**The two runs together say more than either alone.** A number measured once can be an
+artifact of one build; a number two independent builds four months apart agree on is a
+property of TLC. Every constant below now carries that second reading, so treat it as
+corroborated rather than merely recorded. Do not re-derive. Corroboration is evidence and
+not a guarantee, so still re-verify anything you depend on if you move to a third version.
+
+The pairing this preamble used to carry — "TLC 2026.03.04 / tla2tools 1.8.0" — was
+self-contradictory and is recorded here so nobody reconstructs it: 2026.03.04.183147 is an
+untagged nightly at rev 52c0195, and the v1.8.0 release reports 2026.07.31.184830. Name the
+build string and the release together only when they actually match.
 
 ### 5.1 Component: verdict channel
 
@@ -416,7 +429,7 @@ parsing TLA+ spec in file NoSuchModule`); only a missing **config** reaches 255 
 `.cfg` full of garbage tokens, via the same `ConfigFileException` path. So 255 is not about files
 at all. Name the verdict token for the catch-all, never for missing files: a token called
 `FILE_NOT_FOUND` would have the tutor tell a learner with a typo'd `.cfg` that their file is
-missing. Verified on TLC 2026.03.04.183147.
+missing. Verified on TLC 2026.03.04.183147, re-verified on v1.8.0 (2026.07.31.184830).
 
 Canonical invocation:
 
@@ -430,7 +443,8 @@ tlc -workers 1 -deadlock -noGenerateSpecTE -nowarning \
 Wrap in `timeout`; treat rc=124 as its own verdict. **`-workers 1` is mandatory** —
 counterexamples are nondeterministic above one worker (five runs at `-workers 8` gave three
 different traces). State *counts* are stable and safe to publish (measured identical across
-workers 1/4/8, three fingerprint polynomials, and TLC 2.15 → 2026.03.04).
+workers 1/4/8, three fingerprint polynomials, and TLC 2.15 → 2026.03.04, with the counts this
+plan's harness asserts unchanged again on 2026.07.31).
 
 ### 5.2 Component: grading engine
 
@@ -486,8 +500,8 @@ NonVacuous == TLCGet("distinct") >= 4
   healthy (3 distinct states in the reproduction), so `TLCGet("distinct") >= N` passes. It is not
   the state space that is empty — it is the *checking*.
 
-  The mechanical guard, verified on TLC 2026.03.04.183147 (rc=10 on the dangling keyword, rc=0 on
-  a real invariant):
+  The mechanical guard, verified on TLC 2026.03.04.183147 and re-verified on v1.8.0
+  (2026.07.31.184830) — rc=10 on the dangling keyword, rc=0 on a real invariant, on both builds:
 
   ```tla
   InvariantConfigured == TLCGet("spec").invariants # {}
@@ -525,10 +539,11 @@ PROPERTY  Refines
 INVARIANT Probe        \* MappedExpr = <initial value>
 ```
 
-Measured against a *correct* refinement on TLC 2026.03.04.183147: **rc=12, 4 states generated, 4
-distinct** — against a full reachable space of **7**. The invariant violation stops the search, so
-the temporal property was never evaluated over the three states never generated. A combined run
-reports only that the probe fired. Run the two channels separately:
+Measured against a *correct* refinement on TLC 2026.03.04.183147, and re-measured identically on
+v1.8.0 (2026.07.31.184830): **rc=12, 4 states generated, 4 distinct** — against a full reachable
+space of **7**. The invariant violation stops the search, so the temporal property was never
+evaluated over the three states never generated. A combined run reports only that the probe
+fired. Run the two channels separately:
 
 ```
 \* run A — does it refine?          expects rc=0
@@ -984,9 +999,10 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 > `drawer_tla_puzzles_decisions_be8cc4b03efbea276e444a12` §<n> — retrieve it with
 > `mempalace_get_drawer` before starting.
 >
-> Every behavioural claim in that drawer was empirically verified on TLC 2026.03.04 /
-> tla2tools 1.8.0. Re-verify anything you depend on if you are running a different version.
-> Write tests that assert the exit codes and counts, not stdout text.
+> Every behavioural claim in that drawer was empirically verified on the TLC 2026.03.04.183147
+> nightly and re-verified unchanged on tla2tools v1.8.0 (TLC 2026.07.31.184830) — two builds
+> four months apart, same numbers. Re-verify anything you depend on if you are running a third
+> version. Write tests that assert the exit codes and counts, not stdout text.
 >
 > Read `github.com/tlaplus/TLAiBench` first and reuse what fits.
 

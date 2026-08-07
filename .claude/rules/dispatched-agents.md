@@ -34,9 +34,11 @@ every step runnable under the harness.
 cat .claude/project-constitution.md
 ```
 
-Information, not action. It tells you this project's runtime is `bash` and that
-`canonical_commands` is **deliberately empty** — see the hazard below before you
-reach for a test command.
+Information, not action. It tells you this project's runtime is `bash` and it
+names the canonical commands. Those verbs were filled in on 2026-08-07 (bead
+`tla-xme`) after a long stretch of being empty on purpose — read the section
+below before you reach for one, because three of them behave in ways that will
+otherwise read as a regression you caused.
 
 **Step 1 — repo identity.**
 
@@ -91,11 +93,17 @@ worker in a parallel wave that claims or closes will collide with its siblings.
 tlc
 ```
 
-Must report `TLC2 Version 2026.03.04.183147`. Every empirical constant in
-`V2-PLAN.md` §5 — the exit-code table, the frozen-mapping probe, the
-`total == 0` dead-action predicate — was verified against exactly this build. A
-different version means the constants are hypotheses again; say so rather than
-assuming they carried.
+Must report `TLC2 Version 2026.07.31.184830` — tla2tools **v1.8.0** "The Clarke
+release", this project's canonical build since 2026-08-07 (bead `tla-wl7`; CI is
+pinned to the same tag).
+
+Every empirical constant in `V2-PLAN.md` §5 — the exit-code table, the
+frozen-mapping probe, the `total == 0` dead-action predicate — was first verified
+against the 2026.03.04.183147 nightly and then **re-verified unchanged** against
+this build. Two independent builds four months apart is why the constants are
+worth trusting at all; it is not a licence to run a third. Any other version
+string means the constants are hypotheses again on *that* build; say so rather
+than assuming they carried.
 
 ---
 
@@ -122,22 +130,50 @@ It dies with the worktree.
 
 ---
 
-## Hazard — `canonical_commands` is deliberately empty
+## The canonical commands — and the three that still bite
 
-`scripts/` holds eight loom-scaffolded stubs whose bodies are all `exit 2`. The
-constitution records `canonical_commands` as empty **on purpose**, because filling
-in `scripts/test` while it fails by design would assert a canonical command that
-lies. See bead `tla-xme`.
+**Run `bash scripts/test`.** It is this project's real gate: 10 suites, 292
+assertions, ~120 s, all runnable offline. `--fast` trims to a ~4 s tier.
 
-**Consequence for you: do NOT run `scripts/test`.** It will fail and tell you
-nothing. Run the specific suite your bead owns. The v2 harness suites that exist
-today, all runnable offline:
+This section used to say the opposite — "`canonical_commands` is deliberately
+empty, do NOT run `scripts/test`" — and the history is worth keeping rather than
+deleting, because it is the reason the verbs appeared so late. `scripts/` held
+eight loom-scaffolded stubs whose bodies were all `exit 2`, and the constitution
+recorded every verb as empty **on purpose**: naming `scripts/test` while it
+failed by design would have asserted a canonical command that lies. Bead
+`tla-xme` wired all eight on 2026-08-07, and only then did the verbs get filled
+in. An empty verb here has always meant "no honest command exists yet", never
+"nobody got round to it".
 
-```
-./harness/test-verdict.sh
-./harness/comment-gate.sh --self-test
-./harness/screen.sh --selftest
-```
+| verb | command | notes |
+|---|---|---|
+| `test` | `bash scripts/test` | 10 suites, 292 assertions, ~120 s |
+| `lint` | `bash scripts/lint` | shellcheck over `scripts/` + `harness/` — **RED today** |
+| `dev` | `bash scripts/server` | regenerates `docs/`, then `mkdocs serve` |
+| `deploy` | `bash scripts/deploy` | **refuses without `--yes`** |
+| `build` | *(still empty)* | no standalone entry point; the real build is `scripts/cibuild` phase 4 |
+| `gen` | *(still empty)* | `scripts/gen-curriculum-map.sh` is not worktree-safe — see below |
+
+Three of those will read as your bug if you do not know them going in.
+
+**`test` defaults to the FULL run, not the fast tier, and that is deliberate.**
+The fast tier is 108 of the 292 assertions — 37%. Recording it as the canonical
+command would be the same class of lie the empty verb was avoiding. Use `--fast`
+for tight iteration; gate on the default.
+
+**`lint` is RED right now, and it is not yours to fix.** 3 `SC1087` errors in
+`harness/refinement.sh` plus warnings and infos elsewhere, all pre-existing and
+tracked as bead `tla-5r7`. `tla-xme` wired the runner and deliberately left the
+findings. A red gate is not a lying command — it is a true report. Do **not**
+quiet it by lowering severity or adding blanket `--exclude` flags.
+
+**`gen` is empty because `scripts/gen-curriculum-map.sh` leaks out of your
+worktree.** Line 5 is a hardcoded `cd /home/frank/repos/tla-puzzles`, so running
+it from a worktree writes `CURRICULUM_MAP.md` into the **main checkout** — the
+exact leak the footprint check at the bottom of this file exists to catch, except
+that this one happens inside the script rather than in your Edit calls, so
+`git diff --stat main HEAD` will not show it. Do not run it from a dispatch. The
+absolute `cd` has to go before this verb can be filled.
 
 ---
 

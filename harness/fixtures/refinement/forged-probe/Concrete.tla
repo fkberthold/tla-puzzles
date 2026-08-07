@@ -44,8 +44,9 @@ Refines == A!Spec
 (*                                                                          *)
 (* A blunter forgery, `Probe == FALSE`, would NOT work: TLC rejects a       *)
 (* constant-false invariant outright with "The invariant of Probe is equal  *)
-(* to FALSE" at rc=151. Measured on TLC 2026.03.04.183147. The forgery has  *)
-(* to be state-dependent to get through, and this one is.                   *)
+(* to FALSE" at rc=151. Measured on the TLC 2026.03.04.183147 nightly and   *)
+(* again on tla2tools v1.8.0 (TLC 2026.07.31.184830). The forgery has to be *)
+(* state-dependent to get through, and this one is.                         *)
 (***************************************************************************)
 Probe == ticks = 0
 

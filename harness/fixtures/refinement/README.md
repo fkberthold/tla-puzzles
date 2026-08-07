@@ -5,7 +5,9 @@ Purpose-built inputs for `harness/refinement.sh` (V2-PLAN.md §5.4, bead
 well as the verdict token, so a renumbered table breaks the build instead of
 quietly relabelling itself.
 
-Measured 2026-08-06 against TLC 2026.03.04.183147 / tla2tools 1.8.0.
+Measured 2026-08-06 against the TLC 2026.03.04.183147 nightly, and re-measured unchanged
+on 2026-08-07 against tla2tools v1.8.0 (TLC 2026.07.31.184830). Every row below holds on
+both builds.
 
 ```
 harness/fixtures/refinement/selftest.sh

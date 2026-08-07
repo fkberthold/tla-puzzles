@@ -83,12 +83,14 @@
 #       PROPERTY  Refines
 #       INVARIANT Probe
 #
-#   That config cannot certify a refinement. Measured on TLC 2026.03.04.183147
-#   against fixtures/refinement/correct: rc=12, "4 states generated, 4 distinct
-#   states found", search depth 4 — against a reachable space of 7 states. The
-#   invariant violation stops the run, so the temporal property was never
-#   evaluated over the three states that were never generated. A combined run
-#   reports that the probe fired and nothing else.
+#   That config cannot certify a refinement. Measured on the TLC
+#   2026.03.04.183147 nightly against fixtures/refinement/correct, and
+#   re-measured identically on tla2tools v1.8.0 (TLC 2026.07.31.184830):
+#   rc=12, "4 states generated, 4 distinct states found", search depth 4 —
+#   against a reachable space of 7 states. The invariant violation stops the
+#   run, so the temporal property was never evaluated over the three states
+#   that were never generated. A combined run reports that the probe fired and
+#   nothing else.
 #
 #   So the two channels are two TLC invocations:
 #
@@ -138,7 +140,8 @@
 #   module's. Where the mapping IS the exercise, run without them — but then
 #   grade by probe plus inspection, NEVER by TLC's verdict alone.
 #
-# OTHER TRAPS HANDLED HERE, ALL VERIFIED ON TLC 2026.03.04.183147
+# OTHER TRAPS HANDLED HERE, ALL VERIFIED ON THE TLC 2026.03.04.183147 NIGHTLY
+# AND RE-VERIFIED ON tla2tools v1.8.0 (TLC 2026.07.31.184830)
 #
 #   - The .cfg accepts ONLY BARE IDENTIFIERS. `PROPERTY A!Spec` exits 151 with
 #     "Error: The property A specified in the configuration file is not defined

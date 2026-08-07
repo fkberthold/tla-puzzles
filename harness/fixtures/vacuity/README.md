@@ -4,7 +4,9 @@ One purpose-built spec per vacuity vector in `V2-PLAN.md` §5.3, so that
 `harness/vacuity.sh` is pinned by execution rather than by belief.
 `harness/test-vacuity.sh` runs every row.
 
-Measured 2026-08-06 against TLC 2026.03.04.183147 / tla2tools 1.8.0.
+Measured 2026-08-06 against the TLC 2026.03.04.183147 nightly, and re-measured unchanged
+on 2026-08-07 against tla2tools v1.8.0 (TLC 2026.07.31.184830). Every row below holds on
+both builds.
 
 ## The three vectors are not variants of each other
 

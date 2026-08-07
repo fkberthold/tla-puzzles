@@ -39,8 +39,10 @@
 #
 #   They are not variants of each other. They have disjoint causes and need
 #   disjoint remediation, so each gets its own token and its own message. All
-#   three numbers below were measured on TLC 2026.03.04.183147 against the
-#   fixtures in fixtures/vacuity/; test-vacuity.sh re-measures them.
+#   three numbers below were measured on the TLC 2026.03.04.183147 nightly
+#   against the fixtures in fixtures/vacuity/, and re-measured unchanged on
+#   tla2tools v1.8.0 (TLC 2026.07.31.184830); test-vacuity.sh re-measures them
+#   on whatever build you are running.
 #
 #   1. EMPTY STATE SPACE. An unsatisfiable Init yields "No error has been
 #      found", "0 states generated", and rc=0. DEADLOCK CHECKING DOES NOT
