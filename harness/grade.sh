@@ -461,9 +461,10 @@ vac_ext="$M_SUB_SPEC"
 # `PSI => FALSE` is written `Observe # Observe`, not `FALSE`, and the detour
 # is forced. A literal `INVARIANT` of constant FALSE is refused by TLC before
 # the search starts -- "The invariant of GRADE_OBLIGATION is equal to FALSE",
-# rc=151, measured on TLC 2026.03.04.183147 -- so the vacuity probe would come
-# back as a config error on every submission alike, vacuous or not. Phrasing
-# it over `Observe` makes it state-dependent, which TLC cannot constant-fold,
+# rc=151, measured on TLC 2026.03.04.183147 and again on tla2tools v1.8.0
+# (TLC 2026.07.31.184830) -- so the vacuity probe would come back as a config
+# error on every submission alike, vacuous or not. Phrasing it over `Observe`
+# makes it state-dependent, which TLC cannot constant-fold,
 # and it is false in every state that exists. So it is violated exactly when a
 # state exists, which is the question being asked. It also fails loudly if the
 # submission never defined the observation operator the statement named.

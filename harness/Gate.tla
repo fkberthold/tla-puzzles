@@ -13,7 +13,8 @@
 (* fails outright with "Parsing or semantic analysis failed". Do not        *)
 (* inline it later.                                                         *)
 (*                                                                          *)
-(* Every operator below was verified on TLC 2026.03.04.183147.              *)
+(* Every operator below was verified on TLC 2026.03.04.183147 and           *)
+(* re-verified unchanged on tla2tools v1.8.0 (TLC 2026.07.31.184830).       *)
 (***************************************************************************)
 EXTENDS Naturals, TLC
 

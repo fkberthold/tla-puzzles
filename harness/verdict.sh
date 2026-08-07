@@ -36,11 +36,14 @@
 #           nonzero exit here is a VERDICT, not a crash; capture it with
 #           `out=$(verdict.sh ...) || rc=$?` or disable errexit around it.
 #
-# VERDICT TABLE — every row measured on TLC 2026.03.04 / tla2tools 1.8.0 on
-# 2026-08-06 by driving a purpose-built fixture in fixtures/verdict/. Do not
-# edit a row without re-running harness/test-verdict.sh; the test asserts the
-# raw numbers, not just the tokens, precisely so that a renumbered TLC breaks
-# the build instead of quietly relabelling itself.
+# VERDICT TABLE — every row measured on the TLC 2026.03.04.183147 nightly on
+# 2026-08-06 by driving a purpose-built fixture in fixtures/verdict/, then
+# re-measured unchanged on tla2tools v1.8.0 (TLC 2026.07.31.184830) on
+# 2026-08-07. Two builds four months apart return the same numbers, so this
+# table is a fact about TLC rather than about one jar. Do not edit a row
+# without re-running harness/test-verdict.sh; the test asserts the raw
+# numbers, not just the tokens, precisely so that a renumbered TLC breaks the
+# build instead of quietly relabelling itself.
 #
 #     0  OK                  no error found
 #    10  ASSUMPTION_FAILED   ASSUME false, or -postCondition false
@@ -82,7 +85,8 @@
 #   The distinction that matters, because it is what tempts people to "fix"
 #   this: state COUNTS are stable. They were measured identical across workers
 #   1/4/8, across three fingerprint polynomials, and across TLC 2.15 through
-#   2026.03.04. So the constraint bites ONLY where a trace is the output --
+#   2026.03.04 -- and the counts this suite asserts were unchanged again on
+#   2026.07.31. So the constraint bites ONLY where a trace is the output --
 #   and since this script cannot know which caller wants a trace, it pins the
 #   worker count for all of them. If you are here to raise it for speed:
 #   raising it is correct only for a caller that consumes counts and never
