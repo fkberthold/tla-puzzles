@@ -39,20 +39,50 @@ language:
 forbidden: []
 
 canonical_commands:
-  # DELIBERATELY EMPTY (2026-08-05). /loom-adopt P2 scaffolded the 8
-  # canonical script/ stubs into scripts/, but every one is still the
-  # unedited `exit 2` "not implemented" body. Recording `scripts/test`
-  # here would assert a canonical command that fails by design — the
-  # exact lying-config failure the audit exists to prevent. Fill each
-  # verb in as its script is actually wired (bead tla-xme).
+  # FILLED IN 2026-08-07 by bead tla-xme. All 8 loom script/ stubs are now
+  # either wired or explicitly N/A — none is still an `exit 2` stub — so the
+  # verbs below name commands that do what they say.
+  #
+  # What each verb points at, and what is still deliberately empty:
+  #
+  #   build  — EMPTY. There is no scripts/build entry point; the real build
+  #            (scripts/build-docs.sh + mkdocs build) is phase 4 of
+  #            scripts/cibuild, which is where CI should call it. Promote it
+  #            to a verb only if a standalone scripts/build ever exists.
+  #   gen    — EMPTY. The only generator is scripts/gen-curriculum-map.sh, and
+  #            it is NOT safe to record: it hardcodes
+  #            `cd /home/frank/repos/tla-puzzles` at line 5, so running it from
+  #            a worktree writes CURRICULUM_MAP.md into the MAIN checkout. That
+  #            absolute cd has to go before this verb can be filled.
+  #   test   — all ten suites, 292 harness assertions, ~121 s. `--fast` trims
+  #            it to a 4 s tier, but the canonical command is the whole gate;
+  #            recording the fast tier here would name a command that runs 37%
+  #            of the assertions, which is the same class of lie as naming one
+  #            that fails by design.
+  #   lint   — shellcheck over scripts/ + harness/, at default severity.
+  #            HONEST STATUS: this gate is RED today (3 SC1087 errors in
+  #            harness/refinement.sh plus warnings and infos elsewhere). tla-xme
+  #            wired the runner and deliberately left the findings for separate
+  #            work. A red gate is not a lying command — it is a true report.
+  #   dev    — scripts/server: regenerates docs/ then `mkdocs serve`.
+  #   deploy — was "mkdocs gh-deploy" (migrated from the legacy workflow.json
+  #            .deploy hint, loom-oxs.4 item-23). Now points at scripts/deploy,
+  #            which runs build-docs.sh first — bare gh-deploy would publish a
+  #            stale docs/ tree. NOTE: scripts/deploy REFUSES without --yes, on
+  #            purpose. Routine deploys happen by pushing to main
+  #            (.github/workflows/pages.yml); gh-deploy force-pushes a gh-pages
+  #            branch that this repo does not currently serve from.
+  #
+  # Not represented here because loom's schema has no verb for them:
+  # scripts/bootstrap (prerequisite check), scripts/setup (pinned TLA+
+  # toolchain + docs deps), scripts/update (delegates to setup),
+  # scripts/cibuild (the CI superset).
   build: ""
-  test: ""
-  lint: ""
+  test: "bash scripts/test"
+  lint: "bash scripts/lint"
   gen: ""
-  dev: ""
-  # Migrated from the legacy workflow.json `.deploy` hint (loom-oxs.4
-  # item-23 migration). This is a real, working command today.
-  deploy: "mkdocs gh-deploy"
+  dev: "bash scripts/server"
+  deploy: "bash scripts/deploy"
 
 # Not auto-detected — a human authors these.
 bypass_patterns: []
@@ -88,9 +118,10 @@ bypass_patterns: []
 >   validation tooling change it?
 > - **Language**: `bash` primary. Does that hold if the v2 validation
 >   harness (blind-solver + TLC gate) is written in Python?
-> - **Canonical commands**: currently empty by choice — see the
->   front-matter comment. Name which script each verb should point at
->   once wired.
+> - **Canonical commands**: filled in 2026-08-07 (bead tla-xme) — no
+>   longer empty. `build` and `gen` are still blank for the reasons the
+>   front-matter comment records. Worth saying in prose why `test` is
+>   the whole ~2-minute gate rather than the 4-second fast tier.
 
 ## Forbidden patterns
 

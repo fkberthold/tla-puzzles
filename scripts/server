@@ -1,22 +1,55 @@
 #!/usr/bin/env bash
-# script/server — start the application locally for development.
+# scripts/server — serve the curriculum site locally with live reload.
 #
-# Canonical "script/ convention" stub (loom). `server` launches the app in
-# development mode (hot-reload where available). A library or pure-CLI
-# project legitimately has no server — that is the textbook case for the
-# N/A downgrade described at the bottom.
+# Usage:
+#   bash scripts/server                  # build docs/, then mkdocs serve
+#   bash scripts/server --no-build       # skip the docs/ regeneration
+#   bash scripts/server -- <mkdocs args> # e.g. -- -a 0.0.0.0:9000
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     go run ./cmd/server        # or: ./scripts/server from a Goa service
-#   # Python: python -m flask run        # or: uvicorn app:app --reload
-#   # Node:   npm run dev                # or: npm start
-#   # bash:   true                       # bash projects rarely have a server — see N/A note
+# ---------------------------------------------------------------------------
+# THE BUILD STEP IS NOT OPTIONAL ON A COLD CHECKOUT
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable (common
-# for a library — there is nothing to serve), replace the body with:
-#   echo "server: N/A for this project type" && exit 0
+# docs/ is GENERATED and gitignored — scripts/build-docs.sh assembles it from
+# module-docs/ and the per-puzzle READMEs. `mkdocs serve` alone on a fresh
+# clone serves an empty or stale tree, so this script regenerates first.
+#
+# Corollary, and the reason it is worth stating here: never hand-edit docs/.
+# The next build destroys the edit. Edit module-docs/ instead.
+#
+# mkdocs serve watches docs/, so a source change under module-docs/ needs
+# another scripts/build-docs.sh run to show up. --no-build exists for the
+# common case where you are iterating on mkdocs.yml or on the theme.
+# ---------------------------------------------------------------------------
+
 set -euo pipefail
 
-echo "script/server: not implemented for this project — wire up the dev server or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+
+DO_BUILD=1
+declare -a MKDOCS_ARGS=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --no-build) DO_BUILD=0 ;;
+    --) shift; MKDOCS_ARGS=("$@"); break ;;
+    -h|--help) sed -n '2,8p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    *) MKDOCS_ARGS+=("$1") ;;
+  esac
+  shift
+done
+
+if ! command -v mkdocs >/dev/null 2>&1; then
+  echo "scripts/server: mkdocs is not installed." >&2
+  echo "  Run: bash scripts/setup   (pip install -r docs-requirements.txt)" >&2
+  exit 2
+fi
+
+if [ "$DO_BUILD" = "1" ]; then
+  echo "scripts/server: regenerating docs/ from module-docs/ + puzzle READMEs"
+  bash scripts/build-docs.sh
+  echo
+fi
+
+echo "scripts/server: mkdocs serve ${MKDOCS_ARGS[*]}"
+exec mkdocs serve "${MKDOCS_ARGS[@]}"

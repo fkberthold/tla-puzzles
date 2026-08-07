@@ -1,21 +1,155 @@
 #!/usr/bin/env bash
-# script/cibuild — the full CI build + test pass.
+# scripts/cibuild — the full CI pass: everything scripts/test runs, plus the
+# checks that only make sense with a full checkout and a pinned toolchain.
 #
-# Canonical "script/ convention" stub (loom). `cibuild` is what the CI
-# server runs: the superset of `script/test` plus integration tests, the
-# release build, coverage, and any slow checks excluded from the fast local
-# `test`. It is the single entry point CI invokes.
+# Usage:
+#   bash scripts/cibuild                 # all five phases
+#   bash scripts/cibuild --skip-corpus   # skip the puzzles/ sweep (the slow one)
+#   bash scripts/cibuild --skip-docs     # skip the mkdocs build
+#   bash scripts/cibuild --list          # print the phase list and exit
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     go build ./... && go test -race -tags integration ./...
-#   # Python: python -m pytest --cov --cov-report=xml
-#   # Node:   npm ci && npm run build && npm test
-#   # bash:   for t in lib/tests/*.test.sh; do bash "$t" || exit 1; done
+# Fail-fast: the first failing phase ends the run. That is deliberate — phase 5
+# model-checks the whole v1 puzzle corpus and is by far the most expensive
+# thing here, so there is no reason to spend CI minutes on it after an earlier
+# phase has already decided the answer.
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "cibuild: N/A for this project type" && exit 0
+# ---------------------------------------------------------------------------
+# PHASES
+#
+#   1. toolchain pin      the three recorded copies of the TLC pin agree, and
+#                         the installed tlc actually reports it
+#   2. scripts/lint       shellcheck over scripts/ + harness/
+#   3. scripts/test       all ten suites — 292 harness assertions, ~121 s
+#   4. docs build         scripts/build-docs.sh + mkdocs build
+#   5. puzzle corpus      scripts/verify-puzzle.sh over every puzzles/*/ that
+#                         ships a solution/
+#
+# Phases 3-5 mirror what .github/workflows/ does today: verify-puzzles.yml
+# runs the test-verify-puzzle.sh regressions and the corpus sweep, pages.yml
+# runs build-docs.sh + mkdocs build.
+#
+# KNOWN DRIFT AS OF 2026-08-07 (bead tla-xme): neither workflow calls this
+# script — both still inline their own steps, and neither runs scripts/lint or
+# the eight v2 harness suites. Pointing the workflows at scripts/cibuild is the
+# follow-up that makes "CI runs cibuild" true rather than aspirational. Until
+# then, a change here does NOT change what CI does.
+# ---------------------------------------------------------------------------
+
 set -euo pipefail
 
-echo "script/cibuild: not implemented for this project — wire up the CI build or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+
+# Fail closed on a mis-resolved root; every path below is relative.
+if [ ! -d "${REPO_ROOT}/harness" ] || [ ! -d "${REPO_ROOT}/scripts" ]; then
+  echo "scripts/cibuild: ${REPO_ROOT} is not the tla-puzzles root (no harness/ + scripts/)." >&2
+  exit 2
+fi
+
+# Kept in step with scripts/setup and .github/workflows/verify-puzzles.yml by
+# phase 1 below, which compares all three rather than trusting them to match.
+EXPECT_TLC="2026.07.31"
+TLA_RELEASE="v1.8.0"
+
+DO_CORPUS=1
+DO_DOCS=1
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --skip-corpus) DO_CORPUS=0 ;;
+    --skip-docs)   DO_DOCS=0 ;;
+    --list)        sed -n '19,33p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help)     sed -n '2,10p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    *) echo "scripts/cibuild: unknown option '$1' (try --help)" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+phase() { printf '\n=== cibuild phase %s: %s\n' "$1" "$2"; }
+
+# --- phase 1: the pin ------------------------------------------------------
+phase 1 "toolchain pin (${TLA_RELEASE} / TLC2 ${EXPECT_TLC})"
+
+pin_in_setup="$(sed -n 's/^EXPECT_TLC="\(.*\)"$/\1/p' scripts/setup)"
+pin_in_ci="$(sed -n "s/^ *EXPECT_TLC: *'\(.*\)'\$/\1/p" .github/workflows/verify-puzzles.yml)"
+
+if [ "$pin_in_setup" != "$EXPECT_TLC" ]; then
+  echo "cibuild: pin drift — scripts/setup says '${pin_in_setup}', this script says '${EXPECT_TLC}'" >&2
+  exit 1
+fi
+if [ "$pin_in_ci" != "$EXPECT_TLC" ]; then
+  echo "cibuild: pin drift — verify-puzzles.yml says '${pin_in_ci}', this script says '${EXPECT_TLC}'" >&2
+  exit 1
+fi
+echo "  ok    all three recorded copies of the pin agree"
+
+if ! command -v tlc >/dev/null 2>&1; then
+  echo "cibuild: tlc not on PATH. Run: bash scripts/setup" >&2
+  exit 1
+fi
+# Here-string, never a live pipe: `tlc | grep -q` returns 141 under pipefail
+# and would report a matching version as a mismatch (bead tla-kr9).
+tlc_out="$(tlc 2>&1 || true)"
+if ! grep -qF "TLC2 Version ${EXPECT_TLC}" <<<"$tlc_out"; then
+  echo "cibuild: the installed TLC does not report the pin." >&2
+  echo "  expected: TLC2 Version ${EXPECT_TLC}" >&2
+  echo "  got:      $(sed -n '1p' <<<"$tlc_out")" >&2
+  echo "  Fix with: bash scripts/setup   (see bead tla-wl7)" >&2
+  exit 1
+fi
+echo "  ok    installed tlc reports TLC2 Version ${EXPECT_TLC}"
+
+# --- phase 2: lint ---------------------------------------------------------
+phase 2 "scripts/lint"
+bash scripts/lint
+
+# --- phase 3: tests --------------------------------------------------------
+phase 3 "scripts/test (all suites)"
+bash scripts/test
+
+# --- phase 4: docs ---------------------------------------------------------
+if [ "$DO_DOCS" = "1" ]; then
+  phase 4 "docs build"
+  bash scripts/build-docs.sh
+  if ! command -v mkdocs >/dev/null 2>&1; then
+    echo "cibuild: mkdocs is not installed. Run: bash scripts/setup" >&2
+    exit 1
+  fi
+  mkdocs build
+else
+  phase 4 "docs build — SKIPPED (--skip-docs)"
+fi
+
+# --- phase 5: the puzzle corpus -------------------------------------------
+if [ "$DO_CORPUS" = "1" ]; then
+  phase 5 "puzzle corpus (scripts/verify-puzzle.sh over puzzles/*/)"
+  fail_count=0
+  pass_count=0
+  fail_list=""
+  for dir in puzzles/*/; do
+    puzzle="${dir%/}"
+    [ -d "$puzzle/solution" ] || continue
+    set +e
+    output="$(scripts/verify-puzzle.sh "$puzzle" 2>&1)"
+    rc=$?
+    set -e
+    echo "$output"
+    if [ "$rc" -ne 0 ]; then
+      fail_count=$((fail_count + 1))
+      fail_list="$fail_list $puzzle"
+    else
+      pass_count=$((pass_count + 1))
+    fi
+  done
+  echo
+  echo "  corpus: ${pass_count} passed, ${fail_count} failed"
+  if [ "$fail_count" -ne 0 ]; then
+    echo "  failed puzzles:$fail_list" >&2
+    exit 1
+  fi
+else
+  phase 5 "puzzle corpus — SKIPPED (--skip-corpus)"
+fi
+
+echo
+echo "OK: cibuild passed"
