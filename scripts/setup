@@ -32,9 +32,11 @@
 # to v1.7.4 — published 2024-08-05. That is how CI ran a 2024 build against
 # 2026 constants without anything failing loudly (bead tla-5b4).
 #
-# KNOWN LIVE INSTANCE OF THAT TRAP, NOT FIXED HERE: scripts/build-docs.sh
-# emits learner install instructions that still say `releases/latest/download`.
-# Reported by bead tla-xme; fixing it belongs to whoever owns build-docs.sh.
+# THAT TRAP ALSO LIVED IN THE DOCS, and is fixed (bead tla-urv, reported by
+# tla-xme): scripts/build-docs.sh used to emit `releases/latest/download` into
+# the learner install instructions. It now reads TLA_RELEASE out of THIS FILE
+# — the line below is the single source for the docs string — and
+# scripts/cibuild phase 1 asserts no copy has drifted.
 # ===========================================================================
 
 set -euo pipefail
