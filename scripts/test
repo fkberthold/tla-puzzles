@@ -43,7 +43,7 @@
 #
 #   tier  wall    assertions  suite
 #   ----  ------  ----------  ------------------------------------------
-#   fast    0.7 s      12     harness/test-pipefail.sh
+#   fast    0.7 s      19     harness/test-pipefail.sh
 #   fast    1.0 s      71     harness/screen.sh --selftest
 #   fast    2.4 s      25     harness/comment-gate.sh --self-test
 #   slow   10.8 s      21     harness/test-verdict.sh
@@ -54,9 +54,22 @@
 #   slow   19.7 s      57     harness/grade.sh --selftest
 #   slow   46.9 s      37     harness/fixtures/seeded-bugs/selftest.sh
 #   ----  ------  ----------
-#          141 s     292      harness assertions (fast tier alone: 4.1 s, 108)
-#                     +33     scripts/test-verify-puzzle.sh, now slow
+#          141 s     299      harness assertions (fast tier alone: ~4.3 s, 115)
+#                     +27     scripts/test-verify-puzzle.sh, now slow
 #                  +26 prs    chapter/snippets, already slow
+#
+# The test-pipefail.sh row moved 12 -> 19 on 2026-08-07 (bead tla-4u0): its ban
+# widened from harness/ alone to harness/ + scripts/ + chapter/, which cost
+# three per-root coverage assertions, an allowlist-staleness assertion, and
+# three controls proving the scanner still detects a planted violation. The
+# same bead deleted six assertions from scripts/test-verify-puzzle.sh — a local
+# mirror of the ban, redundant once the real gate reached scripts/ — so that
+# suite is 33 -> 27.
+#
+# NOTE these two beads landed in the same wave and both edited this table; the
+# merge kept tla-htx's tier placement (the v1 suite is SLOW) and tla-4u0's
+# counts. If a row here ever disagrees with a suite's own final line, the
+# suite is right and this comment is stale.
 #
 # WHAT MOVED, AND WHY (bead tla-htx)
 #

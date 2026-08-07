@@ -34,6 +34,29 @@ Style: PC = PlusCal · TLA = pure TLA+. Difficulty: 1=⭐ (~15 min) · 2=⭐⭐ 
 
 HEADER
 
+# first_label <key> <comma-separated-labels> — the value of the first `<key>:`
+# label, or empty.
+#
+# The two-step shape is deliberate. This used to be a single pipeline ending in
+# `| head -1`, which is the banned idiom of bead tla-kr9: head closes the pipe
+# the instant it has its line, the producer to its left takes SIGPIPE, and under
+# `set -o pipefail` the pipeline reports 141 — read inside an `if` that is a
+# present value reported as absent, intermittently. This file sets `set -e`
+# without `pipefail` today, so the sites were latent rather than live; they
+# would have armed themselves the moment anyone added `pipefail`, which is why
+# harness/test-pipefail.sh bans the SHAPE rather than the symptom.
+#
+# Capturing first and piping the capture does NOT fix it — `printf` forks into
+# the pipeline and takes SIGPIPE exactly as `echo` does. A here-string is
+# materialised in full before the consumer is exec'd, so no writer is left to
+# signal. The inner pipeline is safe as written: neither `grep` without -q/-m
+# nor `sed` exits before its input is drained.
+first_label() {
+  local key="$1" labels="$2" matched
+  matched=$(tr ',' '\n' <<<"$labels" | grep "^${key}:" | sed "s/${key}://")
+  head -n 1 <<<"$matched"
+}
+
 emit_tier() {
   local tier_label="$1" tier_title="$2"
   echo "" >> "$OUT"
@@ -50,11 +73,11 @@ emit_tier() {
       [[ "$status" == "in_progress" ]] && icon="◐"
       [[ "$status" == "blocked" ]] && icon="●"
       [[ "$status" == "deferred" ]] && icon="❄"
-      kind=$(echo "$labels" | tr ',' '\n' | grep '^kind:' | sed 's/kind://' | head -1)
-      style=$(echo "$labels" | tr ',' '\n' | grep '^style:' | sed 's/style://' | head -1)
+      kind=$(first_label kind "$labels")
+      style=$(first_label style "$labels")
       [[ "$style" == "pluscal" ]] && style="PC"
       [[ "$style" == "tla" ]] && style="TLA"
-      diff=$(echo "$labels" | tr ',' '\n' | grep '^difficulty:' | sed 's/difficulty://' | head -1)
+      diff=$(first_label difficulty "$labels")
       concepts=$(echo "$labels" | tr ',' '\n' | grep -E '^(concept|apa|workflow):' | tr '\n' ',' | sed 's/,$//')
       echo "| $icon | $id | $title | $kind | $style | $diff | $concepts |" >> "$OUT"
     done

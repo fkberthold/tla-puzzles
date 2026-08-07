@@ -23,10 +23,13 @@
 #      harness/verdict.sh, must not invoke `tlc` itself (which is what
 #      transitively pins `-workers 1`), and must not classify on TLC's
 #      console text.
-#   5. A local ban on the `| grep -q` SIGPIPE idiom (bead tla-kr9) across
-#      this script and the script under test. harness/test-pipefail.sh scans
-#      only harness/, so without this gate these two files are unguarded —
-#      see bead tla-4u0, which generalises the scan.
+# This file also carried a local mirror of harness/test-pipefail.sh's banned-idiom
+# patterns, because that suite scanned only harness/ and left scripts/ unguarded.
+# Bead tla-4u0 widened its roots to harness/ + scripts/ + chapter/, so the mirror
+# was deleted rather than maintained in parallel — two copies of the same three
+# regexes drift apart, and the copy nobody remembers to update is the one that
+# stops catching things. The real gate now covers this file and the script under
+# test; do not reintroduce a local copy.
 #
 # Runtime note: assertions 3.x each launch TLC. Measured ~20 s total, so this
 # suite is no longer a sub-2 s "fast tier" member the way scripts/test's tier
@@ -252,25 +255,6 @@ assert_source "verify-puzzle.sh never invokes tlc directly (inherits -workers 1)
 assert_source "verify-puzzle.sh does not classify on TLC console text" \
   absent 'No error has been found|Trace exploration|threw an unexpected exception|Finished in' \
   "$SCRIPT"
-
-echo
-echo "== tla-kr9: the SIGPIPE idiom stays out of scripts/ =="
-
-# Patterns copied verbatim from harness/test-pipefail.sh so the two gates cannot
-# drift. That suite scans only harness/, which leaves these two files unguarded;
-# bead tla-4u0 generalises the scan, and when it lands this block is redundant
-# and should be deleted rather than maintained in parallel.
-# The labels deliberately spell the idiom out in words. harness/test-pipefail.sh
-# writes them literally and then excludes itself from its own scan; this suite
-# scans itself on purpose, so a literal label would be an offender.
-for f in "$SCRIPT" scripts/test-verify-puzzle.sh; do
-  assert_source "no quiet grep behind a pipe in $f" absent \
-    '\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q' "$f"
-  assert_source "no max-count grep behind a pipe in $f" absent \
-    '\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*m[[:space:]]*[0-9]' "$f"
-  assert_source "no head behind a pipe in $f" absent \
-    '\|[[:space:]]*head([[:space:]]|$)' "$f"
-done
 
 echo
 if [ "$fail_count" -ne 0 ]; then
