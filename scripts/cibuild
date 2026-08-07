@@ -27,15 +27,15 @@
 #   5. puzzle corpus      scripts/verify-puzzle.sh over every puzzles/*/ that
 #                         ships a solution/
 #
-# Phases 3-5 mirror what .github/workflows/ does today: verify-puzzles.yml
-# runs the test-verify-puzzle.sh regressions and the corpus sweep, pages.yml
-# runs build-docs.sh + mkdocs build.
+# WIRED INTO CI ON 2026-08-07 (bead tla-1qn).
+# .github/workflows/verify-puzzles.yml calls `bash scripts/cibuild` with no
+# --skip flags, on every pull request and every push to main, with no paths:
+# filter. A change here now changes what CI does. The workflow installs the
+# toolchain, asserts the pin, then hands over. Keep its TLA_RELEASE and
+# EXPECT_TLC lines exactly one line each: phase 1 reads them back out of it.
 #
-# KNOWN DRIFT AS OF 2026-08-07 (bead tla-xme): neither workflow calls this
-# script — both still inline their own steps, and neither runs scripts/lint or
-# the eight v2 harness suites. Pointing the workflows at scripts/cibuild is the
-# follow-up that makes "CI runs cibuild" true rather than aspirational. Until
-# then, a change here does NOT change what CI does.
+# pages.yml stays deploy-only. It builds the same docs as phase 4, and putting
+# the corpus in front of a docs deploy would buy nothing.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail

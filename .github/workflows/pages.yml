@@ -1,5 +1,13 @@
 name: Build and deploy MkDocs site to GitHub Pages
 
+# DEPLOY ONLY. The gate lives in verify-puzzles.yml, which runs scripts/cibuild
+# on this same push to main and builds these docs again as its phase 4 (bead
+# tla-1qn). Calling cibuild here too would put the 107-puzzle corpus in front of
+# every deploy and buy no signal that the other workflow isn't already giving.
+#
+# A broken docs tree still can't reach the site. `mkdocs build` below fails the
+# build job, and deploy needs it.
+
 on:
   push:
     branches: [main]
