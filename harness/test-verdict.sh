@@ -181,6 +181,60 @@ assert_verdict "rc=124 unbounded state space under a short timeout" \
   --timeout 5 "$FIXTURES/Unbounded.tla"
 
 echo
+echo "== the four codes 5.1 originally missed (bead tla-i9m) =="
+
+# The original 5.1 table enumerated 8 codes. The pinned jar's own enum carries
+# 14, and it is NOT the same channel as 10, 12 or 13.
+#
+#   javap -cp ~/lib/tla2tools.jar -constants 'tlc2.output.EC$ExitStatus'
+#
+# rc=14 does not mean "an Assert failed" — it means an Assert failed once TLC
+# was already exploring behaviour. The identical construct in Init is 75, and
+# the next assertion is the control that proves it.
+assert_verdict "rc=14  Assert FALSE during behaviour exploration" \
+  "ASSERT_VIOLATION" 14 \
+  "$FIXTURES/AssertViolation.tla"
+
+# rc=75, route 1 of 2 — the same Assert, moved into Init. The initial-state
+# computation wraps the EvalException as EC.TLC_NESTED_EXPRESSION (2103) rather
+# than letting the assertion's own code through, so the code changes with WHEN
+# the failure happens and not with WHAT failed. Paired with the rc=14 case
+# above so that a TLC which stopped distinguishing them breaks the build.
+assert_verdict "rc=75  the same Assert, in Init instead" \
+  "SPEC_EVAL_FAILURE" 75 \
+  "$FIXTURES/AssertInInit.tla"
+
+# rc=75, route 2 of 2 — and the one that is not hypothetical. This is the
+# shape of puzzles/T29-unchanged/solution/Clock_buggy.tla: one branch of Tick
+# leaves minutes' unconstrained, so TLC cannot complete the successor state
+# (EC.TLC_STATE_NOT_COMPLETELY_SPECIFIED_NEXT = 2109).
+#
+# Before the tla-kl5.4 rewire the old grep chain classified this rc as
+# PASS-VIOLATION only because it matched the `Trace exploration` line of the
+# *_TTrace_*.tla file TLC writes beside the error — and the canonical
+# invocation passes -noGenerateSpecTE, which suppresses that file. Adopting
+# the canonical invocation while keeping the greps would have silently removed
+# the sole basis for T29's verdict.
+assert_verdict "rc=75  under-constrained successor (the T29 shape)" \
+  "SPEC_EVAL_FAILURE" 75 \
+  "$FIXTURES/SpecEvalFailure.tla"
+
+# rc=76 — kept distinct from rc=12 on purpose. 12 means the invariant was
+# evaluated and was FALSE; 76 means it could not be evaluated at all, so
+# nothing whatsoever is known about whether it holds.
+assert_verdict "rc=76  invariant cannot be evaluated (not a violation)" \
+  "SAFETY_EVAL_FAILURE" 76 \
+  "$FIXTURES/SafetyEvalFailure.tla"
+
+# rc=77 — a PROPERTY that quantifies over the empty set is vacuously true, and
+# TLC refuses it (EC.TLC_LIVE_FORMULA_TAUTOLOGY = 2253) rather than reporting
+# a pass. The 5.3 vacuity hazard arriving through the temporal channel, and
+# the loud counterpart to DanglingKeyword.cfg's silent one.
+assert_verdict "rc=77  tautological PROPERTY is refused, not passed" \
+  "LIVENESS_EVAL_FAILURE" 77 \
+  "$FIXTURES/LivenessEvalFailure.tla"
+
+echo
 echo "== the three measured departures from the V2-PLAN.md 5.1 table =="
 echo "== (each is pinned here so it cannot silently drift back)      =="
 
@@ -234,6 +288,21 @@ assert_absent "no bash regex match operator" \
 # Belt and braces: none of TLC's own verdict strings appear as literals.
 assert_absent "no TLC stdout phrases used as literals" \
   '(No error has been found|Invariant .* is violated|Temporal properties were violated|Deadlock reached|Finished in|unexpected exception)'
+
+# ONLY MAP WHAT YOU MEASURED. ERROR_STATESPACE_TOO_LARGE=152 and ERROR_SYSTEM=153
+# are declared in the jar's EC$ExitStatus enum but no fixture provokes them —
+# and not because nobody tried hard enough. Disassembling every class in
+# tla2tools v1.8.0 finds no bytecode anywhere that pushes 152 or 153 as an exit
+# value (the only `sipush 152/153` sites in the jar are parser token constants
+# and bundled third-party libraries), and both are absent from the enum's own
+# `knownExitValues` set. They are dead constants in this build.
+#
+# So a case arm for either would be a mapping nobody has measured wearing the
+# table's authority — the exact failure this suite exists to prevent. If a
+# future TLC starts emitting one, it must arrive as a loud UNKNOWN_152 and be
+# measured before it is named.
+assert_absent "no case arm for the unprovokable 152 / 153" \
+  '^[[:space:]]*15[23]\)'
 
 echo
 if [ "$fail_count" -ne 0 ]; then
