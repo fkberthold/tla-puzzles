@@ -58,6 +58,11 @@ assert_verdict() {
   fi
 }
 
+if [ ! -f "$VERDICT" ]; then
+  echo "FATAL: $VERDICT does not exist" >&2
+  exit 1
+fi
+
 # verdict.sh with whole-line comments stripped. BOTH structural assertions read
 # this rather than the raw file: the header documents the very constructs the
 # checks police (it names -workers 8 as the thing not to do, and it explains why
@@ -65,9 +70,28 @@ assert_verdict() {
 # should-be-present check and a comment trip a must-be-absent one. Verified by
 # mutation: with `-workers 1` changed to `-workers 8` in the code, the raw-file
 # version of assert_present still passed off the header comment.
-verdict_code() {
-  sed 's/^[[:space:]]*#.*$//' "$VERDICT"
-}
+#
+# CAPTURED ONCE INTO A VARIABLE, and matched below through a here-string rather
+# than a pipe. This shape is mandatory, not stylistic -- see bead tla-kr9. The
+# old shape was:
+#
+#     if verdict_code | grep -qE -- "$pattern"; then
+#
+# Under `set -o pipefail`, `grep -q` exits at its first match and closes the
+# pipe; the producer on the left dies of SIGPIPE; the pipeline reports 141. In
+# an `if`, 141 is merely falsy and `set -e` does not fire, so a PRESENT pattern
+# is reported ABSENT. Measured 2026-08-07 on bash 5.2.21: a shell-function
+# producer returns 141 from 1000 lines up, 0 at 10 lines -- the trigger is
+# whether the consumer exits before the producer finishes flushing, so it is a
+# race, not a size threshold, and the same suite can be green one run and red
+# the next with no code change.
+#
+# Capturing first is NOT sufficient on its own. `printf '%s\n' "$out" | grep -q`
+# was measured at rc=141 at exactly the same sizes: the printf builtin runs in a
+# forked subshell and takes SIGPIPE just as a function does. Only removing the
+# pipe removes the bug. A here-string is materialised in full before grep is
+# exec'd, so there is no live writer to signal -- measured rc=0 at 21 MB.
+VERDICT_CODE=$(sed 's/^[[:space:]]*#.*$//' "$VERDICT")
 
 # assert_absent <label> <extended-regex>
 assert_absent() {
@@ -76,28 +100,23 @@ assert_absent() {
   # `--` is load-bearing: several of these patterns begin with a literal '-'
   # and grep would otherwise read them as options, fail, and report no hits —
   # a check that passes because it never ran.
-  hits=$(verdict_code | grep -nE -- "$pattern")
+  hits=$(grep -nE -- "$pattern" <<<"$VERDICT_CODE")
   if [ -z "$hits" ]; then
     ok "$label"
   else
-    nope "$label — found: $(echo "$hits" | tr '\n' ' ')"
+    nope "$label — found: $(tr '\n' ' ' <<<"$hits")"
   fi
 }
 
 # assert_present <label> <extended-regex>
 assert_present() {
   local label="$1" pattern="$2"
-  if verdict_code | grep -qE -- "$pattern"; then
+  if grep -qE -- "$pattern" <<<"$VERDICT_CODE"; then
     ok "$label"
   else
-    nope "$label — pattern not found: $pattern"
+    nope "$label — pattern not found: $pattern (searched $(grep -c '' <<<"$VERDICT_CODE") lines of $VERDICT)"
   fi
 }
-
-if [ ! -f "$VERDICT" ]; then
-  echo "FATAL: $VERDICT does not exist" >&2
-  exit 1
-fi
 
 echo "== behavioural: one fixture per row of the V2-PLAN.md 5.1 table =="
 

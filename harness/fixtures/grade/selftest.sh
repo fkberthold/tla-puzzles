@@ -137,7 +137,11 @@ assert_no_leak() {
   local name
   while read -r name; do
     [ -z "$name" ] && continue
-    if printf '%s' "$GOT_JSON" | grep -qE -- "(^|[^A-Za-z0-9_])${name}([^A-Za-z0-9_]|$)"; then
+    # Here-string, not a pipe: `printf ... | grep -q` under `pipefail` returns
+    # 141 when grep exits on its first match while the producer is still
+    # writing, and this `if` would read that as "identifier absent" -- i.e. the
+    # leak check would pass without having run. Bead tla-kr9.
+    if grep -qE -- "(^|[^A-Za-z0-9_])${name}([^A-Za-z0-9_]|$)" <<<"$GOT_JSON"; then
       hits="$hits $name"
     fi
   done < <(ref_only_identifiers "$SUBDIR/$sub")
@@ -153,38 +157,40 @@ assert_no_leak() {
 # script with whole-line comments removed, because this file's own header
 # names the constructs the checks police.
 # ---------------------------------------------------------------------------
-grade_code() { sed 's/^[[:space:]]*#.*$//' "$GRADE"; }
-
-assert_absent() {
-  local label="$1" pattern="$2" hits
-  hits=$(grade_code | grep -nE -- "$pattern")
-  if [ -z "$hits" ]; then
-    ok "$label"
-  else
-    nope "$label — found: $(echo "$hits" | tr '\n' ' ' | head -c 200)"
-  fi
-}
-
-# No `grep -q` here, and the reason is not style. Under `set -o pipefail`,
-# `grade_code | grep -q PATTERN` exits as soon as grep finds a match, sed takes
-# SIGPIPE, and pipefail reports the whole pipeline as a failure -- so a pattern
-# that IS present reads as absent, and only for patterns early enough in the
-# file that sed had not already finished. Observed exactly once, on the one
-# pattern near the top of grade.sh. Capturing the hits avoids the early exit.
-assert_present() {
-  local label="$1" pattern="$2" hits
-  hits=$(grade_code | grep -nE -- "$pattern")
-  if [ -n "$hits" ]; then
-    ok "$label"
-  else
-    nope "$label — pattern not found: $pattern"
-  fi
-}
-
+# Captured once, matched through here-strings. The original note here said
+# `grep -q` had to be avoided because `grade_code | grep -q` SIGPIPEs sed under
+# `pipefail`. That diagnosis was right; the remedy was aimed one step short of
+# the cause. It is the PIPE that is unsafe, not `-q`: measured 2026-08-07 on
+# bash 5.2.21, `printf '%s\n' "$captured" | grep -q` returns 141 at exactly the
+# same sizes as the uncaptured form, because the printf builtin forks into the
+# pipeline and takes SIGPIPE just as sed did. With the pipe gone, `-q` is safe
+# again and reads correctly. Bead tla-kr9.
 if [ ! -f "$GRADE" ]; then
   echo "FATAL: $GRADE does not exist" >&2
   exit 1
 fi
+GRADE_CODE=$(sed 's/^[[:space:]]*#.*$//' "$GRADE")
+
+assert_absent() {
+  local label="$1" pattern="$2" hits
+  hits=$(grep -nE -- "$pattern" <<<"$GRADE_CODE")
+  if [ -z "$hits" ]; then
+    ok "$label"
+  else
+    local flat
+    flat=$(tr '\n' ' ' <<<"$hits")
+    nope "$label — found: ${flat:0:200}"
+  fi
+}
+
+assert_present() {
+  local label="$1" pattern="$2"
+  if grep -qE -- "$pattern" <<<"$GRADE_CODE"; then
+    ok "$label"
+  else
+    nope "$label — pattern not found: $pattern (searched $(grep -c '' <<<"$GRADE_CODE") lines of $GRADE)"
+  fi
+}
 
 # ===========================================================================
 echo "== the RED line: too strong on one conjunct AND too weak on another =="

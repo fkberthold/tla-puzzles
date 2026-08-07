@@ -361,10 +361,19 @@ fi
 if [ -n "$CONSTANTS" ]; then
   [ -f "$CONSTANTS" ] || { echo "refinement.sh: no such fragment: $CONSTANTS" >&2; exit 2; }
   frag=$(sed 's/\\\*.*$//' "$CONSTANTS")
-  if echo "$frag" | grep -qE '^[[:space:]]*(SYMMETRY|VIEW)([[:space:]]|$)'; then
+  # Every match in this file is a here-string, never `echo "$x" | grep -q`.
+  # Under `set -o pipefail` grep -q exits at its first match, the producer takes
+  # SIGPIPE, and the pipeline reports 141 -- which an `if` reads as "no match"
+  # and a NEGATED `if !` reads as "match". Both directions are wrong and both
+  # are live here: a 141 on the SYMMETRY/VIEW guard below would let an unsound
+  # reduction through unflagged, and a 141 on the negated REFINES check further
+  # down would refuse a module that is perfectly well-formed. The trigger is
+  # whether the consumer exits before the producer finishes writing, so it is a
+  # race on file size, not a threshold. Bead tla-kr9.
+  if grep -qE '^[[:space:]]*(SYMMETRY|VIEW)([[:space:]]|$)' <<<"$frag"; then
     emit "UNSOUND_REDUCTION" 24
   fi
-  if echo "$frag" | grep -qE '^[[:space:]]*(SPECIFICATION|INIT|NEXT|PROPERTY|PROPERTIES|INVARIANT|INVARIANTS|CONSTRAINT|CONSTRAINTS|ACTION_CONSTRAINT|ALIAS|POSTCONDITION|CHECK_DEADLOCK)([[:space:]]|$)'; then
+  if grep -qE '^[[:space:]]*(SPECIFICATION|INIT|NEXT|PROPERTY|PROPERTIES|INVARIANT|INVARIANTS|CONSTRAINT|CONSTRAINTS|ACTION_CONSTRAINT|ALIAS|POSTCONDITION|CHECK_DEADLOCK)([[:space:]]|$)' <<<"$frag"; then
     emit "FRAGMENT_REFUSED" 28
   fi
 fi
@@ -377,7 +386,7 @@ if [ -f "$MODULE" ]; then
   SRC=$(strip_tla_comments "$MODULE" | logical_defs)
 
   for reserved in "$HARNESS_PROBE" "$HARNESS_REFINES" "$HARNESS_MAP"; do
-    if echo "$SRC" | grep -qE "^[[:space:]]*$reserved[[:space:]]*=="; then
+    if grep -qE "^[[:space:]]*$reserved[[:space:]]*==" <<<"$SRC"; then
       emit "RESERVED_NAME" 29
     fi
   done
@@ -385,8 +394,8 @@ if [ -f "$MODULE" ]; then
   if [ -z "$ABSTRACT" ]; then
     # The module supplies the mapping. Find its INSTANCE.
     if [ -z "$INSTANCE" ]; then
-      mapfile -t found < <(echo "$SRC" |
-        grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*==[[:space:]]*INSTANCE[[:space:]]' |
+      mapfile -t found < <(
+        grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*==[[:space:]]*INSTANCE[[:space:]]' <<<"$SRC" |
         sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*).*/\1/')
       case ${#found[@]} in
         1) INSTANCE="${found[0]}" ;;
@@ -399,19 +408,19 @@ if [ -f "$MODULE" ]; then
     # judged. One grep suffices because the definition has already been
     # reassembled onto a single line, wrap and all.
     if [ "$ALLOW_IMPLICIT" = "0" ]; then
-      stmt=$(echo "$SRC" | grep -E "^[[:space:]]*$INSTANCE[[:space:]]*==[[:space:]]*INSTANCE[[:space:]]")
-      if ! echo "$stmt" | grep -qE '(^|[^A-Za-z0-9_])WITH([^A-Za-z0-9_]|$)'; then
+      stmt=$(grep -E "^[[:space:]]*$INSTANCE[[:space:]]*==[[:space:]]*INSTANCE[[:space:]]" <<<"$SRC")
+      if ! grep -qE '(^|[^A-Za-z0-9_])WITH([^A-Za-z0-9_]|$)' <<<"$stmt"; then
         emit "IMPLICIT_MAPPING" 25
       fi
     fi
 
     # The refinement operator has to exist, because the .cfg accepts only bare
     # identifiers and `PROPERTY A!Spec` fails with a message about `A`.
-    if ! echo "$SRC" | grep -qE "^[[:space:]]*$REFINES[[:space:]]*=="; then
+    if ! grep -qE "^[[:space:]]*$REFINES[[:space:]]*==" <<<"$SRC"; then
       # §10: TLC silently ignores THEOREM. A submission whose refinement claim
       # lives only there has stated it to a reader and to nobody else.
-      if echo "$SRC" | grep -qE '^[[:space:]]*THEOREM([[:space:]]|$)' &&
-         echo "$SRC" | grep -qE '=>'; then
+      if grep -qE '^[[:space:]]*THEOREM([[:space:]]|$)' <<<"$SRC" &&
+         grep -qE '=>' <<<"$SRC"; then
         emit "THEOREM_ONLY" 23
       fi
       emit "REFINES_UNDEFINED" 30

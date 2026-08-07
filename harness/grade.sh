@@ -534,7 +534,12 @@ for conj in ${SUB_CONJUNCTS[@]+"${SUB_CONJUNCTS[@]}"}; do
     # back to them leaks nothing, and it is the only witness in this file that
     # can carry a precise location the learner can act on.
     if [ -z "$OVER_WITNESS" ]; then
-      line=$(grep -nE "^$conj\(" "$SUB_OBL" | head -1 | cut -d: -f1)
+      # Sliced with a parameter expansion rather than `| head -1`: head closes
+      # the pipe after its first line and grep dies of SIGPIPE, which under
+      # `pipefail` makes the pipeline 141. Bead tla-kr9. `cut` reads to EOF, so
+      # nothing early-exits here.
+      line=$(grep -nE "^$conj\(" "$SUB_OBL" | cut -d: -f1)
+      line=${line%%$'\n'*}
       OVER_WITNESS=$(jq -n -c --arg ob "$conj" --arg mod "$M_SUB_OBL" \
                               --argjson line "${line:-null}" \
         '{kind:"stated-requirement-refuted", obligation:$ob,
@@ -676,13 +681,20 @@ while IFS= read -r value; do
   # An exact match against the fixed vocabulary, or an opaque digest, passes
   # whole. Everything else is broken into identifier tokens and each token has
   # to be accounted for.
-  if printf '%s\n' "$VOCAB" | grep -qxF -- "$value"; then continue; fi
-  if printf '%s' "$value" | grep -qE '^[RL]-[0-9a-f]{6}$'; then continue; fi
+  # Every match below is a here-string, never a pipe. `$SUB_TOKENS` is every
+  # identifier in the submission and `$VOCAB` the whole fixed vocabulary, so
+  # both are chatty producers; under `pipefail` an early-exiting `grep -q`
+  # SIGPIPEs the producer and the pipeline reports 141. Here that would read as
+  # "token not accounted for", so a perfectly legitimate token would trip the
+  # leak gate and grade.sh would refuse to print a correct verdict object --
+  # intermittently, on submission size. Bead tla-kr9.
+  if grep -qxF -- "$value" <<<"$VOCAB"; then continue; fi
+  if grep -qE '^[RL]-[0-9a-f]{6}$' <<<"$value"; then continue; fi
   bad=""
   while IFS= read -r tok; do
     [ -z "$tok" ] && continue
-    printf '%s\n' "$SUB_TOKENS" | grep -qxF -- "$tok" && continue
-    printf '%s\n' "$VOCAB" | grep -qxF -- "$tok" && continue
+    grep -qxF -- "$tok" <<<"$SUB_TOKENS" && continue
+    grep -qxF -- "$tok" <<<"$VOCAB" && continue
     bad="$bad $tok"
   done < <(printf '%s' "$value" | grep -oE '[A-Za-z][A-Za-z0-9_]*')
   [ -n "$bad" ] && leaked="$leaked$value ->$bad; "

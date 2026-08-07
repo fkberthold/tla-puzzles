@@ -16,7 +16,11 @@ COUNTS="${SCREEN_STUB_COUNTS:-$HERE/gh-stub-counts.txt}"
 args="$*"
 
 # --- README fetch -----------------------------------------------------------
-if printf '%s' "$args" | grep -q 'contents/README.md'; then
+# Here-string, not a pipe: `... | grep -q` under `pipefail` reports 141 when the
+# producer is still writing as grep exits on its first match, and the `if` reads
+# that as "no match" -- the stub would then fall through to the code-search arm
+# and answer the wrong call. Bead tla-kr9.
+if grep -q 'contents/README.md' <<<"$args"; then
 	base64 -w0 <"$HERE/examples-README.md" 2>/dev/null || base64 <"$HERE/examples-README.md"
 	printf '\n'
 	exit 0

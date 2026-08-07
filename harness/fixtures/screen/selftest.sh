@@ -53,8 +53,14 @@ assert_exit() {
 	fi
 }
 
+# Both matchers use a here-string, never a pipe. `$OUT` is a whole screen.sh
+# run, and under `set -o pipefail` a `... | grep -q` SIGPIPEs its producer the
+# moment grep exits on the first match -- the pipeline reports 141, and an `if`
+# reads that as "not found". Every one of these assertions would then report a
+# present string as absent, intermittently. Bead tla-kr9; the mechanism is
+# written up in harness/test-verdict.sh.
 assert_contains() {
-	if printf '%s' "$OUT" | grep -qF -- "$1"; then
+	if grep -qF -- "$1" <<<"$OUT"; then
 		ok "contains '$1'"
 	else
 		fail "expected output to contain '$1'"
@@ -62,7 +68,7 @@ assert_contains() {
 }
 
 assert_not_contains() {
-	if printf '%s' "$OUT" | grep -qF -- "$1"; then
+	if grep -qF -- "$1" <<<"$OUT"; then
 		fail "expected output NOT to contain '$1'"
 	else
 		ok "lacks '$1'"

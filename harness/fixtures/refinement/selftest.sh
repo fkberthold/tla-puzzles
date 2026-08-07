@@ -76,29 +76,35 @@ assert_raw() {
   fi
 }
 
-# refinement.sh with whole-line comments stripped, for the structural checks.
-# The header names the very constructs those checks police, so matching the raw
-# file would let a comment satisfy a must-be-present check and trip a
-# must-be-absent one. Same trap test-verdict.sh documents for verdict.sh.
-refinement_code() { sed 's/^[[:space:]]*#.*$//' "$REFINEMENT"; }
-
-assert_present() {
-  local label="$1" pattern="$2"
-  if refinement_code | grep -qE -- "$pattern"; then ok "$label"
-  else nope "$label — pattern not found: $pattern"; fi
-}
-
-assert_absent() {
-  local label="$1" pattern="$2" hits
-  hits=$(refinement_code | grep -nE -- "$pattern")
-  if [ -z "$hits" ]; then ok "$label"
-  else nope "$label — found: $(echo "$hits" | tr '\n' ' ')"; fi
-}
-
 if [ ! -f "$REFINEMENT" ]; then
   echo "FATAL: $REFINEMENT does not exist" >&2
   exit 1
 fi
+
+# refinement.sh with whole-line comments stripped, for the structural checks.
+# The header names the very constructs those checks police, so matching the raw
+# file would let a comment satisfy a must-be-present check and trip a
+# must-be-absent one. Same trap test-verdict.sh documents for verdict.sh.
+#
+# Captured once and matched through a here-string, never through a pipe: under
+# `pipefail` an early-exiting `grep -q` SIGPIPEs its producer and the pipeline
+# reports 141, which an `if` reads as "pattern absent". See bead tla-kr9 and the
+# long note in test-verdict.sh. Capturing alone does not fix it -- a `printf`
+# feeding a pipe SIGPIPEs too; the pipe itself has to go.
+REFINEMENT_CODE=$(sed 's/^[[:space:]]*#.*$//' "$REFINEMENT")
+
+assert_present() {
+  local label="$1" pattern="$2"
+  if grep -qE -- "$pattern" <<<"$REFINEMENT_CODE"; then ok "$label"
+  else nope "$label — pattern not found: $pattern (searched $(grep -c '' <<<"$REFINEMENT_CODE") lines of $REFINEMENT)"; fi
+}
+
+assert_absent() {
+  local label="$1" pattern="$2" hits
+  hits=$(grep -nE -- "$pattern" <<<"$REFINEMENT_CODE")
+  if [ -z "$hits" ]; then ok "$label"
+  else nope "$label — found: $(tr '\n' ' ' <<<"$hits")"; fi
+}
 
 # ---------------------------------------------------------------------------
 echo "== THE BEAD'S RED LINE: frozen mapping fails, correct mapping passes =="
