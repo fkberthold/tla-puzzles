@@ -1,28 +1,46 @@
-name: Verify puzzle solutions
+name: CI
 
+# NO `paths:` FILTER, ON PURPOSE (bead tla-1qn).
+#
+# This workflow used to trigger on puzzles/**, scripts/verify-puzzle.sh,
+# scripts/test-verify-puzzle.sh and its own file. harness/ was not on that
+# list, so all 292 v2 harness assertions were invisible to CI, and so was
+# scripts/lint. The suites existed, passed locally, and gated nothing.
+#
+# An enumerated path list stops covering the tree the moment someone adds a
+# directory, and nothing tells you. scripts/lint and harness/test-pipefail.sh
+# both refuse to enumerate for that reason, and select by shebang instead. The
+# workflow that runs them shouldn't enumerate either.
+#
+# Markdown isn't exempt. cibuild phase 1 asserts README.md names the pinned
+# jar, and module-docs/ feeds the phase 4 docs build.
+#
+# The cost is runner minutes on changes that couldn't have broken anything.
+# Fail-fast inside cibuild caps that: the 107-puzzle corpus runs last, so a
+# lint or suite failure never pays for it.
 on:
   pull_request:
-    paths:
-      - 'puzzles/**'
-      - 'scripts/verify-puzzle.sh'
-      - 'scripts/test-verify-puzzle.sh'
-      - '.github/workflows/verify-puzzles.yml'
   push:
     branches: [main]
-    paths:
-      - 'puzzles/**'
-      - 'scripts/verify-puzzle.sh'
-      - 'scripts/test-verify-puzzle.sh'
-      - '.github/workflows/verify-puzzles.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Supersede a pull request's older runs. A push to main is never cancelled, so
+# every commit on main keeps a verdict of its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # cibuild runs about 4 minutes end to end on the author's 22-core box at
+    # load 2 to 5: 141 s of suites plus 67 s of corpus over 107 puzzles. TLC
+    # scales with cores, so a 4-vCPU runner is slower. 45 leaves room for that
+    # without letting a hang sit for an hour.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +48,40 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: docs-requirements.txt
+
+      - name: Install the docs toolchain
+        # cibuild phase 4 runs scripts/build-docs.sh and then mkdocs build, so
+        # mkdocs has to be on PATH here. Gating the docs build on pull requests
+        # is new. pages.yml only builds on a push to main, which meant a broken
+        # docs tree landed before anything caught it.
+        run: |
+          set -euo pipefail
+          pip install --upgrade pip
+          pip install -r docs-requirements.txt
+
+      - name: Install shell prerequisites
+        # shellcheck IS scripts/lint (phase 2). harness/grade.sh reads its own
+        # verdict JSON through jq in the selftest (phase 3), which scripts/test
+        # runs in phase 3. Both tools ship in the ubuntu-latest image today.
+        # The guard costs nothing and stops a future image change from turning
+        # a gate into a skip.
+        run: |
+          set -euo pipefail
+          need=0
+          command -v shellcheck >/dev/null 2>&1 || need=1
+          command -v jq >/dev/null 2>&1 || need=1
+          if [ "$need" = "1" ]; then
+            sudo apt-get update
+            sudo apt-get install -y shellcheck jq
+          fi
+          shellcheck --version
+          jq --version
 
       - name: Install tla2tools (provides pcal + tlc)
         env:
@@ -47,6 +99,11 @@ jobs:
           # project as of 2026-08-06. The tla-kl5.3 survey independently
           # re-ran the rc table and the frozen-mapping probe on this build
           # (TLC2 2026.07.31.184830) and both held.
+          #
+          # KEEP THIS ON ONE LINE, in this exact form. scripts/cibuild phase 1
+          # reads it back out of this file with `sed -n "s/^ *TLA_RELEASE: ..."`
+          # and compares it against scripts/setup. Two matching lines, or a
+          # reflowed one, and that cross-check breaks.
           TLA_RELEASE: v1.8.0
         run: |
           set -euo pipefail
@@ -71,42 +128,38 @@ jobs:
           # first place. If this fails, do not just bump the string — the §5
           # constants were verified against a specific build, so a version
           # change means re-verifying them (bead tla-5b4).
+          #
+          # KEEP THIS ON ONE LINE too, for the reason given above TLA_RELEASE.
           EXPECT_TLC: '2026.07.31'
         run: |
           set -euo pipefail
           which tlc pcal
-          tlc 2>&1 | head -1
-          tlc 2>&1 | head -1 | grep -qF "TLC2 Version ${EXPECT_TLC}"
-          pcal -help 2>&1 | head -3 || true
+          # Here-strings, never a live pipe. `tlc | head -1 | grep -qF` returns
+          # 141 under pipefail, because grep -q exits on the first match and
+          # then head and tlc both take SIGPIPE. That reports a matching
+          # version as a mismatch (bead tla-kr9). A here-string is materialised
+          # in full before grep runs, so there's no writer left to signal.
+          # scripts/cibuild uses the same shape for the same check.
+          tlc_out="$(tlc 2>&1 || true)"
+          sed -n '1p' <<<"$tlc_out"
+          grep -qF "TLC2 Version ${EXPECT_TLC}" <<<"$tlc_out"
+          pcal_out="$(pcal -help 2>&1 || true)"
+          sed -n '1,3p' <<<"$pcal_out"
 
-      - name: Regression tests for verify-puzzle.sh
-        run: bash scripts/test-verify-puzzle.sh
-
-      - name: Verify every puzzle
-        run: |
-          set -uo pipefail
-          fail_count=0
-          pass_count=0
-          fail_list=""
-          : > /tmp/verify_results.log
-          for dir in puzzles/*/; do
-            puzzle="${dir%/}"
-            if [ ! -d "$puzzle/solution" ]; then continue; fi
-            output=$(scripts/verify-puzzle.sh "$puzzle" 2>&1)
-            rc=$?
-            echo "$output" | tee -a /tmp/verify_results.log
-            if [ $rc -ne 0 ]; then
-              fail_count=$((fail_count + 1))
-              fail_list="$fail_list $puzzle"
-            else
-              pass_count=$((pass_count + 1))
-            fi
-          done
-          echo
-          echo "=== Verify summary ==="
-          echo "Passed:  $pass_count"
-          echo "Failed:  $fail_count"
-          if [ $fail_count -ne 0 ]; then
-            echo "Failed puzzles:$fail_list"
-            exit 1
-          fi
+      - name: scripts/cibuild
+        # All five phases, no --skip flags (bead tla-1qn).
+        #
+        #   1. toolchain pin   every recorded copy of the pin agrees
+        #   2. scripts/lint    shellcheck over scripts/ + harness/, blocking
+        #   3. scripts/test    ten suites, 292 harness assertions
+        #   4. docs build      scripts/build-docs.sh + mkdocs build
+        #   5. puzzle corpus   verify-puzzle.sh over 107 puzzles
+        #
+        # Phase 2 is blocking on purpose. tla-5r7 cleared all 26 shellcheck
+        # findings on 2026-08-07, so lint is green and staging it advisory
+        # would only let it rot back to red.
+        #
+        # This step replaces two inline ones that cibuild already subsumes.
+        # scripts/test-verify-puzzle.sh is a suite inside scripts/test, and the
+        # corpus sweep is phase 5, loop for loop.
+        run: bash scripts/cibuild
