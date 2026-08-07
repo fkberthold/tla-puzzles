@@ -1,21 +1,82 @@
 #!/usr/bin/env bash
-# script/bootstrap — one-time machine prerequisites for this project.
+# scripts/bootstrap — verify the machine-level prerequisites this project needs.
 #
-# Canonical "script/ convention" stub (loom). `bootstrap` installs the
-# system-level prerequisites a fresh checkout needs before `script/setup`
-# can run: language toolchains, system packages, container runtimes,
-# credentials. Idempotent — safe to re-run.
+# Usage:
+#   bash scripts/bootstrap          # check everything; exit 1 if a REQUIRED tool is missing
+#   bash scripts/bootstrap --quiet  # print only the problems
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     command -v go     || asdf install golang   # or: brew/apt install go
-#   # Python: command -v python3 || pyenv install         # ensure the runtime exists
-#   # Node:   command -v node    || nvm install           # ensure the runtime exists
-#   # bash:   command -v shellcheck || sudo apt-get install -y shellcheck
+# Idempotent and READ-ONLY. It installs nothing and needs no sudo.
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "bootstrap: N/A for this project type" && exit 0
-set -euo pipefail
+# ---------------------------------------------------------------------------
+# WHY THIS CHECKS RATHER THAN INSTALLS
+#
+# The prerequisites below are OS packages, and this project has no way to know
+# whether a given machine wants nix, apt, brew, or something else — the author's
+# own box resolves java and git through ~/.nix-profile while python3 and pip
+# come from /usr/bin. A bootstrap that guessed would either fail on most
+# machines or silently install a second copy of a toolchain that was already
+# there. So it verifies, names what is missing, and prints the command to fix
+# it, leaving the choice of package manager to the operator.
+#
+# The split against scripts/setup is the conventional one: bootstrap covers
+# what the OS provides, setup covers what this project owns (the pinned
+# tla2tools.jar, the tlc/pcal wrappers, the docs toolchain).
+# ---------------------------------------------------------------------------
 
-echo "script/bootstrap: not implemented for this project — wire up prerequisites or mark N/A." >&2
-exit 2
+set -uo pipefail
+
+QUIET=0
+case "${1:-}" in
+  --quiet) QUIET=1 ;;
+  -h|--help) sed -n '2,10p' "${BASH_SOURCE[0]}"; exit 0 ;;
+  "") ;;
+  *) echo "scripts/bootstrap: unknown option '$1' (try --help)" >&2; exit 2 ;;
+esac
+
+missing=0
+optional_missing=0
+
+check() {
+  local tool="$1" required="$2" why="$3" hint="$4"
+  if command -v "$tool" >/dev/null 2>&1; then
+    if [ "$QUIET" = "0" ]; then
+      printf '  ok        %-12s %s\n' "$tool" "$(command -v "$tool")"
+    fi
+    return 0
+  fi
+  if [ "$required" = "required" ]; then
+    printf '  MISSING   %-12s %s\n' "$tool" "$why" >&2
+    printf '            install: %s\n' "$hint" >&2
+    missing=$((missing + 1))
+  else
+    printf '  optional  %-12s not found — %s\n' "$tool" "$why" >&2
+    printf '            install: %s\n' "$hint" >&2
+    optional_missing=$((optional_missing + 1))
+  fi
+}
+
+if [ "$QUIET" = "0" ]; then
+  echo "scripts/bootstrap: checking machine prerequisites"
+  echo
+fi
+
+check java       required "TLC and pcal are a Java jar; Java 17+"      "nix profile install nixpkgs#temurin-bin-21  |  apt install openjdk-21-jre"
+check curl       required "scripts/setup downloads the pinned jar"     "apt install curl  |  brew install curl"
+check python3    required "harness/refinement.sh parses TLC -dumpTrace JSON; the docs build is mkdocs" "apt install python3  |  brew install python3"
+check git        required "the suites resolve the repo root through it" "apt install git  |  nix profile install nixpkgs#git"
+check shellcheck required "scripts/lint IS shellcheck"                 "apt install shellcheck  |  brew install shellcheck  |  nix profile install nixpkgs#shellcheck"
+check jq         optional "harness/grade.sh reads its own verdict JSON in the selftest" "apt install jq  |  brew install jq"
+
+echo
+if [ "$missing" -gt 0 ]; then
+  echo "scripts/bootstrap: ${missing} required prerequisite(s) missing — install them and re-run." >&2
+  exit 1
+fi
+
+if [ "$optional_missing" -gt 0 ]; then
+  echo "scripts/bootstrap: all required prerequisites present (${optional_missing} optional missing)."
+else
+  echo "scripts/bootstrap: all prerequisites present."
+fi
+echo "  Next: bash scripts/setup"
+exit 0

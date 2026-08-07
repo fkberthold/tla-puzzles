@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
-# script/update — update a checkout to run with the latest code.
+# scripts/update — bring an existing checkout back in step after a pull.
 #
-# Canonical "script/ convention" stub (loom). `update` is `setup` for an
-# existing checkout: pull deps to current lockfile versions, run pending
-# migrations, regenerate code. Run after pulling new commits. Idempotent.
+# Usage:
+#   bash scripts/update            # re-assert the toolchain pin + docs deps
+#   bash scripts/update --check    # report what would change; touch nothing
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     go mod download && go generate ./...
-#   # Python: pip install -r requirements.txt   # re-sync to the current lockfile
-#   # Node:   npm install                       # or: pnpm install / yarn install
-#   # bash:   true                              # usually nothing to update
+# ---------------------------------------------------------------------------
+# WHY THIS DELEGATES TO scripts/setup RATHER THAN BEING MARKED N/A
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "update: N/A for this project type" && exit 0
+# The convention's `update` is "setup for a checkout that already exists".
+# Here that is not a no-op, and it is not busywork either: scripts/setup
+# carries the TLC version pin, so when the pin moves in a commit you just
+# pulled, this is the script that moves your local toolchain with it. A
+# checkout whose jar is a version behind the pin produces verdicts that
+# disagree with CI's, and nothing announces it — which is the whole reason
+# the pin is asserted rather than logged (bead tla-5b4).
+#
+# scripts/setup is idempotent and skips the download when the installed jar
+# already reports the pinned version, so re-running this after every pull
+# costs about a second when nothing has changed.
+#
+# It is NOT marked N/A precisely because of that pin. If this project ever
+# drops to an unpinned toolchain, revisit.
+# ---------------------------------------------------------------------------
+
 set -euo pipefail
 
-echo "script/update: not implemented for this project — wire up the refresh step or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "scripts/update: delegating to scripts/setup (idempotent; re-asserts the TLC pin)"
+exec bash "${SCRIPT_DIR}/setup" "$@"

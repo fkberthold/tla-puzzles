@@ -1,21 +1,63 @@
 #!/usr/bin/env bash
-# script/deploy — push this project to its run target.
+# scripts/deploy — publish the curriculum site by hand.
 #
-# Canonical "script/ convention" stub (loom). `deploy` ships a built
-# artifact to where it runs: push an image, apply manifests, publish a
-# package, run a release pipeline. This is the command loom's
-# `workflow.json .deploy` hint (loom-0k0) surfaces at wrap-up time.
+# Usage:
+#   bash scripts/deploy          # explains the situation and refuses
+#   bash scripts/deploy --yes    # build docs/, then mkdocs gh-deploy
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     docker build -t "$IMAGE" . && docker push "$IMAGE"
-#   # Python: python -m build && twine upload dist/*
-#   # Node:   npm publish            # or: npm run deploy
-#   # bash:   ./install.sh           # symlink-install primitives (loom's own deploy)
+# ===========================================================================
+# READ THIS BEFORE USING IT: THIS IS NOT HOW THE SITE NORMALLY DEPLOYS.
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "deploy: N/A for this project type" && exit 0
+# The live deployment path is .github/workflows/pages.yml, which fires on
+# every push to main. It runs scripts/build-docs.sh, then `mkdocs build`, then
+# publishes ./site through actions/upload-pages-artifact +
+# actions/deploy-pages. That path serves the site straight from the Actions
+# artifact — it does NOT use a gh-pages branch, and as of 2026-08-07 origin
+# has no gh-pages branch at all (`git ls-remote --heads origin` returns only
+# refs/heads/main).
+#
+# `mkdocs gh-deploy` publishes by FORCE-PUSHING a gh-pages branch. Against
+# this repo that would create a branch nothing serves from, so the likely
+# outcome is a deploy that appears to succeed and changes nothing visible —
+# and if GitHub Pages is ever repointed at the branch, two publishers would
+# then be fighting over the same site.
+#
+# Hence the --yes guard. This script is the manual fallback for the day the
+# workflow is broken and the site has to go out anyway; it is not the routine
+# path, and it force-pushes, so it does not run by accident.
+# ===========================================================================
+
 set -euo pipefail
 
-echo "script/deploy: not implemented for this project — wire up the deploy step or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+
+CONFIRMED=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --yes|-y) CONFIRMED=1 ;;
+    -h|--help) sed -n '2,28p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    *) echo "scripts/deploy: unknown option '$1' (try --help)" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+if [ "$CONFIRMED" != "1" ]; then
+  sed -n '7,28p' "${BASH_SOURCE[0]}" >&2
+  echo >&2
+  echo "scripts/deploy: refusing without --yes." >&2
+  echo "  Routine deploys happen by pushing to main (.github/workflows/pages.yml)." >&2
+  exit 2
+fi
+
+if ! command -v mkdocs >/dev/null 2>&1; then
+  echo "scripts/deploy: mkdocs is not installed. Run: bash scripts/setup" >&2
+  exit 2
+fi
+
+echo "scripts/deploy: regenerating docs/"
+bash scripts/build-docs.sh
+
+echo "scripts/deploy: mkdocs gh-deploy (force-pushes gh-pages)"
+exec mkdocs gh-deploy

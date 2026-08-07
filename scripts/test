@@ -1,21 +1,191 @@
 #!/usr/bin/env bash
-# script/test — run this project's automated tests.
+# scripts/test — run this project's automated test suites.
 #
-# Canonical "script/ convention" stub (loom). `test` runs the full unit
-# suite (the cheap, no-external-deps tier). `script/cibuild` is the wider
-# CI-only superset. This is the script `/audit-project` and the activity
-# recipes invoke as the project's canonical test command.
+# This is the script /audit-project and the loom activity recipes invoke as
+# the project's canonical test command, and the gate the v2 harness suites
+# hang off. Before bead tla-xme wired it, all 292 harness assertions were
+# advisory — commands someone had to remember to run. That is the
+# gate-don't-advise failure this script closes.
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     go test ./...           # add -race in CI
-#   # Python: python -m pytest        # or: python -m pytest --cov
-#   # Node:   npm test
-#   # bash:   bash lib/tests/*.test.sh
+# Usage:
+#   bash scripts/test               # ALL suites (default) — ~2 min
+#   bash scripts/test --fast        # only the sub-2s tier   — ~4 s
+#   bash scripts/test --verbose     # stream every suite's output, not just failures
+#   bash scripts/test <substring>   # run only suites whose label or command matches
+#   bash scripts/test --list        # print the suite table and exit
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "test: N/A for this project type" && exit 0
+# Exits 0 only if every selected suite exits 0. Idempotent, offline, no network.
+#
+# ---------------------------------------------------------------------------
+# WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
+#
+# liza_base defaults to a fast tier because its full suite is ~16 min serial.
+# Here the full run is ~121 s wall (measured below), and the fast tier is only
+# 108 of the 292 harness assertions — 37%. Defaulting to that would make
+# canonical_commands.test name a command that runs a third of the gate, which
+# is the same class of lie as naming a command that fails by design. So the
+# default is the whole thing, and --fast is the opt-in for tight iteration.
+#
+# ---------------------------------------------------------------------------
+# TIER SPLIT — measured 2026-08-07, this box, TLC2 2026.03.04.183147
+#
+# The cut is at the 5x gap between 1.9 s and 10.3 s. Nothing here "takes
+# minutes": the slowest single suite is 42 s and the whole set is ~121 s.
+#
+#   tier  wall    assertions  suite
+#   ----  ------  ----------  ------------------------------------------
+#   fast    0.7 s      12     harness/test-pipefail.sh
+#   fast    0.7 s      (v1)   scripts/test-verify-puzzle.sh
+#   fast    1.0 s      71     harness/screen.sh --selftest
+#   fast    1.9 s      25     harness/comment-gate.sh --self-test
+#   slow   10.3 s      21     harness/test-verdict.sh
+#   slow   11.5 s   26 pairs  chapter/snippets/run-all.sh (+ check-blocks.py)
+#   slow   16.3 s      43     harness/fixtures/refinement/selftest.sh
+#   slow   17.8 s      26     harness/test-vacuity.sh
+#   slow   18.6 s      57     harness/grade.sh --selftest
+#   slow   42.0 s      37     harness/fixtures/seeded-bugs/selftest.sh
+#   ----  ------  ----------
+#          121 s     292      (fast tier alone: 4.3 s, 108 assertions)
+#
+# The slow tier is slow for one reason: it launches TLC. Re-measure and move
+# the boundary if that changes; do not guess it.
+# ---------------------------------------------------------------------------
+
 set -euo pipefail
 
-echo "script/test: not implemented for this project — wire up the test command or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+
+# Fail closed on a mis-resolved root. Every suite path below is relative, so a
+# wrong root does not error out — it reports ten separate rc=127 "No such file"
+# failures and buries the actual cause. Observed while testing this script's
+# own failure path from a copy placed one directory up.
+if [ ! -d "${REPO_ROOT}/harness" ] || [ ! -d "${REPO_ROOT}/scripts" ]; then
+  echo "scripts/test: ${REPO_ROOT} is not the tla-puzzles root (no harness/ + scripts/)." >&2
+  exit 2
+fi
+
+# tier | budget-seconds | label | command
+SUITES=(
+  "fast|0.7|pipefail idiom ban|./harness/test-pipefail.sh"
+  "fast|0.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
+  "fast|1.0|puzzle screen|./harness/screen.sh --selftest"
+  "fast|1.9|comment gate|./harness/comment-gate.sh --self-test"
+  "slow|10.3|TLC verdict channel|./harness/test-verdict.sh"
+  "slow|11.5|chapter snippets|bash chapter/snippets/run-all.sh"
+  "slow|16.3|refinement harness|bash harness/fixtures/refinement/selftest.sh"
+  "slow|17.8|vacuity gate|./harness/test-vacuity.sh"
+  "slow|18.6|grader|bash harness/grade.sh --selftest"
+  "slow|42.0|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
+)
+
+MODE="full"
+VERBOSE=0
+FILTER=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --fast)      MODE="fast" ;;
+    --full)      MODE="full" ;;
+    -v|--verbose) VERBOSE=1 ;;
+    --list)      MODE="list" ;;
+    -h|--help)
+      sed -n '2,55p' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
+    -*)
+      echo "scripts/test: unknown option '$1' (try --help)" >&2
+      exit 2
+      ;;
+    *)           FILTER="$1" ;;
+  esac
+  shift
+done
+
+if [ "$MODE" = "list" ]; then
+  printf '%-6s %8s  %s\n' TIER BUDGET SUITE
+  for entry in "${SUITES[@]}"; do
+    IFS='|' read -r tier budget label cmd <<<"$entry"
+    printf '%-6s %7ss  %s\n            %s\n' "$tier" "$budget" "$label" "$cmd"
+  done
+  exit 0
+fi
+
+LOGDIR="$(mktemp -d)"
+# shellcheck disable=SC2317  # reached through the EXIT trap on the next line
+cleanup() { rm -rf "$LOGDIR"; }
+trap cleanup EXIT
+
+echo "scripts/test: mode=${MODE}${FILTER:+ filter=$FILTER} root=${REPO_ROOT}"
+echo
+
+selected=0
+failed=0
+declare -a FAILED_LABELS=()
+total_start=${SECONDS}
+
+for entry in "${SUITES[@]}"; do
+  IFS='|' read -r tier budget label cmd <<<"$entry"
+
+  if [ "$MODE" = "fast" ] && [ "$tier" != "fast" ]; then
+    continue
+  fi
+  if [ -n "$FILTER" ] && [[ "$label $cmd" != *"$FILTER"* ]]; then
+    continue
+  fi
+
+  selected=$((selected + 1))
+  log="${LOGDIR}/$(printf '%02d' "$selected").log"
+  start=${SECONDS}
+
+  # No pipe: the output goes straight to a file. Piping a chatty suite into
+  # anything that can close early is the SIGPIPE-141 trap this repo already
+  # paid for once (bead tla-kr9) — see .claude/rules/dispatched-agents.md.
+  set +e
+  if [ "$VERBOSE" = "1" ]; then
+    printf '=== %s (%s, budget %ss)\n' "$label" "$tier" "$budget"
+    bash -c "$cmd" 2>&1 | tee "$log"
+    rc=${PIPESTATUS[0]}
+  else
+    bash -c "$cmd" >"$log" 2>&1
+    rc=$?
+  fi
+  set -e
+
+  elapsed=$((SECONDS - start))
+
+  if [ "$rc" -eq 0 ]; then
+    printf '  PASS  %-34s %3ss  (budget %ss)\n' "$label" "$elapsed" "$budget"
+  else
+    printf '  FAIL  %-34s %3ss  rc=%s\n' "$label" "$elapsed" "$rc"
+    failed=$((failed + 1))
+    FAILED_LABELS+=("$label")
+    if [ "$VERBOSE" != "1" ]; then
+      echo "        command: $cmd"
+      echo "        ---- output ----"
+      sed 's/^/        /' "$log"
+      echo "        ---- end output ----"
+    fi
+  fi
+done
+
+total_elapsed=$((SECONDS - total_start))
+
+echo
+if [ "$selected" -eq 0 ]; then
+  echo "scripts/test: no suite matched${FILTER:+ filter=$FILTER} — refusing to report success." >&2
+  echo "  Run 'bash scripts/test --list' to see the suite table." >&2
+  exit 2
+fi
+
+if [ "$failed" -eq 0 ]; then
+  echo "OK: ${selected} suite(s) passed in ${total_elapsed}s"
+  exit 0
+fi
+
+echo "FAILED: ${failed} of ${selected} suite(s) in ${total_elapsed}s"
+for l in "${FAILED_LABELS[@]}"; do
+  echo "  - $l"
+done
+exit 1

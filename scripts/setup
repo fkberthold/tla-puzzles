@@ -1,21 +1,225 @@
 #!/usr/bin/env bash
-# script/setup — make a fresh checkout ready to run.
+# scripts/setup — make a fresh checkout ready to run.
 #
-# Canonical "script/ convention" stub (loom). `setup` installs the
-# project's own dependencies (after `script/bootstrap` has provided the
-# toolchain) and performs any first-run wiring: fetch deps, build local
-# binaries, create config files, seed a dev database. Idempotent.
+# Installs the two things this project owns:
+#   1. The PINNED TLA+ toolchain (tla2tools.jar) plus the ~/bin/tlc and
+#      ~/bin/pcal wrappers the harness and the curriculum both call.
+#   2. The docs toolchain, from docs-requirements.txt.
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     go mod download
-#   # Python: python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
-#   # Node:   npm install        # or: pnpm install / yarn install
-#   # bash:   true               # nothing to install; bash projects often no-op here
+# System-level prerequisites (a JRE, curl, python3, shellcheck) are
+# scripts/bootstrap's job. This script checks for them and points there.
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "setup: N/A for this project type" && exit 0
+# Usage:
+#   bash scripts/setup             # install / repair
+#   bash scripts/setup --check     # report what WOULD change; touch nothing
+#   bash scripts/setup --no-docs   # TLA+ toolchain only
+#
+# Idempotent: with the pinned jar already installed and reporting the pinned
+# version, the download is skipped entirely.
+#
+# ===========================================================================
+# THE PIN, AND WHY IT IS A PIN
+#
+# Canonical TLC for this project is v1.8.0 "The Clarke release", chosen
+# 2026-08-07. .github/workflows/verify-puzzles.yml pins the same release and
+# asserts the same version string; this script mirrors it so local and CI
+# cannot drift. Change one, change both, and re-verify the V2-PLAN.md §5
+# constants (bead tla-wl7) — they were measured against a specific build, so
+# a version move turns every one of them back into a hypothesis.
+#
+# NEVER write `releases/latest/download/`. GitHub's `latest` SKIPS
+# prereleases, and v1.8.0 is flagged prerelease, so `latest` silently resolves
+# to v1.7.4 — published 2024-08-05. That is how CI ran a 2024 build against
+# 2026 constants without anything failing loudly (bead tla-5b4).
+#
+# KNOWN LIVE INSTANCE OF THAT TRAP, NOT FIXED HERE: scripts/build-docs.sh
+# emits learner install instructions that still say `releases/latest/download`.
+# Reported by bead tla-xme; fixing it belongs to whoever owns build-docs.sh.
+# ===========================================================================
+
 set -euo pipefail
 
-echo "script/setup: not implemented for this project — wire up dependency install or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+
+TLA_RELEASE="v1.8.0"
+TLA_URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+# Asserted, not logged. A pin nobody checks is how the drift went unnoticed.
+EXPECT_TLC="2026.07.31"
+# Byte size of the pinned asset, confirmed against the release on 2026-08-07.
+# Guards against a truncated download and against an HTML error page landing
+# where a jar should be.
+EXPECT_BYTES=4486015
+
+LIB_DIR="${HOME}/lib"
+BIN_DIR="${HOME}/bin"
+JAR="${LIB_DIR}/tla2tools.jar"
+
+CHECK_ONLY=0
+DO_DOCS=1
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check)   CHECK_ONLY=1 ;;
+    --no-docs) DO_DOCS=0 ;;
+    -h|--help)
+      sed -n '2,20p' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
+    *)
+      echo "scripts/setup: unknown option '$1' (try --help)" >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+say()  { printf 'setup: %s\n' "$*"; }
+warn() { printf 'setup: %s\n' "$*" >&2; }
+die()  { printf 'setup: ERROR — %s\n' "$*" >&2; exit 1; }
+
+# --- prerequisites ---------------------------------------------------------
+for tool in java curl; do
+  command -v "$tool" >/dev/null 2>&1 || die "'$tool' not found. Run: bash scripts/bootstrap"
+done
+
+# --- is the pinned jar already installed? ----------------------------------
+# Ask the jar its own version rather than trusting the file's presence. Note
+# the here-string: a live pipe into grep -q returns 141 under pipefail and
+# would report a PRESENT version as ABSENT (bead tla-kr9).
+jar_reports_pin() {
+  local out
+  [ -f "$JAR" ] || return 1
+  out="$(java -cp "$JAR" tlc2.TLC 2>&1 || true)"
+  grep -qF "TLC2 Version ${EXPECT_TLC}" <<<"$out"
+}
+
+NEED_JAR=1
+if jar_reports_pin; then
+  NEED_JAR=0
+fi
+
+if [ "$CHECK_ONLY" = "1" ]; then
+  if [ "$NEED_JAR" = "0" ]; then
+    say "jar: already at the pin (TLC2 ${EXPECT_TLC}) — nothing to do"
+  else
+    say "jar: WOULD install ${TLA_RELEASE} (TLC2 ${EXPECT_TLC}) into ${JAR}"
+    if [ -f "$JAR" ]; then
+      say "jar: WOULD back up the existing ${JAR} first"
+    fi
+  fi
+  say "wrappers: WOULD (re)write ${BIN_DIR}/tlc and ${BIN_DIR}/pcal"
+  if [ "$DO_DOCS" = "1" ]; then
+    say "docs: WOULD pip install -r docs-requirements.txt"
+  fi
+  exit 0
+fi
+
+mkdir -p "$LIB_DIR" "$BIN_DIR"
+
+# --- install the pinned jar ------------------------------------------------
+if [ "$NEED_JAR" = "0" ]; then
+  say "jar already at the pin (TLC2 ${EXPECT_TLC}) — skipping download"
+else
+  # BACK UP FIRST. Old nightly builds are NOT re-downloadable: they are not
+  # published as release assets, so an overwritten nightly is gone for good.
+  # Every empirical constant in V2-PLAN.md §5 was measured against whatever
+  # jar is sitting there right now, so the backup is the only way to reproduce
+  # those measurements after the swap.
+  if [ -f "$JAR" ]; then
+    backup="${JAR}.backup-$(date +%Y%m%d-%H%M%S)"
+    if [ -e "$backup" ]; then
+      die "backup path ${backup} already exists — refusing to clobber it"
+    fi
+    cp -p "$JAR" "$backup"
+    say "backed up the existing jar to ${backup}"
+    say "  (it is NOT re-downloadable — keep it until bead tla-wl7 closes)"
+  fi
+
+  tmp="$(mktemp "${LIB_DIR}/tla2tools.jar.download.XXXXXX")"
+  # shellcheck disable=SC2064  # expand $tmp now, at trap-registration time
+  trap "rm -f '$tmp'" EXIT
+
+  say "downloading ${TLA_RELEASE} from ${TLA_URL}"
+  curl -fsSL -o "$tmp" "$TLA_URL" || die "download failed"
+
+  actual_bytes="$(wc -c <"$tmp" | tr -d ' ')"
+  if [ "$actual_bytes" != "$EXPECT_BYTES" ]; then
+    die "downloaded ${actual_bytes} bytes, expected ${EXPECT_BYTES}. Refusing to install."
+  fi
+
+  mv "$tmp" "$JAR"
+  trap - EXIT
+  say "installed ${JAR} (${EXPECT_BYTES} bytes)"
+fi
+
+# --- wrappers --------------------------------------------------------------
+# ~/bin/tlc keeps the `-pcal` dispatch. That is NOT decoration: `tlc -pcal` is
+# the documented project convention (README.md, scripts/build-docs.sh, and the
+# T0a/T0b/T0e/J06/T47 puzzle READMEs all instruct it). CI's wrapper omits it
+# and gets away with it only because verify-puzzle.sh calls `pcal` directly.
+#
+# ~/bin/pcal is installed alongside for CI parity AND because verify-puzzle.sh
+# invokes a bare `pcal`. Without it that resolves to whatever other tlaplus
+# build happens to be on PATH — translating PlusCal with one build and
+# model-checking it with another is exactly the drift this pin exists to close.
+install_wrapper() {
+  local path="$1" body="$2"
+  if [ -f "$path" ] && ! grep -qF "tla-puzzles pinned wrapper" "$path"; then
+    local backup
+    backup="${path}.backup-$(date +%Y%m%d-%H%M%S)"
+    cp -p "$path" "$backup"
+    say "backed up the pre-existing $(basename "$path") to ${backup}"
+  fi
+  printf '%s\n' "$body" >"$path"
+  chmod +x "$path"
+  say "wrote ${path}"
+}
+
+# shellcheck disable=SC2016  # single quotes are load-bearing: $HOME and $@ must
+# reach the wrapper file unexpanded, to be resolved when the wrapper runs.
+install_wrapper "${BIN_DIR}/tlc" '#!/usr/bin/env bash
+# tla-puzzles pinned wrapper — written by scripts/setup. Do not hand-edit.
+JAR="$HOME/lib/tla2tools.jar"
+JVM_OPTS="-XX:+UseParallelGC"
+if [ "$1" = "-pcal" ]; then
+    shift
+    exec java $JVM_OPTS -cp "$JAR" pcal.trans "$@"
+else
+    exec java $JVM_OPTS -cp "$JAR" tlc2.TLC "$@"
+fi'
+
+# shellcheck disable=SC2016  # as above — the wrapper resolves $HOME at run time.
+install_wrapper "${BIN_DIR}/pcal" '#!/usr/bin/env bash
+# tla-puzzles pinned wrapper — written by scripts/setup. Do not hand-edit.
+exec java -XX:+UseParallelGC -cp "$HOME/lib/tla2tools.jar" pcal.trans "$@"'
+
+case ":${PATH}:" in
+  *":${BIN_DIR}:"*) ;;
+  *) warn "NOTE: ${BIN_DIR} is not on your PATH — add it, or tlc/pcal will not resolve." ;;
+esac
+
+# --- assert the pin ---------------------------------------------------------
+tlc_out="$("${BIN_DIR}/tlc" 2>&1 || true)"
+if ! grep -qF "TLC2 Version ${EXPECT_TLC}" <<<"$tlc_out"; then
+  warn "the installed toolchain does not report TLC2 Version ${EXPECT_TLC}:"
+  grep -m1 "TLC2 Version" <<<"$tlc_out" >&2 || warn "  (no version line at all)"
+  die "pin assertion failed"
+fi
+say "pin asserted: TLC2 Version ${EXPECT_TLC} (${TLA_RELEASE})"
+
+# --- docs toolchain --------------------------------------------------------
+if [ "$DO_DOCS" = "1" ]; then
+  command -v python3 >/dev/null 2>&1 || die "python3 not found. Run: bash scripts/bootstrap"
+  # --user outside a virtualenv (this is where mkdocs already lives here);
+  # plain install inside one, where --user is an error.
+  pip_args=(install -r docs-requirements.txt)
+  if [ -z "${VIRTUAL_ENV:-}" ] && [ "$(id -u)" != "0" ]; then
+    pip_args=(install --user -r docs-requirements.txt)
+  fi
+  say "python3 -m pip ${pip_args[*]}"
+  python3 -m pip "${pip_args[@]}" || die "pip install failed"
+fi
+
+echo
+say "done. Verify with:  bash scripts/test --fast"

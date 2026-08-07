@@ -1,20 +1,128 @@
 #!/usr/bin/env bash
-# script/lint — run static analysis / style checks.
+# scripts/lint — run static analysis over this project's shell.
 #
-# Canonical "script/ convention" stub (loom). `lint` runs the linters and
-# formatters in check mode (no mutation). Wire it to fail non-zero on any
-# finding so CI and pre-commit gates can rely on it.
+# The project's primary runtime is bash (see .claude/project-constitution.md),
+# so shellcheck IS the linter. Files are selected BY SHEBANG rather than by
+# extension, and the trees are scanned rather than enumerated, so a shell file
+# that lands tomorrow is covered the moment it appears. That selection strategy
+# is lifted from harness/test-pipefail.sh, which gates the SIGPIPE idiom the
+# same way and for the same reason: an enumerated list silently stops covering
+# the tree the first time someone adds a file.
 #
-# Uncomment + adapt the line matching this project's stack:
-#   # Go:     golangci-lint run       # or: gofmt -l . && go vet ./...
-#   # Python: ruff check .            # or: flake8 / black --check .
-#   # Node:   npm run lint            # or: eslint .
-#   # bash:   shellcheck hooks/*.sh lib/*.sh scripts/*
+# Usage:
+#   bash scripts/lint                # check every shell file under the roots
+#   bash scripts/lint --list         # print the files that would be checked
+#   bash scripts/lint <path> [...]   # check only the named paths
 #
-# Until implemented, this stub fails loudly so a half-wired project can't
-# silently "succeed". To mark this script genuinely not-applicable, replace
-# the body with:  echo "lint: N/A for this project type" && exit 0
+# Runs shellcheck at its DEFAULT severity — style and info included. It is
+# wired as a real gate: it exits non-zero on any finding, so CI and hooks can
+# depend on it.
+#
+# ---------------------------------------------------------------------------
+# STATUS AS OF 2026-08-07 (bead tla-xme): THIS GATE IS CURRENTLY RED.
+#
+# The tree does not pass shellcheck today. The findings were left in place
+# deliberately — tla-xme wires the runner, it does not edit what the runner
+# runs. Standing count at the time of wiring:
+#
+#   3  SC1087  (error)    harness/refinement.sh:389,411,419 — "$reserved["
+#                         reads as an array expansion inside a bracket
+#                         expression; needs ${reserved} to quiet.
+#   7  SC2164  (warning)  bare `cd "$REPO_ROOT"` in test-pipefail.sh,
+#                         test-vacuity.sh, test-verdict.sh,
+#                         scripts/test-verify-puzzle.sh, and the grade /
+#                         refinement / seeded-bugs fixture selftests.
+#   2  SC2034  (warning)  unused: test-vacuity.sh:196 `got`,
+#                         build-docs.sh:282 `TIER_DIRS_SEEN`.
+#   ~  SC2317  (info)     "unreachable" cleanup() bodies — a known shellcheck
+#                         false positive on trap-registered functions.
+#   2  SC2016  (info)     intentional single-quoted literals.
+#   2  SC2015  (info)     A && B || C in the screen fixture selftest.
+#   1  SC2129  (style)    repeated >> redirects in gen-curriculum-map.sh.
+#
+# Fixing these is separate work. Do NOT quiet the gate by lowering severity or
+# adding blanket --exclude flags — that converts a red gate into a green lie,
+# which is the failure mode this whole script exists to avoid.
+# ---------------------------------------------------------------------------
+#
+# Lint roots. chapter/ is NOT here: it holds one shell file
+# (chapter/snippets/run-all.sh), it was clean on 2026-08-07, and adding it is
+# a one-word change when someone wants the coverage.
 set -euo pipefail
 
-echo "script/lint: not implemented for this project — wire up the linter or mark N/A." >&2
-exit 2
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+
+# Fail closed on a mis-resolved root: an empty file set would otherwise be
+# indistinguishable from a clean tree.
+if [ ! -d "${REPO_ROOT}/harness" ] || [ ! -d "${REPO_ROOT}/scripts" ]; then
+  echo "scripts/lint: ${REPO_ROOT} is not the tla-puzzles root (no harness/ + scripts/)." >&2
+  exit 2
+fi
+
+LINT_ROOTS=(scripts harness)
+
+LIST_ONLY=0
+declare -a EXPLICIT=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --list) LIST_ONLY=1 ;;
+    -h|--help)
+      sed -n '2,22p' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
+    *) EXPLICIT+=("$1") ;;
+  esac
+  shift
+done
+
+if ! command -v shellcheck >/dev/null 2>&1; then
+  echo "scripts/lint: shellcheck is not installed." >&2
+  echo "  Install it, then re-run: bash scripts/bootstrap" >&2
+  exit 2
+fi
+
+declare -a FILES=()
+
+if [ "${#EXPLICIT[@]}" -gt 0 ]; then
+  FILES=("${EXPLICIT[@]}")
+else
+  # Shebang-selected. `read -r -d ''` over a NUL-delimited find keeps paths
+  # with spaces intact and avoids a pipe into the loop (a pipe would also put
+  # the loop in a subshell, so FILES would come back empty).
+  while IFS= read -r -d '' f; do
+    first=""
+    IFS= read -r first <"$f" || true
+    case "$first" in
+      '#!'*sh*) FILES+=("$f") ;;
+    esac
+  done < <(find "${LINT_ROOTS[@]}" -type f -print0)
+fi
+
+if [ "${#FILES[@]}" -eq 0 ]; then
+  echo "scripts/lint: no shell files found under: ${LINT_ROOTS[*]}" >&2
+  echo "  Refusing to report success over an empty set." >&2
+  exit 2
+fi
+
+if [ "$LIST_ONLY" = "1" ]; then
+  printf '%s\n' "${FILES[@]}" | sort
+  exit 0
+fi
+
+echo "scripts/lint: shellcheck ${#FILES[@]} shell file(s) under ${LINT_ROOTS[*]}"
+echo
+
+set +e
+shellcheck "${FILES[@]}"
+rc=$?
+set -e
+
+echo
+if [ "$rc" -eq 0 ]; then
+  echo "OK: shellcheck clean over ${#FILES[@]} file(s)"
+else
+  echo "FAILED: shellcheck reported findings (rc=${rc}) over ${#FILES[@]} file(s)" >&2
+fi
+exit "$rc"
