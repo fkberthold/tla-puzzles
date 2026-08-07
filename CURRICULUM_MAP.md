@@ -1,6 +1,6 @@
 # Curriculum Map
 
-Auto-generated from `bd list` queries. **Do not hand-edit** — regenerate via `/tmp/gen-curriculum-map.sh`.
+Auto-generated from `bd list` queries. **Do not hand-edit** — regenerate via `bash scripts/gen-curriculum-map.sh`.
 
 Each row is one puzzle bead. Status icons: ✓ closed (done) · ○ open · ◐ in progress · ● blocked · ❄ deferred.
 
@@ -196,7 +196,7 @@ bd ready --label tier:2                                                         
 3. **Write puzzle directory:** `puzzles/T0N-the-x/{README.md, solution/Name.tla, solution/Name.cfg}`.
 4. **Verify:** `pcal Name.tla && java tlc2.TLC Name.tla` (or whatever the local TLC invocation is).
 5. **Close:** `bd close <id> --reason "Authored, verified by TLC"`.
-6. **Regenerate this map:** `bash /tmp/gen-curriculum-map.sh`.
+6. **Regenerate this map:** `bash scripts/gen-curriculum-map.sh`.
 7. **At session end:** `bd sync`.
 
 ## Spaced-Repetition Selection
