@@ -16,7 +16,10 @@
 # ---------------------------------------------------------------------------
 # PHASES
 #
-#   1. toolchain pin      the three recorded copies of the TLC pin agree, and
+#   1. toolchain pin      every recorded copy of the pin agrees — version
+#                         string AND release tag, across this script,
+#                         scripts/setup, verify-puzzles.yml and README.md —
+#                         build-docs.sh derives rather than copies it, and
 #                         the installed tlc actually reports it
 #   2. scripts/lint       shellcheck over scripts/ + harness/
 #   3. scripts/test       all ten suites — 292 harness assertions, ~121 s
@@ -47,8 +50,10 @@ if [ ! -d "${REPO_ROOT}/harness" ] || [ ! -d "${REPO_ROOT}/scripts" ]; then
   exit 2
 fi
 
-# Kept in step with scripts/setup and .github/workflows/verify-puzzles.yml by
-# phase 1 below, which compares all three rather than trusting them to match.
+# Kept in step with scripts/setup, .github/workflows/verify-puzzles.yml and
+# README.md by phase 1 below, which compares them rather than trusting them to
+# match. scripts/build-docs.sh is deliberately NOT on that list: it reads the
+# tag out of scripts/setup, so it has no copy to compare (bead tla-urv).
 EXPECT_TLC="2026.07.31"
 TLA_RELEASE="v1.8.0"
 
@@ -58,7 +63,7 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --skip-corpus) DO_CORPUS=0 ;;
     --skip-docs)   DO_DOCS=0 ;;
-    --list)        sed -n '19,33p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --list)        sed -n '19,38p' "${BASH_SOURCE[0]}"; exit 0 ;;
     -h|--help)     sed -n '2,10p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "scripts/cibuild: unknown option '$1' (try --help)" >&2; exit 2 ;;
   esac
@@ -81,7 +86,60 @@ if [ "$pin_in_ci" != "$EXPECT_TLC" ]; then
   echo "cibuild: pin drift — verify-puzzles.yml says '${pin_in_ci}', this script says '${EXPECT_TLC}'" >&2
   exit 1
 fi
-echo "  ok    all three recorded copies of the pin agree"
+echo "  ok    all three recorded copies of the version string agree"
+
+# --- the RELEASE TAG, checked the same way ---------------------------------
+# Until bead tla-urv, TLA_RELEASE above was declared here and compared against
+# nothing — only EXPECT_TLC was cross-checked. The tag is the half that picks
+# which jar gets downloaded, so an unchecked copy of it is the more dangerous
+# one: scripts/build-docs.sh carried `releases/latest/download/` for months,
+# which resolves to v1.7.4 (published 2024-08-05) because GitHub's `latest`
+# skips prereleases and v1.8.0 is flagged as one. Learners were being told to
+# install a 2024 toolchain (bead tla-urv; same trap as tla-5b4 in CI).
+
+rel_in_setup="$(sed -n 's/^TLA_RELEASE="\(.*\)"$/\1/p' scripts/setup)"
+rel_in_ci="$(sed -n "s/^ *TLA_RELEASE: *\(.*\)\$/\1/p" .github/workflows/verify-puzzles.yml)"
+
+if [ "$rel_in_setup" != "$TLA_RELEASE" ]; then
+  echo "cibuild: release drift — scripts/setup says '${rel_in_setup}', this script says '${TLA_RELEASE}'" >&2
+  exit 1
+fi
+if [ "$rel_in_ci" != "$TLA_RELEASE" ]; then
+  echo "cibuild: release drift — verify-puzzles.yml says '${rel_in_ci}', this script says '${TLA_RELEASE}'" >&2
+  exit 1
+fi
+
+# README.md is copied verbatim to docs/index.md by scripts/build-docs.sh, so
+# its install line is learner-facing and has to name the same asset.
+PINNED_JAR_URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+if ! grep -qF "$PINNED_JAR_URL" README.md; then
+  echo "cibuild: README.md does not name the pinned jar — expected ${PINNED_JAR_URL}" >&2
+  exit 1
+fi
+echo "  ok    all three recorded copies of the release tag agree, and README names it"
+
+# --- the docs generator must DERIVE the pin, never carry a copy -------------
+# scripts/build-docs.sh reads TLA_RELEASE out of scripts/setup. These two
+# checks keep it that way: no `latest`, and no hardcoded tlaplus release tag
+# that could drift from the one above.
+# The pattern includes the ASSET FILENAME on purpose. Both files below name
+# the bare fragment `releases/latest/download/` in a warning against using it,
+# and build-docs.sh carries its own guard against it — a looser pattern fires
+# on that documentation instead of on the mistake. Only a line that actually
+# fetches the asset needs to spell the filename out.
+for f in scripts/build-docs.sh README.md; do
+  if grep -qF 'releases/latest/download/tla2tools.jar' "$f"; then
+    echo "cibuild: ${f} fetches releases/latest/download/tla2tools.jar — that resolves" >&2
+    echo "  to v1.7.4 (2024-08-05); GitHub's \`latest\` skips prereleases (tla-5b4, tla-urv)." >&2
+    exit 1
+  fi
+done
+if grep -qF 'tlaplus/releases/download/v' scripts/build-docs.sh; then
+  echo "cibuild: scripts/build-docs.sh hardcodes a tlaplus release tag. It must read" >&2
+  echo "  TLA_RELEASE from scripts/setup instead, so there is no copy to drift (tla-urv)." >&2
+  exit 1
+fi
+echo "  ok    build-docs.sh derives the pin rather than copying it"
 
 if ! command -v tlc >/dev/null 2>&1; then
   echo "cibuild: tlc not on PATH. Run: bash scripts/setup" >&2

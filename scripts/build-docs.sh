@@ -10,6 +10,32 @@ cd "$(dirname "$0")/.."
 DOCS=docs
 mkdir -p "$DOCS/curriculum" "$DOCS/reference" "$DOCS/reference/modules" "$DOCS/about" "$DOCS/stylesheets"
 
+# ===========================================================================
+# THE TLA+ RELEASE PIN — DERIVED, NOT COPIED
+#
+# The learner install instructions in getting-started.md must name the SAME
+# tla2tools release the project's own CI and scripts/setup install. They did
+# not, until bead tla-urv: this file hardcoded the `releases/latest/download/`
+# form of the jar URL, and GitHub's `latest` SKIPS
+# prereleases — v1.8.0 is flagged prerelease, so that URL resolved to v1.7.4,
+# published 2024-08-05. The site therefore told learners to install a 2024
+# toolchain while every V2-PLAN.md §5 constant that grades them was measured
+# on a 2026 one. Same trap bead tla-5b4 removed from CI; it survived here.
+#
+# So the pin is READ FROM scripts/setup rather than written again. There is no
+# fourth copy to drift. scripts/cibuild phase 1 cross-checks the copies that
+# genuinely must exist (scripts/setup, the workflow, cibuild itself, README.md)
+# and asserts that this file never re-hardcodes one.
+# ===========================================================================
+TLA_RELEASE="$(sed -n 's/^TLA_RELEASE="\(.*\)"$/\1/p' scripts/setup)"
+if [ -z "$TLA_RELEASE" ]; then
+  echo "build-docs.sh: could not read TLA_RELEASE from scripts/setup." >&2
+  echo "  The learner install instructions derive the pin from there; refusing" >&2
+  echo "  to emit docs with an unresolved toolchain URL." >&2
+  exit 1
+fi
+TLA_JAR_URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+
 # Copy hand-authored module reference pages from module-docs/
 if [ -d module-docs ]; then
   cp module-docs/*.md "$DOCS/reference/modules/"
@@ -400,12 +426,16 @@ This page walks you through installing the toolchain and running your first puzz
 
 The TLA+ Toolbox ships TLC and PlusCal as a single jar. Two options:
 
-**Option A: download the jar.**
+**Option A: download the jar.** This is the release the puzzles are verified
+against — pinned on purpose. Do not substitute `releases/latest/download/`:
+GitHub's `latest` skips prereleases, so it hands you a 2024 build whose exit
+codes and messages differ from the ones every puzzle's "Expected Result" was
+measured on.
 
 ```bash
 mkdir -p ~/lib ~/bin
 curl -L -o ~/lib/tla2tools.jar \
-  https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar
+  @TLA_JAR_URL@
 cat > ~/bin/tlc <<'WRAPPER'
 #!/usr/bin/env bash
 JAR="$HOME/lib/tla2tools.jar"
@@ -482,6 +512,34 @@ mkdir -p ~/tla-attempts
 # THEN compare to puzzles/T01-the-light-switch/solution/
 ```
 EOF
+
+# The heredoc above is single-quoted on purpose — it contains `$HOME`, `$1`,
+# `$JAR` and `$@` that must reach the page literally — so the pin goes in
+# through a placeholder rather than through shell expansion.
+sed -i "s|@TLA_JAR_URL@|${TLA_JAR_URL}|g" "$DOCS/getting-started.md"
+
+# Post-condition, not a hope. This is the gate: build-docs.sh runs in
+# pages.yml on every push to main, in scripts/cibuild phase 4, and in
+# scripts/server, so a page that names the wrong toolchain never gets built,
+# let alone published.
+if grep -q '@TLA_JAR_URL@' "$DOCS/getting-started.md"; then
+  echo "build-docs.sh: the toolchain URL placeholder survived substitution." >&2
+  exit 1
+fi
+if ! grep -qF "$TLA_JAR_URL" "$DOCS/getting-started.md"; then
+  echo "build-docs.sh: getting-started.md does not name the pinned jar URL:" >&2
+  echo "  expected: $TLA_JAR_URL" >&2
+  exit 1
+fi
+# Matched as a full URL, not as the bare fragment: the page deliberately NAMES
+# `releases/latest/download/` in the warning above the curl, and a check that
+# cannot tell the warning from the mistake fires on its own documentation.
+if grep -qF 'tlaplus/tlaplus/releases/latest' "$DOCS/getting-started.md"; then
+  echo "build-docs.sh: getting-started.md still points learners at the" >&2
+  echo "  releases/latest/ URL — that resolves to v1.7.4 (2024-08-05)," >&2
+  echo "  because GitHub's \`latest\` skips prereleases (beads tla-5b4, tla-urv)." >&2
+  exit 1
+fi
 
 # ---- contributing ----
 cat > "$DOCS/about/contributing.md" <<'EOF'
