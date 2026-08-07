@@ -198,6 +198,18 @@ Lineage: bead `tla-kr9`.
 
 ---
 
+## Hazard — the isolation harness refuses a command line containing `--alias`
+
+It reads the token as the shell `alias` builtin and declines to verify the command. This bites
+any worker driving `harness/seeded-bugs.sh`, whose `--alias NAME` flag is named after the `.cfg`
+keyword and so is not going to be renamed.
+
+Workaround: put the invocation in a small scratch script and run the script.
+
+Lineage: bead `tla-kl5.8`, which hit it and had to drive every ad-hoc run that way.
+
+---
+
 ## Hazard — `docs/` is generated
 
 `docs/` is gitignored build output, produced by `scripts/build-docs.sh` from
