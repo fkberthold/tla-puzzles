@@ -13,11 +13,14 @@ having to choose.
 
 Everything in here is checkable, and I've checked all of it. Every TLA+ block
 below comes out of a module in [`snippets/`](snippets/), and
-`snippets/run-all.sh` runs 26 module/config pairs and asserts the exit code
-each one produces. Three blocks are exceptions and I flag each one where it
-appears: two are algebraic expansions of a formula rather than something you
-would write, and one is a line quoted from a published paper that does not
-parse — which is the reason I'm being fussy about this in the first place.
+`snippets/run-all.sh` runs 26 module/config pairs, asserts the exit code each
+one produces, and then reconciles every block on this page against the module
+it was taken from — so the page cannot drift away from the code that ran
+without something going red. Three blocks are exceptions and I flag each one
+where it appears: two are algebraic expansions of a formula rather than
+something you would write, and one is a line quoted from a published paper that
+does not parse — which is the reason I'm being fussy about this in the first
+place.
 
 ## Why you'd bother
 
@@ -114,6 +117,8 @@ Ring ==
 Next == Ring
 
 Spec == Init /\ [][Next]_vars
+
+MonotonicTakings == [][takings' >= takings]_vars
 =========================================================================
 ```
 
@@ -473,9 +478,9 @@ Every visible behavior of the implementation is a legal behavior of the spec.
 But a refinement mapping has to be an *expression over the concrete
 variables*, and there is no expression over `num` and `sum` that equals the
 sequence of values. The information isn't there. These two are cut down from
-Lamport and Merz's specifications A and B, and they say it in one line about
-that pair (*Prophecy Made Simple* §3.2 — their `A` keeps the count and total,
-their `B` keeps `seq`):
+Lamport and Merz's specifications A and B (*Prophecy Made Simple* §3.1 and
+§3.2 — their `A` keeps the count and total, their `B` keeps `seq`), and they
+say it in one line about that pair, in the opening paragraph of §4:
 
 > IA does not implement IB under any refinement mapping because there is no
 > way to define seq in terms of the variables of A.

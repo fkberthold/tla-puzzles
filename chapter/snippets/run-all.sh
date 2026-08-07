@@ -66,4 +66,18 @@ done
 
 echo
 echo "$pass passed, $fail failed"
+
+# Running the modules is only half the promise.  The other half is that the code
+# the chapter PRINTS is the code that just ran, and that the exit codes it quotes
+# are the ones asserted above.  check-blocks.py reconciles the two; without it a
+# block can drift out of its module silently and every run stays green.
+if ! command -v python3 > /dev/null 2>&1; then
+  echo "FAIL  python3 not found -- cannot reconcile the chapter against these modules"
+  exit 1
+fi
+echo
+if ! python3 ./check-blocks.py; then
+  fail=$((fail + 1))
+fi
+
 [ "$fail" = 0 ]

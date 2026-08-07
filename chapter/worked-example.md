@@ -5,7 +5,8 @@ part you're here for: a mapping that looks completely reasonable, that TLC
 accepts, and that checks nothing at all.
 
 Everything below is in [`snippets/`](snippets/). Run `./run-all.sh` there and
-it will re-run all of it and check the exit codes.
+it will re-run all of it, check the exit codes, and check that the code printed
+on this page still matches the modules it came from.
 
 ## The system
 
@@ -68,6 +69,11 @@ CONSTANTS Proposals, Dishes, Needed, Idle
 
 VARIABLES status, onsky, acc
 cvars == << status, onsky, acc >>
+
+TypeOK ==
+  /\ status \in [Proposals -> {"queued", "observing", "archived"}]
+  /\ onsky  \in [Dishes -> Proposals \cup {Idle}]
+  /\ acc    \in [Proposals -> 0..Needed]
 
 Init ==
   /\ status = [p \in Proposals |-> "queued"]
