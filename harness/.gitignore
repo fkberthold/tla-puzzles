@@ -1,0 +1,6 @@
+
+# TLC scratch metadirs from ad-hoc verification runs (-metadir "$PWD/.mX")
+.m*/
+states/
+*.st
+*.fp
