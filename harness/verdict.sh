@@ -45,16 +45,62 @@
 # numbers, not just the tokens, precisely so that a renumbered TLC breaks the
 # build instead of quietly relabelling itself.
 #
-#     0  OK                  no error found
-#    10  ASSUMPTION_FAILED   ASSUME false, or -postCondition false
-#    11  DEADLOCK            reachable state with no successor
-#    12  SAFETY_VIOLATION    INVARIANT violated
-#    13  LIVENESS_VIOLATION  PROPERTY violated (incl. refinement, §5.4)
-#   124  TIMEOUT             killed by timeout(1) -- its OWN verdict
-#   150  PARSE_ERROR         parse or semantic failure, incl. a missing .tla
-#   151  CONFIG_ERROR        .cfg names something the spec does not define
-#   255  TLC_EXCEPTION       TLC's catch-all: missing/unparseable .cfg, etc.
-#     *  UNKNOWN_<rc>        never silently folded into an existing row
+#      0  OK                     no error found
+#     10  ASSUMPTION_FAILED      ASSUME false, or -postCondition false
+#     11  DEADLOCK               reachable state with no successor
+#     12  SAFETY_VIOLATION       INVARIANT violated
+#     13  LIVENESS_VIOLATION     PROPERTY violated (incl. refinement, §5.4)
+#     14  ASSERT_VIOLATION       Assert(FALSE, ...) DURING BEHAVIOUR EXPLORATION
+#     75  SPEC_EVAL_FAILURE      the spec could not be evaluated
+#     76  SAFETY_EVAL_FAILURE    the INVARIANT could not be evaluated
+#     77  LIVENESS_EVAL_FAILURE  the PROPERTY could not be checked
+#    124  TIMEOUT                killed by timeout(1) -- its OWN verdict
+#    150  PARSE_ERROR            parse or semantic failure, incl. a missing .tla
+#    151  CONFIG_ERROR           .cfg names something the spec does not define
+#    255  TLC_EXCEPTION          TLC's catch-all: missing/unparseable .cfg, etc.
+#      *  UNKNOWN_<rc>           never silently folded into an existing row
+#
+# THE FOUR EVALUATION-FAILURE ROWS ARE NOT VIOLATION ROWS (bead tla-i9m). The
+# distinction is the reason they have their own tokens rather than sharing 12's
+# or 13's:
+#
+#   12 and 13 mean the property WAS CHECKED and came out false. There is a
+#   counterexample; the spec itself is fine. A learner should hear "your
+#   property does not hold, here is the trace".
+#
+#   75, 76 and 77 mean the check NEVER HAPPENED. The spec did not evaluate, or
+#   the invariant blew up mid-evaluation, or TLC refused the temporal formula.
+#   Nothing at all is known about whether the property holds. A learner should
+#   hear "your spec did not evaluate", and telling them "your property was
+#   violated" would be a false statement about a check that never ran.
+#
+# rc=14 IS A TIMING FACT, NOT A CONSTRUCT FACT. It does not mean "an Assert
+# failed"; it means an Assert failed once TLC was already exploring behaviour.
+# The identical Assert(FALSE, ...) in Init exits 75, because the initial-state
+# computation wraps the EvalException as EC.TLC_NESTED_EXPRESSION instead of
+# letting the assertion's own error code through. AssertViolation.tla and
+# AssertInInit.tla are the measured pair, and test-verdict.sh pins both so that
+# a TLC which stopped distinguishing them breaks the build.
+#
+# 75 IS A FAMILY, NOT A CONDITION. EC.errorConstantToExitStatus routes at least
+# TLC_NESTED_EXPRESSION (2103), TLC_STATE_NOT_COMPLETELY_SPECIFIED_NEXT (2109),
+# TLC_STATES_AND_NO_NEXT_ACTION (2115) and TLC_FINGERPRINT_EXCEPTION (2147) to
+# it. That is no different in kind from 255, which already covers a missing
+# .cfg and a garbage .cfg and a duplicated SPECIFICATION line: a token names
+# the CHANNEL, not the cause. The cause is in the log, which is written for
+# humans and never read for a verdict.
+#
+# WHAT IS DELIBERATELY MISSING: ERROR_STATESPACE_TOO_LARGE=152 and
+# ERROR_SYSTEM=153. Both are declared in the jar's own EC$ExitStatus enum, and
+# neither is mapped here, because no fixture provokes them and the reason is
+# not "nobody tried". Disassembling every class in tla2tools v1.8.0 finds no
+# bytecode anywhere that pushes 152 or 153 as an exit value -- the only
+# `sipush 152/153` sites in the whole jar are parser token constants and
+# bundled third-party libraries -- and both are absent from the enum's own
+# `knownExitValues` set. They are dead constants in this build. A mapping
+# nobody has measured is a guess wearing a table's authority, so if a future
+# TLC starts emitting one it arrives as a loud UNKNOWN_152 and gets measured
+# before it gets named. test-verdict.sh asserts the absence of those two arms.
 #
 # DEPARTURES FROM THE V2-PLAN.md §5.1 TABLE, all measured, all deliberate:
 #
@@ -225,6 +271,13 @@ case "$rc" in
   11)  verdict="DEADLOCK" ;;
   12)  verdict="SAFETY_VIOLATION" ;;
   13)  verdict="LIVENESS_VIOLATION" ;;
+  # The evaluation-failure rows. Kept separate from 12/13 because "the check
+  # came out false" and "the check never ran" are different facts; see the
+  # header. 14 is a timing fact, not a construct fact.
+  14)  verdict="ASSERT_VIOLATION" ;;
+  75)  verdict="SPEC_EVAL_FAILURE" ;;
+  76)  verdict="SAFETY_EVAL_FAILURE" ;;
+  77)  verdict="LIVENESS_EVAL_FAILURE" ;;
   124) verdict="TIMEOUT" ;;
   150) verdict="PARSE_ERROR" ;;
   151) verdict="CONFIG_ERROR" ;;

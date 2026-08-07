@@ -410,18 +410,37 @@ build string and the release together only when they actually match.
 
 ### 5.1 Component: verdict channel
 
-Replace stdout greps with exit codes throughout:
+Replace stdout greps with exit codes throughout.
 
-| rc | meaning |
-|---|---|
-| 0 | success |
-| 10 | `ASSUME` or `-postCondition` false |
-| 11 | deadlock |
-| 12 | safety violation (`INVARIANT`) |
-| 13 | liveness / action-property violation (`PROPERTY`, incl. refinement) |
-| 150 | parse / semantic failure — **including a missing `.tla` module** |
-| 151 | config failure (*semantic*: the `.cfg` parsed but names something the spec lacks) |
-| 255 | TLC's generic unexpected-exception catch-all — a missing `.cfg`, a malformed `.cfg` |
+**Provenance — this table is read out of the jar, not inferred.** The authority is TLC's own
+enum, and anyone editing a row re-reads it rather than reasoning about it:
+
+```bash
+javap -cp ~/lib/tla2tools.jar -constants 'tlc2.output.EC$ExitStatus'
+```
+
+The enum declares **fourteen** codes. All fourteen are below. Every row marked *measured* is
+driven by a purpose-built fixture in `harness/fixtures/verdict/` and asserted — token **and raw
+rc** — by `harness/test-verdict.sh`.
+
+| rc | enum name | verdict token | meaning | status |
+|---|---|---|---|---|
+| 0 | `SUCCESS` | `OK` | success | measured |
+| 10 | `VIOLATION_ASSUMPTION` | `ASSUMPTION_FAILED` | `ASSUME` or `-postCondition` false | measured |
+| 11 | `VIOLATION_DEADLOCK` | `DEADLOCK` | deadlock | measured |
+| 12 | `VIOLATION_SAFETY` | `SAFETY_VIOLATION` | safety violation (`INVARIANT`) | measured |
+| 13 | `VIOLATION_LIVENESS` | `LIVENESS_VIOLATION` | liveness / action-property violation (`PROPERTY`, incl. refinement) | measured |
+| 14 | `VIOLATION_ASSERT` | `ASSERT_VIOLATION` | `Assert(FALSE, …)` **while exploring behaviour** | measured |
+| 75 | `FAILURE_SPEC_EVAL` | `SPEC_EVAL_FAILURE` | the spec could not be evaluated | measured |
+| 76 | `FAILURE_SAFETY_EVAL` | `SAFETY_EVAL_FAILURE` | the `INVARIANT` could not be evaluated | measured |
+| 77 | `FAILURE_LIVENESS_EVAL` | `LIVENESS_EVAL_FAILURE` | the `PROPERTY` could not be checked | measured |
+| 124 | *(not TLC's)* | `TIMEOUT` | `timeout(1)` killed the run — its own verdict | measured |
+| 150 | `ERROR_SPEC_PARSE` | `PARSE_ERROR` | parse / semantic failure — **including a missing `.tla` module** | measured |
+| 151 | `ERROR_CONFIG_PARSE` | `CONFIG_ERROR` | config failure (*semantic*: the `.cfg` parsed but names something the spec lacks) | measured |
+| 152 | `ERROR_STATESPACE_TOO_LARGE` | *(unmapped)* | — | **unprovokable, see below** |
+| 153 | `ERROR_SYSTEM` | *(unmapped)* | — | **unprovokable, see below** |
+| 255 | `ERROR` | `TLC_EXCEPTION` | TLC's generic unexpected-exception catch-all — a missing `.cfg`, a malformed `.cfg` | measured |
+| * | — | `UNKNOWN_<rc>` | never silently folded into an existing row | — |
 
 **Corrected 2026-08-06 while building `tla-kl5.4`.** The row for 255 previously read "file not
 found", which was wrong twice over. A missing **module** is 150, not 255 (`Fatal errors while
@@ -430,6 +449,91 @@ parsing TLA+ spec in file NoSuchModule`); only a missing **config** reaches 255 
 at all. Name the verdict token for the catch-all, never for missing files: a token called
 `FILE_NOT_FOUND` would have the tutor tell a learner with a typo'd `.cfg` that their file is
 missing. Verified on TLC 2026.03.04.183147, re-verified on v1.8.0 (2026.07.31.184830).
+
+**Extended 2026-08-07 by `tla-i9m`.** The table above was eight rows; the enum had fourteen. The
+six absent codes — 14, 75, 76, 77, 152, 153 — were not merely undocumented, they were **untested
+branches of the one channel every other harness component routes through**. Four of them turned
+out to be provokable and are now measured; two turned out to be dead.
+
+#### The evaluation-failure rows are not violation rows
+
+14, 75, 76 and 77 have their own tokens rather than sharing 12's or 13's, and the reason is what
+a learner is told:
+
+- **12 and 13 mean the property was checked and came out false.** There is a counterexample. The
+  spec itself is fine.
+- **75, 76 and 77 mean the check never happened.** The spec did not evaluate, or the invariant
+  blew up mid-evaluation, or TLC refused the temporal formula. Nothing at all is known about
+  whether the property holds.
+
+Folding an evaluation failure into a violation token makes the tutor say "your property was
+violated" about a check that never ran — a false statement, and precisely the class of error the
+stdout-grep chain used to make.
+
+#### rc=14 is a timing fact, not a construct fact
+
+`ASSERT_VIOLATION` does **not** mean "an `Assert` failed". It means an `Assert` failed *once TLC
+was already exploring behaviour*. The identical `Assert(FALSE, …)` moved into `Init` exits **75**,
+because the initial-state computation wraps the `EvalException` as `EC.TLC_NESTED_EXPRESSION`
+(2103) instead of letting the assertion's own error code through.
+`harness/fixtures/verdict/AssertViolation.tla` and `AssertInInit.tla` are the measured pair, and
+both are pinned so a TLC that stopped distinguishing them breaks the build. Anyone reading this
+table as a map from *language construct* to *code* will get 14 wrong.
+
+#### rc=75 is a family, not a condition
+
+`EC.errorConstantToExitStatus` routes at least four error constants to 75:
+`TLC_NESTED_EXPRESSION` (2103), `TLC_STATE_NOT_COMPLETELY_SPECIFIED_NEXT` (2109),
+`TLC_STATES_AND_NO_NEXT_ACTION` (2115) and `TLC_FINGERPRINT_EXCEPTION` (2147). That is no
+different in kind from 255, which already covers a missing `.cfg` *and* a garbage `.cfg` *and* a
+duplicated `SPECIFICATION` line. **A token names the channel, not the cause.** The cause is in
+the log, which is written for humans and never read for a verdict.
+
+#### T29, and the trap the rewire walked past
+
+**rc=75 is live in the v1 corpus, not hypothetical.**
+`puzzles/T29-unchanged/solution/Clock_buggy.tla` is a clock whose `Tick` sets `seconds'` in the
+non-rollover branch and forgets `minutes'`. TLC cannot complete the successor state and exits 75
+with *"Successor state is not completely specified by action `Tick` of the next-state relation."*
+That under-constrained action **is the defect the puzzle exists to demonstrate**, so v1's verdict
+for it is `PASS-VIOLATION`.
+
+The trap is how v1 arrived at that verdict. The old grep chain classified this rc as
+`PASS-VIOLATION` **because it matched the `Trace exploration` line of the `*_TTrace_*.tla` file
+TLC emits alongside the error** — not because it recognised anything about the spec. The
+canonical invocation below passes **`-noGenerateSpecTE`**, which suppresses that file. So
+adopting the canonical invocation *while keeping the greps* would have silently removed the sole
+basis for T29's verdict, and T29 would have flipped from `PASS-VIOLATION` to a fallthrough with
+nothing in the console text to catch it. This is the sharpest single argument in the plan for
+verdicts-from-exit-codes: the greps were not merely fragile, they were reading a file the correct
+invocation does not write.
+
+`scripts/verify-puzzle.sh` therefore maps rc=75 onto v1's `PASS-VIOLATION` — and it does that at
+the **v1-vocabulary layer**, branching on the raw rc, while `verdict.sh` names the TLC outcome at
+the **measurement layer**. Keeping the two separate is the point: `SPEC_EVAL_FAILURE` is what TLC
+did; `PASS-VIOLATION` is what the v1 curriculum makes of it. Collapsing them would push a
+pedagogical judgement down into the channel that is supposed to be free of judgement.
+
+#### 152 and 153 are dead constants, not untested ones
+
+They stay unmapped, and **not** because nobody built a fixture. Disassembling every class in
+tla2tools v1.8.0 finds no bytecode anywhere that pushes 152 or 153 as an exit value — the only
+`sipush 152` / `sipush 153` sites in the whole jar are parser token constants
+(`TLAplusParserTokenManager`, `SyntaxTreeConstants`) and bundled third-party libraries (jline
+`Colors`/`InfoCmp`, commons-math `SmallPrimes`/`LocalizedFormats`). Both are also absent from the
+enum's own `knownExitValues` set, which lists exactly `{0, 10, 11, 12, 13, 14, 75, 76, 77, 150,
+151}` — so `exitStatusToCrash` treats 152 and 153 as crashes rather than as verdicts.
+
+They are declared and never emitted. **A mapping nobody has measured is a guess wearing a table's
+authority**, so if a future TLC starts emitting one it must arrive as a loud `UNKNOWN_152` and be
+measured before it is named. `harness/test-verdict.sh` asserts the *absence* of a case arm for
+either, so the discipline is gated rather than merely written down here.
+
+Reproduce with:
+
+```bash
+javap -cp ~/lib/tla2tools.jar -c 'tlc2.output.EC$ExitStatus'   # the routing + knownExitValues
+```
 
 Canonical invocation:
 
