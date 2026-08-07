@@ -195,6 +195,9 @@ fi
 CONFIG_ABS=$(cd -- "$(dirname -- "$CONFIG")" 2>/dev/null && pwd)/$(basename -- "$CONFIG")
 
 SCRATCH=$(mktemp -d -t tla_vacuity.XXXXXX)
+# Reached only through the EXIT trap below. shellcheck does not follow traps,
+# so it reads the body as unreachable and raises SC2317.
+# shellcheck disable=SC2317
 cleanup() { rm -rf "$SCRATCH"; }
 trap cleanup EXIT
 

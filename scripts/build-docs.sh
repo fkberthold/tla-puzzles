@@ -305,7 +305,6 @@ LC_ALL=C sort -t$'\t' -k1,1 -k2,2 "$puzzle_index" > "${puzzle_index}.sorted"
 mv "${puzzle_index}.sorted" "$puzzle_index"
 
 # Write each puzzle as its own page.
-declare -A TIER_DIRS_SEEN
 while IFS=$'\t' read -r tier sk prefix dir; do
   out_dir="$DOCS/curriculum/${tier}"
   mkdir -p "$out_dir"

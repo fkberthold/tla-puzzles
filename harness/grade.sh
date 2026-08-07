@@ -306,6 +306,9 @@ if [ -z "$SCRATCH" ]; then
 else
   mkdir -p "$SCRATCH"
 fi
+# Reached only through the EXIT trap below. shellcheck does not follow traps,
+# so it reads the body as unreachable and raises SC2317.
+# shellcheck disable=SC2317
 cleanup() { [ "$CLEAN_SCRATCH" = "1" ] && rm -rf "$SCRATCH"; }
 trap cleanup EXIT
 

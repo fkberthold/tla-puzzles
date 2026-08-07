@@ -408,6 +408,9 @@ if [ -n "$KEEP" ]; then
 else
   WORK=$(mktemp -d -t tla_seeded.XXXXXX); CLEAN=1
 fi
+# Reached only through the EXIT trap below. shellcheck does not follow traps,
+# so it reads the body as unreachable and raises SC2317.
+# shellcheck disable=SC2317
 cleanup() { [ "$CLEAN" = "1" ] && rm -rf "$WORK"; }
 trap cleanup EXIT
 

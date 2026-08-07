@@ -19,30 +19,34 @@
 # depend on it.
 #
 # ---------------------------------------------------------------------------
-# STATUS AS OF 2026-08-07 (bead tla-xme): THIS GATE IS CURRENTLY RED.
+# STATUS AS OF 2026-08-07 (bead tla-5r7): THIS GATE IS GREEN.
 #
-# The tree does not pass shellcheck today. The findings were left in place
-# deliberately — tla-xme wires the runner, it does not edit what the runner
-# runs. Standing count at the time of wiring:
+# tla-xme wired the runner and left its 26 findings standing, because wiring a
+# runner is not the same job as editing what the runner runs. tla-5r7 cleared
+# them: 3 SC1087, 8 warnings, 14 infos, 1 style, over 15 files.
 #
-#   3  SC1087  (error)    harness/refinement.sh:389,411,419 — "$reserved["
-#                         reads as an array expansion inside a bracket
-#                         expression; needs ${reserved} to quiet.
-#   7  SC2164  (warning)  bare `cd "$REPO_ROOT"` in test-pipefail.sh,
-#                         test-vacuity.sh, test-verdict.sh,
-#                         scripts/test-verify-puzzle.sh, and the grade /
-#                         refinement / seeded-bugs fixture selftests.
-#   2  SC2034  (warning)  unused: test-vacuity.sh:196 `got`,
-#                         build-docs.sh:282 `TIER_DIRS_SEEN`.
-#   ~  SC2317  (info)     "unreachable" cleanup() bodies — a known shellcheck
-#                         false positive on trap-registered functions.
-#   2  SC2016  (info)     intentional single-quoted literals.
-#   2  SC2015  (info)     A && B || C in the screen fixture selftest.
-#   1  SC2129  (style)    repeated >> redirects in gen-curriculum-map.sh.
+# Most were real and got a real fix. Six bare `cd "$REPO_ROOT"` calls gained
+# `|| exit 1`, which matters because those suites run under `set -uo pipefail`
+# with no `-e`, so a failed cd used to run the whole suite from the wrong
+# directory. Two unused variables turned out to be dead rather than a dropped
+# assertion, and went away. The `A && ok || fail` pair in the screen fixture
+# selftest became if-then-else.
 #
-# Fixing these is separate work. Do NOT quiet the gate by lowering severity or
-# adding blanket --exclude flags — that converts a red gate into a green lie,
-# which is the failure mode this whole script exists to avoid.
+# The 3 SC1087 in refinement.sh got braces, `${reserved}` for `$reserved`.
+# That is a no-op at runtime: bash does not index without braces, so the old
+# form expanded the variable and left the bracket expression alone. It was
+# checked against a running shell before being touched, not assumed, because
+# the other reading would have meant three silently wrong matches.
+#
+# Seven sites carry a per-site `# shellcheck disable=`, each with a comment
+# saying why the checker is wrong there. Five are SC2317 on cleanup() bodies
+# reached through an EXIT trap, which shellcheck does not follow. Two are
+# SC2016 on single-quoted literals that must not expand.
+#
+# Keep it green the same way. Do NOT lower severity, add blanket --exclude
+# flags, or sweep disable comments across a file. Any of those converts a red
+# gate into a green lie, which is the failure mode this script exists to avoid.
+# A disable belongs at one site, with the reason next to it.
 # ---------------------------------------------------------------------------
 #
 # Lint roots. chapter/ is NOT here: it holds one shell file

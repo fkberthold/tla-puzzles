@@ -389,7 +389,11 @@ if [ -f "$MODULE" ]; then
   SRC=$(strip_tla_comments "$MODULE" | logical_defs)
 
   for reserved in "$HARNESS_PROBE" "$HARNESS_REFINES" "$HARNESS_MAP"; do
-    if grep -qE "^[[:space:]]*$reserved[[:space:]]*==" <<<"$SRC"; then
+    # The braces are for shellcheck, not for bash. Bash does not index without
+    # them, so `$reserved[` expands the variable and leaves the bracket
+    # expression alone. shellcheck can't tell that from an array subscript and
+    # raises SC1087. Both forms build the same pattern, byte for byte.
+    if grep -qE "^[[:space:]]*${reserved}[[:space:]]*==" <<<"$SRC"; then
       emit "RESERVED_NAME" 29
     fi
   done
@@ -411,7 +415,7 @@ if [ -f "$MODULE" ]; then
     # judged. One grep suffices because the definition has already been
     # reassembled onto a single line, wrap and all.
     if [ "$ALLOW_IMPLICIT" = "0" ]; then
-      stmt=$(grep -E "^[[:space:]]*$INSTANCE[[:space:]]*==[[:space:]]*INSTANCE[[:space:]]" <<<"$SRC")
+      stmt=$(grep -E "^[[:space:]]*${INSTANCE}[[:space:]]*==[[:space:]]*INSTANCE[[:space:]]" <<<"$SRC")
       if ! grep -qE '(^|[^A-Za-z0-9_])WITH([^A-Za-z0-9_]|$)' <<<"$stmt"; then
         emit "IMPLICIT_MAPPING" 25
       fi
@@ -419,7 +423,7 @@ if [ -f "$MODULE" ]; then
 
     # The refinement operator has to exist, because the .cfg accepts only bare
     # identifiers and `PROPERTY A!Spec` fails with a message about `A`.
-    if ! grep -qE "^[[:space:]]*$REFINES[[:space:]]*==" <<<"$SRC"; then
+    if ! grep -qE "^[[:space:]]*${REFINES}[[:space:]]*==" <<<"$SRC"; then
       # §10: TLC silently ignores THEOREM. A submission whose refinement claim
       # lives only there has stated it to a reader and to nobody else.
       if grep -qE '^[[:space:]]*THEOREM([[:space:]]|$)' <<<"$SRC" &&
@@ -452,6 +456,9 @@ if [ -n "$KEEP" ]; then
 else
   STAGE=$(mktemp -d -t tla_refinement.XXXXXX); CLEAN=1
 fi
+# Reached only through the EXIT trap below. shellcheck does not follow traps,
+# so it reads the body as unreachable and raises SC2317.
+# shellcheck disable=SC2317
 cleanup() { [ "$CLEAN" = "1" ] && rm -rf "$STAGE"; }
 trap cleanup EXIT
 
