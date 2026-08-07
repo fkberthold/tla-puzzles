@@ -148,7 +148,7 @@ in. An empty verb here has always meant "no honest command exists yet", never
 | verb | command | notes |
 |---|---|---|
 | `test` | `bash scripts/test` | 10 suites, 292 assertions, ~120 s |
-| `lint` | `bash scripts/lint` | shellcheck over `scripts/` + `harness/` — **RED today** |
+| `lint` | `bash scripts/lint` | shellcheck over `scripts/` + `harness/` — green since `tla-5r7` |
 | `dev` | `bash scripts/server` | regenerates `docs/`, then `mkdocs serve` |
 | `deploy` | `bash scripts/deploy` | **refuses without `--yes`** |
 | `gen` | `bash scripts/gen-curriculum-map.sh` | regenerates `CURRICULUM_MAP.md` from bd state |
@@ -161,11 +161,32 @@ The fast tier is 108 of the 292 assertions — 37%. Recording it as the canonica
 command would be the same class of lie the empty verb was avoiding. Use `--fast`
 for tight iteration; gate on the default.
 
-**`lint` is RED right now, and it is not yours to fix.** 3 `SC1087` errors in
-`harness/refinement.sh` plus warnings and infos elsewhere, all pre-existing and
-tracked as bead `tla-5r7`. `tla-xme` wired the runner and deliberately left the
-findings. A red gate is not a lying command — it is a true report. Do **not**
-quiet it by lowering severity or adding blanket `--exclude` flags.
+**`lint` is green as of 2026-08-07, and keeping it that way is yours.** It went
+green in bead `tla-5r7`: 26 findings at default severity, all closed, with seven
+sites carrying a per-site `# shellcheck disable` and its reason next to the code.
+Do **not** quiet a new finding by lowering severity or adding a blanket
+`--exclude`. Fix it, or justify that one site and say why.
+
+Two things from that bead are worth carrying forward.
+
+The 3 `SC1087` errors in `harness/refinement.sh` were **false positives, and
+that was proven rather than assumed**. Bash does not index an array without
+braces, so `$reserved[` expands the variable and leaves the bracket expression
+alone — a probe shows `"$arr[1]"` yielding `zero[1]`. The braces are for
+shellcheck. Both forms build the same pattern byte for byte, so the three
+refinement matches were never wrong. Prove the same way before you quiet a
+checker that claims your code is broken.
+
+A justification comment goes **above** the directive, never below it. A
+continuation line starting with the word "shellcheck" is parsed as a second
+directive, which raised 10 new `SC1072`/`SC1073` errors on the first attempt.
+Prose first, `# shellcheck disable=...` last and adjacent to the code.
+
+This section used to say the opposite, and the history is the point: it read
+"`lint` is RED right now, and it is not yours to fix" for a day, because
+`tla-xme` wired the runner and deliberately left the findings for separate work.
+A red gate is not a lying command. It is a true report, and it stays in the file
+as one until somebody closes it.
 
 `gen` was empty for the same honesty reason until 2026-08-07, and the fix is
 worth knowing about as a **failure shape**, not just as a fixed bug.
