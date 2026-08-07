@@ -185,7 +185,7 @@ gh_count() {
 	fi
 
 	n="$("$GH" api -X GET search/code -f "q=$q" --jq '.total_count' 2>/dev/null)"
-	if ! printf '%s' "$n" | grep -qE '^[0-9]+$'; then
+	if ! grep -qE '^[0-9]+$' <<<"$n"; then
 		printf 'ERR'
 		return 1
 	fi
@@ -282,7 +282,13 @@ screen_one() {
 	local printed_suspicion=0
 	while IFS='~' read -r pat kind label note; do
 		[ -n "${pat:-}" ] || continue
-		printf '%s' "$lc" | grep -qiE "$pat" || continue
+		# Here-string, never `printf ... | grep -qi`. `$lc` is the whole
+		# lowercased candidate; under `pipefail` grep -q exits at the first
+		# match, the producer dies of SIGPIPE, and the pipeline reports 141 --
+		# which `|| continue` reads as "no match" and SKIPS a suspicion that
+		# did fire. A silent false negative in the screen itself, and an
+		# intermittent one. Bead tla-kr9.
+		grep -qiE "$pat" <<<"$lc" || continue
 		if [ "$printed_suspicion" = 0 ]; then
 			printf -- '--- §2.2 pre-screen suspicion\n'
 			printed_suspicion=1
@@ -329,7 +335,9 @@ screen_one() {
 	printf -- '--- step 2: MECHANISM collision  (name novelty is not mechanism novelty)\n'
 	while IFS='~' read -r pat terms; do
 		[ -n "${pat:-}" ] || continue
-		printf '%s' "$lc" | grep -qiE "$pat" || continue
+		# Here-string, not a pipe — same SIGPIPE-under-pipefail trap as the
+		# §2.2 loop above; a 141 here would silently drop a mechanism term.
+		grep -qiE "$pat" <<<"$lc" || continue
 		while IFS= read -r t; do
 			[ -n "$t" ] || continue
 			local seen=0 m
@@ -370,9 +378,12 @@ screen_one() {
 				printf '      %-20s no README row\n' "$t"
 				unsettled+=("$t")
 			else
-				n="$(printf '%s\n' "$rows" | grep -c .)"
+				n="$(grep -c . <<<"$rows")"
 				printf '      %-20s %s README row(s) -> BURNED\n' "$t" "$n"
-				printf '%s\n' "$rows" | head -n "$MAX_ROWS" | sed 's/^/                             /'
+				# `printf ... | head -n N` is the SIGPIPE shape too: head
+				# closes the pipe after N lines and the producer takes 141.
+				# Slice with a here-string so no pipe is live. Bead tla-kr9.
+				head -n "$MAX_ROWS" <<<"$rows" | sed 's/^/                             /'
 				[ "$n" -gt "$MAX_ROWS" ] && printf '                             ... and %s more\n' "$((n - MAX_ROWS))"
 				mech_verdict="BURNED"
 			fi

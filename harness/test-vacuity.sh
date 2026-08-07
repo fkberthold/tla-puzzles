@@ -82,10 +82,13 @@ assert_reports() {
   shift 2
   local got_out
   got_out=$(bash "$VACUITY" "$@" 2>/dev/null)
-  # -c rather than -q, for the same reason as the structural assertions: -q
-  # exits at the first match, and under `pipefail` the upstream write can die
-  # of SIGPIPE and turn a found pattern into rc=141.
-  if printf '%s' "$got_out" | grep -cF -- "$want" >/dev/null; then
+  # Here-string, not a pipe. This used to be `printf ... | grep -cF`, where the
+  # `-c` was doing the safety work: -c reads to EOF so nothing early-exits, and
+  # so nothing SIGPIPEs. That worked, but it made the correctness of the check
+  # depend on a flag whose stated job is counting -- swap the -c back to a -q
+  # and the bug returns silently. Removing the pipe removes the hazard outright
+  # and lets -q mean what it says. Bead tla-kr9.
+  if grep -qF -- "$want" <<<"$got_out"; then
     ok "$label"
   else
     nope "$label — remediation did not mention: $want"
@@ -104,6 +107,12 @@ assert_reports() {
 # comes back as rc=141 -- a structural check failing for a reason that has
 # nothing to do with the code it checks. Measured here on the verdict.sh
 # routing assertion, which matches at line 121 of ~330.
+#
+# NOTE (bead tla-kr9): capturing is necessary but NOT sufficient, which is why
+# the matches below are here-strings rather than `printf "$VACUITY_CODE" | grep`.
+# The printf builtin runs in a forked subshell inside a pipeline and takes
+# SIGPIPE exactly as sed did -- measured at rc=141 on a 2 MB string, identical
+# to the uncaptured shape. The pipe is the bug, not the producer.
 if [ ! -f "$VACUITY" ]; then
   echo "FATAL: $VACUITY does not exist" >&2
   exit 1
@@ -112,21 +121,21 @@ VACUITY_CODE=$(sed 's/^[[:space:]]*#.*$//' "$VACUITY")
 
 assert_present() {
   local label="$1" pattern="$2"
-  if printf '%s\n' "$VACUITY_CODE" | grep -cE -- "$pattern" >/dev/null; then
+  if grep -qE -- "$pattern" <<<"$VACUITY_CODE"; then
     ok "$label"
   else
-    nope "$label — pattern not found: $pattern"
+    nope "$label — pattern not found: $pattern (searched $(grep -c '' <<<"$VACUITY_CODE") lines of $VACUITY)"
   fi
 }
 
 assert_absent() {
   local label="$1" pattern="$2"
   local hits
-  hits=$(printf '%s\n' "$VACUITY_CODE" | grep -nE -- "$pattern")
+  hits=$(grep -nE -- "$pattern" <<<"$VACUITY_CODE")
   if [ -z "$hits" ]; then
     ok "$label"
   else
-    nope "$label — found: $(echo "$hits" | tr '\n' ' ')"
+    nope "$label — found: $(tr '\n' ' ' <<<"$hits")"
   fi
 }
 
@@ -252,7 +261,7 @@ pcal_cov=$(
   bash verdict.sh -q --log /dev/stdout fixtures/vacuity/TerminatingPcal.tla 2>/dev/null \
     | grep -E '^<Terminating .*>: [0-9]+:[0-9]+$'
 )
-if printf '%s' "$pcal_cov" | grep -qE '>: 0:[1-9]'; then
+if grep -qE '>: 0:[1-9]' <<<"$pcal_cov"; then
   ok "PlusCal Terminating still reports 0 distinct with non-zero total — ${pcal_cov##*: }"
 else
   nope "PlusCal Terminating coverage — wanted 0:<non-zero>, got '${pcal_cov}'"
