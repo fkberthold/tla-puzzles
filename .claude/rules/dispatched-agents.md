@@ -37,7 +37,7 @@ cat .claude/project-constitution.md
 Information, not action. It tells you this project's runtime is `bash` and it
 names the canonical commands. Those verbs were filled in on 2026-08-07 (bead
 `tla-xme`) after a long stretch of being empty on purpose — read the section
-below before you reach for one, because three of them behave in ways that will
+below before you reach for one, because two of them behave in ways that will
 otherwise read as a regression you caused.
 
 **Step 1 — repo identity.**
@@ -130,7 +130,7 @@ It dies with the worktree.
 
 ---
 
-## The canonical commands — and the three that still bite
+## The canonical commands — and the two that still bite
 
 **Run `bash scripts/test`.** It is this project's real gate: 10 suites, 292
 assertions, ~120 s, all runnable offline. `--fast` trims to a ~4 s tier.
@@ -151,10 +151,10 @@ in. An empty verb here has always meant "no honest command exists yet", never
 | `lint` | `bash scripts/lint` | shellcheck over `scripts/` + `harness/` — **RED today** |
 | `dev` | `bash scripts/server` | regenerates `docs/`, then `mkdocs serve` |
 | `deploy` | `bash scripts/deploy` | **refuses without `--yes`** |
+| `gen` | `bash scripts/gen-curriculum-map.sh` | regenerates `CURRICULUM_MAP.md` from bd state |
 | `build` | *(still empty)* | no standalone entry point; the real build is `scripts/cibuild` phase 4 |
-| `gen` | *(still empty)* | `scripts/gen-curriculum-map.sh` is not worktree-safe — see below |
 
-Three of those will read as your bug if you do not know them going in.
+Two of those will read as your bug if you do not know them going in.
 
 **`test` defaults to the FULL run, not the fast tier, and that is deliberate.**
 The fast tier is 108 of the 292 assertions — 37%. Recording it as the canonical
@@ -167,13 +167,17 @@ tracked as bead `tla-5r7`. `tla-xme` wired the runner and deliberately left the
 findings. A red gate is not a lying command — it is a true report. Do **not**
 quiet it by lowering severity or adding blanket `--exclude` flags.
 
-**`gen` is empty because `scripts/gen-curriculum-map.sh` leaks out of your
-worktree.** Line 5 is a hardcoded `cd /home/frank/repos/tla-puzzles`, so running
-it from a worktree writes `CURRICULUM_MAP.md` into the **main checkout** — the
-exact leak the footprint check at the bottom of this file exists to catch, except
-that this one happens inside the script rather than in your Edit calls, so
-`git diff --stat main HEAD` will not show it. Do not run it from a dispatch. The
-absolute `cd` has to go before this verb can be filled.
+`gen` was empty for the same honesty reason until 2026-08-07, and the fix is
+worth knowing about as a **failure shape**, not just as a fixed bug.
+`scripts/gen-curriculum-map.sh` used to open with a hardcoded
+`cd /home/frank/repos/tla-puzzles`, so running it from a worktree wrote
+`CURRICULUM_MAP.md` into the **main checkout**. That is the one leak the
+footprint check at the bottom of this file cannot see: it happens inside a
+script rather than in your Edit calls, so `git diff --stat main HEAD` comes back
+clean and the damage surfaces later as unexplained dirty state in somebody
+else's bead. Bead `tla-1hf` resolved the root from `${BASH_SOURCE[0]}` and the
+verb was filled. **If you write or touch a script that cds to a repo root,
+resolve it from `BASH_SOURCE` — never from a literal path.**
 
 ---
 
