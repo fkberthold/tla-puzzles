@@ -33,7 +33,7 @@
 set -uo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
 
 VACUITY="harness/vacuity.sh"
 VERDICT="harness/verdict.sh"
@@ -193,9 +193,9 @@ echo "== (the finding this bead exists to encode)                =="
 # the former, which is why it runs from harness/.
 (
   cd harness || exit 1
-  got=$(bash verdict.sh -q --postcondition "Gate!NonVacuous" \
-        --config fixtures/vacuity/DanglingInvariant.cfg \
-        fixtures/vacuity/Healthy.tla 2>/dev/null)
+  bash verdict.sh -q --postcondition "Gate!NonVacuous" \
+    --config fixtures/vacuity/DanglingInvariant.cfg \
+    fixtures/vacuity/Healthy.tla >/dev/null 2>&1
   rc=$?
   exit "$rc"
 )
@@ -305,6 +305,10 @@ assert_absent "the auto-generated debugger expression name is never matched" \
   '__DebuggerExpr__'
 
 # Every TLC run goes through the 5.1 verdict channel.
+# The argument is a grep pattern, not a string to expand: the `\$` matches a
+# literal dollar in vacuity.sh's source. Expanding it would search for whatever
+# $HERE happens to hold in THIS shell, which is not the point of the assertion.
+# shellcheck disable=SC2016
 assert_present "TLC is reached through verdict.sh" \
   'VERDICT="\$HERE/verdict.sh"'
 

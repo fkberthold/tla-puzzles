@@ -241,6 +241,9 @@ do_refresh() {
 		printf 'lines:    %s\n' "$(wc -l <"$README_CACHE" | tr -d ' ')"
 		printf '\nThe file is stored byte-for-byte as upstream serves it — no header, no edits —\n'
 		printf 'so this record, not a comment inside the file, is where provenance lives.\n\n'
+		# The backticks are literal markdown for whoever reads the provenance
+		# file, not a command substitution waiting to happen.
+		# shellcheck disable=SC2016
 		printf 'Refresh with `harness/screen.sh --refresh`, which reruns exactly that command.\n'
 		printf 'This file is simultaneously:\n\n'
 		printf "  - the screen's CACHE, so screening N candidates is not N network calls; and\n"

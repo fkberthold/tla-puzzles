@@ -116,9 +116,19 @@ run_stubbed() {
 # --- preconditions ----------------------------------------------------------
 
 CASE="preconditions"
-[ -x "$SCREEN" ] && ok "screen.sh is executable" || fail "screen.sh missing or not executable at $SCREEN"
-[ -f "$FIXTURES/examples-README.md" ] && ok "cached Examples README fixture present" ||
+# Spelled out rather than `A && ok ... || fail ...`. ok() ends in a printf, so
+# its status is the printf's, and on a closed or full stdout the || arm fires
+# and books a FAIL against a precondition that held.
+if [ -x "$SCREEN" ]; then
+	ok "screen.sh is executable"
+else
+	fail "screen.sh missing or not executable at $SCREEN"
+fi
+if [ -f "$FIXTURES/examples-README.md" ]; then
+	ok "cached Examples README fixture present"
+else
 	fail "missing README cache fixture"
+fi
 assert_file_contains "$FIXTURES/examples-README.md" "[Resource Allocator](specifications/allocator)"
 assert_file_contains "$FIXTURES/examples-README.md" "[Misra Reachability Algorithm](specifications/MisraReachability)"
 

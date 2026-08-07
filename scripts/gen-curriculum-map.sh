@@ -59,11 +59,13 @@ first_label() {
 
 emit_tier() {
   local tier_label="$1" tier_title="$2"
-  echo "" >> "$OUT"
-  echo "## $tier_title" >> "$OUT"
-  echo "" >> "$OUT"
-  echo "| Status | ID | Title | Kind | Style | Diff | Concepts |" >> "$OUT"
-  echo "|---|---|---|---|---|---|---|" >> "$OUT"
+  {
+    echo ""
+    echo "## $tier_title"
+    echo ""
+    echo "| Status | ID | Title | Kind | Style | Diff | Concepts |"
+    echo "|---|---|---|---|---|---|---|"
+  } >> "$OUT"
   bd list --label "$tier_label" --status all --limit 0 --json 2>/dev/null | \
     jq -r '.[] | [.id, .title, .status, (.labels | join(","))] | @tsv' | \
     sort -t$'\t' -k2 | \
