@@ -18,7 +18,8 @@
 #   harness/verdict.sh [OPTIONS] <module.tla> [-- <extra tlc args>...]
 #
 # OPTIONS
-#   -c, --config FILE       .cfg to use (default: <module>.cfg beside the module)
+#   -c, --config FILE       .cfg to use, relative paths taken from the caller's
+#                           cwd (default: <module>.cfg beside the module)
 #   -t, --timeout SECS      wall-clock budget (default: 60)
 #   -p, --postcondition E   TLC -postCondition expression, e.g. Gate!NonVacuous
 #   -d, --check-deadlock    check for deadlock (default: OFF -- see below)
@@ -48,8 +49,11 @@
 #      0  OK                     no error found
 #     10  ASSUMPTION_FAILED      ASSUME false, or -postCondition false
 #     11  DEADLOCK               reachable state with no successor
-#     12  SAFETY_VIOLATION       INVARIANT violated
-#     13  LIVENESS_VIOLATION     PROPERTY violated (incl. refinement, §5.4)
+#     12  SAFETY_VIOLATION       something refutable by a finite prefix -- an
+#                                INVARIANT, or a PROPERTY that is a safety
+#                                property. NOT "an INVARIANT was violated"
+#     13  LIVENESS_VIOLATION     a PROPERTY needing an infinite behaviour, or
+#                                an implied action; incl. refinement, §5.4
 #     14  ASSERT_VIOLATION       Assert(FALSE, ...) DURING BEHAVIOUR EXPLORATION
 #     75  SPEC_EVAL_FAILURE      the spec could not be evaluated
 #     76  SAFETY_EVAL_FAILURE    the INVARIANT could not be evaluated
@@ -73,6 +77,48 @@
 #   Nothing at all is known about whether the property holds. A learner should
 #   hear "your spec did not evaluate", and telling them "your property was
 #   violated" would be a false statement about a check that never ran.
+#
+# 12 AND 13 SPLIT ON THE SHAPE OF THE FORMULA, NOT ON THE .cfg KEYWORD THAT
+# INTRODUCED IT (bead tla-94n). Row 13 used to read "PROPERTY violated", and a
+# reader takes that as "a violated PROPERTY exits 13". It does not always.
+# Measured on v1.8.0 over one two-state spec, each property declared ALONE with
+# NO INVARIANT in the .cfg:
+#
+#     [](P => []P)    12        []<>P         13
+#     [](P => []Q)    12        <>[]P         13
+#     ~<>P            12        <>P           13
+#     []P             12        P ~> Q        13
+#                               [][A]_vars    13
+#
+#   The left column is what TLC can refute with a finite prefix. Those are
+#   safety properties written with a temporal operator, so TLC reports a safety
+#   violation and exits 12. The right column needs an infinite behaviour, and
+#   on this spec every counterexample ended in a Stuttering step. []P over a
+#   state predicate is a separate case in the same column: TLC lifts it into an
+#   invariant outright and prints "Invariant P is violated".
+#
+#   [][A]_vars shows the rule is not simply about prefixes. Its counterexample
+#   is finite too, but TLC checks a boxed action through the implied-action
+#   channel, and that channel is 13 whatever the trace looks like.
+#
+#   THE SHARPER CONSEQUENCE RUNS THE OTHER WAY. rc=12 does not imply an
+#   INVARIANT was violated, and the probe that showed it declared no invariant
+#   anywhere. A caller reading 12 as "the invariant failed" is guessing.
+#   grade.sh:391 reads it as "the refutation obligation was MET", which is a
+#   live hazard for the temporal obligations tla-59s wants to add.
+#
+#   NOT AFFECTED: §5.4 refinement. The implied-init and the implied-action
+#   obligation TLC derives from Abstract!Spec both exit 13, so refinement.sh's
+#   lone `13)` arm routes correctly. It has one hole, and it is the one this
+#   row predicts: an abstract spec whose own Spec formula carries a
+#   safety-shaped temporal conjunct exits 12 and falls into that script's
+#   catch-all. Measured, and filed rather than fixed here.
+#
+#   AND THE CONSOLE CANNOT TELL YOU EITHER. [](P => []P) and <>P both print
+#   "Temporal property X was violated" under the same message code 2116, then
+#   exit 12 and 13. TLC's status comes from what process() returns, not from
+#   what it printed, so even -tool mode's structured codes get this one wrong.
+#   The exit code is not just the best channel here. It is the only correct one.
 #
 # rc=14 IS A TIMING FACT, NOT A CONSTRUCT FACT. It does not mean "an Assert
 # failed"; it means an Assert failed once TLC was already exploring behaviour.
@@ -156,7 +202,8 @@ usage() {
   cat <<'USAGE'
 usage: harness/verdict.sh [OPTIONS] <module.tla> [-- <extra tlc args>...]
 
-  -c, --config FILE        .cfg to use (default: <module>.cfg)
+  -c, --config FILE        .cfg to use, relative to your cwd
+                           (default: <module>.cfg beside the module)
   -t, --timeout SECS       wall-clock budget (default: 60)
   -p, --postcondition EXPR TLC -postCondition expression
   -d, --check-deadlock     check for deadlock (default: off)
@@ -207,6 +254,37 @@ MODULE_BASE=$(basename "$MODULE" .tla)
 if [ -z "$CONFIG" ]; then
   CONFIG="$MODULE_DIR/$MODULE_BASE.cfg"
 fi
+
+# THE .cfg PATH IS RESOLVED HERE, NOT BY TLC (bead tla-sn0h).
+#
+# TLC calls ToolIO.setUserDir(<the module's directory>) when, and only when,
+# the module argument is absolute -- `File.isAbsolute()` at bytecode 4708 of
+# tlc2.TLC.process, guarding the setUserDir at 4740. That moves the base every
+# later relative path resolves against, so the SAME --config string names two
+# different files depending on the form of an unrelated argument. Measured on
+# tla2tools v1.8.0 with one .cfg and one module: rel/rel, rel/abs and abs/abs
+# all exit 0, while abs module + rel --config exits 255 TLC_EXCEPTION on a file
+# the caller can see from where they stand. A missing-file verdict for a file
+# that is present is exactly the mislabelling §5.1 exists to stop.
+#
+# So a relative --config means what it means everywhere else in a shell:
+# relative to the caller's cwd, whatever the module argument looks like. A
+# caller who wants the .cfg beside the module omits -c and gets it by default,
+# which is the line above.
+#
+# THIS IS NOT AN EXISTENCE CHECK. Nothing here asks whether the file is there.
+# Point -c at nothing and TLC still says so, still through 255, and now it says
+# so about the path you actually named.
+#
+# The MODULE is deliberately left alone. Absolutising it would move TLC's
+# search for auxiliary modules off the cwd as well, and Gate.tla reaches
+# several callers that way. harness/vacuity.sh:94 measured that half of the
+# same trap and wants the absolute form; it passes both paths absolute already,
+# so it is untouched by this.
+case "$CONFIG" in
+  /*) ;;
+  *)  CONFIG="$PWD/$CONFIG" ;;
+esac
 
 # Scratch holds the metadir (TLC's states/ tree) and, unless the caller asked
 # to keep it, the trace and the log. Keeping all three out of the spec's own
