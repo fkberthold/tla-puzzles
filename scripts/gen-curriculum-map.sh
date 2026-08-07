@@ -2,14 +2,22 @@
 # Generate CURRICULUM_MAP.md from bd state.
 # Groups by tier label, shows status/style/difficulty/concept tags.
 set -e
-cd /home/frank/repos/tla-puzzles
+
+# Resolve the repo root from THIS script's own location — never an absolute
+# path. This line used to read `cd /home/frank/repos/tla-puzzles`, which meant
+# that running the script from a git worktree wrote CURRICULUM_MAP.md into the
+# MAIN checkout instead of the worktree: a silent cross-tree write that would
+# surface later as unexplained dirty state in an unrelated bead. Every
+# dispatched worker runs from a worktree, so that was the common case, not the
+# edge case. Do not "simplify" this back to a literal path. (bead tla-1hf)
+cd "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
 OUT="CURRICULUM_MAP.md"
 
 cat > "$OUT" <<'HEADER'
 # Curriculum Map
 
-Auto-generated from `bd list` queries. **Do not hand-edit** — regenerate via `/tmp/gen-curriculum-map.sh`.
+Auto-generated from `bd list` queries. **Do not hand-edit** — regenerate via `bash scripts/gen-curriculum-map.sh`.
 
 Each row is one puzzle bead. Status icons: ✓ closed (done) · ○ open · ◐ in progress · ● blocked · ❄ deferred.
 
@@ -84,7 +92,7 @@ bd ready --label tier:2                                                         
 3. **Write puzzle directory:** `puzzles/T0N-the-x/{README.md, solution/Name.tla, solution/Name.cfg}`.
 4. **Verify:** `pcal Name.tla && java tlc2.TLC Name.tla` (or whatever the local TLC invocation is).
 5. **Close:** `bd close <id> --reason "Authored, verified by TLC"`.
-6. **Regenerate this map:** `bash /tmp/gen-curriculum-map.sh`.
+6. **Regenerate this map:** `bash scripts/gen-curriculum-map.sh`.
 7. **At session end:** `bd sync`.
 
 ## Spaced-Repetition Selection

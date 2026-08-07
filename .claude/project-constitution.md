@@ -49,11 +49,15 @@ canonical_commands:
   #            (scripts/build-docs.sh + mkdocs build) is phase 4 of
   #            scripts/cibuild, which is where CI should call it. Promote it
   #            to a verb only if a standalone scripts/build ever exists.
-  #   gen    — EMPTY. The only generator is scripts/gen-curriculum-map.sh, and
-  #            it is NOT safe to record: it hardcodes
+  #   gen    — scripts/gen-curriculum-map.sh: regenerates CURRICULUM_MAP.md
+  #            from bd state. FILLED 2026-08-07 by bead tla-1hf, which removed
+  #            the blocker recorded here. It used to hardcode
   #            `cd /home/frank/repos/tla-puzzles` at line 5, so running it from
-  #            a worktree writes CURRICULUM_MAP.md into the MAIN checkout. That
-  #            absolute cd has to go before this verb can be filled.
+  #            a worktree wrote CURRICULUM_MAP.md into the MAIN checkout — a
+  #            silent cross-tree write, and the reason tla-xme could not fill
+  #            this verb. The cd now resolves from ${BASH_SOURCE[0]}, so the
+  #            script writes into whichever checkout it is invoked from and is
+  #            safe for a dispatched worker to run.
   #   test   — all ten suites, 292 harness assertions, ~121 s. `--fast` trims
   #            it to a 4 s tier, but the canonical command is the whole gate;
   #            recording the fast tier here would name a command that runs 37%
@@ -80,7 +84,7 @@ canonical_commands:
   build: ""
   test: "bash scripts/test"
   lint: "bash scripts/lint"
-  gen: ""
+  gen: "bash scripts/gen-curriculum-map.sh"
   dev: "bash scripts/server"
   deploy: "bash scripts/deploy"
 
@@ -119,8 +123,9 @@ bypass_patterns: []
 > - **Language**: `bash` primary. Does that hold if the v2 validation
 >   harness (blind-solver + TLC gate) is written in Python?
 > - **Canonical commands**: filled in 2026-08-07 (bead tla-xme) — no
->   longer empty. `build` and `gen` are still blank for the reasons the
->   front-matter comment records. Worth saying in prose why `test` is
+>   longer empty. `gen` followed on 2026-08-07 (bead tla-1hf). `build`
+>   is still blank for the reason the front-matter comment records.
+>   Worth saying in prose why `test` is
 >   the whole ~2-minute gate rather than the 4-second fast tier.
 
 ## Forbidden patterns
