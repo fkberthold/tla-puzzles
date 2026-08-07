@@ -20,35 +20,120 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is ~121 s wall (measured below), and the fast tier is only
-# 108 of the 292 harness assertions — 37%. Defaulting to that would make
+# Here the full run is ~141 s wall (measured below), and the fast tier is only
+# 108 of the 292 harness assertions — 37% — plus none of the 33 v1 assertions
+# and none of the 26 snippet pairs. Defaulting to that would make
 # canonical_commands.test name a command that runs a third of the gate, which
 # is the same class of lie as naming a command that fails by design. So the
 # default is the whole thing, and --fast is the opt-in for tight iteration.
 #
 # ---------------------------------------------------------------------------
-# TIER SPLIT — measured 2026-08-07, this box, TLC2 2026.03.04.183147
+# TIER SPLIT — re-measured 2026-08-07 (bead tla-htx), this box,
+#              TLC2 2026.07.31.184830 / tla2tools v1.8.0, 22 cores,
+#              load avg 2-5 (other agents were working the box).
 #
-# The cut is at the 5x gap between 1.9 s and 10.3 s. Nothing here "takes
-# minutes": the slowest single suite is 42 s and the whole set is ~121 s.
+# Each budget below is the SLOWEST of three back-to-back serial runs, so it is
+# the wall clock this box has actually been seen to need, not an average. That
+# is deliberate: the budget-drift nudge (below) measures from it, and a nudge
+# that trips on ordinary run-to-run jitter gets ignored. Observed jitter across
+# the three runs was under 8% on every suite.
+#
+# The cut is at the 4.2x gap between 2.4 s and 10.2 s. Nothing here "takes
+# minutes": the slowest single suite is 47 s and the whole set is ~141 s.
 #
 #   tier  wall    assertions  suite
 #   ----  ------  ----------  ------------------------------------------
 #   fast    0.7 s      12     harness/test-pipefail.sh
-#   fast    0.7 s      (v1)   scripts/test-verify-puzzle.sh
 #   fast    1.0 s      71     harness/screen.sh --selftest
-#   fast    1.9 s      25     harness/comment-gate.sh --self-test
-#   slow   10.3 s      21     harness/test-verdict.sh
-#   slow   11.5 s   26 pairs  chapter/snippets/run-all.sh (+ check-blocks.py)
-#   slow   16.3 s      43     harness/fixtures/refinement/selftest.sh
-#   slow   17.8 s      26     harness/test-vacuity.sh
-#   slow   18.6 s      57     harness/grade.sh --selftest
-#   slow   42.0 s      37     harness/fixtures/seeded-bugs/selftest.sh
+#   fast    2.4 s      25     harness/comment-gate.sh --self-test
+#   slow   10.8 s      21     harness/test-verdict.sh
+#   slow   11.7 s      33     scripts/test-verify-puzzle.sh          (v1)
+#   slow   13.6 s   26 pairs  chapter/snippets/run-all.sh (+ check-blocks.py)
+#   slow   16.8 s      43     harness/fixtures/refinement/selftest.sh
+#   slow   18.4 s      26     harness/test-vacuity.sh
+#   slow   19.7 s      57     harness/grade.sh --selftest
+#   slow   46.9 s      37     harness/fixtures/seeded-bugs/selftest.sh
 #   ----  ------  ----------
-#          121 s     292      (fast tier alone: 4.3 s, 108 assertions)
+#          141 s     292      harness assertions (fast tier alone: 4.1 s, 108)
+#                     +33     scripts/test-verify-puzzle.sh, now slow
+#                  +26 prs    chapter/snippets, already slow
 #
-# The slow tier is slow for one reason: it launches TLC. Re-measure and move
-# the boundary if that changes; do not guess it.
+# WHAT MOVED, AND WHY (bead tla-htx)
+#
+#   scripts/test-verify-puzzle.sh: fast 0.7 s -> slow 11.7 s. Bead tla-syn
+#   rewrote it to classify by TLC exit code instead of by stdout grep, taking
+#   it from 2 assertions to 33 and from a pure-shell suite to one that runs
+#   real TLC. That is a 16x overrun of its recorded budget, and it is what
+#   pushed --fast from ~4 s to a measured 17 s. Nothing else changed tier.
+#
+#   comment-gate.sh drifted 1.9 s -> 2.4 s (+27%) with no code change since
+#   the commit that created it, so that is box/build variation, not growth.
+#   It stays fast; only its budget is re-baselined. It does narrow the tier
+#   gap from tla-xme's 5.4x to 4.2x — still by far the largest gap in the
+#   sequence, and still in the same place, so the boundary itself does not
+#   move. Everything else landed within 8% of its old budget.
+#
+# WHAT THE BOUNDARY ACTUALLY IS — not "launches a JVM"
+#
+# It is tempting to say the slow tier is the JVM tier. It is not: `pcal` is a
+# java process too (see ~/bin/pcal), and comment-gate.sh forks several of them
+# per self-test while still finishing in 2.4 s. JVM startup is fractions of a
+# second and does not decide anything. What costs ten seconds and up is
+# running TLC's MODEL CHECKER. So the rule is: a suite that model-checks
+# belongs in slow. Re-measure and move the boundary if that changes; do not
+# guess it.
+#
+# ---------------------------------------------------------------------------
+# BUDGET DRIFT — WHY A WARNING AND NOT A FAILURE
+#
+# The tier move above sat undetected for as long as it did because nothing
+# read the numbers this script was already printing. It prints each suite's
+# wall clock next to its recorded budget, so it has the evidence; it just
+# never drew a conclusion from it. It does now: a suite that finishes far
+# over budget gets an inline marker plus a BUDGET DRIFT block before the
+# verdict line.
+#
+# It WARNS. It does not fail, and it must not be "upgraded" to failing.
+#
+#   - Exceeding a budget is not incorrectness. Every suite still passed here;
+#     the only thing wrong was which tier a row sat in. Failing the gate for
+#     it would make `scripts/test` red for a non-defect.
+#   - Wall clock is a property of the box, not of the tree. A loaded laptop,
+#     a cold page cache, or a CI runner sharing a host can double these
+#     numbers with nothing at all wrong. A gate that goes red on those terms
+#     is a flaky gate, and a flaky gate gets --no-verify'd or deleted, which
+#     costs the real signal too.
+#   - CLAUDE.md's gate-don't-advise rule turns on one question: is a human
+#     supposed to weigh in? For "did the suite pass", no — that just has to
+#     be true, and it is gated, hard, by the exit code. For "is this suite
+#     over budget", yes — someone has to decide whether it is drift worth
+#     re-tiering or just a busy afternoon. That is the nudge shape, not the
+#     gate shape. What gate-don't-advise forbids is leaving it as a check
+#     nobody runs; printing it unconditionally in the normal output, every
+#     run, is what satisfies the rule.
+#
+# THE MARGIN, and why it is where it is.
+#
+#   Trip when BOTH hold:  elapsed >= 3.0x budget  AND  elapsed - budget >= 5 s
+#
+#   The multiple is tied to the tier boundary itself. The fast tier tops out
+#   at 2.4 s and the slow tier floors at 10.2 s, so any suite that crosses
+#   from fast to slow does so by at least 4.2x — comfortably above 3.0x. A
+#   3x threshold therefore catches every possible tier crossing by
+#   construction, while sitting far enough above the 8% measured jitter, and
+#   above the ~2x a genuinely contended box costs, that it stays quiet when
+#   nothing has actually changed. The drift this bead fixed was 16.7x.
+#
+#   The 5 s absolute floor is what makes it usable on the fast tier. A
+#   multiple alone is meaningless at sub-second scale: pipefail's 0.7 s
+#   budget is 3x'd by any hiccup, and warning that a suite took 2.1 s
+#   instead of 0.7 s is noise. Requiring five real seconds of overrun
+#   suppresses that completely without weakening the tier-crossing case,
+#   since crossing into slow means landing at 10 s or more.
+#
+#   Both constants are BUDGET_DRIFT_FACTOR and BUDGET_DRIFT_FLOOR_MS below.
+#   There is deliberately no environment override: a nudge you can switch
+#   off from the caller is a nudge that gets switched off.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -67,18 +152,63 @@ if [ ! -d "${REPO_ROOT}/harness" ] || [ ! -d "${REPO_ROOT}/scripts" ]; then
 fi
 
 # tier | budget-seconds | label | command
+#
+# budget-seconds is MEASURED wall clock, not an aspiration — the slowest of
+# three serial runs on the box named in the header. The tier column is derived
+# from it. Keep the rows sorted by budget within each tier.
 SUITES=(
   "fast|0.7|pipefail idiom ban|./harness/test-pipefail.sh"
-  "fast|0.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "fast|1.0|puzzle screen|./harness/screen.sh --selftest"
-  "fast|1.9|comment gate|./harness/comment-gate.sh --self-test"
-  "slow|10.3|TLC verdict channel|./harness/test-verdict.sh"
-  "slow|11.5|chapter snippets|bash chapter/snippets/run-all.sh"
-  "slow|16.3|refinement harness|bash harness/fixtures/refinement/selftest.sh"
-  "slow|17.8|vacuity gate|./harness/test-vacuity.sh"
-  "slow|18.6|grader|bash harness/grade.sh --selftest"
-  "slow|42.0|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
+  "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
+  "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
+  "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
+  "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
+  "slow|16.8|refinement harness|bash harness/fixtures/refinement/selftest.sh"
+  "slow|18.4|vacuity gate|./harness/test-vacuity.sh"
+  "slow|19.7|grader|bash harness/grade.sh --selftest"
+  "slow|46.9|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
 )
+
+# Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header
+# before changing either number, and do not wire them to the exit code.
+BUDGET_DRIFT_FACTOR=3        # elapsed must be at least this many times budget
+BUDGET_DRIFT_FLOOR_MS=5000   # ...AND at least this far over it in absolute ms
+
+# --- millisecond wall clock -------------------------------------------------
+# The budgets go down to 0.7 s, so the integer-second $SECONDS this script used
+# before cannot compare against them at all. EPOCHREALTIME is a bash-5 builtin
+# and costs no fork; strip every non-digit rather than just '.', because bash
+# formats it with the locale's decimal separator, which is ',' in some locales.
+# On bash 4 it is unset and we degrade to exactly the old integer seconds —
+# still right for the multi-second suites, and the 5 s floor means the
+# sub-second rows simply never trip the check.
+NOW_MS=0
+now_ms() {
+  if [ -n "${EPOCHREALTIME:-}" ]; then
+    local t=${EPOCHREALTIME//[^0-9]/}
+    NOW_MS=$(( t / 1000 ))
+  else
+    NOW_MS=$(( SECONDS * 1000 ))
+  fi
+}
+
+# "11.7" -> 11700. Bare integers ("12") are accepted as 12000.
+BUDGET_MS=0
+budget_to_ms() {
+  local whole=${1%%.*} frac
+  if [ "$1" = "$whole" ]; then
+    frac=000
+  else
+    frac="${1#*.}00"
+    frac=${frac:0:3}
+  fi
+  BUDGET_MS=$(( 10#$whole * 1000 + 10#$frac ))
+}
+
+# 11732 -> "11.7"
+fmt_secs() {
+  printf -v FMT_SECS '%d.%d' $(( $1 / 1000 )) $(( ($1 % 1000) / 100 ))
+}
 
 MODE="full"
 VERBOSE=0
@@ -91,7 +221,11 @@ while [ "$#" -gt 0 ]; do
     -v|--verbose) VERBOSE=1 ;;
     --list)      MODE="list" ;;
     -h|--help)
-      sed -n '2,55p' "${BASH_SOURCE[0]}"
+      # Print the whole header block, stopping at the first line of code. This
+      # used to be `sed -n '2,55p'`, a line number that silently truncated the
+      # help text the moment the header grew — which is the same shape of drift
+      # as the stale tier table this script now warns about.
+      awk 'NR > 1 && /^set -euo pipefail$/ { exit } NR > 1' "${BASH_SOURCE[0]}"
       exit 0
       ;;
     -*)
@@ -123,7 +257,8 @@ echo
 selected=0
 failed=0
 declare -a FAILED_LABELS=()
-total_start=${SECONDS}
+declare -a DRIFT_LINES=()
+now_ms; total_start=${NOW_MS}
 
 for entry in "${SUITES[@]}"; do
   IFS='|' read -r tier budget label cmd <<<"$entry"
@@ -137,7 +272,7 @@ for entry in "${SUITES[@]}"; do
 
   selected=$((selected + 1))
   log="${LOGDIR}/$(printf '%02d' "$selected").log"
-  start=${SECONDS}
+  now_ms; start=${NOW_MS}
 
   # No pipe: the output goes straight to a file. Piping a chatty suite into
   # anything that can close early is the SIGPIPE-141 trap this repo already
@@ -153,12 +288,30 @@ for entry in "${SUITES[@]}"; do
   fi
   set -e
 
-  elapsed=$((SECONDS - start))
+  now_ms; elapsed=$((NOW_MS - start))
+  fmt_secs "$elapsed"; elapsed_s=${FMT_SECS}
 
   if [ "$rc" -eq 0 ]; then
-    printf '  PASS  %-34s %3ss  (budget %ss)\n' "$label" "$elapsed" "$budget"
+    # Budget drift. Checked only on a pass: a failing suite's wall clock says
+    # nothing useful, and the FAIL is the message that matters there.
+    budget_to_ms "$budget"
+    drift=""
+    if [ "$BUDGET_MS" -gt 0 ] \
+       && [ "$elapsed" -ge $((BUDGET_MS * BUDGET_DRIFT_FACTOR)) ] \
+       && [ $((elapsed - BUDGET_MS)) -ge "$BUDGET_DRIFT_FLOOR_MS" ]; then
+      ratio=$(( elapsed * 10 / BUDGET_MS ))
+      drift="$(printf '%d.%dx' $((ratio / 10)) $((ratio % 10)))"
+      DRIFT_LINES+=("$(printf '%-34s %6ss  vs budget %ss  (%s)' \
+        "$label" "$elapsed_s" "$budget" "$drift")")
+    fi
+    if [ -n "$drift" ]; then
+      printf '  PASS  %-34s %6ss  (budget %ss)  <<< %s OVER BUDGET\n' \
+        "$label" "$elapsed_s" "$budget" "$drift"
+    else
+      printf '  PASS  %-34s %6ss  (budget %ss)\n' "$label" "$elapsed_s" "$budget"
+    fi
   else
-    printf '  FAIL  %-34s %3ss  rc=%s\n' "$label" "$elapsed" "$rc"
+    printf '  FAIL  %-34s %6ss  rc=%s\n' "$label" "$elapsed_s" "$rc"
     failed=$((failed + 1))
     FAILED_LABELS+=("$label")
     if [ "$VERBOSE" != "1" ]; then
@@ -170,7 +323,8 @@ for entry in "${SUITES[@]}"; do
   fi
 done
 
-total_elapsed=$((SECONDS - total_start))
+now_ms; total_elapsed=$((NOW_MS - total_start))
+fmt_secs "$total_elapsed"; total_elapsed_s=${FMT_SECS}
 
 echo
 if [ "$selected" -eq 0 ]; then
@@ -179,12 +333,28 @@ if [ "$selected" -eq 0 ]; then
   exit 2
 fi
 
+# The budget-drift nudge. Deliberately NOT wired to the exit code — see
+# "WHY A WARNING AND NOT A FAILURE" in this script's header before changing it.
+if [ "${#DRIFT_LINES[@]}" -gt 0 ]; then
+  echo "BUDGET DRIFT: ${#DRIFT_LINES[@]} suite(s) ran far over the wall clock recorded for them."
+  for d in "${DRIFT_LINES[@]}"; do
+    echo "  - $d"
+  done
+  echo
+  echo "  Those budgets are the evidence for the fast/slow tier split in scripts/test."
+  echo "  A suite this far over has probably outgrown its tier — which is exactly how"
+  echo "  --fast quietly stopped being fast once before (bead tla-htx)."
+  echo "  If the box was loaded, ignore this. If it was not, re-measure and update BOTH"
+  echo "  the budget and the tier in the SUITES table."
+  echo
+fi
+
 if [ "$failed" -eq 0 ]; then
-  echo "OK: ${selected} suite(s) passed in ${total_elapsed}s"
+  echo "OK: ${selected} suite(s) passed in ${total_elapsed_s}s"
   exit 0
 fi
 
-echo "FAILED: ${failed} of ${selected} suite(s) in ${total_elapsed}s"
+echo "FAILED: ${failed} of ${selected} suite(s) in ${total_elapsed_s}s"
 for l in "${FAILED_LABELS[@]}"; do
   echo "  - $l"
 done
