@@ -1,5 +1,8 @@
 # TLC working output
 states/
+.v1/
 *_TTrace_*.tla
 *_TTrace_*.bin
 *.old
+*.st
+*.fp
