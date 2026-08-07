@@ -34,7 +34,8 @@
 #
 # This suite pins both halves: part 1 demonstrates the mechanism on a
 # deliberately chatty producer, and part 2 is the structural ban that keeps the
-# idiom from coming back anywhere under harness/.
+# idiom from coming back anywhere under the scanned roots (harness/, scripts/,
+# chapter/ — see SCAN_ROOTS).
 #
 # Usage:  harness/test-pipefail.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -170,21 +171,38 @@ fi
 # PART 2 — the structural ban.
 #
 # Gate, don't advise: the fix above is worthless if the idiom can walk back in.
-# This scans every shell file under harness/ and fails on any reintroduction,
-# including in files that do not exist yet.
+# This scans every shell file under the roots below and fails on any
+# reintroduction, including in files that do not exist yet.
+#
+# THE ROOTS. This scanned harness/ alone until bead tla-4u0, which left every
+# shell file in scripts/ and chapter/ ungated — and the widened scan found four
+# live sites in scripts/ the moment it was turned on. Add a ROOT here, never an
+# individual file: the whole point is that a file written tomorrow is covered
+# without anyone remembering to enrol it.
 # ---------------------------------------------------------------------------
 
+SCAN_ROOTS=(harness scripts chapter)
+
 echo
-echo "== part 2: the idiom is banned across harness/ =="
+echo "== part 2: the idiom is banned across ${SCAN_ROOTS[*]} =="
 
 # Self-exclusion, and why: part 1 above runs the broken shapes ON PURPOSE, so
 # this file necessarily contains the very text the scan looks for. It is the one
 # file in the tree allowed to.
+#
+# Every file that warns against a string necessarily contains that string, so
+# this is a shape to watch rather than a one-off: the whole-line comment strip
+# below covers the ordinary documentation case, and ALLOW_KEYS covers the rest.
 SELF="harness/test-pipefail.sh"
 
-# Every shell file under harness/, found by shebang rather than by extension —
+# Every shell file under the roots, found by shebang rather than by extension —
 # harness/fixtures/screen/ holds executable stubs with no .sh suffix, and a ban
 # that skipped them would leave a hole exactly where the last bug was found.
+#
+# Selecting by shebang is also what keeps prose out of the scan. chapter/ is
+# mostly .md and scripts/ holds three .py helpers; none carries a `sh` shebang
+# or a .sh suffix, so the widened roots do not drag markdown or Python into a
+# ban written for shell.
 shell_files=()
 while IFS= read -r f; do
   [ -f "$f" ] || continue
@@ -194,48 +212,195 @@ while IFS= read -r f; do
   '#!'*sh*) shell_files+=("$f") ;;
   *) case "$f" in *.sh) shell_files+=("$f") ;; esac ;;
   esac
-done < <(find harness -type f -not -path '*/.git/*' | sort)
+done < <(find "${SCAN_ROOTS[@]}" -type f -not -path '*/.git/*' | sort)
 
-if [ "${#shell_files[@]}" -ge 8 ]; then
-  ok "scan found ${#shell_files[@]} shell files under harness/"
-else
-  nope "scan found only ${#shell_files[@]} shell files under harness/ — the ban is not covering the tree"
-fi
-
-# Whole-line comments are stripped before matching, exactly as the structural
-# suites do it: every fixed site carries a comment explaining the idiom it
-# replaced, and matching raw text would let those explanations trip the ban.
-scan_for() {
-  local label="$1" pattern="$2" offenders="" f code hits
+# One assertion PER ROOT, never one over the total. A single total goes green on
+# harness/ alone, so it cannot tell "chapter/ is covered" from "chapter/ silently
+# dropped out of the find" — which is precisely the bug tla-4u0 fixed, one root
+# up. The floors sit well under the measured counts (16 / 12 / 2 on 2026-08-07):
+# this asserts that a root is still being walked, not how big it has grown.
+check_root() {
+  local root="$1" floor="$2" f n=0
   for f in "${shell_files[@]}"; do
-    code=$(sed 's/^[[:space:]]*#.*$//' "$f")
-    hits=$(grep -nE -- "$pattern" <<<"$code")
-    if [ -n "$hits" ]; then
-      while IFS= read -r h; do
-        [ -n "$h" ] && offenders="$offenders
-      $f:$h"
-      done <<<"$hits"
+    case "$f" in "$root"/*) n=$((n + 1)) ;; esac
+  done
+  if [ "$n" -ge "$floor" ]; then
+    ok "scan covers $root/ — $n shell files"
+  else
+    nope "scan found only $n shell files under $root/ (floor $floor) — the ban is not covering that root"
+  fi
+}
+
+check_root harness 8
+check_root scripts 8
+check_root chapter 1
+
+# ---------------------------------------------------------------------------
+# The allowlist — for a banned string that is DATA rather than code.
+#
+# Whole-line comments are stripped before matching (see collect_offenders), which
+# covers the ordinary documentation case: every fixed site carries a comment
+# explaining the idiom it replaced, and matching raw text would let those
+# explanations trip the ban. It does NOT cover a here-doc BODY, which a script
+# emits into a generated file and never executes.
+#
+# WHY AN ALLOWLIST AND NOT A HERE-DOC PARSER. Skipping here-doc bodies wholesale
+# was considered and rejected. Detecting an opener means matching `<<WORD`, and
+# harness/fixtures/refinement/selftest.sh:228 passes the TLA+ tuple
+# `--initial '<< 0 >>'` on a command line. That one escapes only because `0` is
+# not an identifier character — `'<< a >>'` is equally valid TLA+ and would open
+# a phantom here-doc whose terminator never arrives, blanking the remainder of
+# the file from the scan. The failure direction there is a FALSE PASS on a
+# correctness gate, the worst outcome this suite has (cf. the SYMMETRY/VIEW
+# guard in harness/refinement.sh, where a 141 lets an unsound reduction through
+# unflagged). A parser can mask a site nobody named; an allowlist cannot mask
+# anything it does not name.
+#
+# Each entry is "<file>:<matched line, verbatim>". Add one only for a line that
+# provably cannot execute, and say why in ALLOW_WHY.
+ALLOW_KEYS=(
+  "scripts/gen-curriculum-map.sh:  sort | head -20"
+)
+ALLOW_WHY=(
+  "inside the <<'FOOTER' here-doc opened at line 75 — markdown emitted into CURRICULUM_MAP.md documenting an interactive bd query, never executed"
+)
+# Derived, never hand-maintained: a literal that drifted out of step with
+# ALLOW_KEYS would read an unset element under `set -u` and abort the suite.
+ALLOW_HITS=()
+for i in "${!ALLOW_KEYS[@]}"; do ALLOW_HITS[i]=0; done
+
+allowed() {
+  local key="$1" i
+  for i in "${!ALLOW_KEYS[@]}"; do
+    if [ "$key" = "${ALLOW_KEYS[$i]}" ]; then
+      ALLOW_HITS[i]=$((ALLOW_HITS[i] + 1))
+      return 0
     fi
   done
-  if [ -z "$offenders" ]; then
+  return 1
+}
+
+# Sets the global OFFENDERS rather than echoing it. A command substitution would
+# run the loop in a SUBSHELL and throw away every ALLOW_HITS increment, quietly
+# defeating the staleness check below.
+OFFENDERS=""
+collect_offenders() {
+  local pattern="$1"
+  shift
+  local f code hits h line
+  OFFENDERS=""
+  for f in "$@"; do
+    code=$(sed 's/^[[:space:]]*#.*$//' "$f")
+    hits=$(grep -nE -- "$pattern" <<<"$code")
+    [ -n "$hits" ] || continue
+    while IFS= read -r h; do
+      [ -n "$h" ] || continue
+      line=${h#*:}
+      allowed "$f:$line" && continue
+      OFFENDERS="$OFFENDERS
+      $f:$h"
+    done <<<"$hits"
+  done
+}
+
+scan_for() {
+  local label="$1" pattern="$2"
+  collect_offenders "$pattern" "${shell_files[@]}"
+  if [ -z "$OFFENDERS" ]; then
     ok "$label"
   else
-    nope "$label — reintroduced at:$offenders"
+    nope "$label — reintroduced at:$OFFENDERS"
   fi
 }
 
 # `grep -q` / `grep -m N` behind a pipe: exits on first match, SIGPIPEs the
 # producer. Use `grep -q ... <<<"$captured"`.
-scan_for "no '| grep -q' anywhere under harness/" \
-  '\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
-
-scan_for "no '| grep -m' anywhere under harness/" \
-  '\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*m[[:space:]]*[0-9]'
-
+PAT_GREP_Q='\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
+PAT_GREP_M='\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*m[[:space:]]*[0-9]'
 # `head` behind a pipe: exits after N lines, SIGPIPEs the producer. Use
 # `head -n N <<<"$captured"`.
-scan_for "no '| head' anywhere under harness/" \
-  '\|[[:space:]]*head([[:space:]]|$)'
+PAT_HEAD='\|[[:space:]]*head([[:space:]]|$)'
+
+scan_for "no '| grep -q' anywhere under ${SCAN_ROOTS[*]}" "$PAT_GREP_Q"
+scan_for "no '| grep -m' anywhere under ${SCAN_ROOTS[*]}" "$PAT_GREP_M"
+scan_for "no '| head' anywhere under ${SCAN_ROOTS[*]}" "$PAT_HEAD"
+
+# An allowlist entry that matches nothing is a standing exemption for a line
+# that no longer exists — the shape that lets an allowlist rot into a blanket
+# waiver. Delete the entry rather than carrying it.
+stale=""
+for i in "${!ALLOW_KEYS[@]}"; do
+  if [ "${ALLOW_HITS[$i]}" -eq 0 ]; then
+    stale="$stale
+      ${ALLOW_KEYS[$i]}  (${ALLOW_WHY[$i]})"
+  fi
+done
+if [ -z "$stale" ]; then
+  ok "all ${#ALLOW_KEYS[@]} allowlist entries still match a real line"
+else
+  nope "allowlist entry matches nothing — delete it rather than leaving a standing exemption:$stale"
+fi
+
+# ---------------------------------------------------------------------------
+# PART 3 — controls on the scanner itself.
+#
+# Every assertion in part 2 is of the form "found nothing", which is exactly
+# what a scanner that quietly stopped working also reports: one typo in a
+# pattern, one root dropped from the find, and the whole ban goes green while
+# covering nothing. These plant the banned shapes in synthetic files outside the
+# roots and require the scanner to get both directions right.
+# ---------------------------------------------------------------------------
+
+echo
+echo "== part 3: the scanner itself still bites =="
+
+CONTROL_DIR=$(mktemp -d -t tla_pipefail_control.XXXXXX)
+trap 'rm -rf "$CONTROL_DIR"' EXIT
+
+PLANTED="$CONTROL_DIR/planted.sh"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'producer | grep -qE MATCHME\n'
+  printf 'producer | grep -m1 MATCHME\n'
+  printf 'producer | head -n 3\n'
+} >"$PLANTED"
+
+control_bites() {
+  local label="$1" pattern="$2"
+  collect_offenders "$pattern" "$PLANTED"
+  if [ -n "$OFFENDERS" ]; then
+    ok "control: a planted $label is DETECTED"
+  else
+    nope "control: a planted $label was NOT detected — the pattern is dead and its ban above is vacuous"
+  fi
+}
+
+control_bites "'| grep -q'" "$PAT_GREP_Q"
+control_bites "'| grep -m'" "$PAT_GREP_M"
+control_bites "'| head'" "$PAT_HEAD"
+
+# The other direction: a file whose only banned text is inside whole-line
+# comments must come back clean. A gate that cries wolf on the documentation
+# warning against the idiom gets switched off, which is worse than no gate.
+COMMENTED="$CONTROL_DIR/commented.sh"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf '# never write producer | grep -qE PATTERN — it returns 141\n'
+  printf '#   nor producer | grep -m1 PATTERN\n'
+  printf '#   nor producer | head -n 3\n'
+  printf 'true\n'
+} >"$COMMENTED"
+
+commented_clean=1
+for pat in "$PAT_GREP_Q" "$PAT_GREP_M" "$PAT_HEAD"; do
+  collect_offenders "$pat" "$COMMENTED"
+  [ -n "$OFFENDERS" ] && commented_clean=0
+done
+if [ "$commented_clean" -eq 1 ]; then
+  ok "control: banned text inside whole-line comments does NOT trip the ban"
+else
+  nope "control: a whole-line comment tripped the ban — the comment strip is broken and the gate now cries wolf on its own documentation"
+fi
 
 echo
 if [ "$fail_count" -ne 0 ]; then

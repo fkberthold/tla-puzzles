@@ -318,7 +318,14 @@ while IFS=$'\t' read -r tier sk prefix dir; do
     cp_modules=$(render_useful_modules "$dir" "$prefix")
     cp_builds_on=$(render_builds_on "$prefix")
     if [ -n "$cp_chips" ] || [ -n "$cp_modules" ] || [ -n "$cp_builds_on" ]; then
-      h1=$(grep -m1 '^# ' "$dir/README.md" | head -1)
+      # No `| head -1` here. `grep -m1` already yields at most one line, so the
+      # head was pure redundancy — but under this file's `set -o pipefail` it
+      # was also live: head closes the pipe the instant it has its line, grep
+      # takes SIGPIPE, the pipeline reports 141, and `set -e` aborts the whole
+      # docs build intermittently. Timing-dependent, so it fails on some runs
+      # and not others (bead tla-kr9). grep reads the file directly, so there is
+      # no pipe left to signal.
+      h1=$(grep -m1 '^# ' "$dir/README.md")
       echo "$h1"
       echo ""
       [ -n "$cp_chips" ]    && { echo "$cp_chips"; echo ""; }
