@@ -1,0 +1,9 @@
+A variant directory with no Crossing.tla in it.
+
+Every variant directory has to supply the module it mutates, under the
+reference module's own name, because the learner's property module EXTENDS
+that name and a variant that renames it is silently never checked -- the run
+would pick the reference module up out of the staging directory and report
+rc==0, which reads exactly like "the property failed to catch this bug".
+
+MATRIX_MALFORMED (44) is that failure said out loud.
