@@ -157,6 +157,47 @@ grants you a file names it in your footprint; silence is not a grant.
 
 ---
 
+## Hazard — never pipe into an early-exiting consumer under `pipefail`
+
+`producer | grep -q PATTERN` under `set -o pipefail` returns **141**. `grep -q` exits on the
+first match, the producer takes SIGPIPE, and the pipeline fails. Inside an `if` that is simply
+falsy and `set -e` never fires — so **a present pattern reports as absent**. Same for `grep -m`,
+`head`, and any other consumer that can close the pipe early.
+
+It is **timing-dependent, not size-dependent**. Measured: a shell function reproduces it at 1,000
+lines, `sed` over a 20 KB file does not, and a second worker hit it with `sed` anyway. So a suite
+can be green on one run and red on the next with no code change.
+
+**Capturing the output first does NOT fix it** — this was tried, briefed to three workers, and is
+wrong:
+
+```bash
+out=$(producer) || true
+printf '%s\n' "$out" | grep -qE -- "$pattern"    # STILL 141
+```
+
+The `printf` builtin forks into the pipeline and takes SIGPIPE exactly as a function does. **The
+live pipe is the bug, not the producer.** Use a here-string, which is materialised in full before
+the consumer is exec'd, so there is no writer left to signal:
+
+```bash
+out=$(producer) || true
+if grep -qE -- "$pattern" <<<"$out"; then        # rc=0, still 0 at 21 MB
+```
+
+`harness/test-pipefail.sh` gates this: it bans `| grep -q`, `| grep -m`, and `| head` across every
+shell file under `harness/`, selected **by shebang rather than extension** and scanning the tree,
+so files that do not exist yet are covered the moment they land.
+
+**Worst case is not the false FAIL.** Three of the 24 sites found in the sweep were *guards*, not
+assertions — including the `SYMMETRY`/`VIEW` soundness check in `harness/refinement.sh`, where a
+141 lets an unsound temporal reduction through **unflagged**. There the failure direction is a
+false PASS on a correctness gate.
+
+Lineage: bead `tla-kr9`.
+
+---
+
 ## Hazard — `docs/` is generated
 
 `docs/` is gitignored build output, produced by `scripts/build-docs.sh` from
