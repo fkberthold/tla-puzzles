@@ -19,9 +19,19 @@ package_manager: pip
 
 language:
   # Primary runtime is shell: build-docs.sh, verify-puzzle.sh,
-  # test-verify-puzzle.sh, gen-curriculum-map.sh. The two build-*.py
-  # helpers are secondary. TLA+/PlusCal is the subject matter, not a
-  # schema runtime value.
+  # test-verify-puzzle.sh, gen-curriculum-map.sh, and the whole v2
+  # harness/ tree. TLA+/PlusCal is the subject matter, not a schema
+  # runtime value.
+  #
+  # python3 is a SECONDARY runtime, approved by Frank 2026-08-07.
+  # Originally the two build-*.py docs helpers; now also a real
+  # dependency of harness/refinement.sh, which parses TLC's
+  # -dumpTrace JSON to tell an initial-state probe violation from
+  # genuine movement. That parsing is why it is worth the dependency:
+  # the alternative is scraping TLC's console text, which this project
+  # forbids itself (V2-PLAN.md §5.1 — verdicts come from exit codes,
+  # never from stdout). Guarded with an explicit up-front check so a
+  # missing interpreter fails loudly rather than midway.
   runtime: bash
   version: ""
 
