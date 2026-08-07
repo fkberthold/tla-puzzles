@@ -262,6 +262,129 @@ assert_verdict "5.1 gap: bare INVARIANT keyword is silently ignored, rc=0" \
   --config "$FIXTURES/DanglingKeyword.cfg" "$FIXTURES/Ok.tla"
 
 echo
+echo "== rc=12 and rc=13 are two channels, not one (bead tla-94n) =="
+
+# These four fixtures are GENERATED rather than committed beside the others,
+# because here the formula IS the assertion: the exit code follows the shape of
+# the temporal operator and nothing else, so the shape belongs where a reader
+# can see it next to the number it produces.
+SHAPES=$(mktemp -d -t tla_verdict_shapes.XXXXXX)
+trap 'rm -rf "$SHAPES"' EXIT
+
+cat >"$SHAPES/PropShape.tla" <<'TLA'
+---- MODULE PropShape ----
+(* One spec, two PROPERTY shapes.  The runs below differ in nothing but the *)
+(* formula the .cfg names, and both .cfgs declare no INVARIANT at all.      *)
+EXTENDS Naturals
+VARIABLE s
+Init == s = 0
+Next == \/ (s = 0 /\ s' = 1)
+        \/ (s = 1 /\ s' = 0)
+Spec == Init /\ [][Next]_s
+Hot  == s = 1
+StickyHot == [](Hot => []Hot)
+NoMove    == [][ s' = s ]_s
+====
+TLA
+printf 'SPECIFICATION Spec\nPROPERTY StickyHot\n' >"$SHAPES/Sticky.cfg"
+printf 'SPECIFICATION Spec\nPROPERTY NoMove\n'    >"$SHAPES/Boxed.cfg"
+
+# The row-13 gloss used to read "PROPERTY violated", which a reader takes as
+# "a violated PROPERTY lands on 13". It does not. StickyHot is refuted by the
+# finite prefix 0 -> 1 -> 0, so TLC calls it a safety violation and exits 12,
+# with no INVARIANT anywhere in the .cfg to explain the 12.
+#
+# The consequence runs the other way too, and is the one that bites: rc=12 does
+# not imply an INVARIANT failed. grade.sh:391 reads 12 as "the refutation
+# obligation was MET", so a temporal obligation of this shape would be graded
+# on the strength of a code that came from somewhere else entirely.
+assert_verdict "rc=12  [](P => []P) violated, no INVARIANT in the .cfg" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$SHAPES/Sticky.cfg" "$SHAPES/PropShape.tla"
+
+# The control. Same spec, same channel keyword, a boxed action instead, and now
+# the row-13 gloss is right. TLC checks this one as an implied action rather
+# than through the liveness tableau, and the counterexample being finite makes
+# no difference here.
+assert_verdict "rc=13  [][A]_vars violated" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/Boxed.cfg" "$SHAPES/PropShape.tla"
+
+# The refinement half of the row-13 gloss, pinned because refinement.sh:530 has
+# a lone `13)` arm and routes everything else to a catch-all. Both obligations
+# TLC derives from Abstract!ASpec have to land on 13 for that arm to be right.
+cat >"$SHAPES/Abstract.tla" <<'TLA'
+---- MODULE Abstract ----
+EXTENDS Naturals
+VARIABLE a
+AInit == a = 5
+ANext == a' = a
+ASpec == AInit /\ [][ANext]_a
+====
+TLA
+cat >"$SHAPES/BadInit.tla" <<'TLA'
+---- MODULE BadInit ----
+(* Implied-INIT failure only: c starts at 9 where the abstraction wants 5,  *)
+(* and the step relation matches, so nothing else can fail.                 *)
+EXTENDS Naturals
+VARIABLE c
+Init == c = 9
+Next == c' = c
+Spec == Init /\ [][Next]_c
+A == INSTANCE Abstract WITH a <- c
+Refines == A!ASpec
+====
+TLA
+cat >"$SHAPES/BadAction.tla" <<'TLA'
+---- MODULE BadAction ----
+(* Implied-ACTION failure only: c starts at 5, which the abstraction accepts, *)
+(* then moves, which its stuttering-only ANext forbids.                       *)
+EXTENDS Naturals
+VARIABLE c
+Init == c = 5
+Next == c < 7 /\ c' = c + 1
+Spec == Init /\ [][Next]_c
+A == INSTANCE Abstract WITH a <- c
+Refines == A!ASpec
+====
+TLA
+printf 'SPECIFICATION Spec\nPROPERTY Refines\n' >"$SHAPES/Refines.cfg"
+
+assert_verdict "rc=13  refinement, implied-init obligation broken" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/Refines.cfg" "$SHAPES/BadInit.tla"
+
+assert_verdict "rc=13  refinement, implied-action obligation broken" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/Refines.cfg" "$SHAPES/BadAction.tla"
+
+echo
+echo "== --config means the same file whatever the module path (bead tla-sn0h) =="
+
+# TLC calls ToolIO.setUserDir(<module's directory>) when, and only when, the
+# module argument is absolute, which silently moves the base every later
+# relative path resolves against. A relative --config then stops resolving from
+# the caller's cwd and TLC reports a .cfg that is sitting right there as
+# missing, arriving as 255 TLC_EXCEPTION.
+#
+# All four combinations name the same two files, so all four have to agree.
+assert_verdict "rel module, rel --config" \
+  "OK" 0 \
+  --config "$FIXTURES/Ok.cfg" "$FIXTURES/Ok.tla"
+
+assert_verdict "rel module, abs --config" \
+  "OK" 0 \
+  --config "$REPO_ROOT/$FIXTURES/Ok.cfg" "$FIXTURES/Ok.tla"
+
+assert_verdict "abs module, abs --config" \
+  "OK" 0 \
+  --config "$REPO_ROOT/$FIXTURES/Ok.cfg" "$REPO_ROOT/$FIXTURES/Ok.tla"
+
+assert_verdict "abs module, rel --config" \
+  "OK" 0 \
+  --config "$FIXTURES/Ok.cfg" "$REPO_ROOT/$FIXTURES/Ok.tla"
+
+echo
 echo "== structural: the constraints that no fixture can observe =="
 
 # -workers 1 is mandatory (V2-PLAN.md 5.1): counterexamples are
