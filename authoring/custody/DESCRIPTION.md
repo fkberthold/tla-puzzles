@@ -4,6 +4,10 @@ This is the system description a reference-solution author receives (V2-PLAN.md 
 It fixes the system and leaves the representation open (§3.2). It is not the
 learner-facing statement, and nothing in it is worded for a learner.
 
+Sections 1 to 4 are the hand-off: paste them into the §9.4 brief as the
+`<system description>`. Sections 5 and 6 are pipeline notes for central. Keep them
+out of the author's brief and out of anything downstream of it.
+
 Grid cell: task shape A, in a situation of layered rules and two independent parties.
 
 Real custody arrangements are more complex than this one. Every cut is on purpose. The
@@ -139,6 +143,9 @@ constants alone.
 7. **The cap.** At every moment, at most N days have a custodian other than their
    scheduled parent.
 8. **Quiet at the end.** Once day H has begun, nothing observable changes.
+9. **The window runs.** The latest day to have begun moves only two ways: from none
+   to day 1, and from day k to day k+1. It never moves otherwise. Day H eventually
+   begins.
 
 ## 3. The observation operator
 
@@ -154,8 +161,8 @@ author renders them over whatever state they chose.
 
 Why each field is there:
 
-**today** is what properties 5, 6, and 8 quantify over. Without it the interface has no
-before and after, and the past-is-fixed rule is unstateable.
+**today** is what properties 5, 6, 8, and 9 quantify over. Without it the interface
+has no before and after, and the past-is-fixed rule is unstateable.
 
 **custodian** carries properties 1, 2, 3, 5, and 7. It is the arrangement's
 question-answering behavior: ask the parents, at any moment, who has the child on day
@@ -166,18 +173,20 @@ it both produce this field. That is what keeps it representation-neutral.
 custodian flip has no visible cause at the interface. Its per-parent shape carries Rule
 7's one-outstanding rule, which is a rule of the system, not of any representation.
 
-The sufficiency walk, rule by rule:
+The sufficiency walk, rule by rule. The test in each row is which property constrains
+the rule, never which field mentions it. A rule no property constrains is ungraded,
+whatever the fields show.
 
-| Rule | Where it lands at the interface |
+| Rule | Constrained by |
 |---|---|
-| 1 | `today` starts at none, steps through 1..H in order, then holds (property 8) |
+| 1 | properties 9 and 8: the days run in order, then day H holds. Without 9, nothing makes them run |
 | 2 | property 1 |
 | 3 | property 2, through the scheduled parent |
 | 4 | property 2, through the scheduled parent |
 | 5 | properties 3 and 4: a flip is single, and reverses the scheduled assignment |
 | 6 | property 4: the flip and the proposal's resolution are one step |
-| 7 | property 6, plus the per-parent shape of `pending` |
-| 8 | `pending` clears with a flip (accepted) or without one (dropped, voided) |
+| 7 | property 6 for what a proposal may name. The one-outstanding clause rides `pending`'s per-parent type, not a property |
+| 8 | properties 4 and 6: acceptance flips the day in its resolving step, a drop or void flips nothing, and 6 is what makes voiding immediate |
 | 9 | properties 3 and 7 |
 
 Three honest notes on what the interface does not show.
@@ -194,8 +203,8 @@ observable behavior as one that has both.
 Third, the agreed swaps themselves. There is no field for the swap set and none for the
 count, and that is deliberate. Both are derivable: given property 3, a day carries an
 agreed swap when its custodian differs from its scheduled parent. A field exposing a
-swap ledger or a rule set would push the model toward one side of the central fork in
-section 5, so the interface stays at outcomes.
+swap ledger or a rule set would push the model toward one representation of the
+agreements, so the interface stays at outcomes.
 
 ## 4. Bounds
 
@@ -209,7 +218,7 @@ understand, and Rule 9 makes the cap part of the arrangement. Instance: N = 2.
 
 **One outstanding proposal per parent.** Stated as a rule of the arrangement (Rule 7):
 resolve one before opening another. I'll be honest that this rule earns its keep twice,
-since it also caps the proposal state. Section 6 names the alternative.
+since it also caps the proposal state.
 
 **Two parents.** The domain's own number, not a bound.
 
@@ -217,8 +226,9 @@ The arithmetic at the instance. `today` takes at most 15 values (none, then 1..1
 parent's pending proposal takes at most 15 (none, or one of 14 days). Agreed-swap
 combinations at N = 2 over 14 days number 1 + 14 + 91 = 106. The naive product is
 15 x 15 x 15 x 106, about 358,000, and the reachable count sits well under it, since a
-pending day must be un-begun and unswapped. I'd expect TLC to clear this in seconds,
-which leaves the 60-second budget a wide margin.
+pending day must be un-begun and unswapped. I'd expect TLC to clear this in seconds
+with liveness on (property 9 carries an eventually), which leaves the 60-second
+budget a wide margin.
 
 A suggested instance for the reference `.cfg`: days 1 through 7 to A, days 8 through 14
 to B, designations day 4 to B and day 11 to A (both real overrides), N = 2. Worth one
@@ -237,8 +247,11 @@ central one, and it bifurcates the whole spec.
 - **The baseline**: designation-over-pattern folded at use, or precomputed into one
   scheduled assignment.
 - **The swap record**: a set of days, per-day flags, or nothing but outcomes.
-- **Voiding**: a step of its own, or folded into day-beginning and acceptance.
 - **The parents**: processes, or bare actions.
+
+Voiding is not on the list. Property 6 is an invariant, and a voiding step of its own
+leaves a between-state where an outstanding proposal names a begun day. Rule 8 already
+says voiding is immediate, so that choice was never open.
 
 Every rule in section 1 and every property in section 2 holds under both sides of each
 fork. If a later pass finds one that does not, that is a defect in this description, and
@@ -276,6 +289,23 @@ risk. These are mine, with the road not taken.
    Year-alternation and multi-day holidays are out of scope, and Rule 4 says so.
 9. **Whole days.** No handover times, no split days. Rule 2 says so.
 10. **Direction belongs to the day.** Either parent can propose either direction. The
-    alternative restricts proposing a day to the parent who does not hold it. That would
-    make the proposer's identity load-bearing, and the identity of an actor is invisible
-    at the interface (section 3, first note), so the restriction would be ungradable.
+    alternative restricts proposing a day to the parent who does not hold it, asking
+    only, no offering. That restriction would be gradable: `pending` is per-parent, so
+    it lands as a plain invariant, a day pending under a parent is never that parent's
+    own. (Section 3's first note is about whose hand resolves a proposal. The proposer
+    is visible. The resolver isn't.) I rejected it on the domain instead. Offering a
+    day you can't cover is as real as asking for one, and cutting the offer halves the
+    moves for no new modeling question.
+11. **No self-acceptance.** Acceptance is the other parent's act, in a separate, later
+    step (Rule 6), so a proposer never accepts their own proposal. The alternative
+    collapses propose-and-accept into a unilateral swap, a different arrangement, not
+    another model of this one. A note for the variant pass: the two-party requirement
+    is observationally vacuous. Acceptance is unforced and unrestricted, so a model
+    that allows self-acceptance produces the same `Observe` traces as one that forbids
+    it, and the trace sets are equal. A self-acceptance variant is uncatchable, with
+    the cause named here in advance. That's a finding, not a failure, in V2-PLAN.md's
+    own terms: an uncatchable variant with a named cause.
+12. **Designations stay inside the window.** Every designation names a day of the
+    window, 1 through H. The alternative admits designations naming days outside it,
+    inert in this window and belonging to the next one's arrangement, which Rule 1
+    puts out of scope. Inert designations grade nothing, so they stay out.

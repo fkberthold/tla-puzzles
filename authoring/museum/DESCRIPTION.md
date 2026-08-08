@@ -4,6 +4,10 @@ This is the input to the reference-solution author (V2-PLAN.md §9.4). It fixes 
 system and leaves the representation open (§3.2). It is not the learner statement.
 The statement author works from the frozen spec later, not from this file.
 
+Sections 1 to 4 are the hand-off: paste them into the §9.4 brief as the
+`<system description>`. Sections 5 and 6 are pipeline notes for central. Keep them
+out of the author's brief and out of anything downstream of it.
+
 Grid cell: task shape A, in a situation of time, accrual, and custody.
 
 ## 1. The system
@@ -69,7 +73,9 @@ A borrower with no request outstanding can ask for one object, for a stated whol
 number of consecutive seasons, from one up to `MaxTerm`. Each borrower has at most one
 request outstanding at a time, and a request sits until the registrar answers it. The
 registrar can decline any request at any time. A decline frees the borrower to ask
-again, for the same object or another.
+again, for the same object or another. A request can be one no grant could ever
+answer, the object's budget spent or the calendar too short for the term. Nothing
+forces an answer to it. It sits until a decline, or to the end of the calendar.
 
 ### Rule 7. Granting
 
@@ -92,19 +98,20 @@ grantable request for as long as it likes, or decline it.
 ### Rule 8. The loan runs, and ends
 
 For the whole time away, the object counts as on display. The borrower can send it
-back in any season of the span, and it must be back with the lender by the end of the
-span's last season. Borrowers honor the span. Late return doesn't happen in this
-system. A return puts the object in the lender's store, off display, and its rest
-starts. Handover is immediate: no courier, no crate, no transit.
+back in any season of the span. The object is back with the lender at the end of the
+span's last season at the latest, and that return happens whether or not the borrower
+has already sent it. The borrower's choice is only how much earlier. A return puts
+the object in the lender's store, off display, and its rest starts. Handover is immediate: no courier, no crate, no transit.
 
 ### Rule 9. The home wall
 
 The lender shows its own collection too, under the same policy. The registrar can hang
 an object that is with the lender, off display, rested (or never displayed), and with
 budget left for the season it would hang into. The registrar can take it down at any
-time, and take-down starts rest. There's no span and no agreement at home. What forces
-a home take-down is the budget: the object must come down before it would be on
-display in a season the budget can't cover.
+time, and take-down starts rest. There's no span and no agreement at home. An object
+on the home wall comes down at the end of the last season its budget can cover, and at
+the end of the last season of the calendar. The registrar has no choice about those
+two take-downs. Every other take-down is its own.
 
 ### Rule 10. The calendar closes
 
@@ -133,10 +140,18 @@ observables of section 3, and central renders them later.
    outstanding request, for that object, for the term the request named.
 7. **Closure.** Once the calendar has closed, every object is with the lender, nothing
    is on display, and nothing observable ever changes again.
+8. **The calendar runs.** The season is the first one, a later one, or the closed
+   marker. It moves only from a season to the next in order, one at a time, and from
+   the last season to the closed marker. It never moves back, and it eventually
+   reaches the closed marker.
 
-Items 1, 4, 5, and the first two clauses of 7 are invariants. Items 2, 3, 6, and the
-tail of 7 constrain steps, so they'll land as action properties. The learner path
-covers action properties before this cell (V2-PLAN.md §3b, learntla ch.11).
+Items 1, 4, and the first two clauses of 7 are invariants. Items 2, 3, 5, 6, and the
+tail of 7 constrain steps, so they'll land as action properties. Item 5 lands there
+because `Observe` shows a span's end and not its start, so its length caps are checked
+at the step that sets the span. Item 8 splits: its range clause is an invariant, its
+march clauses are action properties, and its last clause, that the calendar reaches
+the closed marker, is the one liveness obligation in this description. The learner
+path covers action properties before this cell (V2-PLAN.md §3b, learntla ch.11).
 
 ## 3. The observation operator
 
@@ -146,8 +161,9 @@ render these as TLA+ here. Central renders the operator, one field per line, eac
 field an expression over the state.
 
 **season**: the calendar season now in progress, or a closed marker once the last
-season has ended. Needed because every duration rule counts in seasons, and closure
-(must-be-true 7) needs the calendar's stage.
+season has ended. Needed because every duration rule counts in seasons, closure
+(must-be-true 7) needs the calendar's stage, and the calendar's own run (8) is stated
+over this field alone.
 
 **custodian**: for each object, who holds it now, the lender or one borrower. Needed
 for custody, consent, and closure (4, 6, 7).
@@ -182,11 +198,12 @@ close a fork.
 **The mid-episode subtlety.** `spent` is a fact about the past. The moment an object
 hangs in season s, season s counts, and every model must report it as counted from
 that state on. When a model writes its own internal ledger is its own affair, but the
-reported fact can't lag. This is what keeps grading neutral between the two accrual
-mechanisms in section 5.
+reported fact can't lag. This is what keeps grading neutral between charging the
+ledger season by season and charging it when the episode closes.
 
-**Sufficiency walk.** I walked all ten rules and all seven must-be-trues against the
-fields.
+**Sufficiency walk.** The walk's test is which property constrains each rule, never
+which field mentions it. A field can name a rule's subject while no property grades
+the rule, and then the rule is loose. First, what each must-be-true reads:
 
 | Must-be-true | Reads |
 |---|---|
@@ -197,13 +214,27 @@ fields.
 | 5 Terms | season, custodian, dueBack |
 | 6 Consent | season, custodian, dueBack, asking |
 | 7 Closure | season, custodian, onDisplay, and the record as a whole |
+| 8 Calendar | season |
 
-Every rule lands on at least one field: Rule 1 on `season`, Rule 2 on `custodian`,
-Rule 3 on `onDisplay` and `spent`, Rule 4 on `spent`, Rule 5 on `lastLit` and
-`season`, Rule 6 on `asking`, Rule 7 on `asking`, `custodian`, and `dueBack`, Rule 8
-on `custodian`, `dueBack`, and `onDisplay`, Rule 9 on `onDisplay`, `spent`, and
-`lastLit`, Rule 10 on `season`, `custodian`, and `onDisplay`. Every field earns its
-place through at least one must-be-true, so nothing here is decoration.
+Then each rule, against the properties that constrain it:
+
+| Rule | Constrained by |
+|---|---|
+| 1 Calendar | 8, and nothing else. Without 8 the clock is ungraded |
+| 2 Custody | 4 and 6 |
+| 3 Display counting | 4's away clause, and 1 through what `spent` counts |
+| 4 Budget | 1 and 2 |
+| 5 Rest | 3 |
+| 6 Requests | 6. The one-ask shape rides `asking`'s per-borrower form |
+| 7 Granting | 1, 3, 5, and 6 |
+| 8 The loan ends | 5 at the deadline, 4 for away-as-display, with 8 marching the season |
+| 9 Home wall | 1, 2, 3 for the guards. The forced take-downs land on 1 and 7, with 8 again |
+| 10 Closure | 7, and 8's own end |
+
+The rounding in Rule 3 lives in what must-be-true 1 counts: a season counts the
+moment any part of it sees display, which is the mid-episode demand on `spent`.
+Every field earns its place through at least one must-be-true, so nothing here is
+decoration.
 
 ## 4. Bounds
 
@@ -220,10 +251,12 @@ to discover later.
 - **`Budget`** (Rule 4): the policy's lifetime display budget. Real practice budgets
   cumulative exposure over an object's life, in lux-hours as far as I know. This
   system simplifies the unit to whole seasons, and Rule 3 says so.
-- **`Rest`** (Rule 5): the policy's mandated rest between showings.
+- **`Rest`** (Rule 5): the policy's mandated rest between showings. At least 1 in
+  every instance. With no rest an object could come down and hang again inside one
+  season, and Rule 7's whole-span charge would charge that season twice, so `spent`
+  would drift off the true season count.
 - **`MaxTerm`** (Rule 6): the lender's cap on a single loan term.
-- **One request per borrower** (Rule 6): how these borrowers work here. Surfaced as
-  resolved ambiguity 7 below.
+- **One request per borrower** (Rule 6): how these borrowers work here.
 
 **Suggested instance**: 2 objects, 2 borrowers, `Horizon` 6, `Budget` 3, `Rest` 1,
 `MaxTerm` 2. Each bound bites at these values. Two max-term loans spend 4 seasons
@@ -260,6 +293,11 @@ keep it that way. Each line below is a choice the rules don't make.
 One more, beyond the probe's list: **retirement** as a stored status or as a fact
 derived from a spent budget. The rules state the fact and never the flag.
 
+One non-fork worth recording so the next reader doesn't re-derive it: Rule 7's budget
+clause looks underspecified on a first read, and it isn't. Charging the whole asked
+span at the moment of decision is what keeps must-be-true 1 sufficient on its own,
+with no per-season recheck.
+
 ## 6. Ambiguities resolved, and how they could have gone
 
 The pilot's author settled six of these silently and every one turned into downstream
@@ -292,6 +330,15 @@ risk. These are mine, in the open.
 9. **Initial state.** All objects start home, dark, unexposed, owing no rest. Objects
    arriving with prior histories would push `Budget` and last-displayed facts into
    the config as per-object inputs.
-10. **Late return.** Doesn't exist. Borrowers honor the span. Breach and recovery
-    would add fallibility and agency, worth revisiting if this domain ever fills a
-    column-D or column-F cell, but not needed for shape A.
+10. **Late return.** Doesn't exist. The span's last season ends with the object back,
+    as a forced step (Rule 8), so breach never arises. Breach and recovery would add
+    fallibility and agency, worth revisiting if this domain ever fills a column-D or
+    column-F cell, but not needed for shape A.
+11. **No re-hang inside a season.** `Rest` is at least 1 (section 4). With Rest 0 an
+    object can come down and hang again in the same season, and Rule 7's whole-span
+    charge charges that season twice. The alternative keeps Rest 0 and adds
+    charge-once bookkeeping, a subtlety that buys no new modeling question.
+12. **Requests nobody can answer.** A borrower can ask for what no grant could ever
+    cover, the budget spent or the calendar too short. Such a request sits until a
+    decline, or to the end (Rule 6). The alternative expires it by rule, one more
+    action that grades nothing new.

@@ -133,8 +133,9 @@ Each departs from real practice on purpose. The rules above are the whole proces
 ## 2. What must be true
 
 A correct model satisfies all of these, read through the observation in section 3.
-They're stated for any member set, any variety set, and any opening stock. The
-instance in section 4 is one instance, not the specification.
+They're stated for any member set, any variety set, and any opening stock. All three
+are constants of the program, the opening stock included, and the properties read
+them directly. The instance in section 4 is one instance, not the specification.
 
 1. **Standing gates the shelf.** No packet ever leaves the shelf to a member in
    default.
@@ -159,6 +160,9 @@ instance in section 4 is one instance, not the specification.
    it does.
 9. **The end is the end.** Once the program has ended, nothing observable changes
    again.
+10. **The calendar marches.** The season moves only forward, first to second to
+    third to ended, one step at a time, never backwards. At a step where the season
+    moves, no shelf count and no debt changes.
 
 ## 3. The observation
 
@@ -170,15 +174,17 @@ stores anything.
 
 **season**: the season now in progress (first, second, or third), or the mark that
 the program has ended. Every deadline fact (properties 6, 8, 9) hangs on season
-boundaries. With no boundary in view, no deadline is gradable.
+boundaries, and the calendar's own march (10) is read here. With no boundary in
+view, no deadline is gradable.
 
 **shelf**: for each variety, how many packets are on the shelf right now. The
-checkout guard, shelf discipline (2), and conservation (5) all read it. A yes/no of
+checkout guard, shelf discipline (2), conservation (5), and the close's stillness
+(10) all read it. A yes/no of
 availability can't carry property 5. In a correct model this count follows from the
 ledger, but grading has to see the models where it doesn't.
 
 **owed**: for each member and each variety, how many returns of it the member owes
-right now. Properties 3 through 8 read it. It's a count, not a yes/no, on purpose:
+right now. Properties 3 through 8 read it, and 10 reads it at a close. It's a count, not a yes/no, on purpose:
 property 4 says the count never passes one, and an interface that can't show two
 can't show the violation.
 
@@ -197,9 +203,10 @@ would.
 **Every rule is visible.** Each event has its own signature through the fields. A
 checkout shows as one variety's shelf count down one and one member's owed count up
 one, in the same step. A return shows as the reverse. A close shows as the season
-moving on, and Rule 2 keeps a close in a step of its own. No two events share a
-signature, so the action-shaped properties (2, 3, 6) are statable through `Observe`,
-and so are the guards behind 1 and 4.
+moving on while every shelf count and every debt holds still, which is Rule 2's
+own-step clause and property 10's demand. No two events share a signature, so the
+action-shaped properties (2, 3, 6, and 10) are statable through `Observe`, and so
+are the guards behind 1 and 4.
 
 | property | fields it reads |
 |---|---|
@@ -212,6 +219,24 @@ and so are the guards behind 1 and 4.
 | 7 default is never clean | standing, owed |
 | 8 the reckoning comes | season, standing, owed |
 | 9 the end is the end | all four |
+| 10 the calendar marches | season, shelf, owed |
+
+The sufficiency walk, rule by rule. The test is which property constrains the rule,
+not which field mentions it. A rule no property constrains is ungraded, whatever the
+fields mention.
+
+| rule | constrained by |
+|---|---|
+| 1 stock and the desk | 2 and 5: one packet at a time, and only checkout and return move it |
+| 2 the calendar | 10 for order and the own-step clause, 8 for the close that must come, 9 for the end |
+| 3 standing | 6 and 7 |
+| 4 checkout | 1, 2, 3, 4, and 5 |
+| 5 return | 2, 3, 5, and the way back in 6 |
+| 6 close and default | 6, 7, and 8 |
+
+Rule 2's order and own-step clauses hang on property 10 alone. Without it they'd
+have a field and no property, which is the ungraded-rule shape the test above exists
+to catch.
 
 Central renders the operator into TLA+ later. This section fixes the fields and their
 meaning, not their syntax.
@@ -305,3 +330,12 @@ risk. Mine are on the table instead.
 9. **Default's price.** Chose: the checkout bar only. Alternative: fines, priority
    loss, expulsion tiers. One consequence is the least that makes standing matter at
    all.
+10. **Close atomicity.** Chose: a close is a step of its own, and no transaction
+    lands at the same moment (Rule 2). Alternative: a close that can share its step
+    with a last transaction. The own-step close is what gives every event its own
+    signature in section 3, so the alternative costs that argument and property 10
+    with it.
+11. **The conservation baseline.** Chose: the opening stock is a constant of the
+    program, and property 5 reads it directly. Alternative: a baseline remembered
+    from the first state. An at-every-moment equality needs a baseline readable at
+    every moment, so it's a constant, not a memory.
