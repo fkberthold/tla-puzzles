@@ -7,4 +7,8 @@ MCHol == (4 :> B) @@ (11 :> A)
 
 MCHolIdle == (2 :> A) @@ (4 :> B) @@ (11 :> A)
 
+MCSched(d) == IF d \in DOMAIN MCHol THEN MCHol[d] ELSE MCBase[d]
+
+MCSchedIdle(d) == IF d \in DOMAIN MCHolIdle THEN MCHolIdle[d] ELSE MCBase[d]
+
 ===============================================================================

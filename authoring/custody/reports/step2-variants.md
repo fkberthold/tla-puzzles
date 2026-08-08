@@ -589,3 +589,261 @@ Two claims carry no run behind them and are marked as such:
 - The `PastFixed` and `QuietAtEnd` redundancy argument is INFERRED. What I measured
   is that neither was ever the named catcher on 26 variants. The implication
   argument is mine, and I'd want it checked before anyone drops a conjunct.
+
+# RESULTS-2B: the repair, and the re-run against the frozen matrix
+
+Appended by the §9.5b repairer (V2-PLAN.md §6 step 2b, bead `tla-jjo7`). Nothing
+above this line changed. The matrix is the one frozen at `f476527`, and all 26
+variants below were rebuilt from the "Exact mutations" section by a script that
+asserts each anchor matched exactly once. A mutation that quietly did nothing
+would make a green run meaningless, so the builder refuses a no-op.
+
+I did not author the variants. Base commit for this work is `99eac6a`.
+
+## What changed
+
+Three edits, one per arrow. None of them touches `Observe`.
+
+**Arrow 1, V16.** `OneOutstanding` is new in `Custody.tla` and new under
+`PROPERTIES` in both cfgs. It's the report's own candidate, reparenthesized:
+
+```tla
+OneOutstanding ==
+    [][\A p \in Parents :
+          (/\ Observe.pending[p] # NoDay
+           /\ Observe'.pending[p] # NoDay)
+              => Observe'.pending[p] = Observe.pending[p]]_Observe
+```
+
+The parentheses are mine. Written as a bare junction list with `=>` in the
+bullet column, the parse depends on the alignment rule rather than on anything a
+reader can see, and I'd rather not have a grading obligation rest on that.
+
+**Arrow 2, V08 and V10.** `Custody.tla` gains a declared constant operator,
+`Sched(_)`, and the four obligations that used to read the schedule off
+`Scheduled` now read it off `Sched`. Those are `OpeningBaseline`, `FlipOnce`,
+`PendingFresh` and `CapRespected`. `MCCustody.tla` gains `MCSched` and
+`MCSchedIdle`, and each cfg binds `Sched` to the one matching its `Hol`.
+
+`Scheduled` stays exactly where it was, and `Custodian` still reads it. That
+matters twice. It keeps V08 and V10 constructible as the frozen matrix words
+them, and it's what makes the catch work at all: the model derives custody from
+its own operator while the obligations measure against the instance's, so a
+rewrite of `Scheduled` moves one side of the comparison and not the other.
+
+The cfg route I did not take is worth naming, because it looks like the obvious
+one. A definition override, `Scheduled <- MCSched` in the CONSTANTS section,
+replaces the operator everywhere it appears, `Custodian` included. That doesn't
+catch V08, it erases it. The variant would then be the reference.
+
+There's also a new `ASSUME \A d \in 1..H : Sched(d) \in {A, B}`, so a cfg that
+binds `Sched` to something that isn't a schedule fails loudly at rc=10 instead
+of grading against nonsense.
+
+**Arrow 3, V11 and V12.** Three probe modules under
+`authoring/custody/reference/probes/`, each a must-fail invariant with its own
+cfg. `CapReachable`, `FlipAwayFromA`, `FlipAwayFromB`. Details below.
+
+## Arrow 1: V16 now goes red in 62 states
+
+```
+harness/verdict.sh -t 2400 -c ../tmp-variants/v16/MCCustody.cfg \
+    -p "Gate!NonVacuous" ../tmp-variants/v16/MCCustody.tla
+```
+
+`LIVENESS_VIOLATION`, rc=13, `Error: Action property OneOutstanding is
+violated.` 62 states generated, 58 distinct, depth 3.
+
+Step 2 needed `-t 2400` and 6m55s to get `OK` out of this variant. The catch
+lands at depth 3, so the budget note in that section is now a fact about the
+uncaught V16 rather than about this one. I ran it at `-t 2400` anyway, since the
+budget is what the brief specified and a smaller one proves less.
+
+`OneOutstanding` is the named catcher on exactly one of the 26. That's the
+minimality claim, measured rather than argued: it adds nothing to the other 25
+verdicts, and every obligation the step-2 run named is still the one named now.
+
+## Arrow 2: the yardstick stopped moving
+
+| ID | Token | rc | Named |
+|---|---|---|---|
+| V08 | `SAFETY_VIOLATION` | 12 | `Invariant CapRespected is violated by the initial state` |
+| V10 | `LIVENESS_VIOLATION` | 13 | `Property line 80, col 36 to line 80, col 66 of module Custody` |
+
+Both were `OK` rc=0 at step 2, on 496,735 generated and 102,460 distinct. Both
+now die on the initial state, before a single step.
+
+They die differently, and the difference is arithmetic rather than luck. V08
+sends every non-holiday day to A, so six days sit off the pinned schedule at the
+opening and the cap of 2 breaks first. V10 ignores the designations, which moves
+days 4 and 11 and nothing else, so the count is exactly 2 and `CapRespected`
+holds. `OpeningBaseline` is what catches it.
+
+Line 80 is `OpeningBaseline`, and columns 36 to 66 are its quantified body. This
+is the naming quirk the channel notes above already recorded, still behaving the
+same way. The line moved from 79 to 80 because the new `ASSUME` pushed it down
+one.
+
+## Arrow 3: four required probe runs, and four more worth having
+
+Every probe is an invariant the reference has to break. rc=12 is the pass and
+rc=0 is the failure, which inverts the usual reading and is why each module
+carries a header line saying so.
+
+The four the brief asked for:
+
+| Probe | Tree | Token | rc | Named |
+|---|---|---|---|---|
+| `CapReachable` | reference | `SAFETY_VIOLATION` | 12 | `Invariant CapNotReached is violated` |
+| `CapReachable` | V12 | `OK` | 0 | none |
+| `FlipAwayFromA` | reference | `SAFETY_VIOLATION` | 12 | `Invariant AKeepsEveryScheduledDay is violated` |
+| `FlipAwayFromA` | V12 | `OK` | 0 | none |
+
+`FlipAwayFromB` is the mirror the report asked for, and I ran it on both trees
+too. Reference: rc=12, `Invariant BKeepsEveryScheduledDay is violated`, 110
+states. V12: rc=0.
+
+Then V11, which is where the mirror earns its keep:
+
+| Probe | Token | rc | Generated | Distinct |
+|---|---|---|---|---|
+| `CapReachable` | `SAFETY_VIOLATION` | 12 | 5,738 | 2,373 |
+| `FlipAwayFromB` | `SAFETY_VIOLATION` | 12 | 110 | 103 |
+| `FlipAwayFromA` | `OK` | 0 | 496,735 | 102,460 |
+
+The report predicted this split and it holds. V11 sends every swapped day to A,
+so the B days still move and two of them still differ from the schedule. Both of
+those probes fire and neither one has found anything wrong. `FlipAwayFromA` is
+the only one that goes silent, and one probe per direction is what it takes.
+
+Read the rc=0 rows next to their state counts. Every one of them explored
+496,735 states and found 102,460 distinct, which are the reference's own
+numbers. So the space is healthy and the witness is unreachable inside it. That
+pair is the deadness signature, and neither half says it alone.
+
+The probes compare against `Sched` rather than `Scheduled`, for the same reason
+the obligations do.
+
+## The re-run: §9.5 checks 1 through 6
+
+The gate. Same harness, same working directory, `-t 2400` on every variant so a
+budget can't be mistaken for a verdict.
+
+| Check | Command | Token | rc |
+|---|---|---|---|
+| 1a | `verdict.sh -t 480 -p "Gate!NonVacuous" ../authoring/custody/reference/MCCustody.tla` | `OK` | 0 |
+| 1b | the same with `-c ../authoring/custody/reference/MCCustodyIdle.cfg` | `OK` | 0 |
+| 2 | the same as 1a without `-p`, plus `-- -inv FALSE` | `SAFETY_VIOLATION` | 12 |
+
+Check 3 rides checks 1a and 1b. `-postCondition "Gate!NonVacuous"` was on both,
+and rc=0 rather than rc=10 is the postcondition passing.
+
+**Check 4, coverage.** No action has `total == 0` on either instance, and the
+lines are identical to step 2's to the digit:
+
+```
+<Init>:     1:1
+<BeginDay>: 574:102354
+<Propose>:  96320:182420
+<Accept>:   5565:29540
+<Drop>:     0:182420
+```
+
+`Drop`'s zero is still in the `distinct` column, which is still not the
+predicate.
+
+**Check 6, counts.** Both instances: 496,735 states generated, 102,460 distinct,
+depth 20. Step 2 reported the same three numbers, so the repair moved nothing.
+`MCCustody.cfg` finished in 2m19s and `MCCustodyIdle.cfg` in 3m01s, against
+1m37s and 2m06s at step 2. I'd read that as the cost of one more temporal
+obligation plus whatever else was on the box, not as a change in the search.
+
+**Check 5, the 26 variants.**
+
+| ID | Token | rc | Obligation TLC named | Against step 2 |
+|---|---|---|---|---|
+| V01 | `LIVENESS_VIOLATION` | 13 | `Property OpeningNoDayBegun is violated by the initial state` | unchanged |
+| V02 | `LIVENESS_VIOLATION` | 13 | `Action property TodayMarches is violated` | unchanged |
+| V03 | `LIVENESS_VIOLATION` | 13 | `Action property TodayMarches is violated` | unchanged |
+| V04 | `SAFETY_VIOLATION` | 12 | `Invariant TypeOK is violated` | unchanged |
+| V05 | `LIVENESS_VIOLATION` | 13 | `Temporal property WindowCompletes was violated` | unchanged |
+| V06 | `LIVENESS_VIOLATION` | 13 | `Action property FlipCause is violated` | unchanged |
+| V07 | `SAFETY_VIOLATION` | 12 | `Invariant TotalCustody is violated` | unchanged |
+| V08 | `SAFETY_VIOLATION` | 12 | `Invariant CapRespected is violated by the initial state` | **newly caught** |
+| V09 | `LIVENESS_VIOLATION` | 13 | `Property line 80 ... of module Custody` (`OpeningBaseline`) | unchanged |
+| V10 | `LIVENESS_VIOLATION` | 13 | `Property line 80 ... of module Custody` (`OpeningBaseline`) | **newly caught** |
+| V11 | `OK` | 0 | none | uncaught, probe covers |
+| V12 | `OK` | 0 | none | uncaught, probes cover |
+| V13 | `LIVENESS_VIOLATION` | 13 | `Action property FlipCause is violated` | unchanged |
+| V14 | `SAFETY_VIOLATION` | 12 | `Invariant PendingFresh is violated` | unchanged |
+| V15 | `SAFETY_VIOLATION` | 12 | `Invariant PendingFresh is violated` | unchanged |
+| V16 | `LIVENESS_VIOLATION` | 13 | `Action property OneOutstanding is violated` | **newly caught** |
+| V17 | `OK` | 0 | none | uncaught, named cause |
+| V18 | `SAFETY_VIOLATION` | 12 | `Invariant PendingFresh is violated` | unchanged |
+| V19 | `OK` | 0 | none | uncaught, named cause |
+| V20 | `SAFETY_VIOLATION` | 12 | `Invariant PendingFresh is violated` | unchanged |
+| V21 | `SAFETY_VIOLATION` | 12 | `Invariant PendingFresh is violated` | unchanged |
+| V22 | `LIVENESS_VIOLATION` | 13 | `Action property FlipCause is violated` | unchanged |
+| V23 | `LIVENESS_VIOLATION` | 13 | `Action property FlipOnce is violated` | unchanged |
+| V24 | `SAFETY_VIOLATION` | 12 | `Invariant CapRespected is violated` | unchanged |
+| V25 | `LIVENESS_VIOLATION` | 13 | `Action property FlipCause is violated` | unchanged |
+| V26 | `LIVENESS_VIOLATION` | 13 | `Temporal property WindowCompletes was violated` | unchanged |
+
+**22 caught, 4 uncaught.** Step 2 caught 19. Of the caught, 10 come back rc=12
+on an invariant and 12 come back rc=13 on a property.
+
+**No regressions.** All 19 variants caught at step 2 are still caught, and each
+one is caught by the same obligation TLC named then. V09's line number moved by
+one and its obligation did not. Nothing that was red went green, and no run came
+back `TIMEOUT`.
+
+### The four remaining, on both cfgs
+
+| ID | Token | rc | Generated | Distinct | Depth |
+|---|---|---|---|---|---|
+| V11 | `OK` | 0 | 496,735 | 102,460 | 20 |
+| V12 | `OK` | 0 | 496,735 | 102,460 | 20 |
+| V17 | `OK` | 0 | 445,495 | 92,800 | 19 |
+| V19 | `OK` | 0 | 343,855 | 102,460 | 20 |
+
+`MCCustodyIdle.cfg` returns the same six numbers per row. Every count matches
+step 2 to the digit, which I'd take as corroboration that the repair changed the
+obligations and not the search.
+
+The idle-designation instance still separates nothing on this variant set. Step
+2's reading of it holds.
+
+### Why these four stay uncaught
+
+Two of them were never an arrow. V17 and V19 are strict restrictions of the
+reference, and no safety obligation can refute a spec that does less. §5.2's
+not-too-strong direction owns them, and adding an obligation to catch them would
+be the bend §9.5b forbids.
+
+V11 and V12 are covered, but not by an obligation, and I want to be careful
+about the difference. Possibility isn't expressible as a property over a spec.
+Fairness on `Accept` would express it and would also misstate Rule 6, which says
+nothing compels acceptance. So the check is a second run whose invariant is
+required to fail, and the probes above are that run. The 26-variant table reads
+`OK` on both rows because the obligation set is doing what it correctly can, and
+the probe table is where those two are answered.
+
+That leaves the count at 22 obligations plus 2 probes plus 2 named causes.
+
+## Claim provenance
+
+Every token, exit code, state count and quoted obligation above came out of a
+run through `harness/verdict.sh` on TLC 2026.07.31.184830, in this worktree,
+during this work. The reference's checks 1a and 1b were re-run at the end and
+both came back `OK` rc=0 on the counts recorded here.
+
+The variant trees, the per-run logs and the builder live in a scratch directory
+that isn't committed. The builder rebuilds all 26 from the frozen "Exact
+mutations" section and fails loudly if an anchor stops matching, so the
+committed reference plus that section is what reproduces this.
+
+One claim carries no run behind it and is marked as such:
+
+- The timing comparison against step 2 is INFERRED as to cause. What I measured
+  is 2m19s against 1m37s. Attributing the gap to the extra obligation rather
+  than to load on the box is a guess, and a cheap one to check if it matters.

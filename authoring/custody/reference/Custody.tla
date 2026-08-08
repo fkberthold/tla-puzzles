@@ -1,7 +1,7 @@
 ------------------------------- MODULE Custody -------------------------------
 EXTENDS Naturals, FiniteSets
 
-CONSTANTS A, B, H, N, Base, Hol
+CONSTANTS A, B, H, N, Base, Hol, Sched(_)
 
 ASSUME A # B
 ASSUME H \in Nat \ {0}
@@ -9,6 +9,7 @@ ASSUME N \in Nat
 ASSUME Base \in [1..H -> {A, B}]
 ASSUME /\ DOMAIN Hol \subseteq 1..H
        /\ \A d \in DOMAIN Hol : Hol[d] \in {A, B}
+ASSUME \A d \in 1..H : Sched(d) \in {A, B}
 
 Parents == {A, B}
 Days == 1..H
@@ -76,11 +77,11 @@ Spec == Init /\ [][Next]_vars /\ WF_vars(BeginDay)
 
 TotalCustody == Observe.custodian \in [Days -> Parents]
 
-OpeningBaseline == \A d \in Days : Observe.custodian[d] = Scheduled(d)
+OpeningBaseline == \A d \in Days : Observe.custodian[d] = Sched(d)
 
 FlipOnce ==
     [][\A d \in Days :
-          Observe.custodian[d] # Scheduled(d) =>
+          Observe.custodian[d] # Sched(d) =>
               Observe'.custodian[d] = Observe.custodian[d]]_Observe
 
 FlipCause ==
@@ -100,10 +101,16 @@ PendingFresh ==
         \/ /\ Observe.pending[p] \in Days
            /\ Observe.pending[p] > Observe.today
            /\ Observe.custodian[Observe.pending[p]] =
-                  Scheduled(Observe.pending[p])
+                  Sched(Observe.pending[p])
+
+OneOutstanding ==
+    [][\A p \in Parents :
+          (/\ Observe.pending[p] # NoDay
+           /\ Observe'.pending[p] # NoDay)
+              => Observe'.pending[p] = Observe.pending[p]]_Observe
 
 CapRespected ==
-    Cardinality({d \in Days : Observe.custodian[d] # Scheduled(d)}) <= N
+    Cardinality({d \in Days : Observe.custodian[d] # Sched(d)}) <= N
 
 QuietAtEnd ==
     [][Observe.today = H => Observe' = Observe]_Observe
