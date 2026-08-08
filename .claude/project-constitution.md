@@ -64,10 +64,11 @@ canonical_commands:
   #            of the assertions, which is the same class of lie as naming one
   #            that fails by design.
   #   lint   — shellcheck over scripts/ + harness/, at default severity.
-  #            HONEST STATUS: this gate is RED today (3 SC1087 errors in
-  #            harness/refinement.sh plus warnings and infos elsewhere). tla-xme
-  #            wired the runner and deliberately left the findings for separate
-  #            work. A red gate is not a lying command — it is a true report.
+  #            HONEST STATUS: green since 2026-08-07. tla-5r7 closed all 26
+  #            findings, and seven sites carry a per-site disable with the
+  #            reason above it. Re-verified 2026-08-08, 28 files clean. Keep
+  #            it green by fixing the finding or justifying the one site,
+  #            never by lowering severity or adding a blanket exclude.
   #   dev    — scripts/server: regenerates docs/ then `mkdocs serve`.
   #   deploy — was "mkdocs gh-deploy" (migrated from the legacy workflow.json
   #            .deploy hint, loom-oxs.4 item-23). Now points at scripts/deploy,
