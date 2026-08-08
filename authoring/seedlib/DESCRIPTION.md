@@ -141,7 +141,8 @@ them directly. The instance in section 4 is one instance, not the specification.
    default.
 2. **Shelf discipline.** A variety's shelf count never goes below zero. It moves one
    packet at a time: down at a checkout of that variety, up at a return of it, never
-   otherwise.
+   otherwise. A step is one transaction: it moves at most one variety's shelf count
+   and at most one member's debt.
 3. **Ledger discipline.** A member's debt for a variety appears only at that member's
    checkout of it, and clears only at that member's return of it. A return of one
    variety never touches a debt of another.
@@ -163,6 +164,14 @@ them directly. The instance in section 4 is one instance, not the specification.
 10. **The calendar marches.** The season moves only forward, first to second to
     third to ended, one step at a time, never backwards. At a step where the season
     moves, no shelf count and no debt changes.
+11. **The opening.** At the opening the first season is in progress. Every member is
+    in good standing and owes nothing, and each variety's shelf count is its opening
+    stock.
+
+Items 4, 5, and 7 are invariants, and so is item 2's floor. Items 1, 3, 6, 9, and 10
+constrain steps, so they'll land as action properties, and item 2's other clauses
+land with them. Item 8 is the one liveness obligation in this description. Item 11 is
+a condition on the opening state.
 
 ## 3. The observation
 
@@ -220,6 +229,7 @@ are the guards behind 1 and 4.
 | 8 the reckoning comes | season, standing, owed |
 | 9 the end is the end | all four |
 | 10 the calendar marches | season, shelf, owed |
+| 11 the opening | season, shelf, owed, standing |
 
 The sufficiency walk, rule by rule. The test is which property constrains the rule,
 not which field mentions it. A rule no property constrains is ungraded, whatever the
@@ -227,10 +237,10 @@ fields mention.
 
 | rule | constrained by |
 |---|---|
-| 1 stock and the desk | 2 and 5: one packet at a time, and only checkout and return move it |
-| 2 the calendar | 10 for order and the own-step clause, 8 for the close that must come, 9 for the end |
-| 3 standing | 6 and 7 |
-| 4 checkout | 1, 2, 3, 4, and 5 |
+| 1 stock and the desk | 2 and 5: one packet at a time, and only checkout and return move it. 11 pins the opening shelf |
+| 2 the calendar | 10 for order and the own-step clause, 11 for the start, 8 for the close that must come, 9 for the end |
+| 3 standing | 6 and 7, with 11 for where everyone starts |
+| 4 checkout | 1, 2, 3, 4, and 5, with 2's one-transaction clause |
 | 5 return | 2, 3, 5, and the way back in 6 |
 | 6 close and default | 6, 7, and 8 |
 
@@ -238,8 +248,8 @@ Rule 2's order and own-step clauses hang on property 10 alone. Without it they'd
 have a field and no property, which is the ungraded-rule shape the test above exists
 to catch.
 
-Central renders the operator into TLA+ later. This section fixes the fields and their
-meaning, not their syntax.
+This section fixes the fields and their meaning, not their syntax. The author renders
+the operator over whatever state they chose.
 
 ## 4. Bounds
 
@@ -255,14 +265,14 @@ donation the founder had, run for three seasons and then audited. The properties
 section 2 don't read these numbers. The numbers are the program's, the same way the
 horizon in Rule 2 is the program's.
 
-For the pipeline: the instance isn't arbitrary, and I'd resist shrinking it. Two
-members is the least that shows one member's default leaving the other free, and
-contention at the shelf. Two varieties is the least that gives kind-matching
-(properties 3 and 4) anything to bite. The uneven stock does real work: lettuce at
-one packet makes an empty shelf reachable for a member who owes nothing of it, and
-beans at two keeps that count out of yes/no range, so property 5 doesn't degenerate.
-Three seasons is the least horizon that holds every fate of a loan: met in season,
-lapsed at a close, redeemed late, borrowed again, lapsed to the end.
+The instance isn't arbitrary. Two members is the least that shows one member's
+default leaving the other free, and contention at the shelf. Two varieties is the
+least that gives kind-matching (properties 3 and 4) anything to bite. The uneven
+stock does real work: lettuce at one packet makes an empty shelf reachable for a
+member who owes nothing of it, and beans at two keeps that count out of yes/no range,
+so property 5 doesn't degenerate. Three seasons is the least horizon that holds every
+fate of a loan: met in season, lapsed at a close, redeemed late, borrowed again,
+lapsed to the end.
 
 I'd put the reachable states under two thousand. Conservation ties the shelf to the
 ledger, the season takes four values counting the end, and each member ranges over
@@ -293,6 +303,10 @@ stutter.
 The genetic-provenance fact (the returned packet is never the lent one) is stated as
 system truth in Rule 4 and kept invisible to `Observe` on purpose. Identity models
 and counter models differ there, and grading must not.
+
+For the pipeline: I'd resist shrinking the instance in section 4. Each number is the
+least that keeps some property biting, and the rationale sits with the instance where
+the author will read it.
 
 ## 6. Ambiguities I settled, and the other way each could go
 

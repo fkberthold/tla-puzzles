@@ -30,8 +30,8 @@ of another party.
 ### Rule 1. The calendar
 
 The lender publishes a loan calendar of `Horizon` numbered seasons. Seasons follow one
-another in order. No party's action drives a season forward, and no season waits for
-anyone. Everything in this system happens inside the published calendar.
+another in order, and the calendar opens in the first of them. No party's action
+drives a season forward, and no season waits for anyone. Everything in this system happens inside the published calendar.
 
 ### Rule 2. Custody
 
@@ -123,7 +123,7 @@ with the collection home and dark.
 ## 2. What must be true
 
 A correct model satisfies all of these. They're stated in English here, over the
-observables of section 3, and central renders them later.
+observables of section 3. The author renders them as properties of their model.
 
 1. **Budget.** At every moment, the count of seasons in which an object has been on
    display is at most `Budget`.
@@ -144,21 +144,29 @@ observables of section 3, and central renders them later.
    marker. It moves only from a season to the next in order, one at a time, and from
    the last season to the closed marker. It never moves back, and it eventually
    reaches the closed marker.
+9. **The opening.** At the opening the calendar is in its first season. Every object
+   is with the lender and off display, nothing is spent, no object has a last-lit
+   season, and no borrower has a request outstanding.
+10. **A season counts once.** At a step where an object is on display in the new
+    season and was not on display in that season before, its count of display seasons
+    rises by exactly one. At every other step its count is unchanged.
 
-Items 1, 4, and the first two clauses of 7 are invariants. Items 2, 3, 5, 6, and the
-tail of 7 constrain steps, so they'll land as action properties. Item 5 lands there
-because `Observe` shows a span's end and not its start, so its length caps are checked
-at the step that sets the span. Item 8 splits: its range clause is an invariant, its
-march clauses are action properties, and its last clause, that the calendar reaches
-the closed marker, is the one liveness obligation in this description. The learner
-path covers action properties before this cell (V2-PLAN.md §3b, learntla ch.11).
+Items 1, 4, and the first two clauses of 7 are invariants. So is item 5's deadline
+clause, a state predicate over `custodian`, `season`, and `dueBack`. Items 2, 3, 6,
+10, and the tail of 7 constrain steps, so they'll land as action properties. Item 5's
+length caps land there too, because `Observe` shows a span's end and not its start, so
+the caps are checked at the step that sets the span. Item 8 splits: its range clause
+is an invariant, its march clauses are action properties, and its last clause, that
+the calendar reaches the closed marker, is the one liveness obligation in this
+description. Item 9 is a condition on the opening state, before any step runs.
 
 ## 3. The observation operator
 
 The operator is named `Observe`. Each field below is a fact about the system at the
-current moment, the kind a conservator could read out of the object's file. Do not
-render these as TLA+ here. Central renders the operator, one field per line, each
-field an expression over the state.
+current moment, the kind a conservator could read out of the object's file. The
+fields are given here as named facts, not as syntax. The author renders them over
+whatever state they chose, one field per line, each field an expression over the
+state.
 
 **season**: the calendar season now in progress, or a closed marker once the last
 season has ended. Needed because every duration rule counts in seasons, closure
@@ -180,8 +188,7 @@ and the next display (3).
 
 **dueBack**: for each object away, the last season of its agreed span, and a none
 marker at home. Needed for terms, `MaxTerm`, and calendar fit (5, 6). Without it,
-Rules 7 and 8 would be invisible at the graded interface, which is the pilot's
-under-exposure failure repeated.
+Rules 7 and 8 would be invisible at the graded interface.
 
 **asking**: for each borrower, its outstanding request (which object, how many
 seasons), or a none marker. Needed for consent and the request-shape rules (6).
@@ -215,24 +222,26 @@ the rule, and then the rule is loose. First, what each must-be-true reads:
 | 6 Consent | season, custodian, dueBack, asking |
 | 7 Closure | season, custodian, onDisplay, and the record as a whole |
 | 8 Calendar | season |
+| 9 Opening | season, custodian, onDisplay, spent, lastLit, asking |
+| 10 Season counts once | season, onDisplay, lastLit, spent |
 
 Then each rule, against the properties that constrain it:
 
 | Rule | Constrained by |
 |---|---|
-| 1 Calendar | 8, and nothing else. Without 8 the clock is ungraded |
-| 2 Custody | 4 and 6 |
-| 3 Display counting | 4's away clause, and 1 through what `spent` counts |
-| 4 Budget | 1 and 2 |
-| 5 Rest | 3 |
+| 1 Calendar | 8, with 9 pinning the opening season. Without 8 the clock is ungraded |
+| 2 Custody | 4 and 6, with 9 for where every object starts |
+| 3 Display counting | 4's away clause, and 10 for what a season adds to the count |
+| 4 Budget | 1 and 2, with 9 starting the count at zero and 10 tying it to display |
+| 5 Rest | 3, with 9 starting every object undisplayed |
 | 6 Requests | 6. The one-ask shape rides `asking`'s per-borrower form |
 | 7 Granting | 1, 3, 5, and 6 |
 | 8 The loan ends | 5 at the deadline, 4 for away-as-display, with 8 marching the season |
 | 9 Home wall | 1, 2, 3 for the guards. The forced take-downs land on 1 and 7, with 8 again |
 | 10 Closure | 7, and 8's own end |
 
-The rounding in Rule 3 lives in what must-be-true 1 counts: a season counts the
-moment any part of it sees display, which is the mid-episode demand on `spent`.
+The rounding in Rule 3 lives in must-be-true 10: a season counts the moment any part
+of it sees display, and 10 is that demand stated as a property.
 Every field earns its place through at least one must-be-true, so nothing here is
 decoration.
 
@@ -240,9 +249,7 @@ decoration.
 
 TLC must check the suggested instance exhaustively in well under 60 seconds. Every
 bound below is a fact of the system first and a finiteness device second, and each one
-already appears inside a rule the model must enforce as behavior. That's the pilot's
-amendment-bound lesson applied up front: no bound hides in an action for the statement
-to discover later.
+already appears inside a rule the model must enforce as behavior.
 
 - **`Objects`, `Borrowers`**: the collection and the peer institutions. The config
   picks one instance. The rules hold for any.
@@ -266,8 +273,8 @@ object go out more than once. Horizon 6 holds loan, rest, loan (2+1+2 seasons) w
 one to spare for interleaving.
 
 I expect the reachable count between 10^4 and 10^6 states, which TLC clears in well
-under a minute. INFERRED. The verifier's step 6 counts settle it. If it runs long,
-shrink `Horizon` first, then `Objects`.
+under a minute. That's an estimate, not a measurement. Nobody has run it. If it runs
+long, shrink `Horizon` first, then `Objects`.
 
 **Quiescence.** The closed calendar is the intended end of every behavior. A checker
 reporting deadlock in that state is reporting the design working. The reference

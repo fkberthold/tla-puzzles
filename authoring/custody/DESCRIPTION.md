@@ -10,14 +10,12 @@ out of the author's brief and out of anything downstream of it.
 
 Grid cell: task shape A, in a situation of layered rules and two independent parties.
 
-Real custody arrangements are more complex than this one. Every cut is on purpose. The
-load-bearing cuts are named where they land, and gathered again in section 6.
-
 ## 1. The system
 
 Two parents share custody of one child under a written arrangement. Call the parents A
 and B. The arrangement runs one planning window at a time. This description covers the
-life of one window.
+life of one window. Real custody arrangements are more complex than this one. Every
+cut is on purpose, and the load-bearing cuts are named where they land.
 
 **The parties.** The two parents act, and they act independently. Neither waits for the
 other. Days begin on their own, without either parent's leave. Either parent's next step
@@ -143,9 +141,15 @@ constants alone.
 7. **The cap.** At every moment, at most N days have a custodian other than their
    scheduled parent.
 8. **Quiet at the end.** Once day H has begun, nothing observable changes.
-9. **The window runs.** The latest day to have begun moves only two ways: from none
-   to day 1, and from day k to day k+1. It never moves otherwise. Day H eventually
-   begins.
+9. **The window runs.** At the opening, no day has begun. The latest day to have
+   begun moves only two ways: from none to day 1, and from day k to day k+1. It never
+   moves otherwise. Day H eventually begins.
+
+Items 1, 6, and 7 are invariants. Items 3, 4, 5, and 8 constrain steps, so they'll
+land as action properties. Item 2 is a condition on the opening state, and item 9's
+opening clause is another. Item 9's march clauses are action properties, and its last
+clause, that day H eventually begins, is the one liveness obligation in this
+description.
 
 ## 3. The observation operator
 
@@ -179,7 +183,7 @@ whatever the fields show.
 
 | Rule | Constrained by |
 |---|---|
-| 1 | properties 9 and 8: the days run in order, then day H holds. Without 9, nothing makes them run |
+| 1 | properties 9 and 8: the window opens with no day begun, the days run in order, then day H holds. Without 9, nothing makes them run |
 | 2 | property 1 |
 | 3 | property 2, through the scheduled parent |
 | 4 | property 2, through the scheduled parent |
@@ -193,8 +197,7 @@ Three honest notes on what the interface does not show.
 
 First, who moved. Acceptance is the other parent's act (Rule 6), but a step at the
 interface shows a proposal resolving and a day flipping, not whose hand did it. No
-property above depends on the actor. The pilot's issuing rule has the same shape: the
-city issues, and `issued` just flips.
+property above depends on the actor.
 
 Second, withdraw against decline. The two are one observable event, which is why Rule 8
 states them as one resolution. A model that omits one of the pair produces the same
@@ -226,9 +229,9 @@ The arithmetic at the instance. `today` takes at most 15 values (none, then 1..1
 parent's pending proposal takes at most 15 (none, or one of 14 days). Agreed-swap
 combinations at N = 2 over 14 days number 1 + 14 + 91 = 106. The naive product is
 15 x 15 x 15 x 106, about 358,000, and the reachable count sits well under it, since a
-pending day must be un-begun and unswapped. I'd expect TLC to clear this in seconds
-with liveness on (property 9 carries an eventually), which leaves the 60-second
-budget a wide margin.
+pending day must be un-begun and unswapped. TLC must check the instance exhaustively
+in well under 60 seconds. I'd expect it to clear this one in seconds with liveness on
+(property 9 carries an eventually), a wide margin.
 
 A suggested instance for the reference `.cfg`: days 1 through 7 to A, days 8 through 14
 to B, designations day 4 to B and day 11 to A (both real overrides), N = 2. Worth one
@@ -304,7 +307,9 @@ risk. These are mine, with the road not taken.
     that allows self-acceptance produces the same `Observe` traces as one that forbids
     it, and the trace sets are equal. A self-acceptance variant is uncatchable, with
     the cause named here in advance. That's a finding, not a failure, in V2-PLAN.md's
-    own terms: an uncatchable variant with a named cause.
+    own terms: an uncatchable variant with a named cause. A drop that flips the day
+    is the same vacuity: the interface can't tell an acceptance from a drop, so that
+    variant's traces sit inside the reference's too.
 12. **Designations stay inside the window.** Every designation names a day of the
     window, 1 through H. The alternative admits designations naming days outside it,
     inert in this window and belonging to the next one's arrangement, which Rule 1
