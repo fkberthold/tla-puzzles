@@ -110,7 +110,7 @@ so the shapes here are contractual.
   then the day's number, 1 through 14.
 - **custodian**: a function with domain 1..14. `custodian[d]` answers: if you
   asked the parents right now who has the child on day d, what would they
-  say. The answer each parent value, A or B.
+  say. The answer is a parent value, A or B, for each day.
 - **pending**: a function with domain {A, B}. `pending[p]` is the day named
   by parent p's outstanding proposal, 1 through 14, or 0 if p has none.
 
@@ -182,9 +182,6 @@ are the slow part. The full check takes 2 to 3 minutes on a fast machine.
 Budget minutes, not seconds. A run that sits quiet for two minutes is
 working, not hung.
 
-Expect the state count in the low hundreds of thousands generated, roughly
-100,000 distinct. If your run is orders of magnitude past that, your model
-is remembering something the arrangement does not.
 
 ## Deliverables
 
