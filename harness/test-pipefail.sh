@@ -35,7 +35,7 @@
 # This suite pins both halves: part 1 demonstrates the mechanism on a
 # deliberately chatty producer, and part 2 is the structural ban that keeps the
 # idiom from coming back anywhere under the scanned roots (harness/, scripts/,
-# chapter/ — see SCAN_ROOTS).
+# chapter/, .github/ — see SCAN_ROOTS).
 #
 # Usage:  harness/test-pipefail.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -179,9 +179,16 @@ fi
 # live sites in scripts/ the moment it was turned on. Add a ROOT here, never an
 # individual file: the whole point is that a file written tomorrow is covered
 # without anyone remembering to enrol it.
+#
+# .github/ arrived the same way, one bead later (tla-ugwb). Widening the roots
+# was never the hard part. Selection was: workflow YAML has no shebang and no
+# .sh suffix, so adding the root alone would have picked up nothing, and the
+# floor below is what would have said so. Both widenings started from a live
+# site the ban could not see, and in this one the site was CI itself
+# (bead tla-1qn).
 # ---------------------------------------------------------------------------
 
-SCAN_ROOTS=(harness scripts chapter)
+SCAN_ROOTS=(harness scripts chapter .github)
 
 echo
 echo "== part 2: the idiom is banned across ${SCAN_ROOTS[*]} =="
@@ -203,22 +210,67 @@ SELF="harness/test-pipefail.sh"
 # mostly .md and scripts/ holds three .py helpers; none carries a `sh` shebang
 # or a .sh suffix, so the widened roots do not drag markdown or Python into a
 # ban written for shell.
+#
+# WORKFLOW YAML IS THE ONE EXCEPTION, and `run:` is its shebang. An Actions
+# step declares that it holds shell by carrying a `run:` key, which is evidence
+# of the same kind a `#!` line is, so that key is what admits the file.
+# Admitting every .yml instead would run a ban written for shell over
+# mkdocs.yml and any other config that lands under a root. Measured on
+# 2026-08-07: the key form admits both workflows and rejects mkdocs.yml,
+# mempalace.yaml and .beads/config.yaml.
+#
+# Both spellings count, `run:` under a `- name:` and the list-item `- run:`.
+# The first pass matched only the former, and the part 3 control caught it.
+#
+# A FUNCTION, and not an inline loop, because part 3 has to run this same
+# selection over a synthetic tree. A selector that only ever runs over the real
+# roots can't be controlled: if it silently stops admitting a whole class of
+# file, every assertion below still reports "found nothing" and passes.
+SELECTED=()
+select_scan_files() {
+  SELECTED=()
+  local f first
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    first=$(head -n 1 "$f" 2>/dev/null)
+    case "$first" in
+    '#!'*sh*)
+      SELECTED+=("$f")
+      continue
+      ;;
+    esac
+    case "$f" in
+    *.sh)
+      SELECTED+=("$f")
+      continue
+      ;;
+    *.yml | *.yaml)
+      grep -qE -- '^[[:space:]]*(-[[:space:]]+)?run:' "$f" && SELECTED+=("$f")
+      continue
+      ;;
+    esac
+  done < <(find "$@" -type f -not -path '*/.git/*' | sort)
+}
+
+select_scan_files "${SCAN_ROOTS[@]}"
+
 shell_files=()
-while IFS= read -r f; do
-  [ -f "$f" ] || continue
+for f in "${SELECTED[@]}"; do
   [ "$f" = "$SELF" ] && continue
-  first=$(head -n 1 "$f" 2>/dev/null)
-  case "$first" in
-  '#!'*sh*) shell_files+=("$f") ;;
-  *) case "$f" in *.sh) shell_files+=("$f") ;; esac ;;
-  esac
-done < <(find "${SCAN_ROOTS[@]}" -type f -not -path '*/.git/*' | sort)
+  shell_files+=("$f")
+done
 
 # One assertion PER ROOT, never one over the total. A single total goes green on
 # harness/ alone, so it cannot tell "chapter/ is covered" from "chapter/ silently
 # dropped out of the find" — which is precisely the bug tla-4u0 fixed, one root
-# up. The floors sit well under the measured counts (16 / 12 / 2 on 2026-08-07):
+# up. The floors sit under the measured counts (15 / 12 / 2 / 2 on 2026-08-07):
 # this asserts that a root is still being walked, not how big it has grown.
+#
+# The .github/ floor carries more weight than the other three. Those roots are
+# full of .sh files that a broken selector would still find, but .github/ holds
+# nothing except the two workflows, so this is the one assertion that goes red
+# if the YAML clause stops admitting them. Every ban below reports "found
+# nothing", and that reads the same whether the scan is clean or blind.
 check_root() {
   local root="$1" floor="$2" f n=0
   for f in "${shell_files[@]}"; do
@@ -234,6 +286,7 @@ check_root() {
 check_root harness 8
 check_root scripts 8
 check_root chapter 1
+check_root .github 1
 
 # ---------------------------------------------------------------------------
 # The allowlist — for a banned string that is DATA rather than code.
@@ -400,6 +453,114 @@ if [ "$commented_clean" -eq 1 ]; then
   ok "control: banned text inside whole-line comments does NOT trip the ban"
 else
   nope "control: a whole-line comment tripped the ban — the comment strip is broken and the gate now cries wolf on its own documentation"
+fi
+
+# --- workflow YAML ---------------------------------------------------------
+#
+# GitHub Actions puts shell inside `run:` blocks, and ours open with
+# `set -euo pipefail`, so the hazard lives there in the shape part 1
+# demonstrates. Workflow YAML carries no shebang and no .sh suffix, so the scan
+# could not see it until the selector grew a YAML clause (bead tla-ugwb).
+#
+# .github/workflows/verify-puzzles.yml carried three of these idioms, one of
+# them the toolchain-version assertion, and the workflow failed for a day
+# before anyone noticed (bead tla-1qn). The gate written to catch that class
+# structurally could not read the file it happened in.
+#
+# WHY A PLANTED FILE AND NOT A TRACKED FIXTURE. A fixture under
+# harness/fixtures/ sits inside a scanned root, so part 2 would find it and go
+# red. Exempting it puts a permanent hole in the scan to buy a control, which
+# is a bad trade. Planting keeps the offending text out of the tree, and
+# `check_root .github` in part 2 is what proves the real scan still reaches
+# real workflow YAML.
+PLANTED_WF="$CONTROL_DIR/planted-workflow.yml"
+{
+  printf 'name: CI\n'
+  printf 'jobs:\n'
+  printf '  verify:\n'
+  printf '    steps:\n'
+  printf '      - name: Smoke check tools\n'
+  printf '        run: |\n'
+  printf '          set -euo pipefail\n'
+  printf '          tlc 2>&1 | head -1 | grep -qF "TLC2 Version"\n'
+  printf '          pcal -help 2>&1 | grep -m1 usage\n'
+} >"$PLANTED_WF"
+
+# The other side of the YAML clause. A ban written for shell has no business
+# reading config or prose, so admitting every .yml would be the wrong widening.
+# This file holds the banned text in a value, and must stay out of the scan.
+CONFIG_YAML="$CONTROL_DIR/config-shaped.yaml"
+{
+  printf 'site_name: not a workflow\n'
+  printf 'example_command: producer | grep -qE PATTERN\n'
+} >"$CONFIG_YAML"
+
+# `#` opens a comment in YAML as well as in shell, and the fixed workflow now
+# carries a comment naming the idiom it replaced. If the strip missed it, the
+# gate would go red on its own explanation.
+COMMENTED_WF="$CONTROL_DIR/commented-workflow.yml"
+{
+  printf 'jobs:\n'
+  printf '  verify:\n'
+  printf '    steps:\n'
+  printf '      - run: |\n'
+  printf '          set -euo pipefail\n'
+  printf '          # never write tlc | head -1 | grep -qF VERSION, it returns 141\n'
+  printf '          #   nor pcal -help | grep -m1 usage\n'
+  # The single quotes are load-bearing. `$tlc_out` is fixture text that the
+  # scanner reads back as source, so expanding it here would write whatever
+  # this shell holds into the file and blank the one live line it has.
+  # shellcheck disable=SC2016
+  printf '          grep -qF VERSION <<<"$tlc_out"\n'
+} >"$COMMENTED_WF"
+
+select_scan_files "$CONTROL_DIR"
+
+selected_has() {
+  local want="$1" i
+  for ((i = 0; i < ${#SELECTED[@]}; i++)); do
+    [ "${SELECTED[$i]}" = "$want" ] && return 0
+  done
+  return 1
+}
+
+if selected_has "$PLANTED_WF"; then
+  ok "control: workflow YAML with a run: block is SELECTED for scanning"
+else
+  nope "control: workflow YAML with a run: block was NOT selected — the ban cannot see .github/workflows/, which is where tla-1qn found three live sites"
+fi
+
+if selected_has "$CONFIG_YAML"; then
+  nope "control: a YAML with no run: key was selected — the clause has widened to every .yml, and a ban written for shell now runs over config and prose"
+else
+  ok "control: a YAML with no run: key is NOT selected"
+fi
+
+# Detection runs over the SELECTED list rather than over the planted path, so a
+# selector that drops the file fails here too. Feeding the path straight to
+# collect_offenders would test the patterns and let the selection go unchecked.
+wf_detected=0
+for pat in "$PAT_GREP_Q" "$PAT_GREP_M" "$PAT_HEAD"; do
+  collect_offenders "$pat" "${SELECTED[@]}"
+  case "$OFFENDERS" in *"$PLANTED_WF"*) wf_detected=$((wf_detected + 1)) ;; esac
+done
+if [ "$wf_detected" -eq 3 ]; then
+  ok "control: all three banned idioms inside a run: block are DETECTED"
+else
+  nope "control: $wf_detected of 3 banned idioms inside a run: block were detected — the YAML half of the ban is vacuous"
+fi
+
+commented_wf_clean=1
+for pat in "$PAT_GREP_Q" "$PAT_GREP_M" "$PAT_HEAD"; do
+  collect_offenders "$pat" "$COMMENTED_WF"
+  [ -n "$OFFENDERS" ] && commented_wf_clean=0
+done
+if ! selected_has "$COMMENTED_WF"; then
+  nope "control: the comment-only workflow YAML was not selected, so the strip was never exercised on YAML"
+elif [ "$commented_wf_clean" -eq 1 ]; then
+  ok "control: banned text inside a YAML comment does NOT trip the ban"
+else
+  nope "control: a YAML comment tripped the ban — the fixed workflow's own explanation of the idiom now fails the gate"
 fi
 
 echo
