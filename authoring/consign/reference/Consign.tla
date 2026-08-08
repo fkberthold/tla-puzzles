@@ -41,11 +41,34 @@ Next ==
 
 Spec == Init /\ [][Next]_standing
 
-OneStandingEach == standing \in [Items -> Standings]
+(***************************************************************************)
+(* Every obligation below reads the shop through Observe, never through    *)
+(* the variable. The hand-off states all five over the observable of its   *)
+(* section 3, and the grading engine builds a learner's score on the same  *)
+(* operator, so an obligation that reads `standing` directly grades a      *)
+(* different system from the one the interface publishes.                  *)
+(*                                                                         *)
+(* On this reference the two readings agree, because Observe.standing is   *)
+(* standing. That agreement is what makes the raw form tempting and what   *)
+(* makes it unsafe: a model whose Observe lies keeps every raw obligation  *)
+(* green, and nothing downstream looks again.                              *)
+(*                                                                         *)
+(* The model half above still reads the variable. Only the obligations     *)
+(* route through the operator. Routing the actions too would change the    *)
+(* shop instead of what we check about it.                                 *)
+(*                                                                         *)
+(* Both action properties keep `_standing` as the subscript, and it has to *)
+(* stay the raw variable. Under `[][...]_Observe` a model whose Observe    *)
+(* never moves turns every step into a stutter, and the property passes    *)
+(* without checking anything. The subscript picks which steps we grade.    *)
+(* The body says what we grade about them.                                 *)
+(***************************************************************************)
 
-FloorCap == Cardinality(Listed) <= Floor
+OneStandingEach == Observe.standing \in [Items -> Standings]
 
-OpeningAllUnlisted == \A i \in Items : standing[i] = "unlisted"
+FloorCap == Cardinality({i \in Items : Observe.standing[i] = "listed"}) <= Floor
+
+OpeningAllUnlisted == \A i \in Items : Observe.standing[i] = "unlisted"
 
 LawfulMove(a, b) ==
     \/ a = b
@@ -53,20 +76,24 @@ LawfulMove(a, b) ==
     \/ a = "listed" /\ b \in {"returned", "sold"}
     \/ a = "sold" /\ b = "settled"
 
-LawfulPath == [][\A i \in Items : LawfulMove(standing[i], standing'[i])]_standing
+LawfulPath ==
+    [][\A i \in Items :
+          LawfulMove(Observe.standing[i], Observe'.standing[i])]_standing
 
-Changed == {i \in Items : standing'[i] # standing[i]}
+Changed == {i \in Items : Observe'.standing[i] # Observe.standing[i]}
+
+Owed(o) == {i \in Items : OwnerOf[i] = o /\ Observe.standing[i] = "sold"}
 
 SingleStep ==
     \E i \in Items :
         /\ Changed = {i}
-        /\ ~(standing[i] = "sold" /\ standing'[i] = "settled")
+        /\ ~(Observe.standing[i] = "sold" /\ Observe'.standing[i] = "settled")
 
 SettlementStep ==
     \E o \in Owners :
-        /\ SoldOf(o) # {}
-        /\ Changed = SoldOf(o)
-        /\ \A i \in SoldOf(o) : standing'[i] = "settled"
+        /\ Owed(o) # {}
+        /\ Changed = Owed(o)
+        /\ \A i \in Owed(o) : Observe'.standing[i] = "settled"
 
 SingleStepOrSettlement == [][SingleStep \/ SettlementStep]_standing
 
