@@ -1,7 +1,7 @@
 ------------------------------- MODULE SeedLib -------------------------------
 EXTENDS Naturals, FiniteSets
 
-CONSTANTS Members, Varieties, OpeningStock
+CONSTANTS Members, Varieties, OpeningStock, NumSeasons
 
 ASSUME
     /\ IsFiniteSet(Members)
@@ -9,12 +9,13 @@ ASSUME
     /\ IsFiniteSet(Varieties)
     /\ Varieties # {}
     /\ OpeningStock \in [Varieties -> Nat]
+    /\ NumSeasons \in Nat
+    /\ NumSeasons >= 1
 
 VARIABLES season, shelf, owed, standing
 
 vars == <<season, shelf, owed, standing>>
 
-NumSeasons == 3
 Ended == NumSeasons + 1
 Good == "good"
 Default == "default"
