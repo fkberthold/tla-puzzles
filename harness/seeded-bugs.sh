@@ -71,6 +71,8 @@
 #
 #   <matrix>/reference/<Spec>.tla        the reference spec, plus any modules
 #                                        it needs
+#   <matrix>/reference/constants.cfg     OPTIONAL; CONSTANT assignments,
+#                                        appended to every generated .cfg
 #   <matrix>/oracle/<Oracle>.tla         the AUTHOR'S property; EXTENDS <Spec>
 #   <matrix>/variants/<name>/<Spec>.tla  one seeded variant per directory
 #
@@ -190,10 +192,52 @@
 #   It is computed on every run, printed on every run, and promoted to fatal
 #   only by --strict-trace.
 #
-# NOT IMPLEMENTED, DELIBERATELY: no --constants fragment. §5.4 has one because
-# its abstract spec is parameterised; nothing here is, and an untested code
-# path in a grading component is worse than an absent feature. Add it with a
-# fixture when a problem needs it.
+# THE CONSTANTS CHANNEL, AND WHY IT IS A FILENAME RATHER THAN A FLAG
+#
+#   A parameterised spec cannot be checked at all until its constants are
+#   assigned, and most real specs are parameterised: the Stage 3 pilot's
+#   reference declares `Departments` and `MaxAmendments`. Without a channel
+#   for them the matrix dies at PHASE 1 with CONFIG_ERROR (rc=151) -- "the
+#   constant parameter X is not assigned a value by the configuration file" --
+#   having graded nothing. This file used to say no such channel existed and
+#   to add one with a fixture when a problem needed one; bead tla-40y is that
+#   fixture and that problem.
+#
+#   The channel is an OPTIONAL constants.cfg beside the reference module,
+#   appended verbatim to every .cfg this script generates. That is exactly
+#   grade.sh's idiom (§5.2), down to the filename, and matching it is the
+#   point: two grading components that both need author-supplied constants
+#   should not need two conventions to remember. §5.4 uses a --constants FLAG
+#   instead, which is right THERE and wrong here -- refinement.sh is handed
+#   two independent modules with no package around them, whereas a matrix is
+#   already a directory whose layout says where everything lives.
+#
+#   ONE ASSIGNMENT SERVES BOTH SIDES AND EVERY VARIANT, and that is a
+#   correctness property rather than a convenience. A variant is the reference
+#   module mutated, so it declares the same constants; if the oracle run and
+#   the submission run could be given different values, the rc==0 and rc==12
+#   obligations would be about different models and the comparison between
+#   them would mean nothing.
+#
+#   IT CARRIES CONSTANT / CONSTANTS AND NOTHING ELSE. The fragment is the only
+#   text from the matrix directory that reaches a generated .cfg, so it is the
+#   one place the harness's ownership of that .cfg can leak. A directive in it
+#   is MATRIX_MALFORMED (44) -- refused before anything is staged, and
+#   attributed to the matrix, which is whose defect it is. `\*` comments are
+#   stripped before the check, so a fragment may explain itself.
+#
+#   Two of the refused keywords are worth naming individually:
+#
+#     SYMMETRY / VIEW are the SOUNDNESS pair. Symmetry reduction is sound only
+#     for a property that is itself symmetric, and the submitted property is
+#     not the author's to vouch for. A violation TLC misses on a variant comes
+#     back as rc=0 where 12 was required, and the matrix then reports
+#     PROPERTY_TOO_WEAK -- billing the learner for the author's config, which
+#     is the same misattribution PHASE 3 exists to prevent.
+#
+#     INVARIANT is the OWNERSHIP one. This script generates the INVARIANT line
+#     itself; a second invariant checked alongside it would decide the verdict
+#     without appearing anywhere in the report.
 #
 # VERDICTS COME FROM EXIT CODES. Every TLC run here goes through
 # harness/verdict.sh (§5.1). Nothing in this file reads, matches, or reasons
@@ -218,6 +262,7 @@ KEEP=""
 QUIET=0
 SIGNATURE_ONLY=""
 PROP_MODULE=""
+CONST_FRAG=""   # resolved from the reference directory; see run_case
 
 usage() {
   cat <<'USAGE'
@@ -348,6 +393,7 @@ malformed() {
   say ""
   say "Expected layout:"
   say "  <matrix>/reference/<Spec>.tla"
+  say "  <matrix>/reference/constants.cfg      (optional)"
   say "  <matrix>/oracle/<Oracle>.tla"
   say "  <matrix>/variants/<name>/<Spec>.tla"
   finish "MATRIX_MALFORMED" 44
@@ -397,6 +443,58 @@ for vd in "${VARIANT_DIRS[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# THE CONSTANTS FRAGMENT. Optional, found by filename beside the reference
+# module, appended to every .cfg generated below -- grade.sh's idiom (§5.2).
+# Keying it to the reference DIRECTORY rather than to the matrix root is what
+# makes --reference carry its own constants with it, which is how one variant
+# set gets checked against two differently-parameterised references.
+#
+# It is the only text from the matrix directory that reaches a generated .cfg,
+# so it is checked before anything is staged, and a directive in it is a fault
+# in the MATRIX -- reported that way, and never as a verdict about the
+# submission. See the header for why SYMMETRY and INVARIANT in particular are
+# refused rather than merely ignored.
+#
+# Comments go before the match, so a fragment may explain itself without
+# tripping on the word it is explaining. The match is a here-string: a live
+# pipe into `grep -q` returns 141 under `set -o pipefail` when the consumer
+# closes the pipe first, which an `if` reads as "no match" -- and a missed
+# match here would let the very directive this check exists to refuse straight
+# through into the .cfg. Bead tla-kr9.
+# ---------------------------------------------------------------------------
+if [ -f "$REFERENCE_DIR/constants.cfg" ]; then
+  CONST_FRAG="$REFERENCE_DIR/constants.cfg"
+  frag=$(sed 's/\\\*.*$//' "$CONST_FRAG")
+  bad=$(grep -nE '^[[:space:]]*(SPECIFICATION|SPECIFICATIONS|INIT|NEXT|INVARIANT|INVARIANTS|PROPERTY|PROPERTIES|CONSTRAINT|CONSTRAINTS|ACTION_CONSTRAINT|ACTION_CONSTRAINTS|SYMMETRY|VIEW|ALIAS|POSTCONDITION|CHECK_DEADLOCK)([[:space:]]|$)' <<<"$frag")
+  if [ -n "$bad" ]; then
+    # grep -n hands back `N:text`; re-split rather than sed it, because the
+    # line number has to survive as a field and bash pattern substitution has
+    # no backreference to put it back with. IFS=: with two names keeps every
+    # later colon in $text.
+    listing=""
+    while IFS=: read -r lineno text; do
+      listing="${listing}  line ${lineno}: ${text}
+"
+    done <<<"$bad"
+    malformed "$CONST_FRAG carries a directive. A constants fragment assigns
+CONSTANT / CONSTANTS and nothing else: every other line of the generated .cfg
+belongs to the harness, and a matrix that could write one could weaken its own
+grading.
+
+${listing}
+SYMMETRY and VIEW are refused on soundness grounds rather than tidiness. Either
+one can make TLC miss a violation of a property it was not proved sound for,
+and a missed violation on a variant is reported as PROPERTY_TOO_WEAK -- the
+learner billed for the author's configuration.
+
+INVARIANT is refused because this script writes that line itself. A second one
+would decide the verdict without appearing in the report.
+
+Use --alias for a normalising ALIAS operator."
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # STAGING. The harness owns the world each run sees: reference modules copied
 # out, the variant's modules copied over them, the submission's module copied
 # in, and a GENERATED .cfg. No .cfg is ever read from the matrix directory --
@@ -437,11 +535,17 @@ run_case() {
   fi
   cp "$prop" "$stage"/ 2>/dev/null
 
+  # The constants fragment goes into EVERY generated .cfg, unconditionally --
+  # the oracle runs and the submission runs, the reference runs and the
+  # variant runs. A variant is the reference module mutated, so it declares
+  # the same constants, and giving two runs different values would make the
+  # rc==0 and rc==12 obligations statements about different models.
   local cfg="$stage/run.cfg"
   {
     printf 'SPECIFICATION %s\n' "$SPEC"
     printf 'INVARIANT %s\n' "$PROPERTY"
     [ -n "$ALIAS_OP" ] && printf 'ALIAS %s\n' "$ALIAS_OP"
+    [ -n "$CONST_FRAG" ] && cat "$CONST_FRAG"
   } > "$cfg"
 
   CASE_TRACE="$stage/trace.json"
