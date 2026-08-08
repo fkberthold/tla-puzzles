@@ -135,8 +135,9 @@ Your `.cfg` declares `SPECIFICATION Spec`, the two constants, and your
 properties under the kinds you chose.
 
 Run TLC with deadlock checking off. The flag is `-deadlock`, and despite
-its name it turns the check off. The bureau is allowed to come to rest when
-nothing is left to do, and a default run reports that rest as an error.
+its name it turns the check off. The bureau never has to act, so a model
+of it should not treat quiet moments as errors, whether or not your
+rendering happens to have a step available in every state.
 
 Whatever properties you declare, the run should find 15,625 distinct
 states. A different count means the system half of the module changed, and
