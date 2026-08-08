@@ -96,8 +96,8 @@ assert_json() {
 # and every one of those words is legitimate schema vocabulary.
 # ---------------------------------------------------------------------------
 ref_only_identifiers() {
-  local subdir="$1"
-  python3 - "$REFDIR" "$subdir" <<'PY'
+  local refdir="$1" subdir="$2"
+  python3 - "$refdir" "$subdir" <<'PY'
 import re, sys, pathlib
 
 def strip(text):
@@ -131,9 +131,17 @@ for name in sorted(idents(ref) - idents(sub)):
 PY
 }
 
-# assert_no_leak <label> <submission-dir-name>
-assert_no_leak() {
-  local label="$1" sub="$2" hits=""
+# assert_no_leak_at <label> <reference-dir> <submission-dir>
+#
+# BOTH DIRECTORIES ARE ARGUMENTS, and the reason is a bug this check caught in
+# itself. They used to be the `lockbox` globals, so calling it for a submission
+# under any other problem silently compared the object against a submission
+# directory that does not exist. idents(sub) came back empty, every reference
+# identifier counted as reference-only, and the check reported a leak that was
+# not there. A blacklist over the wrong baseline fails in both directions;
+# this one happened to fail loudly.
+assert_no_leak_at() {
+  local label="$1" refdir="$2" subdir="$3" hits=""
   local name
   while read -r name; do
     [ -z "$name" ] && continue
@@ -144,12 +152,17 @@ assert_no_leak() {
     if grep -qE -- "(^|[^A-Za-z0-9_])${name}([^A-Za-z0-9_]|$)" <<<"$GOT_JSON"; then
       hits="$hits $name"
     fi
-  done < <(ref_only_identifiers "$SUBDIR/$sub")
+  done < <(ref_only_identifiers "$refdir" "$subdir")
   if [ -z "$hits" ]; then
     ok "$label"
   else
     nope "$label — reference-only identifiers found in the verdict object:$hits"
   fi
+}
+
+# assert_no_leak <label> <submission-dir-name>   -- the lockbox problem.
+assert_no_leak() {
+  assert_no_leak_at "$1" "$REFDIR" "$SUBDIR/$2"
 }
 
 # ---------------------------------------------------------------------------
@@ -338,6 +351,249 @@ assert_json "no suite result is invented for it" '.suites' 'null'
 
 echo
 # ===========================================================================
+echo "== a structureless spec must NOT grade clean =="
+# ===========================================================================
+
+# Beads tla-59s and tla-x8s, which are one defect. Until they landed every
+# reference obligation was a single-state predicate over one observation, and
+# no single-state predicate can constrain a transition relation -- so the
+# maximally permissive spec whose reachable observation set equals the
+# admissible one passed obligation 1 BY CONSTRUCTION, for any reference.
+#
+# The `stepwise` problem is the same lockbox with the "one at a time" half
+# stated as a Step_*(o, p) over a PAIR of successive observations.
+#
+# READ THE chaos-observations FIXTURE BEFORE CHANGING ANYTHING HERE. Its
+# observation operator is maximally HONEST -- the variable is the observation
+# -- so nothing in this block is about catching a lie. It is about a spec with
+# no transition structure at all, and it graded PASS with zero witnesses
+# against the state-only `lockbox` reference that still ships beside this one.
+STEP_REF="harness/fixtures/grade/stepwise/reference"
+STEP_SUB="harness/fixtures/grade/stepwise/submissions"
+
+run_step() {
+  GOT_ERR=$(mktemp)
+  GOT_JSON=$(bash "$GRADE" --reference "$STEP_REF" --submission "$STEP_SUB/$1" \
+                           --problem-id stepwise 2>"$GOT_ERR")
+  GOT_RC=$?
+}
+
+run_step chaos-observations
+assert_rc   "a structureless submission is graded a failure" 1
+assert_json "and it is reported under-constrained" '.under_constrained' 'true'
+assert_json "and a witness is emitted for it" \
+  '.witnesses.under_constraint.kind' 'reference-obligation-unmet'
+# The step obligation is the ONLY member it misses. Its reachable observations
+# are exactly the admissible ones, so every single-state requirement holds and
+# both landmarks are reached -- which is why nothing else in the object moves,
+# and why nothing but a two-state obligation could have caught it.
+assert_json "the one-state half of the suite still sees nothing wrong" \
+  '[.suites.Adequacy.met, .suites.Adequacy.total] | join("/")' '1/2'
+assert_json "and the Relational suite sees nothing wrong either" \
+  '.suites.Relational.status' 'PASS'
+assert_json "the step obligation is reported under an opaque id" \
+  '.suites.Adequacy.unmet[0] | test("^R-[0-9a-f]{6}$")' 'true'
+assert_no_leak_at "the stepwise verdict object is leak-free" \
+  "$STEP_REF" "$STEP_SUB/chaos-observations"
+
+# A step obligation is a new way for the grader to be WRONG as well as a new
+# thing for it to catch. Both honest submissions must still pass, at two
+# different representations -- the second counts the same parcels as a SET,
+# which is V2-PLAN.md 3.5's fixture restated under the step channel.
+run_step correct
+assert_rc   "an honest submission still passes under a step obligation" 0
+assert_json "correct emits no witnesses" '.witnesses | length' '0'
+
+run_step correct-different
+assert_rc   "and so does a correct submission at another representation" 0
+assert_json "correct-different is not under-constrained" '.under_constrained' 'false'
+assert_json "correct-different is not over-constrained"  '.over_constrained'  'false'
+
+echo
+# ===========================================================================
+echo "== the trapdoor inside the fix: a frozen observation =="
+# ===========================================================================
+
+# [][A]_Observe unfolds to `A \/ UNCHANGED Observe`, so a submission whose
+# observation never moves satisfies EVERY step obligation vacuously. That is
+# the frozen-mapping hole from the TLAiBench survey 6 reappearing inside the
+# fix for it, and no amount of care inside Step_onestep closes it -- the
+# obligation is never the disjunct that gets taken.
+run_step frozen-observe
+assert_rc   "a frozen observation is graded a failure" 1
+# It passes BOTH Adequacy members, step obligation included. Asserting that
+# here rather than only asserting the verdict is what keeps the reason visible:
+# if this ever reads 1/2, the fixture has stopped exercising the trapdoor and
+# is passing for some other reason.
+assert_json "it satisfies the step obligation vacuously (2 of 2)" \
+  '[.suites.Adequacy.met, .suites.Adequacy.total] | join("/")' '2/2'
+assert_json "the landmark suite is what catches it" \
+  '.witnesses.over_constraint.kind' 'reference-observation-unreachable'
+assert_json "and it is over-constraint, not under-constraint" \
+  '[.under_constrained, .over_constrained] | @csv' 'false,true'
+
+echo
+# ===========================================================================
+echo "== so the landmark requirement is a GATE, not a note in a header =="
+# ===========================================================================
+
+# Since the landmark suite is the only thing standing between a step
+# obligation and the frozen-mapping trapdoor, a problem that states a Step_*
+# and cannot run that probe is a broken problem. grade.sh refuses the PACKAGE
+# for it -- exit 2, the author's defect, never a verdict about a submission.
+#
+# Both halves are checked, and the second fixture is why the first is not
+# enough on its own: counting landmarks does not tell you whether one
+# observation satisfies two of them.
+assert_package_refused() {
+  local label="$1" refdir="$2" err out rc
+  err=$(mktemp)
+  out=$(bash "$GRADE" --reference "$refdir" --submission "$STEP_SUB/correct" \
+                      --problem-id stepwise 2>"$err")
+  rc=$?
+  if [ "$rc" != "2" ]; then
+    nope "$label — wanted exit 2, got $rc (stderr: $(tr '\n' ' ' <"$err" | cut -c1-200))"
+  elif [ -n "$out" ]; then
+    nope "$label — a refused package emitted a verdict object"
+  else
+    ok "$label — exit 2, nothing printed"
+  fi
+  rm -f "$err"
+}
+
+assert_package_refused "a step obligation with one landmark is refused" \
+  harness/fixtures/grade/stepwise/reference-one-landmark
+assert_package_refused "a step obligation with OVERLAPPING landmarks is refused" \
+  harness/fixtures/grade/stepwise/reference-overlapping
+
+# And the requirement is conditional on Step_*, not universal. The `lockbox`
+# reference states one landmark and no step obligation, which is a legitimate
+# problem: every fixture above it in this file grades against it.
+run_fixture correct-different
+assert_rc "a problem with no Step_* keeps its single landmark" 0
+
+echo
+# ===========================================================================
+echo "== a check that never ran is INVALID, and never a harness error =="
+# ===========================================================================
+
+# Bead tla-tkzt. 75, 76 and 77 are the evaluation-failure rows of 5.1: the
+# spec did not evaluate, the invariant blew up mid-evaluation, or TLC refused
+# the temporal formula. Nothing is known about whether the obligation holds.
+#
+# They used to fall through classify's catch-all to die_harness, so a
+# submission whose observation record had the wrong shape crashed the grader
+# with exit 4 -- which tells a learner nothing and tells whoever is running
+# the batch that the harness is broken when it is not. Getting the graded
+# interface wrong is a learner error and grades INVALID like every other one.
+run_fixture wrong-shaped-observation
+assert_rc   "a wrong-shaped observation exits 3, not 4" 3
+assert_json "a wrong-shaped observation is INVALID" '.verdict' 'INVALID'
+# The reason is the CHANNEL's own token. 75 is a family -- at least four EC
+# constants route to it -- so the object says the spec did not evaluate and
+# never guesses which of them it was.
+assert_json "the reason is the verdict channel's evaluation-failure token" \
+  '.reasons | index("SPEC_EVAL_FAILURE") != null' 'true'
+assert_json "no suite result is invented for it" '.suites' 'null'
+assert_no_leak "wrong-shaped-observation verdict object is leak-free" wrong-shaped-observation
+
+echo
+# ===========================================================================
+echo "== a constants fragment carries CONSTANT assignments and nothing else =="
+# ===========================================================================
+
+# Bead tla-j8yd, the third site of a class refinement.sh (tla-nesz) and
+# seeded-bugs.sh (tla-40y) already close. constants.cfg is the only text from
+# a problem package that reaches a generated judge .cfg, so it is the one
+# place the harness's ownership of that .cfg can leak.
+#
+# The fixture's fragment rides a BLOCK COMMENT -- `(* pad *) INVARIANT TypeOK`
+# -- because TLC's .cfg parser is token-oriented and only `\*` comments out
+# the rest of a line. A guard anchored at the start of a line sees nothing
+# there. That is exactly how tla-nesz's hole worked.
+smug_err=$(mktemp)
+smug_out=$(bash "$GRADE" \
+  --reference   harness/fixtures/grade/smuggled-constants/reference \
+  --submission  harness/fixtures/grade/smuggled-constants/submissions/typeok \
+  --problem-id  smuggled 2>"$smug_err")
+smug_rc=$?
+
+if [ "$smug_rc" = "2" ]; then
+  ok "a directive in constants.cfg is refused — exit 2"
+else
+  nope "a directive in constants.cfg is refused — wanted exit 2, got $smug_rc (stdout: $(printf '%s' "$smug_out" | jq -rc '[.verdict,(.reasons|join(","))]|join(" ")' 2>/dev/null))"
+fi
+
+# The refusal is attributed to the PROBLEM PACKAGE, whose defect it is, and
+# never to the submission. This submission is CORRECT -- it grades PASS
+# against the same reference with the fragment removed. Before the guard
+# existed the smuggled invariant fired at level 3, grade.sh read the rc=12 as
+# "the reference obligation was UNMET", and a correct submission came back
+# under-constrained.
+if [ -z "$smug_out" ]; then
+  ok "a refused fragment emits no verdict object"
+else
+  nope "a refused fragment emitted a verdict object: $(printf '%s' "$smug_out" | tr '\n' ' ' | cut -c1-160)"
+fi
+
+if grep -qE -- 'constants\.cfg' "$smug_err"; then
+  ok "the refusal names the fragment"
+else
+  nope "the refusal does not name the fragment: $(tr '\n' ' ' <"$smug_err" | cut -c1-200)"
+fi
+rm -f "$smug_err"
+
+echo
+# ===========================================================================
+echo "== the harness is resolved from grade.sh, never from the caller's cwd =="
+# ===========================================================================
+
+# Bead tla-u8on, and bead tla-1hf in the mirror direction. grade.sh used to
+# resolve its repo root with `git rev-parse --show-toplevel` from wherever it
+# was called. Run from inside a DIFFERENT git repository that happens to have
+# a harness/ directory, it silently loaded THAT repo's verdict channel and
+# THAT repo's Gate.tla -- the two things the whole grading architecture rests
+# on, taken from somewhere nobody chose.
+#
+# The decoy below is what that looks like: a real git repo whose
+# harness/verdict.sh reports a verdict nobody asked for. grade.sh must not
+# read a single byte of it.
+decoy=$(mktemp -d -t tla_grade_decoy.XXXXXX)
+mkdir -p "$decoy/harness"
+cat >"$decoy/harness/verdict.sh" <<'DECOY'
+#!/usr/bin/env bash
+# A DECOY verdict channel. If grade.sh reaches this file it has resolved its
+# harness from the caller's cwd, and every verdict it reports afterwards came
+# from a repository nobody chose. 66 is not in the 5.1 table on purpose.
+exit 66
+DECOY
+printf '%s\n%s\n' '---- MODULE Gate ----' '====' >"$decoy/harness/Gate.tla"
+git -C "$decoy" init -q >/dev/null 2>&1
+git -C "$decoy" -c user.email=d@e -c user.name=d commit -q --allow-empty -m d >/dev/null 2>&1
+
+decoy_err=$(mktemp)
+decoy_out=$(cd "$decoy" && bash "$REPO_ROOT/$GRADE" \
+  --reference  "$REPO_ROOT/$REFDIR" \
+  --submission "$REPO_ROOT/$SUBDIR/correct-different" \
+  --problem-id lockbox 2>"$decoy_err")
+decoy_rc=$?
+
+if [ "$decoy_rc" = "0" ]; then
+  ok "grading from inside another repo is unaffected — exit 0"
+else
+  nope "grading from inside another repo is unaffected — wanted exit 0, got $decoy_rc (stderr: $(tr '\n' ' ' <"$decoy_err" | cut -c1-200))"
+fi
+
+decoy_verdict=$(printf '%s' "$decoy_out" | jq -r '.verdict' 2>/dev/null)
+if [ "$decoy_verdict" = "PASS" ]; then
+  ok "and it reports the same verdict it reports from the repo root"
+else
+  nope "and it reports the same verdict it reports from the repo root — wanted PASS, got '$decoy_verdict'"
+fi
+rm -rf "$decoy" "$decoy_err"
+
+echo
+# ===========================================================================
 echo "== the leak gate is fail-closed and has been seen to fire =="
 # ===========================================================================
 
@@ -366,8 +622,13 @@ echo "== structural: constraints no fixture can observe =="
 
 # Every TLC outcome comes through the 5.1 verdict channel. grade.sh calling
 # tlc itself would reintroduce the exit-code table in a second place.
-assert_present "TLC is reached through harness/verdict.sh" \
-  'harness/verdict\.sh'
+#
+# The pattern is the FILE, not the path that reaches it. It read
+# `harness/verdict\.sh` until bead tla-u8on stopped grade.sh resolving its
+# harness from the caller's cwd, and the literal string `harness/` left the
+# code with it. Pinning the directory would have pinned the defect.
+assert_present "TLC is reached through the verdict channel" \
+  '/verdict\.sh'
 
 assert_absent "grade.sh never invokes tlc directly" \
   '(^|[^[:alnum:]_./-])tlc[[:space:]]'

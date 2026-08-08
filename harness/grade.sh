@@ -98,8 +98,11 @@
 #   <reference-dir>/
 #     *Ref.tla         PHI. Defines Spec and Observe.
 #     *RefObl.tla      variable-free. Req_*(o) are the conjuncts phi_i;
-#                      Landmark_*(o) are observations PHI reaches.
-#     constants.cfg    optional, appended to every generated .cfg.
+#                      Step_*(o, p) are conjuncts over a PAIR of successive
+#                      observations; Landmark_*(o) are observations PHI
+#                      reaches.
+#     constants.cfg    optional, CONSTANT assignments only, appended to every
+#                      generated .cfg. A directive in it is refused.
 #
 #   <submission-dir>/
 #     *.tla            PSI. Defines Spec and Observe.
@@ -131,6 +134,30 @@
 #   Adequacy   PSI => phi_i     judge EXTENDS <submission spec>, <ref obl>
 #                               SPECIFICATION Spec / INVARIANT phi_i(Observe)
 #                               rc=0 met, rc=12 UNMET (too weak)
+#
+#              PSI => step_k    judge EXTENDS <submission spec>, <ref obl>
+#                               SPECIFICATION Spec / PROPERTY
+#                                 [][step_k(Observe, Observe')]_Observe
+#                               rc=0 met, rc=13 UNMET (too weak). A boxed
+#                               action goes through TLC's implied-action
+#                               channel, which is 13 and not 12. Same suite
+#                               and same direction as phi_i -- an authored
+#                               obligation over observations, checked against
+#                               the SUBMISSION -- but over a PAIR of
+#                               successive observations, which is what a
+#                               single-state predicate cannot reach. See the
+#                               long note at the loop itself for why the
+#                               subscript is Observe and not vars, and for
+#                               what a step obligation still does not close.
+#
+#              landmark         a problem stating any step_k must state two
+#              disjointness     or more landmarks that no single observation
+#                               satisfies together, because [][A]_Observe is
+#                               satisfied vacuously by a frozen observation
+#                               and the landmark suite is the only thing that
+#                               refuses one. Checked, not merely documented:
+#                               one run over the reference, and a failure is
+#                               exit 2 against the PROBLEM PACKAGE.
 #
 #   Relational PHI => psi_j     judge EXTENDS <ref spec>, <submission obl>
 #                               SPECIFICATION Spec / INVARIANT psi_j(Observe)
@@ -192,9 +219,24 @@
 
 set -uo pipefail
 
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
-VERDICT="$REPO_ROOT/harness/verdict.sh"
-GATE="$REPO_ROOT/harness/Gate.tla"
+# THE HARNESS IS RESOLVED FROM THIS FILE, NEVER FROM THE CALLER'S CWD.
+#
+# This used to be `git rev-parse --show-toplevel`, which asks a question about
+# whoever invoked grade.sh rather than about grade.sh. Outside a repository it
+# failed loudly, and that case was fine. Run from inside a DIFFERENT
+# repository that happens to have a harness/ directory, it silently loaded
+# THAT repository's verdict channel and THAT repository's Gate.tla -- the two
+# things every verdict below rests on, taken from somewhere nobody chose.
+#
+# Bead tla-u8on, and bead tla-1hf in the mirror direction: there
+# scripts/gen-curriculum-map.sh hardcoded a `cd` to the repo root and wrote
+# into the main checkout from a worktree. Same rule out of both: a script that
+# resolves its own root resolves it from ${BASH_SOURCE[0]}, never from a
+# literal path and never from the caller's cwd. scripts/cibuild:43 and
+# harness/refinement.sh:186 are the other two sites that already do.
+HARNESS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+VERDICT="$HARNESS_DIR/verdict.sh"
+GATE="$HARNESS_DIR/Gate.tla"
 
 REFDIR=""
 SUBDIR=""
@@ -222,6 +264,12 @@ USAGE
 die_usage() { echo "grade.sh: $1" >&2; usage >&2; exit 2; }
 die_harness() { echo "grade.sh: HARNESS ERROR: $1" >&2; exit 4; }
 
+# Same status as die_usage -- exit 2 already covers "a malformed problem
+# package" -- and a different audience. A caller who mistyped a flag needs the
+# usage text; a problem author whose package is wrong needs the explanation and
+# is not helped by being shown the argument list. So the message stands alone.
+die_package() { echo "grade.sh: $1" >&2; exit 2; }
+
 while [ $# -gt 0 ]; do
   case "$1" in
     -r|--reference)  REFDIR="${2:-}"; shift 2 ;;
@@ -229,7 +277,7 @@ while [ $# -gt 0 ]; do
     -p|--problem-id) PROBLEM_ID="${2:-}"; shift 2 ;;
     -t|--timeout)    TIMEOUT="${2:-}"; shift 2 ;;
     --scratch)       SCRATCH="${2:-}"; shift 2 ;;
-    --selftest)      exec "$REPO_ROOT/harness/fixtures/grade/selftest.sh" ;;
+    --selftest)      exec "$HARNESS_DIR/fixtures/grade/selftest.sh" ;;
     -h|--help)       usage; exit 0 ;;
     *)               die_usage "unknown argument: $1" ;;
   esac
@@ -315,8 +363,82 @@ trap cleanup EXIT
 cp "$REF_SPEC" "$REF_OBL" "$SUB_SPEC" "$GATE" "$SCRATCH/"
 [ -n "$SUB_OBL" ] && cp "$SUB_OBL" "$SCRATCH/"
 
+# ---------------------------------------------------------------------------
+# THE CONSTANTS FRAGMENT. Optional, found by filename beside the reference
+# modules, appended to every generated judge .cfg.
+#
+# IT CARRIES CONSTANT / CONSTANTS AND NOTHING ELSE. Every other line of those
+# .cfg files is this script's own output, and §5.7's whole posture is that the
+# .cfg stays harness-owned precisely so grading cannot be weakened. The
+# fragment is the one text from a problem package that reaches it, so it is the
+# one place that ownership can leak, and it is checked before anything is
+# staged.
+#
+# WHAT IT COSTS HERE IS A MISATTRIBUTED GRADE, NOT AN ATTACK. The reference
+# package is harness-owned rather than submission-owned, so this is an
+# author-error trap. It is worth closing anyway, because the errors are silent
+# and both directions are wrong:
+#
+#   A second INVARIANT fires and this script reads the rc=12 as "the obligation
+#   under test was UNMET". A correct submission comes back under-constrained,
+#   and the invariant that decided it appears nowhere in the report.
+#
+#   A CONSTRAINT truncates the reachable space, so an obligation that a full
+#   search would refute is never reached and an UNMET turns into a MET.
+#
+# A DIRECTIVE IS A TOKEN, NOT A LINE, and that is the part worth getting right
+# rather than copying. `CONSTANT Unused = 6 INVARIANT Bad` checks Bad, and so
+# does `(* c *) INVARIANT Bad`; only `\*` makes the rest of a line a comment to
+# TLC's .cfg parser. A guard anchored at the start of a line sees neither.
+# That was measured on v1.8.0 under bead tla-nesz, which is where
+# refinement.sh's guard was hardened into the form below.
+#
+# This is the THIRD site of the class -- refinement.sh --constants (tla-nesz)
+# and seeded-bugs.sh constants.cfg (tla-40y) are the other two, and two
+# independent agents found them on the same day without knowing about each
+# other. Bead tla-j8yd.
+#
+# It will also refuse a CONSTANT whose VALUE contains one of these words, say
+# `CONSTANT Msg = "INVARIANT"`. That is a false refusal of a legal fragment and
+# it is the direction to err in: the alternative is letting a problem package
+# author part of the configuration that grades it.
+# ---------------------------------------------------------------------------
+strip_cfg_comments() {
+  awk '
+    { line = $0; out = ""; i = 1; n = length(line)
+      while (i <= n) {
+        c2 = substr(line, i, 2)
+        if (depth == 0 && c2 == "\\*") { break }
+        if (c2 == "(*") { depth++; i += 2; continue }
+        if (c2 == "*)" && depth > 0) { depth--; i += 2; continue }
+        if (depth == 0) { out = out substr(line, i, 1) }
+        i++
+      }
+      print out
+    }
+  ' "$1"
+}
+
 CONST_FRAG=""
-[ -f "$REFDIR/constants.cfg" ] && CONST_FRAG="$REFDIR/constants.cfg"
+if [ -f "$REFDIR/constants.cfg" ]; then
+  CONST_FRAG="$REFDIR/constants.cfg"
+  # A here-string, never a pipe. Under `pipefail` an early-exiting `grep -q`
+  # SIGPIPEs the producer and the pipeline reports 141, which this `if` would
+  # read as "no directive found" -- letting through the very line the check
+  # exists to refuse. Bead tla-kr9.
+  frag=$(strip_cfg_comments "$CONST_FRAG")
+  if grep -qE '(^|[^A-Za-z0-9_])(SPECIFICATION|SPECIFICATIONS|INIT|NEXT|INVARIANT|INVARIANTS|PROPERTY|PROPERTIES|CONSTRAINT|CONSTRAINTS|ACTION_CONSTRAINT|ACTION_CONSTRAINTS|SYMMETRY|VIEW|ALIAS|POSTCONDITION|CHECK_DEADLOCK)([^A-Za-z0-9_]|$)' <<<"$frag"; then
+    die_package "$CONST_FRAG carries a directive.
+
+A constants fragment assigns CONSTANT / CONSTANTS and nothing else. Every
+other line of a generated judge .cfg belongs to the harness, and a problem
+package that could write one could weaken its own grading.
+
+A directive is a TOKEN and not a line, so it is refused wherever it appears --
+riding the end of a CONSTANT assignment, or behind a (* block comment *),
+both of which TLC reads as live directives. Only a \\* comment is a comment."
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # Obligation discovery. Column-1 operator definitions, by prefix.
@@ -328,6 +450,7 @@ ops_named() {  # $1 = file, $2 = prefix
 
 mapfile -t REF_CONJUNCTS < <(ops_named "$REF_OBL" "Req_")
 mapfile -t REF_LANDMARKS < <(ops_named "$REF_OBL" "Landmark_")
+mapfile -t REF_STEPS     < <(ops_named "$REF_OBL" "Step_")
 mapfile -t SUB_CONJUNCTS < <(ops_named "$SUB_OBL" "Req_")
 
 [ "${#REF_CONJUNCTS[@]}" -gt 0 ] || \
@@ -340,15 +463,50 @@ digest() { printf '%s|%s' "$PROBLEM_ID" "$1" | sha256sum | cut -c1-6; }
 
 # ---------------------------------------------------------------------------
 # One obligation, one run, through the §5.1 verdict channel.
-#   run_judge <id> <EXTENDS list> <expression>
+#   run_judge <id> <EXTENDS list> <expression> [invariant|property]
 # Leaves the raw status in RUN_RC and the trace, if any, in RUN_TRACE.
+#
+# The fourth argument picks the .cfg keyword, and the two forms are not
+# interchangeable. A one-state predicate goes in as INVARIANT; a boxed action
+# goes in as PROPERTY, which TLC checks through the implied-action channel and
+# which exits 13 rather than 12 when it fails.
+#
+# THE POSTCONDITION GUARD IS MISSING ON THE PROPERTY FORM, AND THAT IS A GAP
+# RATHER THAN A CHOICE. Gate.tla is centrally owned and neither operator in it
+# fits. Measured on v1.8.0 against a well-formed `PROPERTY GRADE_OBLIGATION`
+# cfg whose obligation is a satisfied boxed action:
+#
+#   TLCGet("spec") reports  impliedactions # {},  invariants = {},
+#                           impliedinits = {},    temporals = {}
+#   Gate!InvariantConfigured   rc=10  (invariants is empty)
+#   Gate!RefinementConfigured  rc=10  (impliedinits is empty; it wants BOTH)
+#
+# so passing either would turn every step obligation into a harness error. The
+# operator this form needs is one line and belongs beside the other two:
+#
+#   ActionPropertyConfigured == TLCGet("spec").impliedactions # {}
+#
+# Until it lands, the vector it would close is covered behaviourally instead: a
+# bare `PROPERTY` line with no operand exits 0 having checked nothing (measured
+# rc=0, same shape as the bare `INVARIANT` line that InvariantConfigured
+# exists for), so a generator bug here would grade every submission a pass --
+# and the stepwise fixtures in the selftest go red the moment it does, because
+# `chaos-observations` can only fail if the step obligation was really checked.
+# A fixture is a weaker guard than a postcondition, since it proves the .cfg is
+# well-formed for the shapes it happens to cover rather than for every run.
 # ---------------------------------------------------------------------------
 RUN_RC=0
 RUN_TRACE=""
 
 run_judge() {
-  local id="$1" ext="$2" expr="$3"
+  local id="$1" ext="$2" expr="$3" kind="${4:-invariant}"
   local mod="GJ_$id"
+  local keyword=INVARIANT
+  local -a guard=(--postcondition "Gate!InvariantConfigured")
+  if [ "$kind" = "property" ]; then
+    keyword=PROPERTY
+    guard=()
+  fi
   {
     printf -- '---- MODULE %s ----\n' "$mod"
     printf 'EXTENDS %s\n' "$ext"
@@ -357,14 +515,14 @@ run_judge() {
   } >"$SCRATCH/$mod.tla"
   {
     printf 'SPECIFICATION Spec\n'
-    printf 'INVARIANT GRADE_OBLIGATION\n'
+    printf '%s GRADE_OBLIGATION\n' "$keyword"
     [ -n "$CONST_FRAG" ] && cat "$CONST_FRAG"
   } >"$SCRATCH/$mod.cfg"
 
   RUN_TRACE="$SCRATCH/$mod.trace.json"
   bash "$VERDICT" --quiet \
        --timeout "$TIMEOUT" \
-       --postcondition "Gate!InvariantConfigured" \
+       ${guard[@]+"${guard[@]}"} \
        --trace "$RUN_TRACE" \
        --scratch "$SCRATCH/run_$id" \
        "$SCRATCH/$mod.tla"
@@ -389,6 +547,18 @@ classify() {
   case "$RUN_RC" in
     0)  if [ "$want" = "0" ]; then CLASS=MET; else CLASS=UNMET; fi; return ;;
     12) if [ "$want" = "12" ]; then CLASS=MET; else CLASS=UNMET; fi; return ;;
+    # 13 is the implied-action channel, which is how a boxed step obligation
+    # fails. It used to fall through to the catch-all below and exit 4.
+    #
+    # 12 AND 13 SPLIT ON THE SHAPE OF THE FORMULA, NOT ON THE .cfg KEYWORD
+    # (bead tla-94n), so neither number identifies which obligation was being
+    # checked and no arm here may assume one. A step obligation is asked for
+    # with `want` 0, and both 12 and 13 land on UNMET from there -- a boxed
+    # action exits 13 on this build, and a step obligation TLC could refute
+    # from a finite prefix would exit 12, and either way the obligation was
+    # checked and did not hold. The refutation form asks for 12 and is
+    # unaffected; nothing in this file asks for 13.
+    13) if [ "$want" = "13" ]; then CLASS=MET; else CLASS=UNMET; fi; return ;;
     10) die_harness "$label: Gate!InvariantConfigured is false -- the generated .cfg configured no invariant" ;;
     150|151|255)
         if [ "$phase" = "submission" ]; then
@@ -400,6 +570,29 @@ classify() {
           INVALID_REASON=124; CLASS=INVALID; return
         fi
         die_harness "$label: the reference model exceeded the ${TIMEOUT}s budget" ;;
+    # The evaluation-failure rows. THESE ARE NOT VIOLATION ROWS: 12 and 13 mean
+    # the obligation was checked and came out false, while 75, 76 and 77 mean
+    # the check never happened -- the spec did not evaluate, the invariant blew
+    # up mid-evaluation, or TLC refused the temporal formula. Nothing at all is
+    # known about whether the obligation holds.
+    #
+    # They are learner-facing all the same. A submission whose observation
+    # record has the wrong shape -- `[hue |-> colour]` against obligations that
+    # read `o.level` -- lands here, and getting the graded interface wrong is a
+    # learner error, not a harness fault. They used to fall through to the
+    # catch-all below and exit 4, which tells a learner nothing and tells
+    # whoever is running the batch that the harness is broken when it is not.
+    # Bead tla-tkzt.
+    #
+    # 75 is a FAMILY rather than a condition -- at least four EC constants route
+    # to it -- so the INVALID object says the spec did not evaluate and never
+    # guesses which of them it was. The cause is in the log, which is written
+    # for humans and never read for a verdict.
+    75|76|77)
+        if [ "$phase" = "submission" ]; then
+          INVALID_REASON="$RUN_RC"; CLASS=INVALID; return
+        fi
+        die_harness "$label: the reference package could not be evaluated (rc=$RUN_RC)" ;;
     *)  die_harness "$label: unexpected verdict rc=$RUN_RC" ;;
   esac
 }
@@ -408,6 +601,9 @@ classify() {
 # own word rather than a number this file invented.
 token_for() {
   case "$1" in
+    75)  echo SPEC_EVAL_FAILURE ;;
+    76)  echo SAFETY_EVAL_FAILURE ;;
+    77)  echo LIVENESS_EVAL_FAILURE ;;
     124) echo TIMEOUT ;;
     150) echo PARSE_ERROR ;;
     151) echo CONFIG_ERROR ;;
@@ -456,7 +652,87 @@ location_of() {
 }
 
 # ===========================================================================
-# Obligation 3 first: non-vacuity, and the parse gate.
+# THE LANDMARK SUITE IS THE FROZEN-MAPPING PROBE, SO A PROBLEM THAT STATES A
+# STEP OBLIGATION MUST CARRY ONE THAT WORKS. A CHECK, NOT A HEADER NOTE.
+#
+# `[][A]_Observe` unfolds to `A \/ UNCHANGED Observe`, so a submission whose
+# observation operator NEVER MOVES satisfies every step obligation there is,
+# vacuously and at rc=0. That is the frozen-mapping trapdoor from the TLAiBench
+# survey §6 reappearing inside the fix for it, and the step obligation cannot
+# close it from the inside -- no amount of care in writing A helps, because A
+# is never the disjunct that is taken.
+#
+# What closes it is the landmark suite, which is already the harness's
+# frozen-mapping probe: a frozen observation is ONE value, and one value cannot
+# satisfy two requirements that no single observation satisfies together. So
+# the guard is a property of the OBLIGATION MODULE, and it is cheap:
+#
+#   An obligation module stating any Step_* must state two or more landmarks
+#   whose observations are pairwise unsatisfiable.
+#
+# Both halves are checked here rather than written down and hoped for. The
+# count is static. The unsatisfiability is one TLC run whose invariant is every
+# pair at once, and a violation of it is a defect in the PROBLEM PACKAGE --
+# exit 2, attributed to the author, never a verdict about a submission.
+#
+# TWO DEVIATIONS FROM THE DESIGN, BOTH MEASURED, NEITHER SILENT.
+#
+# The design said "one TLC run over the obligation module alone". That is not
+# runnable: an obligation module is variable-free by construction, so it has no
+# state space for TLC to search and no domain to quantify a record over. The
+# run below extends the REFERENCE SPEC as well, which is the natural domain --
+# a landmark is by definition an observation PHI reaches.
+#
+# The residual hole that leaves: disjointness is proven over the observations
+# the REFERENCE reaches, not over every record. Two landmarks that overlap only
+# at an observation the reference cannot reach would pass this check, and a
+# submission frozen at that observation would then satisfy both. Closing it
+# needs a declared observation domain in the obligation module, which is a new
+# authoring requirement and a separate decision.
+# ===========================================================================
+if [ "${#REF_STEPS[@]}" -gt 0 ]; then
+  if [ "${#REF_LANDMARKS[@]}" -lt 2 ]; then
+    die_package "$REF_OBL states a Step_* obligation and ${#REF_LANDMARKS[@]} landmark(s).
+
+A step obligation is judged as [][Step(Observe, Observe')]_Observe, which is
+satisfied by a submission whose observation never moves -- the UNCHANGED
+disjunct is always available. The landmark suite is what refuses that, and it
+can only refuse it with two or more landmarks that no single observation
+satisfies together. State them, or state no Step_*."
+  fi
+
+  # Pairwise, joined infix. A leading `/\` would open a junction list, whose
+  # members are delimited by COLUMN, and every member here is on one line.
+  disjoint=""
+  li=0
+  while [ "$li" -lt "${#REF_LANDMARKS[@]}" ]; do
+    lj=$((li + 1))
+    while [ "$lj" -lt "${#REF_LANDMARKS[@]}" ]; do
+      [ -n "$disjoint" ] && disjoint="$disjoint /\\ "
+      disjoint="$disjoint~(${REF_LANDMARKS[$li]}(Observe) /\\ ${REF_LANDMARKS[$lj]}(Observe))"
+      lj=$((lj + 1))
+    done
+    li=$((li + 1))
+  done
+
+  run_judge "D" "$M_REF_SPEC, $M_REF_OBL" "$disjoint"
+  classify 0 reference "landmark disjointness"
+  if [ "$CLASS" != "MET" ]; then
+    die_package "$REF_OBL states a Step_* obligation, and two of its landmarks
+are satisfied by the same observation.
+
+Landmarks are what refuse a frozen observation operator, and they only refuse
+one when no single observation satisfies two of them. A pair that overlaps is
+a pair a frozen submission can reach at once, and the step obligation it would
+then satisfy vacuously is the one this problem exists to check."
+  fi
+fi
+
+# ===========================================================================
+# Obligation 3 first among the submission-driven runs: non-vacuity, and the
+# parse gate. The landmark-disjointness run above is reference-only -- its
+# judge extends nothing the submission wrote -- so it does not disturb the
+# attribution argument below.
 # ===========================================================================
 vac_ext="$M_SUB_SPEC"
 [ -n "$M_SUB_OBL" ] && vac_ext="$M_SUB_SPEC, $M_SUB_OBL"
@@ -506,6 +782,68 @@ for conj in "${REF_CONJUNCTS[@]}"; do
     ADEQ_UNMET+=("$id")
     # One witness of each kind, so the first refutation is kept and the rest
     # are counted. A learner fixing a spec is fixing one thing at a time.
+    if [ -z "$UNDER_WITNESS" ]; then
+      UNDER_WITNESS=$(jq -n -c --arg ob "$id" --argjson loc "$(location_of "$RUN_TRACE")" \
+        '{kind:"reference-obligation-unmet", obligation:$ob, location:$loc}')
+    fi
+  fi
+done
+
+# ---------------------------------------------------------------------------
+# Obligation 1 continued: the STEP obligations, over a PAIR of successive
+# observations. Same suite, same direction, same class of object -- an
+# authored requirement over observations, checked against the SUBMISSION. The
+# reference spec is not involved, so this is not §3.5 reference comparison.
+#
+# WHY THE SUITE NEEDED THEM. Every obligation above is a single-state
+# predicate, and no single-state predicate can constrain a transition
+# relation. The maximally permissive spec whose reachable observation set
+# equals the invariant-admissible set therefore passes obligation 1 BY
+# CONSTRUCTION, for any reference -- and it does not have to lie to do it. A
+# spec that is pure chaos over an entirely honest observation space (`Init ==
+# obs \in 0..3`, `Next == obs' \in 0..3`, `Observe` the identity) has no
+# transitions, no ordering and no causality, and it graded PASS with zero
+# witnesses against the reference fixture that ships in this repository.
+# Beads tla-59s and tla-x8s, which are one defect: the first says a transition
+# obligation cannot be expressed, the second is the consequence.
+#
+# THE `_Observe` SUBSCRIPT IS LOAD-BEARING AND IS NOT A STYLE CHOICE.
+# Subscripting on `vars` makes the obligation depend on how finely the
+# submission slices its own steps: a decide-then-commit spec fails a strict
+# step obligation that a coarser spec satisfies, which is bead tla-nyrb's
+# spec-dependence exactly. Measured on the lockbox pair:
+#
+#     coarse spec, [][A]_vars     rc=0     fine spec, [][A]_vars     rc=13
+#     coarse spec, [][A]_Observe  rc=0     fine spec, [][A]_Observe  rc=0
+#
+# Under `_Observe` a step that moves internal state without moving the
+# observation IS a stutter on the observation, and is excluded by
+# construction. Representation stays the learner's (§3.2), which is the whole
+# point of grading at the observation (§3.3).
+#
+# WHAT IT STILL DOES NOT CLOSE, and it is not a rounding error: Step_k
+# constrains CONSECUTIVE observations, so a submission can get the multi-step
+# structure wrong while every single step is legal. Smaller hole, not no hole.
+# The vacuous-satisfaction hole -- a frozen observation -- is closed by the
+# landmark check above rather than here.
+# ---------------------------------------------------------------------------
+s=0
+for st in ${REF_STEPS[@]+"${REF_STEPS[@]}"}; do
+  [ -z "$st" ] && continue
+  s=$((s + 1))
+  run_judge "S$s" "$M_SUB_SPEC, $M_REF_OBL" \
+            "[][$st(Observe, Observe')]_Observe" property
+  classify 0 submission "reference step obligation $s"
+  if [ "$CLASS" = "INVALID" ]; then emit_invalid; exit 3; fi
+  if [ "$CLASS" = "MET" ]; then
+    ADEQ_MET=$((ADEQ_MET + 1))
+  else
+    # The SAME `R-` prefix a one-state conjunct gets. A separate prefix would
+    # tell the learner which of their obligations is about transitions, and
+    # the shape of the decomposition is content -- §6b.2 protects it. The
+    # digest is over the operator name, so the two never collide.
+    id="R-$(digest "$st")"
+    ADEQ_UNMET+=("$id")
     if [ -z "$UNDER_WITNESS" ]; then
       UNDER_WITNESS=$(jq -n -c --arg ob "$id" --argjson loc "$(location_of "$RUN_TRACE")" \
         '{kind:"reference-obligation-unmet", obligation:$ob, location:$loc}')
@@ -578,7 +916,7 @@ done
 # ===========================================================================
 # Assemble.
 # ===========================================================================
-ADEQ_TOTAL=${#REF_CONJUNCTS[@]}
+ADEQ_TOTAL=$(( ${#REF_CONJUNCTS[@]} + ${#REF_STEPS[@]} ))
 ADEQ_STATUS=PASS
 [ "${#ADEQ_UNMET[@]}" -gt 0 ] && ADEQ_STATUS=FAIL
 REL_STATUS=PASS
@@ -670,6 +1008,9 @@ TIMEOUT
 PARSE_ERROR
 CONFIG_ERROR
 TLC_EXCEPTION
+SPEC_EVAL_FAILURE
+SAFETY_EVAL_FAILURE
+LIVENESS_EVAL_FAILURE
 $PROBLEM_ID
 $SUB_LABEL
 VOCAB_END
