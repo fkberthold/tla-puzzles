@@ -157,7 +157,9 @@ placement the other two still cover. TLC should finish in seconds.
 
 The `traces/` directory holds one file per requirement. Each file has two
 runs, rendered over the observation fields at the checking instance, with
-members Ana, Ben, and Cai and products oats and oil.
+members Ana, Ben, and Cai and products oats and oil. For readability the
+trace tables group `book` and `share` by product. That is display only.
+The fields themselves keep the shapes above (members first, then products).
 
 - **A run the club can produce.** Your model must allow it.
 - **A run that breaks the requirement.** Your model must rule it out.
