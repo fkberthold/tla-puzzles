@@ -97,12 +97,233 @@ which is where a name is allowed to come from.
 
 ## 2. The reference's own gate
 
-Filled in after the runs. See section 3.
+Every run below goes through `harness/verdict.sh`, so the verdict is the raw
+exit code and nothing reads TLC's stdout. `Gate.tla` is found through
+`JAVA_TOOL_OPTIONS="-DTLA-Library=$WT/harness"`, with `$WT` the worktree root.
+Module and config paths are absolute, per the `tla-sn0h` note in `verdict.sh`.
+
+```
+harness/verdict.sh -t 300 -c $REF/Bureau.cfg $REF/Bureau.tla
+    OK                     rc=0     78 s
+harness/verdict.sh -t 300 -c $REF/Bureau.cfg $REF/Bureau.tla -- -inv FALSE
+    SAFETY_VIOLATION       rc=12     0 s
+harness/verdict.sh -t 300 -c $REF/Bureau.cfg -p Gate!NonVacuous $REF/Bureau.tla
+    OK                     rc=0     92 s
+```
+
+The third command was run again after an interrupted session, to check that
+nothing here rests on a cached number. `OK`, rc=0, 77 s.
+
+Counts, from the plain run: 740,626 states generated, 15,625 distinct, depth
+10, and 18 branches of temporal properties. Those match what step 1 recorded
+at `5dba583`.
+
+Action coverage, from the same run's final table. The check is `total == 0`,
+not `distinct == 0`.
+
+| action | distinct : total |
+|---|---|
+| `Init` | 1 : 1 |
+| `Mail` | 4,095 : 703,665 |
+| `Credit` | 11,529 : 37,524 |
+
+No action sits at zero. Both halves of the next-state relation fire.
 
 ## 3. Results
 
-Filled in after the runs.
+Each variant ran with the same command, changing only the two paths:
+
+```
+harness/verdict.sh -t 300 -c $VAR/<id>/Bureau.cfg $VAR/<id>/Bureau.tla
+```
+
+All 29 configs (the reference plus 28 variants) hash to
+`8e11a0900599db7666c5e761d0d7dae1`, so every variant met the shipped
+obligations unchanged. Any variant returning rc=0 was then run a second time
+with `-p Gate!NonVacuous`.
+
+The obligation column is read out of the log, which is where a name is allowed
+to come from. The verdict is the exit code alone.
+
+### Family S
+
+| id | token | rc | obligation reported | trace |
+|---|---|---|---|---|
+| S01 | `LIVENESS_VIOLATION` | 13 | `Opening`, by source location (see finding 5) | initial state |
+| S02 | `LIVENESS_VIOLATION` | 13 | `FilesOnlyGrow` | 3 states |
+| S03 | `SAFETY_VIOLATION` | 12 | `FilesWellFormed` | 2 states |
+| S04 | `LIVENESS_VIOLATION` | 13 | `OneEnvelopeAtATime` | 2 states |
+| S05 | `SAFETY_VIOLATION` | 12 | `CreditIsCorroborated` | 2 states |
+| S06 | `SAFETY_VIOLATION` | 12 | `CreditIsMutual` | 4 states |
+| S07 | `LIVENESS_VIOLATION` | 13 | `CreditComesWhole` | 4 states |
+| S08 | `LIVENESS_VIOLATION` | 13 | `OneEnvelopeAtATime` | 3 states |
+| S09 | `LIVENESS_VIOLATION` | 13 | `CreditComesWhole` | 5 states |
+| S10 | `LIVENESS_VIOLATION` | 13 | `BureauKeepsUp` | 5 states, then stuttering |
+| S11 | `SAFETY_VIOLATION` | 12 | `CreditIsCorroborated` | 2 states |
+| S12 | `LIVENESS_VIOLATION` | 13 | `BureauKeepsUp` | 5 states, then stuttering |
+| S13 | `SAFETY_VIOLATION` | 12 | `CreditIsCorroborated` | 4 states |
+| S14 | `LIVENESS_VIOLATION` | 13 | `CreditComesWhole` | 5 states |
+| S15 | `SAFETY_VIOLATION` | 12 | `TypeOK` | 4 states |
+| S16 | `OK` | 0 | none, and `Gate!NonVacuous` also rc=0 | uncaught |
+| S17 | `OK` | 0 | none, and `Gate!NonVacuous` also rc=0 | uncaught |
+| S18 | `OK` | 0 | none, and `Gate!NonVacuous` also rc=0 | uncaught |
+| S19 | `SAFETY_VIOLATION` | 12 | `CreditIsCorroborated` | 3 states |
+| S20 | `LIVENESS_VIOLATION` | 13 | `BureauKeepsUp` | 5 states, then stuttering |
+| S21 | `OK` | 0 | `Gate!NonVacuous` at rc=10 | 1 state |
+| S22 | `SAFETY_VIOLATION` | 12 | `CreditIsCorroborated` | initial state |
+
+19 of 22 caught, 18 of them by an obligation and S21 by the vacuity gate. No
+run hit rc=124, so nothing here is a timeout wearing a pass.
+
+The four variants that came back rc=0 are the four the frozen matrix named in
+advance. I want that on the record as a prediction that held, not as a result
+read backwards.
+
+### Family P
+
+| id | token | rc | obligation reported |
+|---|---|---|---|
+| P01ref | `OK` | 0 | none |
+| P01s07 | `OK` | 0 | none, and S07 alone is rc=13 |
+| P02ref | `OK` | 0 | none |
+| P02s02 | `LIVENESS_VIOLATION` | 13 | `BureauKeepsUp` |
+| P03ref | `OK` | 0 | none |
+| P03s11 | `SAFETY_VIOLATION` | 12 | `CreditIsCorroborated` |
 
 ## 4. Findings
 
-Filled in after the runs.
+The gate is green. Three variants stayed uncaught, each with a named
+structural cause, and §6's rule is that an uncatchable variant with a named
+cause is a finding rather than a failure. I don't think this needs a §9.5b
+repair, and finding 1 is why: no property change can close any of the three.
+
+### 1. The three uncaught variants are all structurally uncatchable
+
+S16 and S18 were declared in advance, S16 by `ALTERNATIVES.md` and S18 by the
+brief. Both hold up, and the state counts say why. Each comes back at 15,625
+distinct states, the reference's own count. S16 adds 46,875 generated states
+and S18 adds 37,500, and every one of them folds into a state that already
+exists. Both mutations add self-loops and nothing else, so under `Observe`
+there is nothing to see.
+
+S17 was not declared, and it's the one I'd carry forward. Single-claim mail
+reaches the same 15,625 states in 225,001 generated, so the two mailing
+disciplines are indistinguishable state by state. No property in the shipped
+set can catch it, and I don't think any linear-time property can: "an envelope
+of two claims is possible" is a claim about a behavior existing, and a safety
+or liveness property constrains the behaviors that do exist. It's invisible to
+the state count as well, since the count is identical. Only a check over the
+step relation would see it.
+
+That lands where the bead's carried note already pointed, at Rule 2's envelope
+permission wanting a carrier declaration on the next description pass. The gap
+is in the handoff's list of must-be-trues, not in the reference.
+
+### 2. `CreditIsPermanent` has no independent arrow
+
+Item 8 is implied by item 7. Any step that loses credit changes `credited`, so
+`CreditComesWhole` applies, and its consequent forces `credited'[o]` to be a
+superset of `credited[o]` for every operator. The implication is one line.
+
+The measurement agrees. S09 and S14 were both authored to break item 8, and
+both were reported against `CreditComesWhole`. Nothing in the matrix was
+caught by `CreditIsPermanent`.
+
+This matters downstream. Shape B ships one violating trace per property, and
+item 8's violating trace will always violate item 7 too. Say so in the
+statement, or a learner who writes only item 7 looks wrong when they aren't.
+
+### 3. The `a # c` conjunct is defensive, not load-bearing
+
+P03s11 drops the conjunct and S11 is still caught, at rc=12 by
+`CreditIsCorroborated`. That's what `ALTERNATIVES.md` predicted, so the
+author's reasoning holds.
+
+I went looking for a variant that would exercise the conjunct on its own and
+couldn't build one. A collapsed witness needs a self-claim on file, and
+`FilesWellFormed` forbids that, so any variant reaching the collapse trips an
+earlier obligation first. Keep the conjunct if you like the step obligation
+standing alone, which is the author's stated reason. Just don't expect the
+harness to defend it.
+
+### 4. Item 6's subtle break routes to item 5
+
+S13 mirrors the credit onto the wrong band, and it came back against
+`CreditIsCorroborated` rather than `CreditIsMutual`. The wrong-band entry has
+no corroboration behind it, and the invariant that notices sits earlier in the
+config. So S13 is not usable as an item-6 trace. S06 is, at 4 states.
+
+### 5. Item 1's arrow arrives as a source location
+
+S01 reported `Property line 47, col 12 to line 47, col 32 of module Bureau is
+violated by the initial state`. TLC splits a `PROPERTIES` state predicate per
+top-level conjunct into implied inits, and names the location rather than
+`Opening`. Step 1 measured the same split, and this is the second reading.
+
+A tutor that reports the obligation by name has no name to report here. Worth
+knowing before something downstream tries.
+
+### 6. A pre-loaded register routes to item 5, not item 1
+
+S22 starts `credited` non-empty and was reported against
+`CreditIsCorroborated` at the initial state. The invariant beats the implied
+init. So item 1 gets its own arrow only when the opening is well formed and
+non-empty, which is S01.
+
+### 7. The wrong-subscript hazard reproduces, and it's the sharpest result here
+
+S07 alone is caught at rc=13 by `CreditComesWhole`. The same system mutation,
+with `CreditComesWhole` subscripted `_(Observe.filed)` instead of `_Observe`,
+comes back rc=0. A credit step leaves `filed` alone, so the property is
+satisfied by its own stuttering disjunct and never looks at the action it was
+written for.
+
+Under shape B the learner writes that subscript. This is a live failure mode
+for the problem, not a hypothetical, and step 1 flagged it before I ran
+anything.
+
+### 8. P02 didn't reproduce the escape, and the reason is worth keeping
+
+`FilesOnlyGrow` under `_(Observe.credited)` does go blind to mail steps. S02
+was then caught anyway, at rc=13 by `BureauKeepsUp`, over a 7-state lasso. A
+file that shrinks can lose its corroboration, and the leads-to still wants the
+credit.
+
+The coverage is incidental. A learner whose `FilesOnlyGrow` carries the wrong
+subscript still passes S02, and passes for a reason that has nothing to do
+with the property they got wrong. I'd treat a green run on a single variant as
+weak evidence about a single property, in this problem more than most.
+
+### 9. S21 is the vacuity gate earning its place
+
+A bureau with no mail step passes all ten obligations at rc=0 and fails
+`Gate!NonVacuous` at rc=10. One distinct state against a threshold of 4, and
+every obligation is vacuously true over it. It's the only variant here that
+the postcondition alone catches, which is the argument for running the gate on
+every grading run rather than only on the reference.
+
+The threshold of 4 is `Gate.tla`'s placeholder. At 15,625 the reference clears
+it by a wide margin, so a per-problem threshold is worth setting later. Not
+mine to set here.
+
+### 10. Trace candidates for the shape-B statement
+
+One violating trace per stated item, all well under 12 states. Satisfying
+traces come from the reference, which is green.
+
+| item | variant | trace |
+|---|---|---|
+| 1 the opening | S01 | initial state |
+| 2 files only grow | S02 | 3 states |
+| 3 files are well formed | S03 | 2 states |
+| 4 one envelope at a time | S04 | 2 states |
+| 5 credit is corroborated | S19 | 3 states |
+| 6 credit is mutual | S06 | 4 states |
+| 7 credit comes whole | S07 | 4 states |
+| 8 credit is permanent | S09 | 5 states, and see finding 2 |
+| 9 the bureau keeps up | S10 | 5 states, then stuttering |
+
+S19 is the pick for item 5 over S05, which violates at 2 states by crediting
+with no claims at all. S19 credits on one operator's word, which is the
+mistake a person would make. Same for S07 over S08 at item 7, and for S09 over
+S14 at item 8.
