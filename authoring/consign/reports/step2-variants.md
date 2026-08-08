@@ -339,3 +339,189 @@ C24 is the arrow. `Observe` is unconstrained by every obligation in the
 `.cfg`, the repair is one definition, and the target is
 `Consign.tla:58` where `Changed` is defined. Dispatch §9.5b there. The matrix
 above does not move.
+
+## RESULTS-2B: the repair, and what it measures
+
+Agent C, bead `tla-exm1`, V2-PLAN §9.5b. I wrote neither the reference nor
+the variant matrix. This section is appended after the matrix froze, and
+nothing above this line moved.
+
+Central's ruling on C24 arrived with the brief and I took it as given: the
+hand-off states the obligations over the observable (`HANDOFF.md:93`), and
+§5.2 builds every learner grade on `Observe`, so a lying one corrupts grading
+with nothing upstream to catch it.
+
+### Reproducing the matrix before changing anything
+
+I rebuilt all 24 variants from the shipped reference and ran them before
+touching a line. All 24 rows came back identical to the results table above:
+same token, same rc, same named obligation, and the same distinct counts on
+the six greens (608, 608, 9728, 608, 513, 608). C24 came back `OK` at rc=0.
+
+That reproduction is what licenses reading the post-repair run as a
+comparison. Without it a changed row could be my generator rather than my
+repair.
+
+### The choice: how far to route
+
+The step-2 report named one repair, `Changed` over `Observe`. I built it, and
+I built the wider one the report's own cause statement points at, then
+measured both against each other.
+
+**Candidate A**: `Changed` reads `Observe'.standing` against
+`Observe.standing`. One line, nothing else touched.
+
+**Candidate B**: every obligation the hand-off states over the observable
+reads through `Observe`. That's all five, plus the owner's owed set that
+`SettlementStep` groups by.
+
+Both keep the reference green at 608 distinct and depth 11, so neither is
+paid for in state space.
+
+The separator is a lie that leaves the change-set alone. C24 reports every
+item unlisted, which freezes `Changed` to the empty set, and candidate A
+catches that. A lie that relabels standings without changing *which* items
+move is invisible to a change-set. I built four off-matrix probes to find
+that edge. They are diagnostics, not variants, and the frozen 24 did not
+move to accommodate them.
+
+| Probe | The `Observe` it ships | A | B |
+|---|---|---|---|
+| C24 | every item `unlisted` | rc=13 | rc=13 |
+| D01 | every item `listed` | rc=13 | rc=151 |
+| D02 | every item `flagged` | rc=13 | rc=151 |
+| D03 | `sold` and `settled` swapped | **rc=0** | rc=13 |
+| D04 | `unlisted` reported as `flagged` | **rc=0** | rc=12 |
+
+D03 and D04 are the answer. Both relabel through a bijection, so both leave
+`Changed` byte-identical to the reference's, and candidate A passes them at
+608 states with no obligation named. Under D03 the interface reports every
+payout as a sale running backward, and candidate A stays green throughout.
+
+I chose candidate B. A repair that closes C24 while four obligations still
+read the raw variable leaves the next lying `Observe` a doorway, and D03
+walks through it.
+
+### One thing candidate B does that the caught-band doesn't expect
+
+D01 and D02 exit **151**, not 12. TLC evaluates a state invariant at config
+time, finds it constant, and refuses before exploring: `Error: The invariant
+of FloorCap is equal to FALSE` for D01, and the same line naming
+`OneStandingEach` for D02. A blunt enough lie makes a routed invariant
+constantly false rather than violated somewhere.
+
+That's still red, and it fails earlier and louder than a violation. But §5.5
+defines caught as rc=12 or rc=13, so a checker reading that band literally
+scores these two as uncaught. I think the band wants a third row rather than
+the repair wanting a change. It's the same shape as this report's earlier
+note on C01, where a state predicate under `PROPERTIES` lands as an implied
+init at rc=13.
+
+It doesn't reach the frozen 24. No variant there drives an obligation to a
+constant.
+
+### The frozen 24, re-run against the repaired reference
+
+Same generator, same `MCConsign.cfg`, checked byte-identical against the
+shipped one by `cmp` before every single run.
+
+**19 caught, 5 green.** C24 moved from `OK` rc=0 to `LIVENESS_VIOLATION`
+rc=13 on `SingleStepOrSettlement`. No other row moved in any column.
+
+| ID | Token | rc | Obligation the log names | vs step 2 |
+|---|---|---|---|---|
+| C01 | `LIVENESS_VIOLATION` | 13 | `OpeningAllUnlisted`, by the initial state | same |
+| C02 | `SAFETY_VIOLATION` | 12 | `FloorCap` | same |
+| C03 | `SAFETY_VIOLATION` | 12 | `FloorCap` | same |
+| C04 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C05 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C06 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | same |
+| C07 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C08 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C09 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | same |
+| C10 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C11 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C12 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C13 | `OK` | 0 | none, 608 distinct | same, declared |
+| C14 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | same |
+| C15 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | same |
+| C16 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | same |
+| C17 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | same |
+| C18 | `OK` | 0 | none, 608 distinct | same, inert |
+| C19 | `SAFETY_VIOLATION` | 12 | `OneStandingEach` | same |
+| C20 | `LIVENESS_VIOLATION` | 13 | `LawfulPath` | same |
+| C21 | `OK` | 0 | none, 9728 distinct | same, declared |
+| C22 | `OK` | 0 | none, 608 distinct | same, declared |
+| C23 | `OK` | 0 | none, 513 distinct | same, declared |
+| C24 | `LIVENESS_VIOLATION` | 13 | `SingleStepOrSettlement` | **caught** |
+
+Every green was re-run under `Gate!NonVacuous`, so none of the five is an
+empty state space wearing a pass. Their distinct counts are unchanged from
+step 2, which I take as the strongest single check that the repair removed
+no behavior: the reachable graphs are the ones the matrix measured.
+
+### The reference after the repair
+
+§9.5's checks 1 to 4 and 6, re-run.
+
+| Check | Token | rc |
+|---|---|---|
+| 1 all properties pass | `OK` | 0 |
+| 2 reachable states exist (`-inv FALSE`) | `SAFETY_VIOLATION` | 12 |
+| 3 non-vacuity gate | `OK` | 0 |
+| 4 no dead action | see below | 0 |
+
+Check 6: **1791 states generated, 608 distinct states found, 0 states left on
+queue**, and **the depth of the complete state graph search is 11**. No
+movement from step 1 or step 2, which is expected. Obligations don't build
+the state graph.
+
+Check 4, read the way this report's earlier note says to read it, one level
+down from the single `INSTANCE`-named row. Every action's assignment line
+still fires, at the counts step 2 recorded.
+
+| Action | Line in `Consign.tla` | Total |
+|---|---|---|
+| `Intake` | 24 | 448 |
+| `Sell` | 28 | 448 |
+| `GoHome` | 32 | 448 |
+| `Settle` | 36 | 446 |
+
+Those line numbers are unchanged because the repair sits entirely below the
+model. `Consign.tla:1-42` is byte-identical to what step 2 measured.
+
+### What I changed, and what I left alone
+
+The whole diff is the obligation block. `Init`, `Next`, the four actions,
+`Standings`, `Listed`, `SoldOf`, `Observe` and `Spec` are untouched, and so
+are `MCConsign.tla` and `MCConsign.cfg`. The five obligation names in the
+`.cfg` are unchanged, which is why the `.cfg` needed no edit at all.
+
+Two decisions inside that block are worth naming.
+
+**The model still reads the raw variable.** `Intake` guards on
+`Cardinality(Listed) < Floor` and `Settle` groups by `SoldOf(o)`, both over
+`standing`. Routing the actions through `Observe` would change the shop
+rather than what we check about it. So the obligations grew their own
+observable-side helper, `Owed(o)`, and `SoldOf` stayed where it was.
+
+**Both action properties keep `_standing` as the subscript**, and I think
+this is the part most likely to get 'tidied' later by someone making it
+consistent. The subscript has to stay the raw variable. Under
+`[][...]_Observe` a model whose `Observe` never moves turns every step into a
+stutter, and the property passes having checked nothing. That would rebuild
+C24 one layer up, in the one place a reader is least likely to look. The
+subscript picks which steps get graded. The body says what gets graded about
+them.
+
+### Verdict
+
+**Green.** 19 of 24 caught, and the five that stay green are the four the
+hand-off declares uncatchable plus the one that's inert. C24 is caught at
+rc=13 with `SingleStepOrSettlement` named. The reference passes checks 1, 2,
+3, 4 and 6 with its state counts unmoved.
+
+One thing I'd hand forward rather than close. §5.5's caught-band is rc=12 or
+rc=13, and a routed invariant driven to a constant exits 151. Nothing in the
+frozen 24 lands there, so it holds no gate open today. I'd rather it be
+written down than rediscovered by whoever seeds the next lying interface.
