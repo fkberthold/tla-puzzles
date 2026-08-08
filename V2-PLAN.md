@@ -167,6 +167,15 @@ time · municipal permit review with parallel department sign-offs
 | change-ringing method rules | **fails the §5.7b puzzle screen, not the §5.7 collision screen.** The rules (permutation, adjacent-swap only, no repeats, start and end on rounds) are the complete action set, stated in the domain's own terms before you write a line. Also does not scale: a full extent on 7 bells is 5,040 rows, on 8 it is 40,320, and explicit history puts a subset of rows in the state. **Rescuable** by the §5.7b agents-and-fallibility pattern (a band of ringers who mistime, refining the method) — but do not put that in batch one |
 | beekeeping hive splits | rules may be too biologically fuzzy to state crisply enough for §3.2 |
 
+**This table disagreed with the project's own tool, and that is how the pilot's domain got
+through.** `harness/screen.sh:112` maps "permit review" to atomic commitment. The mapping is
+authored, not derived from phrasing, so someone classified that domain when the screens were
+built. The table above never carried it, so the domain read clean while the tool said BURNED
+(`pilot/screens.md`). A hand-kept suspicion list and an authored mechanism map will diverge
+again. Generate this table from `screen.sh`'s map, and treat it as a cache of the tool's
+verdicts rather than a second authority. Until that generation exists, the map wins. Bead
+`tla-stdl`. The scheduling half of the same finding is §6 step 0.
+
 **Three caveats:**
 
 1. **Unfamiliarity is the design goal, not a handicap.** The statement *gives* the domain rules;
@@ -743,6 +752,16 @@ markers.
 byte-identical. Comments inside the algorithm block are not carried into the generated TLA+, so
 any change means the pass touched the algorithm.
 
+**Run the re-translation on staged copies, never in the directory holding the frozen artifact.**
+This section used to stop at the paragraph above, and followed literally, in place, that
+procedure dirties the `.cfg` it is checking: `pcal` prepends `\* Add statements after this
+line.` to it. Measured on the pilot's step 7, md5 `a3c92eb6…` before and `0616a66c…` after. For
+a frozen artifact that is a write to a file under hash, and the pilot's freeze survived only
+because the gate ran on copies. `harness/comment-gate.sh` already does this right: it stages
+copies, and running it against the frozen pair leaves `sha256sum -c FREEZE.sha256` clean. Point
+every run at the component. The hand procedure is documentation of what the component does, not
+a thing anyone should run. Bead `tla-txkm`.
+
 ### 5.7 Component: screening
 
 ```bash
@@ -839,37 +858,232 @@ they are doubly excluded as problems — **and blind solvers will have memorized
 ## 6. Stage 3 — Pilot problem, end to end
 
 **Dependency:** §2.1 taxonomy + Stage 2 harness.
-**Do exactly ONE problem through the full pipeline before any fan-out.** The pipeline has eight
-steps and four gates; find the breakages on one problem, not forty.
+**Status: RUN, 2026-08-07.** Bead `tla-kl5.11`, grid cell (S5, C), artifacts in `pilot/`. The
+rule was **do exactly ONE problem through the full pipeline before any fan-out**, and it earned
+its keep: the run found eighteen breakages on one problem instead of forty (`pilot/README.md`),
+and the problem itself does not ship.
 
-Pick the pilot from gap **#11 (critique exercises — "what does this spec fail to say?")**. It is
-the cheapest to author, has no public prior art anywhere in TLA+ pedagogy, and exercises the
-grading engine without needing refinement.
+This section was rewritten 2026-08-07 against that run. The original text said what each step
+does and was close to silent on WHEN and WHO, and most of the eighteen breakages trace to those
+two words. Where the rewrite supersedes the original, the old reading is named, because the
+difference is itself a finding. What the run confirmed is kept unchanged, and none of it is up
+for redesign:
+
+- isolation as structure, never instruction (§6b.1)
+- the adversarial pairing: author, then a verifier told to distrust them, then a repairer
+- the freeze-and-hash at step 3
+- the strip-and-diff gate, which passed through `harness/comment-gate.sh` without incident
+
+Stage 5 inherits this pipeline per batch (§7.0). Every problem in a batch clears step 0 before
+any step 1 in that batch dispatches.
+
+The pilot came from gap **#11**, critique ("what does this spec fail to say?"): cheapest to
+author, no public prior art anywhere in TLA+ pedagogy, and it exercises the grading engine
+without needing refinement. That reasoning held, and the column-C findings at the bottom of
+this section are what it bought on top.
 
 ### Pipeline
 
-| # | Step | Dispatch | Gate |
+| # | Step | Who | Gate |
 |---|---|---|---|
+| 0 | **Domain screens**: §5.7 + §5.7b, at domain level | central, inline | both verdicts recorded; BURNED stops here |
 | 1 | Write reference **cold** — optimized only as a spec, no commentary | agent A (§9.4) | — |
-| 2 | Verify: properties pass, vacuity probes fail correctly, seeded variants caught | agent B (§9.5) | all green |
+| 2 | **Author variant matrix adversarially**, then verify | agent B (§9.5) | every variant caught, else step 2b |
+| 2b | **Repair** against the frozen variant set | repairer (§9.5b) | §9.5 re-run green, or a named structural cause per uncaught variant |
 | 3 | **Freeze + hash** | central, inline | hash recorded |
-| 4 | Write statement **from** frozen spec | agent C (§9.6) | — |
-| 5 | **Leakage check** — adversarial, separate agent | agent D (§9.7) | no representation leaked |
-| 6 | **Blind solve ×3** — fresh agents, statement only | agents E1–E3 (§9.8) | see spread rules |
+| 4 | Statement **from** frozen spec; column C adds the deficient artifact | agent C (§9.6) | screens re-run on the wording |
+| 5 | **Leakage check** + delivery-boundary audit | agent D (§9.7) | fit-to-ship, on the named artifact sets |
+| 6 | **Blind solve, mixed panel** | agents E1–EN (§9.8) | spread rule below; panel recorded with the verdict |
 | 7 | **Comment pass** — frozen spec, comments only | agent F (§9.9) | — |
-| 8 | **Strip-and-diff gate** | central, inline | byte-identical modulo comments |
+| 8 | **Strip-and-diff gate**, via `harness/comment-gate.sh` | central, inline | byte-identical modulo comments, on staged copies |
 
-### Reading the blind-solve spread (step 6)
+### Step 0: the screens run before anything is written
 
-- **All three fail** → underspecified, or requires knowledge outside learntla core. Fix the statement.
-- **All three succeed first-try with near-identical structure** → **trivial, or the statement is
-  leaking.** This is a *failure*, not a pass. Send back to step 4.
-- **All three succeed with genuinely different state representations** → **target achieved.**
-  This is the measurable proxy for "admits real modeling choice."
-- **Mixed** → read the telemetry: attempts taken, whether TLC caught bugs in the first draft,
-  whether the solver revised its state representation.
+§2.2 says "in play is not approved" and requires both screens of every candidate. The original
+§6 never scheduled them: the pipeline opened at "write reference cold", and the only screen
+mention sat inside the statement author's step-4 brief (§9.6). On the pilot the §5.7 screen
+therefore ran after the reference had been written, verified, repaired, and frozen. It took two
+seconds and returned BURNED (`pilot/screens.md`): `harness/screen.sh:112` maps permit review to
+atomic commitment, an authored mapping, not a phrasing accident. Four agent runs too late, for
+a two-second check. Bead `tla-stdl`.
 
-A first-try clean solve from every solver should always flag for human review.
+So domain selection is now step 0, gated, before any authoring dispatch. Central runs
+`harness/screen.sh` on the candidate domain, reads §5.7b against the domain as described, and
+records both verdicts. BURNED stops the domain here. Proceeding on a BURNED domain anyway is a
+recorded decision with a reason (the pilot continued after its late BURNED because it was
+measuring the pipeline, not shipping the problem), never a skipped check.
+
+Step 4 still re-runs both screens on the statement as worded. That is the second application,
+not duplication. §5.7b says passing once does not immunize a domain, because wording decides
+which thing you wrote. Step 0 screens the domain. Step 4 screens the statement.
+
+### Every gate names its red arrow
+
+The original pipeline was eight steps and four gates with no arrow back. Step 2's gate read
+"all green". The pilot's step 2 came back with five of eleven variants uncaught
+(`pilot/README.md`), and the plan said nothing about what happens next. §9.5 forbids the
+verifier from fixing, which is right, so the pipeline now names the repair step, the repairer,
+and the re-verification. Bead `tla-wz3k`.
+
+The shape that worked on the pilot, kept as the rule:
+
+1. The verifier authors the seeded variants, adversarially, before running anything (§9.5).
+2. The variant set freezes at authoring.
+3. On red, a repairer who did not author the variants makes the uncaught ones go red (§9.5b).
+4. The repairer re-runs the full §9.5 checklist against the frozen set. The re-run is the gate.
+
+The authorship lands on the verifier because the reference author is disqualified: whoever
+writes both an invariant and its tests tends to write tests the invariant already catches,
+which is the self-verification trap the `tla-kl5.2` wave was built to break. Until this
+rewrite, §9.5 consumed "each seeded-broken variant supplied" while nothing upstream supplied
+them. Bead `tla-0kd`. The freeze exists because a test set that moves under the person trying
+to pass it measures nothing. On the pilot the repairer was agent A2, applying a property agent
+B's report specified: the caught count went 6 to 8, and three variants stayed uncatchable,
+each with a named structural cause (`pilot/reports/agent-a2.md`, beads `tla-59s` and
+`tla-x8s`). An uncatchable variant with a named cause is a finding, not a failure. The gate
+still closed.
+
+For the other gates the rule generalizes: a red gate report says where the fix lives, and
+central dispatches the repair there rather than reflexively one step back. The pilot's leakage
+pass is the proof case. Its top finding lived in the deficient spec's `.cfg`, so a step-4
+statement rewrite could not have closed it, and the pass said so in its verdict
+(`pilot/reports/agent-d.md` §6).
+
+### Blind agents receive a named artifact set, never a directory
+
+Step 4 on the pilot produced four files in one directory: the statement, the deficient spec,
+the answer key, and the author's screen record. `ANSWER-KEY.md` opens with "Never show this to
+a critic", and it sat in the directory a critic reads. A step-6 brief saying "read the
+statement directory" would have handed three blind critics the answers, and the warning line
+itself is instruction isolation, exactly what §6b.1 rejects. Agent D caught it at step 5
+(`pilot/reports/agent-d.md` §0). Bead `tla-yf9y`.
+
+The rule, for every step that dispatches a blind agent:
+
+- The brief names the exact files the agent receives. No directories, no globs.
+- Author-only outputs land outside every tree a blind agent reads.
+- The leakage pass audits the boundary, file by file (§9.7).
+
+Author-only means the answer key, the screen record, the author's alternatives note, and
+anything else that names a gap. Central names the path they go to, and it is never under the
+statement. On the pilot each critic got its own directory holding exactly three files
+(`PROBLEM.md`, `PermitReview.tla`, `PermitReview.cfg`) and no path to the reference
+(`pilot/reports/step6-spread.md`). Stage 4's `tla-practice` / `tla-answers` split (§6b.2) is
+the same rule one level up. §6 carries its own version because this pipeline runs before
+Stage 4 exists, and Stage 5 keeps running it afterward.
+
+### Recognition: the problem and the mechanism are different questions
+
+§9.8 used to carry one stop condition: "if you recognize this as a known published problem,
+say so immediately and stop." The pilot showed that control asks about provenance while the
+risk is mechanism. Six of six critics named two-phase commit, four before opening the spec,
+and none stopped. None was wrong to continue, because the problem is synthetic and unpublished
+(`pilot/reports/step6-mixed-panel.md`). One critic answered the provenance question out loud,
+proceeded on "it reads as a synthetic puzzle", and named the mechanism at the end
+(`pilot/reports/step6-spread.md`). §5.7 already screens mechanism rather than name. The
+recognition control never got the same treatment. Bead `tla-mcce`.
+
+Ask both questions, and treat them differently:
+
+- Recognized **published problem**: stop immediately. The run is disqualified.
+- Recognized **mechanism**: report it, keep going. Measurement, not disqualification.
+
+The mechanism question is asked last, after the submission, where it leaks nothing. The answer
+matters because a critic who pattern-matched a burned mechanism and one who did not are not
+running the same experiment, and at small panel sizes that confound can swamp the result
+(`pilot/reports/agent-d.md` §5).
+
+### Reading the spread (step 6): the argument, not the verdict
+
+The rule this section used to carry read the answers. All fail: underspecified. All succeed
+with near-identical structure: trivial or leaking, send back to step 4. All succeed with
+different representations: target achieved. The pilot broke that rule twice over. Three
+critics returned byte-identical conjuncts by the same route in one attempt each
+(`pilot/reports/step6-spread.md`), and the mixed-panel re-run got the same conjunct content
+from six critics across three model families (`pilot/reports/step6-mixed-panel.md`). Zero
+spread in the answer. But five of the six PROVED their negative claim about the second gap,
+each with a different constructed instrument: refinement under a mapping with a negative
+control, a projected state-graph diff against a second correct spec, a stuttering simulation
+with exhaustive enumeration, a trace-inclusion disjunction. The sixth tried one candidate
+encoding, reported "reasonably confident it can't be done", and flagged the gap in its own
+rigor unprompted. Same conclusion, materially different depth, identical score under the old
+rule. Beads `tla-y68u`, `tla-y8tb`.
+
+**The rule now reads the argument, because that is where the spread lives:**
+
+1. **Split every load-bearing claim into (a) the conclusion and (b) the instrument.** A gap
+   named, a property called inexpressible, a design called correct: record separately whether
+   the critic reached the conclusion and whether they built a check that establishes it (a
+   run, a mapping, an enumeration, a second spec). (a) without (b) is an assertion, and an
+   honest assertion that names what it tried outranks a dressed-up one, but never outranks a
+   constructed proof. On the pilot, (b) carried all the discrimination: five of six earned
+   it, one did not. For the pilot's key the pair reads "(a) named the amendment gap, (b)
+   argued it cannot be written over `Observe`", with (b) requiring a constructed check rather
+   than a claim. The leakage pass proposed that split at step 5, before any critic ran
+   (`pilot/reports/agent-d.md` §4 item 1), which is why §9.7 now asks for it on every problem.
+
+2. **Convergent conclusions are a leak signal only where divergence was possible.** Column A
+   keeps the old reading: solvers with genuinely different state representations is the
+   measurable proxy for "admits real modeling choice", and near-identical structure still
+   flags trivial-or-leaking. Column C inverts it. §3.2 obliges the statement to state the
+   system completely, a critique answer is a diff between complete prose and an incomplete
+   formalism, so identical gap lists and identical conjuncts are the expected output of a
+   sound critique problem. Six critics, three families: same conjunct, same route. Applying
+   the column-A reading there condemns every sound problem in the column.
+
+3. **All fail still means underspecified, or knowledge outside learntla core.** Before
+   rewriting the statement, split the impasse the way §6b.4 does: a domain impasse is a
+   broken statement, a modeling impasse is a hard problem.
+
+4. **Mixed results are telemetry**: attempts taken, whether TLC caught first-draft bugs,
+   whether the representation was revised mid-way. Unchanged.
+
+5. **Record the panel with the verdict**: model ids, instance counts, date. A verdict from
+   one family is a verdict about that family. The pilot's first panel was three instances of
+   one model, and its zero spread could not be told apart from "one distribution sampled
+   three times" until the mixed re-run. The re-run also caught what a single-model panel
+   structurally cannot: one critic in six submitted the action-property form, which a grader
+   pinned to rc=12 rejects on shape (beads `tla-94n`, `tla-nyrb`). Mixed panels are worth
+   the cost because depth of justification diverges across families even when content does
+   not.
+
+6. **A first-try clean solve from every solver still flags for human review.** Unchanged.
+
+### Column C after the pilot: two structural findings and a proposal
+
+Both findings are about the column, not about the pilot problem's wording. No rewrite closes
+either. They are recorded here because Stage 5 authors eight column-C problems and each one
+will hit both.
+
+**Gap location cannot carry the difficulty.** §3.2 obliges the statement to state the system
+completely, a critique answer is a diff, and every model finds a diff. Six critics found gap 1
+in seconds by holding rule 3 against the guard that implements it, a one-token mismatch
+(`pilot/reports/step6-mixed-panel.md`). Weakening a guard, deleting a check, and omitting a
+rule all surface the same way. There is nowhere for the gap to hide. Bead `tla-y8tb`.
+
+**The `.cfg` names its own gaps.** A critique problem built by deleting checks from a complete
+reference carries a second route: the declared checks tile the numbered rules, the
+constraint-shaped rules without checks are the seeded gaps, and a critic reads both holes off
+the table without opening an action body (`pilot/reports/agent-d.md` G1). The route lives in
+the artifact, not the prose, so no statement rewrite closes it. Bead `tla-035d`. Three ways
+out, none tried yet: seed a gap as a check that is present but too weak, break the one-to-one
+between rules and checks in the reference, or accept the route and put the difficulty
+elsewhere. I think the too-weak check is the strongest of the three. It costs nothing at
+authoring time, and it resembles deficiency in the wild, where a spec rarely omits a property
+and usually states a weaker one. Untried, so Stage 5's first column-C problem should try it
+and measure before the pattern locks in.
+
+**Where the difficulty does live: expressibility.** All six critics spent roughly 80% of their
+time not finding gap 2 but establishing that it cannot be stated over the observation
+operator, and five built real instruments to prove it. That is the modeling judgment the
+column should be asking for, and the pilot found it by accident rather than by design
+(`pilot/README.md`). `tla-y8tb`'s proposal follows: make expressibility the explicit task.
+Not "what does this spec fail to say" but "here is a requirement, can it be stated over this
+interface, show your work". Locating a gap is a diff. Deciding expressibility is modeling
+judgment, and it is the thing all six found hard. **This is the plan's current best reading
+of column C, on a sample of one problem.** Write the next column-C problem both ways before
+locking the redesign in, and do not fall back to the old design without new evidence either:
+the case against gap-location is in the repo and two model families deep.
 
 ---
 
@@ -1112,30 +1326,71 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 
 ### 9.4 Reference-solution author (step 1)
 
+> You run only after step 0's domain screens have passed and central has recorded both
+> verdicts (§6). Do not run the screens yourself, and do not re-argue them.
+>
 > Write a TLA+ specification for the system described below. Optimize **only** for it being a
 > good specification — correct, idiomatic, at the right level of abstraction.
 >
 > **Write no comments.** Commentary is added in a later, separate pass; writing it now would
 > bend the spec toward what is easy to narrate.
 >
-> Deliver: the `.tla`, a `.cfg`, the named observation operator, and — separately from the spec
-> — a note on the state-representation alternatives you considered and rejected.
+> **Do not author seeded variants.** The verifier authors them, adversarially, because you
+> wrote the invariants they test (§9.5, bead `tla-0kd`).
+>
+> Deliver: the `.tla`, a `.cfg`, and the named observation operator. Your note on the
+> state-representation alternatives you considered and rejected is an **author-only output**:
+> deliver it to the path central names, never beside the spec, because later blind agents must
+> have no path to it (§6, artifact sets).
 >
 > <system description>
 
-### 9.5 Reference verifier (step 2)
+### 9.5 Reference verifier and variant author (step 2)
 
-> Given a TLA+ spec, `.cfg`, and a list of properties it should satisfy:
+> You are given a TLA+ spec, a `.cfg`, and the list of properties it should satisfy. You did
+> not write them. Distrust them.
+>
+> **First, author the seeded-variant matrix (§5.5) yourself, adversarially.** Broken variants
+> of the reference, each one a behavior the stated properties should catch. This is your job
+> and not the author's, because whoever writes both an invariant and its tests tends to write
+> tests the invariant already catches (bead `tla-0kd`). **Freeze the variant set before you
+> run anything.** It does not move again, whoever ends up repairing (§9.5b).
+>
+> Then:
 > 1. Run TLC; confirm all properties pass (rc=0).
 > 2. Run `tlc -inv "FALSE"`; confirm **rc=12** (reachable states exist).
 > 3. Run with `-postCondition "Gate!NonVacuous"`; confirm pass.
 > 4. Run `-coverage 1`; confirm **no action has `total == 0`** (not `distinct == 0` — an action
 >    can fire and discover nothing new; PlusCal's `Terminating` shows `0:1` on every
 >    terminating spec).
-> 5. For each seeded-broken variant supplied, confirm **rc=12** against it.
+> 5. For each variant in your frozen matrix, confirm it is caught: **rc=12** where an
+>    invariant catches it, **rc=13** where an action property does (bead `tla-94n`). Record
+>    which.
 > 6. Record the exact distinct/generated state counts.
 >
-> Report every command verbatim with its exit code. Do not fix anything; report only.
+> Report every command verbatim with its exit code. Do not fix anything; report only. Your
+> report may specify what a repair should add (the pilot's did, `pilot/reports/agent-a2.md`),
+> but a different agent applies and measures it (§9.5b), against the matrix you froze.
+
+### 9.5b Reference repairer (step 2b)
+
+> Dispatched only when step 2's gate comes back red. You are given the reference spec, the
+> verifier's report, and a **frozen** set of seeded variants, some of them uncaught. You did
+> not write the spec and you did not write the variants. That separation is why it is you:
+> the test set must not move under the person trying to pass it.
+>
+> Make every uncaught variant go red (rc=12, or rc=13 for an action property) while the
+> reference itself stays green, with the smallest property change that does it. **Do not
+> touch the variant set.** If the verifier's report specified a candidate property, start
+> from it, but the measurement is yours.
+>
+> A variant can be structurally uncatchable, meaning the observation operator cannot see what
+> it breaks. Do not bend the reference to manufacture a catch. Name the structural cause and
+> report it. The pilot's repair left three of these, each with a named cause, and the gate
+> still closed (`pilot/reports/agent-a2.md`, beads `tla-59s` and `tla-x8s`).
+>
+> Deliver the changed spec and a full re-run of §9.5's checks 1–6 against it. The re-run is
+> the gate, not your intent.
 
 ### 9.6 Statement author (step 4)
 
@@ -1166,7 +1421,22 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 > derived — that means its synonym table did not recognize your phrasing, so name the mechanism
 > yourself before trusting it.
 >
-> Deliver the statement only.
+> Your screen run is the second application, on the statement as worded. The domain itself
+> cleared step 0 before the reference was written (§6). Your run answers whether your wording
+> kept it clear, which passing once does not settle (§5.7b).
+>
+> **For a critique problem (column C)** you also derive the deficient artifact from the frozen
+> reference. Do not seed every gap by deleting a declared check: the `.cfg`'s check list tiles
+> the rule set, and the holes name the gaps without a single action body being read
+> (`pilot/reports/agent-d.md` G1, bead `tla-035d`). Prefer at least one gap that is a check
+> present but too weak. The §6 column-C notes carry the state of that proposal (untried).
+>
+> **Delivery is a named artifact set, not a directory (§6).** Name the learner-visible files
+> one by one. Everything else you produce (the answer key, your screen record, anything that
+> names a gap) is an **author-only output** and goes to the separate path central names. The
+> pilot shipped "Never show this to a critic" inside the directory a critic reads
+> (`pilot/reports/agent-d.md` §0, bead `tla-yf9y`). Structure keeps that from recurring, not
+> warnings.
 
 ### 9.7 Leakage checker (step 5)
 
@@ -1186,20 +1456,48 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 > pass. A statement can leak nothing and still be a puzzle — those are different defects, and
 > §5.7b explicitly says passing the screen once does not immunize a domain, because the wording
 > is what decides it. Report a screen verdict alongside your leakage findings.
+>
+> **Audit the delivery boundary.** Enumerate the exact files each downstream blind agent will
+> receive and confirm no author-only output is reachable from any of them (§6, artifact sets).
+> The pilot's answer key sat in the critics' directory until this pass caught it
+> (`pilot/reports/agent-d.md` §0).
+>
+> **On a critique problem (column C), recalibrate what leakage means.** A statement cannot
+> leak what the deficient spec already shows, so the representation frame above comes out
+> nearly empty there (`pilot/reports/agent-d.md` §1). The live surface is the artifact itself.
+> Rank every route to a gap that is SHORTER than the intended one, starting with the `.cfg`'s
+> declared-check list held against the numbered rules (bead `tla-035d`).
+>
+> **Propose the grading split before any critic runs.** For each seeded gap, state what counts
+> as (a) naming it and (b) establishing it with a constructed check. Step 6's spread rule
+> consumes this pair (§6). The pilot's leakage pass proposed the split unprompted and it
+> became the rule, so it is a deliverable now, not a favor.
 
-### 9.8 Blind solver (step 6 — dispatch THREE, independently)
+### 9.8 Blind solver (step 6: dispatch a mixed panel, independently)
+
+Dispatch at least three, across at least two model families, and record the panel (model ids,
+instance counts, date) with the verdict (§6). One family's panel measures that family.
 
 > Solve the TLA+ modeling problem below. You have the statement and your own knowledge of
-> TLA+/PlusCal. **You do not have a reference solution, and must not search for one** — if you
-> recognize this as a known published problem, say so immediately and stop.
+> TLA+/PlusCal. **You do not have a reference solution, and must not search for one.** If you
+> recognize this as a known **published** problem, say so immediately and stop. Recognizing
+> the general **mechanism** ("this is atomic commitment") is different: note when it happened,
+> keep going, and report it at the end. You will be asked (§6).
 >
 > Deliver: a complete `.tla`, a `.cfg`, and the observation operator the statement names.
+>
+> **For every load-bearing claim** (a gap you name, a property you call inexpressible), either
+> build a check that establishes it (a run, a mapping, an enumeration, a second spec) or say
+> plainly that it is an assertion and what you tried. The grade reads the argument, not the
+> verdict (§6). An honest "I tried one encoding and stopped" is worth more than a confident
+> claim with nothing under it.
 >
 > Also report, honestly — this telemetry is the point of the exercise:
 > - how many attempts before TLC was clean
 > - whether TLC caught a bug in your first draft, and what it was
 > - whether you revised your state representation mid-way, and why
 > - which representation alternatives you considered and rejected
+> - **last, after everything else**: did you recognize the mechanism family, and when?
 >
 > <statement>
 
@@ -1222,6 +1520,11 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 >
 > If the spec is PlusCal, remember the algorithm lives inside `(* --algorithm ... *)`; comments
 > you add there must not alter the generated TRANSLATION block.
+>
+> The gate that checks you is `harness/comment-gate.sh`, and it runs on staged copies. Never
+> re-run `pcal` in the directory holding the frozen artifact to check yourself: `pcal`
+> prepends a line to the `.cfg`, which is a write to a file under hash (§5.6, bead
+> `tla-txkm`).
 
 ### 9.10 Tutor-directory builder
 
@@ -1290,8 +1593,14 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
   actively misleading on this repo. bd 1.0.2 has no `preflight.template` support. See `tla-9ic`.
 - **`docs/` is generated** (gitignored, built by `scripts/build-docs.sh` from `module-docs/`).
   Never edit it; edits are destroyed on the next build.
-- **`scripts/` holds 8 unwired `exit 2` stubs** scaffolded by `/loom-adopt` P2. The project
-  constitution deliberately leaves `canonical_commands` empty because of this. See `tla-xme`.
+- **The `scripts/` verbs are wired now, so distrust older copies of this bullet.** Until
+  2026-08-07 it said `scripts/` held 8 unwired `exit 2` stubs and that the constitution left
+  `canonical_commands` empty on purpose. Both were true, and the emptiness was honest: naming
+  a command that fails by design is a canonical command that lies. `tla-xme` wired all eight
+  and the verbs are filled in `.claude/project-constitution.md`, with `bash scripts/test` as
+  the real gate (10 suites, 292 assertions, ~120 s). The stale version of this bullet taught
+  an agent to skip the gate, the reverse of what the constitution now says.
+  `.claude/rules/dispatched-agents.md` carries the full history. Bead `tla-m3k`.
 - **Six of the 35 mined drawers have bodies truncated at a backslash** (`fcb4b15`, `31f52bc`,
   `790039b`, `c1a33f8`, `4eba5f1`, `33a2c38`). Recover full text with `git show <sha>`. See
   `tla-nov`.
