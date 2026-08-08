@@ -180,7 +180,10 @@ Model checking completed. No error has been found.
 The depth of the complete state graph search is 7.
 ```
 
-You can reproduce the run: `tlc SeedLibrary.tla` with the config beside it.
+You can reproduce the run: `tlc -deadlock SeedLibrary.tla` with the config
+beside it. The `-deadlock` flag turns TLC's deadlock check off, and the run
+above was made that way: the program has a real end state, and stopping there
+is the design, not a defect.
 The submitter's claim is simple: every declared check passed, so the model is
 correct.
 
