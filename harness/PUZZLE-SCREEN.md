@@ -7,7 +7,7 @@ This is the second of two independent screens over every candidate problem.
 | | asks | shipped as |
 |---|---|---|
 | §5.7 | has someone already **solved** this? | `harness/screen.sh` — mechanized |
-| §5.7b | is it even the right **kind** of thing? | this file — judgment |
+| §5.7b | is it even the right **kind** of thing, and is it **hard**? | this file — judgment |
 
 **A candidate can pass §5.7 cleanly and still be useless.** Nobody has published
 `RestaurantSeating.tla`; "seat this party optimally" is still bin-packing and still
@@ -60,8 +60,9 @@ consists of. It is the category this project is defined against (§7.3).
 
 ## The checklist
 
-Answer all eight in writing. Q1 *is* the screen; Q2–Q8 exist because Q1 is easy to
-answer wrong about a statement you just wrote.
+Answer all eight in writing, then answer **R**, below. Q1 *is* the screen. Q2–Q8 exist because
+Q1 is easy to answer wrong about a statement you just wrote. R asks something none of the eight
+asks, so it carries its own verdict and stays out of the tally.
 
 | # | Question | Puzzle answer | System answer |
 |---|---|---|---|
@@ -74,15 +75,77 @@ answer wrong about a statement you just wrote.
 | 7 | Delete TLC. Is there still a modeling decision the learner must defend? | no | yes |
 | 8 | Does the statement name an optimum — *optimally*, *minimum*, *fewest*, *best*? | yes | no |
 
+### Q1 and Q2 have a second form, and the task shape picks which one you answer
+
+Q1 and Q2 as written above are for a learner who **writes the spec**: task shapes **A**, **E**
+and **F** (§2.1, axis 2). What gets handed over is a set of legal moves, and the question is how
+much of it was left for the learner to decide.
+
+**Shapes B, C and D hand the learner a spec.** A property problem ships one, a critique problem
+ships a deficient one, a diagnosis problem ships a failing one. The actions are given by
+construction, and no wording makes them otherwise. Answer Q1 and Q2 literally there and Q1's
+system column ("the actions themselves") is unclaimable. Q2 reads "given" every time. That is
+not the candidate being a puzzle. That is the rubric asking the wrong question of 24 of the 60
+problems (§2.1, allocation).
+
+Ask the same question about the other object:
+
+| # | Question, for a learner holding a spec (**B** · **C** · **D**) | Puzzle answer | System answer |
+|---|---|---|---|
+| 1 | Hand the learner the spec **and** the rules it is measured against. Is anything left to model? | nothing, the answer is a diff | the requirements themselves |
+| 2 | Are the requirements given as formal claims, or must the learner decide what a requirement *is*? | given | decided |
+
+**What "decide what a requirement is" means.** Which stated rules are state predicates, which
+are transition properties, and which the observation vocabulary cannot carry at all. That last
+one is the modeling judgment these three shapes exist to teach, and the action-centric pair
+cannot see it.
+
+**Do not read the doubled action set as a puzzle tell.** §3.2 obliges the statement to fix the
+system completely, so a spec-in-hand statement enumerates the actions in prose as well as
+shipping them in the artifact. The learner gets the action set twice. That is mandatory rather
+than a defect, and it is the whole reason these two questions have to be asked about
+requirements here (`pilot/reports/agent-d.md:250-259`).
+
+**A tell that does survive.** If every stated rule maps to one obvious formula in a vocabulary
+the artifact already supplies, then Q2 reads *given* in requirement-centric form too, and that
+is a real puzzle answer. The learner is transcribing again, one level up. That case is what the
+second form is built to catch.
+
+**How the Stage 3 pilot scores under this pair.** Q1 reads *system*: the author's own answer is
+that rule 3 is a state predicate, rule 5 is a transition property, and the observation operator
+carries the first and not the second (`pilot/screens.md:27-32`). Q2 reads *decided*, on the
+strength of the same argument. So that problem's score goes from seven of eight to eight of
+eight, and it still does not ship (`pilot/README.md:45-59`). Worth sitting with. Giving back the
+row that column C could never earn makes this verdict cleaner and moves it further away from
+what was actually wrong with the problem, which is why R is a separate verdict and not a ninth
+row.
+
+One qualification I do not want rounded off. Q2 reads *decided* on the back of the pilot's second
+gap. For its first gap the answer form named the target and fixed the shape before the learner
+had thought about the domain at all (`pilot/reports/agent-d.md:135-163`), so that half of the
+problem hands the requirement over too. A split answer like that is a finding. Write both halves
+down instead of collapsing them to one word.
+
 **Verdict rule.** Q1 decides. Q2–Q8 are how a wrong Q1 gets caught: if Q1 says "system"
 but three of the rest say "puzzle", you answered Q1 about the domain you imagined and not
 about the statement you wrote. Re-read the statement, not your intention.
+
+The threshold is three for every task shape. That is worth stating because it used not to hold
+in practice. Before the second form above existed, a B, C or D problem opened with Q2 already
+reading "puzzle" whatever it said, so three of seven meant two of six for a third of the grid.
+The second form gives that row back rather than lowering the bar, and nothing in the pilot argues
+for a different number. Its tally was one of seven before the fix (`pilot/reports/agent-d.md:243`)
+and is zero of seven after, which was never near three either way
+(`pilot/reports/agent-d.md:276`).
 
 **Then write one of these down, in your own words, and say why:**
 
 - **REJECT — puzzle.** Cut the candidate, or apply the rescue pattern below and
   re-run this rubric on the rewrite.
 - **ACCEPT — system.**
+
+This is the **KIND** verdict, and it is one of two. The other is **ROUTE**, below. Either one
+rejects on its own.
 
 ### Tells
 
@@ -192,6 +255,142 @@ approved in §2.2 can still yield a puzzle on Tuesday because of how someone wor
 
 ---
 
+## R: the route. Kind is not difficulty
+
+Q1 to Q8 settle whether a candidate is the right **kind** of thing. Not one of them asks whether
+it is **hard**, and the two come apart. A statement can read *system* on every row and still be
+over in five minutes, by a route that touches none of the judgment it claims to teach.
+
+**Q5 looks like it covers this and does not.** "Where does the difficulty live?" takes for
+granted that there is difficulty, and asks only for its address. Both independent screens of the
+Stage 3 pilot answered Q5 "abstraction choice" (`pilot/screens.md:22`,
+`pilot/reports/agent-d.md:238`) on a problem whose primary gap turned out to be reachable
+without opening a single action body.
+
+**Why this row is not a nicety.** v1 died of triviality while its own quality gate returned
+green. The post-mortem's verdict is that the gate **caused** the outcome it was written to
+prevent, because its constraints mechanically produced a puzzle that was a small perturbation of
+the worked example (`drawer_tla_puzzles_decisions_78e0afcd8f0f7bb925f61ef0`). The gate was
+working as designed. The design was wrong. A screen that certifies kind and says nothing about
+difficulty is that same instrument.
+
+### The row
+
+| # | Question | Answer |
+|---|---|---|
+| R | What is the shortest route from the statement to a complete correct answer, and does that route use the judgment the problem is for? | a route, written out in steps |
+
+**The answer is a route, not a score.** No rating, no "difficulty: 3 of 5". A number invites
+authoring toward the number, and nobody else can check it. A route is a claim somebody else can
+walk and refute.
+
+The same post-mortem left a heuristic in this shape: *if your answer key can be a string match,
+your question is about syntax.* R asks that about the route instead of about the answer.
+
+### Finding one
+
+Start by writing down the route you **meant**. For the pilot that was "read each numbered rule
+against the action body that implements it". Anything shorter than the intended route is the
+finding, and until the intended route is on paper there is nothing to measure against.
+
+Then run the probes. Each shortcut has a shape, and the shape has a probe, which is what makes
+this row answerable on an ordinary screening pass rather than only on a flash of insight. All
+six of these fired on the pilot during one routine adversarial pass
+(`pilot/reports/agent-d.md` §2).
+
+| probe | what you look for | what it found on the pilot |
+|---|---|---|
+| **Vocabulary absence** | a technical noun the statement repeats and the artifact never uses | "unanimity", 3 times in the prose, 0 in the `.tla` and 0 in the `.cfg` (`agent-d.md:165-170`) |
+| **Tiling** | the artifact's own enumerated list set against the statement's own, and the holes between them | 6 declared checks against 7 numbered rules, 2 holes, and the 2 holes were the 2 seeded gaps (`agent-d.md:88-118`) |
+| **Elimination** | the only candidate of its type, or the only one that nothing constrains | one observation field carried no behavioural check, and was the only field typed against the constant the answer form demanded generality over (`agent-d.md:135-163`) |
+| **The answer form** | how far the answer instructions narrow the answer before the learner has thought about the domain | two lines fixed both the target and the shape (`agent-d.md:150-159`) |
+| **Pre-clearing** | a passage saying "this looks wrong and it is fine", which advertises that its neighbourhood repays attention | two of them, one beside each gap (`agent-d.md:201-210`, `:339-342`) |
+| **Recall** | if §5.7 came back BURNED, what the mechanism's prior hands over for free | 2 of the 3 blind critics named two-phase commit before opening the spec (`pilot/reports/step6-spread.md:18`) |
+
+Run tiling first. It is the cheapest of the six, it needs no domain knowledge, and on the pilot
+it was the route that found both gaps.
+
+### Say where the shortcut lives
+
+Record it, because it picks the remedy.
+
+- **In the prose.** Send it back to step 4. A reword closes it.
+- **In the artifact, or in the task shape.** A reword cannot close it.
+
+On the pilot the tiling route lived in the `.cfg`, so deleting the sentence that pointed at the
+check list would have left the route standing (`pilot/reports/agent-d.md:130-133`). Redesign the
+problem, or cut it. This is the same distinction as *what does not rescue a puzzle*, above. A
+local fix that leaves the route intact is good taste, not a rescue.
+
+### R does not feed the tally
+
+The tally counts puzzle answers as evidence that Q1 was answered wrong. A short route is no
+evidence of that at all. A problem can be a real system and still be trivial, and folding R into
+the tally would let seven system rows outvote it. So write two verdicts, and either one rejects:
+
+- **KIND.** ACCEPT, system, or REJECT, puzzle. From Q1 to Q8.
+- **ROUTE.** ACCEPT if the shortest route you found is the one the problem is for. REJECT if a
+  shorter one reaches the answer without the judgment.
+
+Name the route either way. A ROUTE ACCEPT with no route written out is not an answer.
+
+### Who can answer R
+
+The author cannot time a route, because the author cannot unknow the answer. The author **can**
+run all six probes, because a grep for a noun that is missing from the artifact returns the same
+thing whether or not you already know why it matters. That is the reason R is built out of
+probes instead of an estimate.
+
+The checker's R is the one that counts. On the pilot the adversarial pass produced the route
+analysis without being asked for it, and the author's own screen did not
+(`pilot/reports/agent-d.md:261-265`, `pilot/screens.md:16-26`).
+
+### The other thing R is for: two screens agreed on everything
+
+Two agents ran Q1 to Q8 over the pilot independently and returned the same verdict, row for row
+(`pilot/reports/agent-d.md:248`). Some of that is the rubric working. Q3 is answered by the
+statement's own task sentence, and Q8 by a grep. A screen people can disagree about is a bad
+screen, so agreement on those rows is the instrument behaving.
+
+The rest of it, I suspect, is the answer columns. Every row ships its two answers, so a screener
+picks from a menu instead of writing something down. That is what makes a second run cheap, and
+it is also what makes a second run tell you nothing. §9.7 spends an adversary on this rubric to
+buy a second opinion, and on the pilot the second opinion was the first one again.
+
+What the second pass did add came from going off the card
+(`pilot/reports/agent-d.md:250-272`), and the route analysis was the largest piece of it. R has
+no answer column on purpose.
+
+### Worked R: the Stage 3 pilot
+
+Grid cell (S5, C). Both screens returned **ACCEPT, system** at seven of eight rows
+(`pilot/screens.md:57`, `pilot/reports/agent-d.md:243`). Three blind critics then returned
+byte-identical answers, one attempt each, in 15 to 25 minutes
+(`pilot/reports/step6-spread.md:9-19`).
+
+> **Intended route.** Read each of the seven numbered rules against the action body that
+> implements it, and name what the spec fails to say.
+>
+> **Shortest route found.** The `.cfg` declares 6 checks. The statement numbers 7 rules. Build
+> the cross-table. Four rules are constraint-shaped, two of those carry no check, and those two
+> are the gaps. No action body opened, no domain understanding used.
+>
+> **Does it use the judgment the problem is for?** Not for locating the gaps, which is
+> table-building. Yes for half of one gap: arguing that the second gap cannot be written over the
+> observation operator at all is not reachable from the table, and it is where all three critics
+> spent about 80% of their time (`pilot/reports/step6-spread.md:41-44`).
+>
+> **Where the shortcut lives.** In the `.cfg`, not in the prose. No reword closes it.
+>
+> **ROUTE: REJECT.** The gradable half is trivial to locate. The half that uses the judgment is
+> the half this problem cannot grade.
+
+Everything in that box was available at step 5. It sat in a leakage report four agent-runs before
+the blind critics confirmed it, and a leakage report gates nothing. The rubric had no row to put
+it in, so the problem went to step 6 carrying an ACCEPT.
+
+---
+
 ## Seeded §2.2 pre-screen suspicions
 
 Recorded so this screen, like §5.7, is never run blind. These are **suspicions to test,
@@ -222,6 +421,9 @@ The author and the checker both run it because the failure mode is invisible fro
 inside: writing a statement from a frozen reference solution makes handing over the action
 set nearly automatic, and the author reads their own intent back into their own prose.
 
+Record your own answers before you read the other's. The pilot's checker did that
+(`pilot/reports/agent-d.md:229`), which is why its agreement with the author is worth anything.
+
 ### Drop-in text for the two briefs
 
 > Apply the §5.7b puzzle screen — `harness/PUZZLE-SCREEN.md` — to the statement, and
@@ -231,6 +433,14 @@ set nearly automatic, and the author reads their own intent back into their own 
 > *"seat this party optimally"* is bin-packing.
 > *"model the host stand with walk-ins and reservations arriving concurrently"* is a system.
 > Rewrite with agents and fallibility until it passes.
+>
+> If your task shape hands the learner a spec (**B**, **C**, **D**), answer Q1 and Q2 in their
+> second form, about requirements rather than actions. The action-centric pair cannot be passed
+> by those three shapes and tells you nothing about them.
+>
+> Then answer **R** and report both verdicts. R asks for the shortest route from your statement
+> to a complete correct answer, and whether that route uses the judgment the problem is for. A
+> problem can read system on all eight rows and still be over in five minutes.
 
 ---
 
@@ -240,3 +450,9 @@ set nearly automatic, and the author reads their own intent back into their own 
 - `V2-PLAN.md` §5.7b — the source this rubric is transcribed from; §2.2 for the domain
   pool and its suspicions; §6 step 4 for where the statement-time run sits; §9.6/§9.7 for
   the two briefs that must cite this file.
+- `pilot/` — the Stage 3 pilot, which is where the second form of Q1/Q2 and the whole of R come
+  from. `pilot/README.md` says why that problem does not ship.
+
+**This file has run ahead of `V2-PLAN.md`.** §9.6 still describes an "8-question checklist", and
+neither §9.6 nor §9.7 knows about the requirement-centric pair or about R. The drop-in text above
+is current. Sync the plan to it.
