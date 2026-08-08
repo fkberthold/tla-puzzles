@@ -34,6 +34,10 @@ passes, which is the same worthlessness with the sign flipped.
 variant directories are used with `--variants`, sharing that one reference and
 oracle rather than duplicating them.
 
+`parameterized/` is a **second** matrix root, in the same shape plus a
+`reference/constants.cfg`. It exists because `crossing/` declares no `CONSTANT`
+and so cannot notice a missing constants channel; see its own section below.
+
 | invocation | verdict | rc | what it pins |
 |---|---|---|---|
 | `Good.tla` | `BUGS_CAUGHT` | 0 | the positive control |
@@ -46,6 +50,9 @@ oracle rather than duplicating them.
 | `--variants variants-malformed` | `MATRIX_MALFORMED` | 44 | a variant that does not supply the module it mutates |
 | `--oracle oracle-unsound/Oracle.tla` | `ORACLE_UNSOUND` | 45 | the instrument checks itself first |
 | `properties/NoSuchModule.tla` | `PARSE_ERROR` | 150 | TLC outcomes pass through unchanged |
+| `--matrix parameterized` + `LedgerGood.tla` | `BUGS_CAUGHT` | 0 | a spec that declares constants can be driven at all |
+| `--matrix parameterized` + `LedgerWeak.tla` | `PROPERTY_TOO_WEAK` | 40 | grading still discriminates once they are assigned |
+| `--reference constants-refused/Ledger.tla` | `MATRIX_MALFORMED` | 44 | a constants fragment carrying a directive |
 
 ## The variants, and what each one is for
 
@@ -88,6 +95,66 @@ suite's own mutation testing.
 distinguishable from "reports `VARIANT_INERT` whenever it cannot catch
 anything".
 
+## `parameterized/` — the matrix that needs a constant
+
+`crossing/` declares no `CONSTANT`, so every row above it passes on a matrix
+that has no way to assign one. That is why the gap went unnoticed: the Stage 3
+pilot's reference declares `Departments` and `MaxAmendments`, and the matrix
+could not drive it at all. Bead `tla-40y`.
+
+`parameterized/` is the smallest thing that would have caught it. A ledger of
+balances between `0` and `MaxBalance`, one per account in `Accounts`, and the
+reference, the oracle, the variant and both properties all mention those
+names. Without the constants channel the run dies at **phase 1** with
+`CONFIG_ERROR` (151) — *"The constant parameter MaxBalance is not assigned a
+value by the configuration file"* — having graded nothing.
+
+| file | what it is |
+|---|---|
+| `reference/Ledger.tla` | 9 reachable states under the assignment below |
+| `reference/constants.cfg` | `Accounts = {"a1","a2"}`, `MaxBalance = 2` |
+| `oracle/LedgerOracle.tla` | `balance[a] \in 0..MaxBalance` |
+| `variants/over-by-one/Ledger.tla` | `Deposit` guards with `<=`, so a balance reaches `MaxBalance + 1` |
+| `properties/LedgerGood.tla` | the same bound, written as two comparisons |
+| `properties/LedgerWeak.tla` | `balance[a] \in Nat` — no upper bound, misses the variant |
+
+`over-by-one` keeps its guard rather than dropping it, and that is not
+squeamishness: an unbounded state space would make `LedgerWeak` **time out**
+instead of exiting 0, and the `MISSED` row needs rc=0, not rc=124.
+
+`LedgerWeak` is deliberately not `Inv == TRUE`. It names `Accounts`, so an
+unassigned constant would break it too — which is what makes its rc=0 against
+the variant evidence about the *grading* rather than evidence that the property
+was trivially true.
+
+The assignment file is found by **filename**, beside the reference module, and
+appended to every generated `.cfg`. That is `grade.sh`'s idiom (`§5.2`), not a
+second one; `refinement.sh`'s `--constants` **flag** is right for `§5.4`, which
+is handed two loose modules with no package around them.
+
+## `constants-refused/` — the other fixture that is wrong on OUR side
+
+The fragment is the only text from the matrix directory that reaches a
+generated `.cfg`, so it is the one place the harness's ownership of that file
+can leak. `constants-refused/constants.cfg` carries two directives it may not,
+and the matrix refuses it as `MATRIX_MALFORMED` (44) before staging anything.
+
+| directive | why it is refused |
+|---|---|
+| `SYMMETRY Perms` | **soundness.** Symmetry reduction is sound only for a symmetric property, and the submitted property is not the author's to vouch for. A violation TLC misses on a variant returns rc=0 and the matrix reports `PROPERTY_TOO_WEAK` — the learner billed for the author's config. |
+| `INVARIANT SneakyInv` | **ownership.** `seeded-bugs.sh` writes that line itself; a second one decides the verdict without appearing in the report. |
+
+`\*` comments are stripped before the check, so a fragment may explain itself.
+The *good* fragment in `parameterized/reference/` says both words inside
+comments and still runs — which is what makes its `BUGS_CAUGHT` row a witness
+for the stripping, and why `selftest.sh` pins those words in place.
+
+`constants-refused/Ledger.tla` is a placeholder that is never model-checked,
+and deliberately **not** a copy of the real reference: the row only needs a
+`.tla` for `--reference` to resolve to, and a copy would rot the first time the
+original changed. Remove the refusal and the row runs into that placeholder and
+fails loudly, rather than passing for a new reason.
+
 ## `traces/` — what the comparison ignores
 
 Four hand-written trace dumps, fed to `seeded-bugs.sh --trace-signature`. This
@@ -121,8 +188,9 @@ and a submission's module is not in scope for the oracle run at all.
 ## Do not "repair" these
 
 `crossing/variants/*`, `variants-inert/inert-guard`, `variants-divergent/two-bugs`,
-`oracle-unsound/Oracle.tla`, `properties/Unsound.tla` and
-`variants-malformed/no-such-module/` are all wrong on purpose. Fixing any of
+`oracle-unsound/Oracle.tla`, `properties/Unsound.tla`,
+`variants-malformed/no-such-module/`, `constants-refused/constants.cfg` and
+`parameterized/variants/over-by-one` are all wrong on purpose. Fixing any of
 them silently deletes a row.
 
 ## The caveat that travels with every number here

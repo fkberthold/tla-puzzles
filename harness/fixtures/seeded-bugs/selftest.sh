@@ -305,6 +305,94 @@ assert_matrix "a property equivalent to the oracle agrees under --strict-trace" 
 
 # ---------------------------------------------------------------------------
 echo
+echo "== PARAMETERISED MATRIX: constants reach every generated .cfg =="
+# ---------------------------------------------------------------------------
+# crossing/ declares no CONSTANT, so every row above it can pass on a matrix
+# that has no way to assign one. parameterized/ is the row that cannot: its
+# reference, its oracle, its variant and both its properties all mention
+# `Accounts` and `MaxBalance`, so a run with no constants channel dies at
+# PHASE 1 with CONFIG_ERROR (rc=151) -- "The constant parameter MaxBalance is
+# not assigned a value by the configuration file" -- before it grades
+# anything. Bead tla-40y; found running the tla-kl5.11 pilot, whose reference
+# declares `Departments` and `MaxAmendments`.
+#
+# The assignment lives in parameterized/reference/constants.cfg, beside the
+# reference module, and seeded-bugs.sh appends it to every .cfg it generates.
+# That is grade.sh's idiom, not a second one.
+
+PMATRIX="$FIX/parameterized"
+PPROPS="$PMATRIX/properties"
+PKEPT=$(mktemp -d -t tla_seeded_param.XXXXXX)
+rm -rf "$PKEPT"
+
+assert_matrix "a matrix whose spec declares constants runs at all" \
+  "BUGS_CAUGHT" 0 \
+  --matrix "$PMATRIX" --keep "$PKEPT" "$PPROPS/LedgerGood.tla"
+
+# The other direction. A channel that assigned the constants and then made
+# every run pass would show up here as BUGS_CAUGHT. LedgerWeak names
+# `Accounts` too, so its rc=0 against the variant is evidence about the
+# grading rather than evidence that the property was trivially true.
+assert_matrix "...and grading still discriminates once they are assigned" \
+  "PROPERTY_TOO_WEAK" 40 \
+  --matrix "$PMATRIX" "$PPROPS/LedgerWeak.tla"
+
+# EVERY generated .cfg, not just the first. The oracle runs and the submission
+# runs, the reference runs and the variant runs: a fragment that reached only
+# some of them would fail one phase with CONFIG_ERROR and pass the rest, which
+# is a harness fault wearing a verdict's clothes. Counted rather than sampled.
+NCFG=$(find "$PKEPT" -name 'run.cfg' | wc -l)
+NCONST=$(grep -rlE '^[[:space:]]*MaxBalance[[:space:]]*=' "$PKEPT" --include='run.cfg' | wc -l)
+LBL="the constants fragment reached every generated .cfg ($NCONST of $NCFG)"
+if [ "$NCFG" -gt 0 ] && [ "$NCFG" = "$NCONST" ]; then ok "$LBL"; else nope "$LBL"; fi
+
+LBL="the fragment was APPENDED, not copied into the staging directory"
+if [ -z "$(find "$PKEPT" -name '*.cfg' ! -name 'run.cfg' -print -quit)" ]; then
+  ok "$LBL"; else nope "$LBL"; fi
+
+# The fixture's own fragment carries the words INVARIANT and SYMMETRY inside
+# `\*` comments. The BUGS_CAUGHT row above therefore also witnesses that
+# comments are stripped before the refusal below runs -- but only for as long
+# as those words are still in the file, so pin them.
+LBL="the good fragment's comments do name the refused directives"
+if grep -qE '\\\*.*(INVARIANT|SYMMETRY)' "$PMATRIX/reference/constants.cfg"; then
+  ok "$LBL"; else nope "$LBL"; fi
+
+rm -rf "$PKEPT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a constants fragment carries CONSTANTS, and nothing else =="
+# ---------------------------------------------------------------------------
+# The fragment is the only text from the matrix directory that reaches a
+# generated .cfg, so it is the one place the harness's ownership of that .cfg
+# can leak. Refused before anything is staged, and attributed to the matrix.
+#
+# Both classes are in constants-refused/constants.cfg. SYMMETRY is the
+# soundness one: symmetry reduction is sound only for a symmetric property,
+# the submitted property is not the author's to vouch for, and a violation
+# missed on a variant comes back as rc=0 -- billing PROPERTY_TOO_WEAK to the
+# learner for the author's config. INVARIANT is the ownership one: a second
+# invariant checked alongside the generated one decides the verdict without
+# appearing in the report.
+
+assert_matrix "a fragment carrying directives is refused" \
+  "MATRIX_MALFORMED" 44 \
+  --matrix "$PMATRIX" --reference "$FIX/constants-refused/Ledger.tla" \
+  "$PPROPS/LedgerGood.tla"
+
+assert_report "...and the refusal quotes the SYMMETRY line" \
+  'SYMMETRY Perms' \
+  --matrix "$PMATRIX" --reference "$FIX/constants-refused/Ledger.tla" \
+  "$PPROPS/LedgerGood.tla"
+
+assert_report "...and the INVARIANT line" \
+  'INVARIANT SneakyInv' \
+  --matrix "$PMATRIX" --reference "$FIX/constants-refused/Ledger.tla" \
+  "$PPROPS/LedgerGood.tla"
+
+# ---------------------------------------------------------------------------
+echo
 echo "== the artifacts the harness generates, read off disk =="
 # ---------------------------------------------------------------------------
 
@@ -355,6 +443,12 @@ echo "== structural: constraints no fixture can observe =="
 assert_file_present "the 10.9% single-mutation figure is in the file" '10\.9'
 assert_file_present "the 39.3% inert-mutation figure is in the file"  '39\.3'
 assert_file_present "the file calls itself a bootstrap"               '[Bb]ootstrap'
+
+# The constants channel is discovered by filename and never named on the
+# command line, so a reader who does not find it in the header has no way to
+# learn it exists. Bead tla-40y.
+assert_file_present "the header names the constants fragment by filename" \
+  'constants\.cfg'
 
 # Verdicts come from exit codes (§5.1). This script reads its own generated
 # files and TLC's JSON trace dump, never TLC's console prose.
