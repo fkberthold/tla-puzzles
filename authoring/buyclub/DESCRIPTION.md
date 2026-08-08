@@ -103,8 +103,8 @@ one instance, not the specification.
 3. **The threshold.** A product is placed only at a step where its pledges
    total at least `Min`.
 4. **The snapshot.** At a placement step, each member's share of that product
-   becomes exactly their standing pledge at that moment, and every other
-   share, of every product, holds still.
+   becomes exactly their standing pledge on that product at that moment, and
+   every other share, of every product, holds still.
 5. **Shares move two ways only.** A member's share of a product changes only
    at that product's placement (from zero to the pledge) and at that member's
    collection of it (from the whole share to zero, only after arrival, only
@@ -120,10 +120,12 @@ one instance, not the specification.
    only zero shares, and a placed or arrived product carries, per member,
    either that member's book entry or zero.
 8. **Delivery comes.** Every placed product eventually arrives.
+9. **The book is well formed.** At every moment, every member's pledge on
+   every product is a whole number from zero through `Cap`.
 
-Item 7 is an invariant, and so is 6's three-phase range. Items 2 through 6
-otherwise constrain steps, so they'll land as action properties. Item 8 is the
-one liveness obligation in this description. Item 1 is a condition on the
+Items 7 and 9 are invariants, and so is 6's three-phase range. Items 2 through
+6 otherwise constrain steps, so they'll land as action properties. Item 8 is
+the one liveness obligation in this description. Item 1 is a condition on the
 opening state.
 
 One interaction worth naming: 7 compares shares against book entries, and that
@@ -139,8 +141,7 @@ the corkboard. Named facts, not syntax. The author renders them over whatever
 state they chose.
 
 - **phase**: for each product, whether it is open, placed, or arrived.
-- **book**: for each member and product, the standing pledge, zero through
-  `Cap`.
+- **book**: for each member and product, the standing pledge.
 - **share**: for each member and product, the units standing under that
   member's name: zero while the product is open, the bound amount from
   placement until collected, zero after.
@@ -156,9 +157,9 @@ readable after placement because 7 compares against it for the rest of the
 product's story.
 
 **share** is what the club owes. In a correct model it's the frozen book entry
-until collection, and grading has to see the models where it isn't (the same
-reasoning that keeps seedlib's shelf). It's also what makes collection
-visible: at a collection the book holds still and the share moves.
+until collection, and grading has to see the models where it isn't. It's also
+what makes collection visible: at a collection the book holds still and the
+share moves.
 
 Event signatures: a pledge change moves one book entry while phases and shares
 hold still. A placement moves one phase from open to placed and jumps that
@@ -173,9 +174,9 @@ constrains is ungraded, whatever the fields show.
 
 | Rule | Constrained by |
 |---|---|
-| 1 the catalog and the book | 2 for one-hand-at-a-time, 1 for the all-zero start. The `Cap` ceiling rides the book field's range, not a property, the way custody's one-outstanding rule rides `pending`'s type |
+| 1 the catalog and the book | 2 for one-hand-at-a-time, 1 for the all-zero start, and 9 for the `Cap` ceiling |
 | 2 pledging | 2, with 7 keeping shares out of it while the product is open |
-| 3 placement | 3, 4, and 6, with 2's only-while-open clause closing the book |
+| 3 placement | 3, 4, and 6, with 2's only-while-open clause closing the book. The never-forces clause is carried by no property, and can't be: it's a permission. Its rendering is item 8 standing alone as this description's only liveness obligation, so a model that compels placement at the minimum satisfies every property here and is caught, if at all, as an over-constrained submission rather than a violated one. Worth naming for the variant pass |
 | 4 delivery | 6 and 8 |
 | 5 collection | 5, with 7 tying the amount to the frozen book |
 | 6 nothing else moves | 2's nothing-else, 4's hold-still clause, 5's never-otherwise, 6's own-step clauses |
@@ -196,9 +197,9 @@ them, so nothing shows them.
 ## 4. Bounds
 
 **`Min`** is the supplier's own term and **`Cap`** is the club's own fairness
-rule. Both are facts of the system first. I'll be honest that `Cap` earns its
-keep twice, since it also bounds the book, the same double duty custody's
-one-outstanding rule carries.
+rule. Both are facts of the system first, and `Min` is at least one: a zero
+minimum is no minimum at all. I'll be honest that `Cap` earns its keep twice,
+since it also bounds the book.
 
 Suggested instance: 3 members, 2 products, `Min` 3, `Cap` 2.
 
@@ -233,9 +234,11 @@ that closes one is a regression, not a tightening.
 - **Phases**: a per-product variable, or sets the phase derives from.
 
 Splitting placement's three effects across steps is not on the list. Property
-7 is an invariant, and a placed product whose shares aren't set yet is a
-between-state that violates it. Rule 3 says one step, so that choice was never
-open.
+4 fixes the shares at the step the phase moves, and property 3 guarantees
+there is at least one non-zero pledge to move, so a phase-moving step that
+leaves the shares alone violates 4. A share-moving step with no phase move is
+property 5's never-otherwise case. Rule 3 says one step, so that choice was
+never open.
 
 ## 6. Ambiguities I resolved, and the other way each could go
 
@@ -246,7 +249,12 @@ downstream as a risk. These are mine, with the road not taken.
    by rule the moment the total reaches `Min`. That converts the book by rule,
    the withdrawal race disappears, and placement stops being anyone's
    decision. The coordinator is a person, so the choice stays with the
-   coordinator.
+   coordinator. A note for the variant pass: the never-compels clause has no
+   safety rendering. A variant that compels placement at the minimum removes
+   behaviors rather than adding them, so it satisfies every must-be-true and
+   its traces sit inside the reference's. That variant is uncatchable as a
+   violation, with the cause named here in advance, and it shows, if at all,
+   as over-constraint.
 2. **The snapshot binds the standing book, unasked.** The alternative runs a
    confirmation round first: the coordinator asks each pledger to re-affirm,
    then binds. That's a vote-collection protocol, a different and well-worn
@@ -276,3 +284,7 @@ downstream as a risk. These are mine, with the road not taken.
 10. **Products don't interact.** No bundles, no either-or pledges across
     products. Each product's story reads on its own, and the book keeps them
     apart.
+11. **`Min` is at least one.** The alternative admits a zero minimum, where a
+    product with no pledges at all can be placed. Every must-be-true survives
+    that edge, but a placement that moves no share grades nothing, and a
+    wholesaler with a zero minimum has no minimum at all. Section 4 says so.

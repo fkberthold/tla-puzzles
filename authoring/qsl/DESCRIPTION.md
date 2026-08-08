@@ -36,7 +36,8 @@ party with an obligation (Rule 5).
 ### Rule 1. Claims
 
 A claim is one operator's assertion of a two-way contact. It names the
-counterpart station and the band the contact was on. The set of bands is fixed.
+counterpart station and the band the contact was on. Each operator is one
+station, and the two words mean the same thing here. The set of bands is fixed.
 A claim never names its own submitter as counterpart, and the desk refuses one
 that tries (you can't work yourself). Real logs carry dates, times, modes, and
 signal reports. This register doesn't (simplification): the one question it
@@ -107,10 +108,12 @@ they'll land as action properties. Item 9 is the one liveness obligation in this
 description. Item 1 is a condition on the opening state.
 
 One interaction is worth naming for the record. Item 5 does the work of a
-moment-of-credit rule only because 2 and 8 hold: with files that never shrink
-and credit that never lapses, credit-was-sound-when-given and
-credit-is-sound-now coincide. A model is free to make either one the thing it
-maintains. The properties don't care, and that is on purpose.
+moment-of-credit rule, and three other items are why. Item 7 keeps a credit
+step from filing the claims that justify it, so a credit that is sound now
+was sound when it was given. Item 1 starts the register empty and item 2
+keeps every claim on file, so a credit that was sound when given is still
+sound now. A model is free to make either one the thing it maintains. The
+properties don't care, and that is on purpose.
 
 ## 3. The observation operator
 
@@ -146,7 +149,7 @@ constrains is ungraded, whatever the fields show.
 | Rule | Constrained by |
 |---|---|
 | 1 claims | 3 |
-| 2 the files | 2 and 4, with 1 pinning the empty start. The duplicates-collapse clause rides `filed`'s set shape, not a property, the way custody's one-outstanding rule rides `pending`'s type |
+| 2 the files | 2 and 4, with 1 pinning the empty start. The duplicates-collapse clause rides `filed`'s set shape, not a property: a set can't hold a duplicate, so no model can represent one |
 | 3 corroboration | none directly, and that's right: it's a definition, not a behavior. The behavior it feeds is constrained at 5 and 9 |
 | 4 credit | 5, 6, 7, and 8 |
 | 5 the bureau keeps up | 9 |
@@ -165,8 +168,8 @@ that happened. The register never knows, so the model never says.
 
 ## 4. Bounds
 
-**Operators and bands** are the domain's own sets, the way custody's two parents
-are. The config picks one instance. The rules hold for any.
+**Operators and bands** are the domain's own sets, not devices for keeping
+the model finite. The config picks one instance. The rules hold for any.
 
 Suggested instance: 3 operators, 2 bands. Three operators is the least where
 credit-is-mutual (property 6) bites across distinct pairs, and where one pair's
@@ -175,8 +178,8 @@ band half of a claim do any work.
 
 The arithmetic at the instance. Each operator has 4 possible claims, so each
 file is one of 16 sets and the three files give 4,096 combinations. There are 6
-facts, each credited or not, bounded by corroboration, so the naive product is
-under 262,144 and the reachable count sits well below it. TLC should exhaust
+facts, each credited or not, so the naive product is 262,144, and
+corroboration cuts the reachable count well below that. TLC should exhaust
 this in well under a minute with liveness on (property 9 carries the one
 eventually). That's an estimate. Nobody has run it.
 
@@ -248,3 +251,12 @@ downstream as a risk. These are mine, with the road not taken.
     counterparts earns a certificate). An award is a derived counter on top of
     the register, and none of the bureau's own discipline changes with it, so it
     stays out.
+11. **The mail is reliable.** Rule 2 says the file holds every claim the
+    operator has sent in, so sent means filed. The alternative is mail that can
+    be lost in transit. A lost claim would be indistinguishable at the
+    interface from one never mailed, so the loss adds a channel and grades
+    nothing.
+12. **The desk refuses the claim or the envelope.** Rule 1 doesn't say whether
+    a refusal bounces the one self-claim or the whole envelope carrying it, and
+    it doesn't need to: the two are observationally equal, since any set of
+    well-formed claims is a mailable envelope either way. A note, not a gap.

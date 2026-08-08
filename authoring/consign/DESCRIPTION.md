@@ -47,9 +47,10 @@ each item has exactly one standing:
 - **sold**: gone to a buyer, its payout owed to its owner.
 - **settled**: sold, and the payout paid.
 
-A standing only moves forward: unlisted to listed, listed to returned or sold,
-sold to settled. Nothing else, and never backward. Returned and settled are
-the ends of the road.
+An item's story runs one way. It starts at home and may take one turn on the
+floor. The turn can end back home unsold, or sold with the payout owed until
+the till pays it out. Nothing moves backward, ever: a returned item stays
+home for the round, and a settled one is done.
 
 ### Rule 2. Intake, and the floor
 
@@ -101,19 +102,20 @@ section 4 is one instance, not the specification.
 4. **The lawful path.** An item's standing moves only unlisted to listed,
    listed to returned, listed to sold, or sold to settled. Never any other
    jump, and never backward. A returned or settled item never changes again.
-5. **Steps are single, except the till.** A step changes at most one item's
-   standing, except a settlement step: at a settlement, all sold items of
-   exactly one owner move to settled together, at least one of them, and
-   nothing else moves.
+5. **Steps are single, except the till.** A step that changes any item's
+   standing either changes exactly one item's standing by a move other than
+   sold to settled, or it is a settlement: for exactly one owner, every one of
+   that owner's sold items moves to settled together, at least one of them,
+   and nothing else moves.
 
 Items 2 and 3 are invariants. Items 4 and 5 constrain steps, so they'll land
 as action properties. Item 1 is a condition on the opening state. There is no
 liveness item, and Rule 6 is why: its rendering is this list's declared
 absence, not a property in it.
 
-Property 5 carries the till whole: "all sold items of exactly one owner" is
-both the wholeness (none left behind) and the grouping (one owner per visit,
-nobody else's goods touched).
+Property 5 carries the till whole: "every one of that owner's sold items" is
+the wholeness (none left behind), and "exactly one owner" is the grouping (one
+owner per visit, nobody else's goods touched).
 
 ## 3. The observation operator
 
@@ -128,10 +130,12 @@ as an oversight. The ownership map and the item set are constants, so every
 question the shop's book answers is standing plus constants. What the shop
 owes an owner is their items standing sold. What's on the floor is the items
 standing listed, counted for property 3. A separate owed field would be
-standing filtered by a constant: no model could make it diverge, so it would
-grade nothing. That's seedlib's shelf argument run in reverse. The shelf stays
-because a wrong model can make it diverge from the ledger. Owed can't diverge
-from standing in any model, so it goes.
+the shop's internal running total, and the shop's book doesn't publish one:
+what it publishes is where each item stands. A model that keeps a payable
+ledger beside the standings is welcome to, and a ledger that drifts from the
+standings is invisible here, which is the cost of stopping the interface at
+the book's own face. I'd rather pay that than expose state the domain doesn't
+have.
 
 Event signatures: an intake moves one item from unlisted to listed. A sale
 moves one from listed to sold. A going-home moves one from listed to returned.
@@ -158,8 +162,8 @@ Three honest notes on what the interface does not show.
 
 First, whose hand. A going-home step doesn't show whether the owner fetched
 the item or the shop sent it back. Rule 4 makes them one event, so a model
-with two actions and a model with one produce the same observable behavior.
-That's custody's withdraw-against-decline situation, and it's deliberate.
+with two actions and a model with one produce the same observable behavior,
+and that's deliberate.
 
 Second, amounts. No prices, no totals, no shop's cut. The payout is
 item-grained, and the standing carries it: sold is owed, settled is paid.
@@ -186,8 +190,8 @@ exhausts this in seconds. That's an estimate. Nobody has run it.
 
 Quiescence: with nobody obliged to act, a behavior can stall anywhere, and one
 where every item lands returned or settled has no step left at all. A checker
-reporting deadlock there is reporting the design working, museum's situation
-exactly. That's a config concern for the reference author, not a modeling one.
+reporting deadlock there is reporting the design working. That's a config
+concern for the reference author, not a modeling one.
 
 ## 5. Open forks
 
@@ -245,3 +249,11 @@ downstream as a risk. These are mine, with the road not taken.
     The alternative makes intake a proposal the shop answers, which is a
     consent protocol, and this system's whole character is that its two hands
     act without asking each other.
+11. **Nobody must act.** The alternative gives some step a duty: a payout
+    eventually paid, a listed item eventually sold or sent home. Rule 6
+    refuses them all, and section 2's all-safety list is its rendering. A note
+    for the variant pass: a variant that adds a fairness condition to any
+    action satisfies all five must-be-trues, because forcing a step changes
+    only what a behavior must eventually do, and no safety property reads
+    that. That variant is uncatchable, with the cause named here in advance,
+    and it shows, if at all, as over-constraint.
