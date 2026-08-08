@@ -273,3 +273,132 @@ Ranked. All five are green under the shipped `.cfg`.
 
 V43 and V45 are the two I'd build the statement on. They're the only ones where every
 instrument this pipeline owns says the spec is healthy.
+
+## RESULTS-2B: the V32 repair
+
+Appended by the §9.5b repairer (§6 step 2b, bead `tla-ngg5`). Everything above this line
+is the frozen record and I didn't touch it. One arrow was consigned to me, V32, and this
+section is what came of it.
+
+Same protocol as the matrix: `harness/verdict.sh -t 300`, module by absolute path,
+`JAVA_TOOL_OPTIONS=-DTLA-Library=<worktree>/harness`, TLC2 Version 2026.07.31.184830.
+
+### The repair
+
+`NumSeasons` was a definition in `SeedLib.tla`. HANDOFF section 4 puts the three-season
+horizon with members, varieties and opening stock, as one of the four numbers the founding
+grant fixed. The reference already carried the other three as `CONSTANT`s assigned in the
+`.cfg`. So the horizon was the odd one out. Section 5 above is right that a variant moving
+it changes the system rather than lying about it.
+
+`SeedLib.tla` gains `NumSeasons` on its `CONSTANTS` line, plus two `ASSUME` conjuncts,
+`NumSeasons \in Nat` and `NumSeasons >= 1`. The `NumSeasons == 3` definition is gone.
+`MCSeedLib.cfg` gains `NumSeasons = 3` in its `CONSTANTS` block.
+
+A scalar takes a direct `=` in the `.cfg`, so no `MCNumSeasons` was needed and
+`MCSeedLib.tla` is untouched. The three set-valued and function-valued constants keep
+their `<-` overrides.
+
+### V32 against the repaired reference
+
+The mutation is no longer expressible as a same-`.cfg` variant. Both places you could
+write `NumSeasons == 4` in the spec now collide with the declaration.
+
+| attempt | where the mutation goes | token | rc |
+|---|---|---|---|
+| V32a | `NumSeasons == 4` in `SeedLib.tla`, shipped `.cfg` | `PARSE_ERROR` | 150 |
+| V32b | `NumSeasons == 4` in `MCSeedLib.tla`, shipped `.cfg` | `PARSE_ERROR` | 150 |
+| V32c | `NumSeasons = 4` in `MCSeedLib.cfg` | `OK` | 0 |
+
+Both parse errors read `Multiply-defined symbol 'NumSeasons': this definition or
+declaration conflicts`. SANY refuses the module, so nothing runs.
+
+V32c is the honest remainder, and it's worth saying plainly rather than filing as a catch.
+Moving the horizon in the `.cfg` is a **different instance**, not a variant. The matrix's
+protocol is the shipped `.cfg` unchanged, so V32c sits outside it by construction. It comes
+back green at **440 generated, 123 distinct, depth 8**. That's figure for figure what
+section 3's counts table records for V32. The same system, relocated from the spec to the
+model configuration, which is where section 4 of the description had it all along.
+
+So the disposition is the first branch the brief offered, and I'd say the second shows up
+as well-formedness rather than as a property. TLC does catch the in-spec attempt, but it
+catches it at parse time, and a `PARSE_ERROR` isn't the property set grading anything.
+
+**What the repair doesn't buy.** The horizon still isn't graded, and I don't think it can
+be from inside this property set. A constant is a parameter of the instance, so no
+obligation stated over `Observe` can object to its value. The value can no longer be
+smuggled in through the spec while the `.cfg` says three, and that's the whole of it. If
+somebody wants the horizon graded, that's still a new obligation and still section 2's
+owner's call, the same way V07 and V18 are.
+
+### The reference, re-run
+
+All four §9.5 checks, against the repaired reference under the shipped `.cfg`.
+
+| check | command | result |
+|---|---|---|
+| 1 green | `verdict.sh -t 300 MCSeedLib.tla` | `OK`, rc=0 |
+| 2 reachable | same, `-- -inv FALSE` | `SAFETY_VIOLATION`, rc=12 |
+| 3 non-vacuous | same, `-p Gate!NonVacuous` | `OK`, rc=0 |
+| 4 live actions | `-coverage 1` | no `total == 0`, table below |
+
+Check 6: **311 states generated, 90 distinct, depth 7**, and the temporal pass ran 3
+branches over 270 total distinct states. Unmoved, figure for figure, from section 1.
+
+| action | coverage |
+|---|---|
+| `Init` | 1:1 |
+| `Checkout` | 53:112 |
+| `Return` | 0:188 |
+| `Close` | 36:103 |
+
+No movement to explain. That's expected rather than lucky. The constant is pinned at the
+value the definition held, and `NumSeasons` is read only through `InProgress` and `Ended`.
+So it's the same state graph. `Return` still reads `0:188`, so section 1's warning about
+keying the dead-action probe on `distinct` stands untouched.
+
+Line numbers in TLC's output all shift by one, since the definition line went and two
+`ASSUME` conjuncts came in.
+
+### Spot set, five caught variants
+
+Picked for blast radius rather than for spread. All five read `NumSeasons`, through
+`InProgress` or through `Ended`, so I think they're where this repair would show a
+regression first. Three sit on rc=13 and two on rc=12.
+
+| id | mutation | frozen rc | now | catcher |
+|---|---|---|---|---|
+| V04 | `Checkout` drops `InProgress` | 12 | 12 | `TheReckoningComes`, 2nd clause |
+| V16 | `Return` drops `InProgress` | 13 | 13 | `TheEndIsTheEnd` |
+| V27 | `Close` skips a season | 13 | 13 | `TheCalendarMarches` |
+| V28 | `Close` drops `InProgress` | 12 | 12 | `TypeOK` |
+| V30 | `Close` waits for a clear book | 13 | 13 | `TheReckoningComes` |
+
+Every one matches its frozen row. V04's error names `line 166, col 8 to line 167, col 74
+of module SeedLib`. That's the second conjunct of `TheReckoningComes` in that variant's
+file. The catcher the matrix recorded by hand is the one that fired.
+
+### V43 and V45, unchanged
+
+Both still green, and their numbers haven't moved.
+
+| id | generated | distinct | depth | token |
+|---|---|---|---|---|
+| V43 | 311 | 90 | 7 | `OK`, rc=0 |
+| V45 | 335 | 90 | 7 | `OK`, rc=0 |
+
+V43's row is still the reference's row. These two belong to `tla-29m4` and I left them
+alone. Recording them here only says the repair didn't disturb the hole they sit in.
+Pinning a horizon was never going to close it.
+
+### What moved in the matrix
+
+One row, and it moves out rather than to a new verdict.
+
+**V32, retired as a variant.** It can't be built against the repaired reference without
+either a module SANY refuses or a `.cfg` the protocol excludes. The green count drops to
+ten: V05, V06, V07, V17, V18, V37, V43, V45, V46 and V47. Ownership of those is unchanged.
+V07 and V18 go to the description owner, V05, V06, V17 and V37 are held by the vacuity
+probes, V43 and V45 to `tla-29m4`, and V46 and V47 to `tla-hf39`.
+
+Nothing else in the frozen matrix was re-run, and nothing else should have moved.
