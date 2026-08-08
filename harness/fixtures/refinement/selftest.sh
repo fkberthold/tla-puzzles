@@ -134,6 +134,17 @@ assert_refinement "concrete spec that genuinely does not refine" \
   "REFINEMENT_VIOLATED" 22 \
   "$FIX/broken/Concrete.tla"
 
+# The same verdict reached through the OTHER exit code. broken/ fails the
+# implied action and exits 13; this one fails a `[](P => []P)` conjunct in the
+# abstract's own Spec, which TLC refutes with a finite prefix and reports as a
+# SAFETY violation at 12. Both are the refinement failing, and run A has to say
+# so either way -- before bead tla-nesz this row returned SAFETY_VIOLATION/12
+# out of the catch-all, so a caller branching on the token saw a safety
+# violation with no refinement in it.
+assert_refinement "abstract Spec carrying a safety-shaped temporal conjunct" \
+  "REFINEMENT_VIOLATED" 22 \
+  "$FIX/safety-conjunct/Concrete.tla"
+
 # ---------------------------------------------------------------------------
 echo
 echo "== WE supply the mapping and grade only the concrete spec (§4.4 item 9) =="
@@ -205,6 +216,29 @@ assert_refinement "problem directory shadowing harness/Gate.tla" \
 assert_refinement "checking directive smuggled into the constants fragment" \
   "FRAGMENT_REFUSED" 28 \
   --constants "$FIX/fragments/directive.cfg" "$FIX/correct/Concrete.tla"
+
+# The two rows above put the directive at the start of its own line, which is
+# where an anchored match can see it. TLC's .cfg parser does not work that way:
+# measured on v1.8.0, `CONSTANT Unused = 6 INVARIANT Bad` and `(* c *) INVARIANT
+# Bad` both check Bad and exit 12. So the guard has to match a token anywhere in
+# the fragment, over text with BOTH comment forms stripped.
+#
+# These two rows are what run A's `12)` arm rests on. Run A's .cfg declares no
+# INVARIANT, so a 12 there can only be the refinement PROPERTY -- and the
+# fragment is the only text that could put an invariant in it. The first row
+# below is that hole: measured before the guard was tightened, it returned
+# SAFETY_VIOLATION/12 against correct/Concrete.tla, whose refinement is fine.
+assert_refinement "a directive riding at the END of a CONSTANT line" \
+  "FRAGMENT_REFUSED" 28 \
+  --constants "$FIX/fragments/smuggled-trailing.cfg" "$FIX/correct/Concrete.tla"
+
+# Same route against the SYMMETRY refusal, which is the worse half. A missed
+# INVARIANT mislabels a verdict; a missed SYMMETRY runs an unsound temporal
+# check that still exits 0, and there is no verdict afterwards that would tell
+# you the answer was wrong.
+assert_refinement "SYMMETRY hidden behind a block comment" \
+  "UNSOUND_REDUCTION" 24 \
+  --constants "$FIX/fragments/smuggled-block.cfg" "$FIX/correct/Concrete.tla"
 
 assert_refinement "a legal (empty) constants fragment is accepted" \
   "REFINES" 0 \
@@ -306,13 +340,28 @@ has()    { [ -f "$1" ] && grep -qE -- "$2" "$1"; }
 hasnt()  { [ -f "$1" ] && ! grep -qE -- "$2" "$1"; }
 check()  { if "$@"; then ok "$LBL"; else nope "$LBL"; fi; }
 
-# Anchored at line start, because that is what a .cfg directive is. The
-# fragment spliced in below carries the words PROPERTY and INVARIANT inside a
-# `\*` comment, which TLC ignores and so must these checks.
-LBL="run-a.cfg carries the refinement PROPERTY";           check has   "$KEPT/run-a.cfg" '^[[:space:]]*PROPERTY'
-LBL="run-a.cfg carries NO invariant — separate runs";      check hasnt "$KEPT/run-a.cfg" '^[[:space:]]*INVARIANT'
-LBL="run-b.cfg carries the harness's own probe";           check has   "$KEPT/run-b.cfg" '^[[:space:]]*INVARIANT[[:space:]]+HarnessProbe'
-LBL="run-b.cfg carries NO property — separate runs";       check hasnt "$KEPT/run-b.cfg" '^[[:space:]]*PROPERTY'
+# A directive the harness writes IS at the start of its own line, so the two
+# must-be-present rows stay anchored. The two must-be-ABSENT rows cannot: a
+# .cfg directive is a token to TLC wherever it sits, and an anchored match
+# cannot see one riding at the end of another line. Those two rows are the
+# by-construction evidence for run A's `12)` arm and run B's, so they go
+# through cfg_declares, which strips both comment forms and then matches the
+# keyword as a token anywhere.
+#
+# Stripping is what makes the rows survive the fragment spliced in below: it
+# carries the words PROPERTY and INVARIANT inside a `\*` comment, which TLC
+# ignores and so must these checks.
+cfg_declares() {   # cfg_declares <cfg> <keyword>
+  local body
+  body=$(sed -e 's/\\\*.*$//' -e 's/(\*[^*]*\*)//g' "$1")
+  grep -qE "(^|[^A-Za-z0-9_])$2([^A-Za-z0-9_]|\$)" <<<"$body"
+}
+undeclared() { ! cfg_declares "$1" "$2"; }
+
+LBL="run-a.cfg carries the refinement PROPERTY";           check has        "$KEPT/run-a.cfg" '^[[:space:]]*PROPERTY'
+LBL="run-a.cfg declares NO invariant — separate runs";     check undeclared "$KEPT/run-a.cfg" 'INVARIANT'
+LBL="run-b.cfg carries the harness's own probe";           check has        "$KEPT/run-b.cfg" '^[[:space:]]*INVARIANT[[:space:]]+HarnessProbe'
+LBL="run-b.cfg declares NO property — separate runs";      check undeclared "$KEPT/run-b.cfg" 'PROPERTY'
 LBL="no generated .cfg names the module's own Probe";      check hasnt "$KEPT/run-b.cfg" '^[[:space:]]*INVARIANT[[:space:]]+Probe([^A-Za-z0-9_]|$)'
 LBL="the constants fragment reached run-a.cfg";            check has   "$KEPT/run-a.cfg" '^CONSTANT Limit = 6'
 LBL="the constants fragment reached run-b.cfg";            check has   "$KEPT/run-b.cfg" '^CONSTANT Limit = 6'

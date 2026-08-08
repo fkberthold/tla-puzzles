@@ -63,7 +63,9 @@
 #                             the refinement check proved nothing
 #    21  NOT_CONFIGURED       Gate!RefinementConfigured fired: the .cfg never
 #                             declared the refinement PROPERTY
-#    22  REFINEMENT_VIOLATED  the concrete spec does not refine the abstract
+#    22  REFINEMENT_VIOLATED  the concrete spec does not refine the abstract,
+#                             from run A's rc=12 OR its rc=13 -- see the note
+#                             on the run A case below for why both
 #    23  THEOREM_ONLY         the refinement claim lives only in a THEOREM
 #    24  UNSOUND_REDUCTION    SYMMETRY or VIEW requested on a temporal check
 #    25  IMPLICIT_MAPPING     INSTANCE with no WITH clause
@@ -161,6 +163,12 @@
 #     different, usually wrong mapping, and TLC never mentions it. Refused
 #     unless --allow-implicit-mapping. State the mapping even when it is the
 #     identity.
+#   - A .cfg DIRECTIVE IS A TOKEN, NOT A LINE. `CONSTANT Unused = 6 INVARIANT
+#     Bad` checks Bad, and so does `(* c *) INVARIANT Bad`. Only `\*` makes the
+#     rest of a line a comment. Anything matching a directive in the constants
+#     fragment therefore matches as a token over comment-stripped text, never
+#     anchored at a line start. Measured on v1.8.0 ONLY, under bead tla-nesz --
+#     unlike the traps around it this one has not been re-run on the nightly.
 #   - The abstract's `vars` tuple is substituted too, which is what makes the
 #     default probe work: <instance>!Init is the abstract's initial predicate
 #     AFTER substitution, i.e. a predicate over the mapped expressions. That is
@@ -363,7 +371,36 @@ fi
 # temporal checking unsound, and refinement is a temporal property.
 if [ -n "$CONSTANTS" ]; then
   [ -f "$CONSTANTS" ] || { echo "refinement.sh: no such fragment: $CONSTANTS" >&2; exit 2; }
-  frag=$(sed 's/\\\*.*$//' "$CONSTANTS")
+  # A .cfg DIRECTIVE IS A TOKEN, NOT A LINE, so this guard matches tokens.
+  #
+  # Both checks below used to be anchored at the start of a line, and TLC's
+  # .cfg parser does not read a .cfg that way. Measured on v1.8.0 against a
+  # two-state spec with one violated invariant:
+  #
+  #     INVARIANT Bad                       rc=12   caught by an anchored match
+  #     CONSTANT Unused = 6 INVARIANT Bad   rc=12   NOT caught
+  #     (* c *) INVARIANT Bad               rc=12   NOT caught
+  #     \* INVARIANT Bad                    rc=0    a comment to TLC as well
+  #
+  # So a fragment could smuggle any directive past this point by riding it at
+  # the end of a CONSTANT line or putting a block comment in front of it, and
+  # both refusals below were defeatable that way. Measured through this script
+  # before the fix: `CONSTANT Limit = 6 INVARIANT Probe` against
+  # fixtures/refinement/correct returned rc=12, and a block-commented SYMMETRY
+  # returned CONFIG_ERROR/151 rather than UNSOUND_REDUCTION. Bead tla-nesz.
+  #
+  # Two changes close it. The fragment goes through the same comment stripper
+  # the module text does, so `(* ... *)` comes out as well as `\*`. And the
+  # keywords match as tokens anywhere in what is left.
+  #
+  # This will also refuse a CONSTANT whose VALUE contains one of these words,
+  # say `CONSTANT Msg = "INVARIANT"`. That is a false refusal of a legal
+  # fragment, and it is the direction to err in: the alternative is letting the
+  # subject author part of its own oracle config, which is how TLAiBench's
+  # trapdoor stays open. A keyword inside a comment is still fine, and
+  # fragments/constant.cfg is the row that holds us to it -- it says both
+  # INVARIANT and PROPERTY behind a `\*` and has to be accepted.
+  frag=$(strip_tla_comments "$CONSTANTS")
   # Every match in this file is a here-string, never `echo "$x" | grep -q`.
   # Under `set -o pipefail` grep -q exits at its first match, the producer takes
   # SIGPIPE, and the pipeline reports 141 -- which an `if` reads as "no match"
@@ -373,10 +410,10 @@ if [ -n "$CONSTANTS" ]; then
   # down would refuse a module that is perfectly well-formed. The trigger is
   # whether the consumer exits before the producer finishes writing, so it is a
   # race on file size, not a threshold. Bead tla-kr9.
-  if grep -qE '^[[:space:]]*(SYMMETRY|VIEW)([[:space:]]|$)' <<<"$frag"; then
+  if grep -qE '(^|[^A-Za-z0-9_])(SYMMETRY|VIEW)([^A-Za-z0-9_]|$)' <<<"$frag"; then
     emit "UNSOUND_REDUCTION" 24
   fi
-  if grep -qE '^[[:space:]]*(SPECIFICATION|INIT|NEXT|PROPERTY|PROPERTIES|INVARIANT|INVARIANTS|CONSTRAINT|CONSTRAINTS|ACTION_CONSTRAINT|ALIAS|POSTCONDITION|CHECK_DEADLOCK)([[:space:]]|$)' <<<"$frag"; then
+  if grep -qE '(^|[^A-Za-z0-9_])(SPECIFICATION|INIT|NEXT|PROPERTY|PROPERTIES|INVARIANT|INVARIANTS|CONSTRAINT|CONSTRAINTS|ACTION_CONSTRAINT|ALIAS|POSTCONDITION|CHECK_DEADLOCK)([^A-Za-z0-9_]|$)' <<<"$frag"; then
     emit "FRAGMENT_REFUSED" 28
   fi
 fi
@@ -528,7 +565,29 @@ rca=$?
 case "$rca" in
   0)  ;;
   10) emit "NOT_CONFIGURED" 21 ;;
-  13) emit "REFINEMENT_VIOLATED" 22 ;;
+  # 12 AND 13 ARE THE SAME FACT HERE: this refinement does not hold. They split
+  # on the SHAPE of the abstract's Spec formula, not on the .cfg keyword that
+  # introduced it (bead tla-94n, and the table in verdict.sh's header). The
+  # implied-init and implied-action obligations need an infinite behaviour and
+  # exit 13. A conjunct TLC can refute with a finite prefix exits 12, and
+  # `[](P => []P)` is an ordinary thing for an abstract spec to say. The
+  # refinement PROPERTY inherits whatever shapes the abstract Spec carries, so
+  # it inherits the exit code too. Measured on fixtures/refinement/
+  # safety-conjunct: rc=12, "Temporal property Refines was violated". This arm
+  # used to be `13)` alone and that fixture fell into the catch-all below, so a
+  # caller branching on the token saw a safety violation with no refinement in
+  # it. Bead tla-nesz.
+  #
+  # 12 IS UNAMBIGUOUS ONLY BECAUSE RUN A'S .cfg DECLARES NO INVARIANT, and that
+  # is a fact about the code rather than a habit: the .cfg is written a few
+  # lines up as SPECIFICATION plus PROPERTY and nothing else, and the constants
+  # fragment is the only other text that reaches it. So the refinement PROPERTY
+  # is the only thing TLC is checking, and a 12 can only be that. Take the
+  # fragment guard away and the arm reports a violated invariant as a broken
+  # refinement, which is a false failure on a submission that refines perfectly
+  # well. That was measurable before the guard was tightened -- an INVARIANT
+  # riding at the end of a CONSTANT line, against correct/Concrete.tla.
+  12|13) emit "REFINEMENT_VIOLATED" 22 ;;
   *)  emit "$va" "$rca" ;;
 esac
 
@@ -549,6 +608,17 @@ case "$rcb" in
   # THE WHOLE POINT. TLC could not violate the probe, so the mapped expression
   # never left its initial value and run A's rc=0 was discharged by stuttering.
   0)  emit "FROZEN_MAPPING" 20 ;;
+  # The probe was violated, so the mapped expression moved. Run B keeps a bare
+  # `12)` where run A now takes `12|13)`, and the asymmetry is real rather than
+  # an oversight: run B's .cfg declares an INVARIANT and no PROPERTY, so there
+  # is no temporal formula whose shape could put the answer on 13.
+  #
+  # What run B DOES share with run A is the reason its 12 means one thing. Its
+  # .cfg declares exactly one invariant, the harness's own. A second one
+  # smuggled through the constants fragment could fire instead, and this arm
+  # would read somebody else's violation as evidence that the mapping moves --
+  # a false PASS on the trapdoor this whole file exists to close. So the
+  # fragment guard carries run B as well, and tightening it was not optional.
   12) ;;
   *)  emit "$vb" "$rcb" ;;
 esac
