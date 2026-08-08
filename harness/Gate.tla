@@ -69,4 +69,24 @@ RefinementConfigured ==
     /\ TLCGet("spec").impliedinits   # {}
     /\ TLCGet("spec").impliedactions # {}
 
+(***************************************************************************)
+(* ActionPropertyConfigured -- the same guard for §5.2's step obligations.  *)
+(*                                                                          *)
+(* RefinementConfigured does NOT cover them, and the difference is measured *)
+(* rather than reasoned. A refinement PROPERTY populates impliedinits and   *)
+(* impliedactions both, because Abstract!Spec carries an Init. A bare boxed *)
+(* action carries no Init, so on v1.8.0 a well-formed                       *)
+(* PROPERTY GRADE_OBLIGATION over [][Step(Observe, Observe')]_Observe gives *)
+(* impliedactions |-> {[name |-> "GRADE_OBLIGATION", ...]} with             *)
+(* invariants, impliedinits and temporals all empty. So both                *)
+(* RefinementConfigured and InvariantConfigured return rc=10 on a perfectly *)
+(* good grading run.                                                        *)
+(*                                                                          *)
+(* The vector this closes is the one InvariantConfigured exists for, one    *)
+(* keyword over: a PROPERTY line with no operand is not an error. TLC exits *)
+(* 0 having checked nothing at all.                                         *)
+(***************************************************************************)
+ActionPropertyConfigured ==
+    TLCGet("spec").impliedactions # {}
+
 =============================================================================
