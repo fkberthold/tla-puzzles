@@ -25,11 +25,11 @@
   Section anchor: `functions#function`
 
 - Construct: `:> (singleton function)`
-  Syntax shape: `a :> b` is the one element function `[x \in {a} |-> b]`
+  Syntax shape: `a :> b` is the one element function `[x \in {a} |-> b]`, needs `EXTENDS TLC`
   Section anchor: `functions#function`
 
 - Construct: `@@ (function merge)`
-  Syntax shape: `f @@ g` merges `f` and `g`, keeping `f`'s value on a shared key
+  Syntax shape: `f @@ g` merges `f` and `g`, keeping `f`'s value on a shared key, needs `EXTENDS TLC`
   Section anchor: `functions#function`
 
 - Construct: `function set`

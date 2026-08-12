@@ -10,23 +10,23 @@
 
 - Construct: `Invariant` (as a TLA+ operator, checked at every state)
   Syntax shape: `TypeInvariant == /\ var \in Set`
-  Section anchor: `docs/core/invariants.rst#invariant`
+  Section anchor: `invariants#invariant`
 
 - Construct: `define` block (PlusCal)
   Syntax shape: `define ... end define;`
-  Section anchor: `docs/core/invariants.rst#define`
+  Section anchor: `invariants#define`
 
 - Construct: `pc` (PlusCal's label-tracking variable)
   Syntax shape: `pc = "LabelName"`
-  Section anchor: `docs/core/invariants.rst#pc`
+  Section anchor: `invariants#pc`
 
 - Construct: `\A` (universal quantifier, "forall")
   Syntax shape: `\A x \in S: P(x)`
-  Section anchor: `docs/core/invariants.rst#\A`
+  Section anchor: `invariants#\A`
 
 - Construct: `\E` (existential quantifier, "exists")
   Syntax shape: `\E x \in S: P(x)`
-  Section anchor: `docs/core/invariants.rst#\E`
+  Section anchor: `invariants#\E`
 
 ## Major themes
 

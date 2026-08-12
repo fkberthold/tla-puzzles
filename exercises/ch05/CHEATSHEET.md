@@ -10,23 +10,23 @@
 
 - Construct: `CONSTANT`
   Syntax shape: `CONSTANT S` or `CONSTANT S, Length`
-  Section anchor: `constants.rst#constant`
+  Section anchor: `constants#constant`
 
 - Construct: `ASSUME`
   Syntax shape: `ASSUME S # {}`
-  Section anchor: `constants.rst#ASSUME`
+  Section anchor: `constants#ASSUME`
 
 - Construct: model value
   Syntax shape: `X <- [model value]`
-  Section anchor: `constants.rst#model_value`
+  Section anchor: `constants#model_value`
 
 - Construct: set of model values
   Syntax shape: `S <- [model value] {s1, s2, s3}`
-  Section anchor: `constants.rst#model_set`
+  Section anchor: `constants#model_set`
 
 - Construct: symmetry set
   Syntax shape: mark a model-value set "symmetry" in the constant assignment dialog
-  Section anchor: `constants.rst#symmetry_set`
+  Section anchor: `constants#symmetry_set`
 
 ## Major themes
 

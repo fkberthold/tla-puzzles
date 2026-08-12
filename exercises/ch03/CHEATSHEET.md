@@ -29,7 +29,7 @@
   Section anchor: `pluscal § PlusCal expressions`
 
 - Construct: `assert`
-  Syntax shape: `assert expr;` fails the model check right away if `expr` is false
+  Syntax shape: `assert expr;` fails the model check right away if `expr` is false, needs `EXTENDS TLC`
   Section anchor: `pluscal#assert`
 
 - Construct: `goto`
