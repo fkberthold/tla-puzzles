@@ -42,4 +42,4 @@ What this chapter does NOT cover, because a neighbouring chapter does.
 
 - `Length` as a `CONSTANT` for controlling sequence length is covered in chapter `06` instead.
 - Writing invariants (define blocks, quantifiers, `=>`) is covered in chapter `04` instead.
-- Symmetry sets' payoff for concurrent systems is covered in chapter `08` instead.
+- Symmetry sets' payoff for concurrent systems is covered in `topics/optimization.rst` instead, outside `core`. Chapter `09` covers the one `core` follow-up, that symmetry sets can't be used with liveness properties.

@@ -14,7 +14,7 @@
 
 - Construct: `pc[...]` (multi-process pc)
   Syntax shape: `pc[0]`, `pc` becomes a function from process values to labels once a spec has more than one process
-  Section anchor: `concurrency § pc`
+  Section anchor: `concurrency#process` (the `pc` rubric at its line 95 has no link target of its own)
 
 - Construct: process-local variable
   Syntax shape: `process writer = 1 variables i = 0; begin ... end process;`, invisible outside the process and in `define` blocks
