@@ -88,7 +88,7 @@ was always there. The small model just never reached it.
 
 - Title: `What an ASSUME buys you`
 - Format: `predict-then-check`
-- Task: Read `references/ex2-kiln/Kiln.tla`. It has two constants and two
+- Task: Read `starters/Kiln.tla`. It has two constants and two
   `ASSUME` lines. Write down, in `LOG.md`, what verdict you expect from
   `KilnBackwards.cfg`, which sets a deadline earlier than the warmup. Then run
   it. Now comment out both `ASSUME` lines, predict again, and run again with
@@ -135,7 +135,10 @@ A guard nobody can trip is documentation, not a check.
   nobody, and `Unclaimed` is the constant meaning nobody. `claimed` records the
   same fact a second way. Two holes. First, replace the body of
   `FreeIffSentinel`, which is `TRUE` and so checks nothing, with a predicate
-  tying `claimed` to whether `holder` is still `Unclaimed`. Second, write the
+  tying `claimed` to whether `holder` is still `Unclaimed`. That stub sits in
+  the file twice, in the PlusCal comment and again below `BEGIN TRANSLATION`.
+  TLC reads only the translated copy, so edit both, or edit the PlusCal one
+  and re-run `pcal`. Second, write the
   `.cfg` twice. Once assigning `Unclaimed` an ordinary integer of your choice.
   Once assigning it a model value. Run both.
 - Time budget: `15 min`
@@ -173,7 +176,7 @@ violation.
 
 - Title: `Why a symmetry set needs model values`
 - Format: `predict-then-check`
-- Task: Read `references/ex4-relay/Relay.tla` and `Relay.cfg`. `Runners` is a
+- Task: Read `starters/Relay.tla` and `Relay.cfg`. `Runners` is a
   set of three model values, and the `.cfg` hands it to TLC as a symmetry set
   through the `SYMMETRY` line. Write down, in `LOG.md`, what you expect to
   happen if the only change is that `Runners` becomes `{1, 2, 3}`, three

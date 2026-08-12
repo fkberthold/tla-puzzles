@@ -12,3 +12,6 @@ against the chapter's own set, not against another chapter's.
       or the omission is documented.
 - [ ] Mutant evidence is present in `reports/`.
 - [ ] Every expected outcome is verified through `harness/verdict.sh`.
+- [ ] Deliver the chapter into a scratch tree with `scripts/deliver-exercises.sh`
+      and confirm every how-to-run command works there. A module only in
+      `references/` is not delivered and its exercise cannot be run.
