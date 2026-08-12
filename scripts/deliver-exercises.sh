@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# deliver-exercises.sh — Deliver one chapter's exercise set into a practice
+# deliver-exercises.sh: deliver one chapter's exercise set into a practice
 # tree, without ever handing over the answers.
 #
 # Usage:  scripts/deliver-exercises.sh <chapter> [dest-root]
@@ -21,7 +21,7 @@
 # LOG.md scaffold from the shared template, and cheatsheets/chMM.md for every
 # chapter MM below N that has one. It never delivers chapter N's own cheat
 # sheet, any cheat sheet at or above N, references/, reports/, or
-# COVERAGE.md — those are exactly the material that would hand over the
+# COVERAGE.md. Those are exactly the material that would hand over the
 # answer to the chapter being practiced, or the graded history of a previous
 # attempt.
 #
