@@ -79,7 +79,7 @@ in the final sweep above.
 
 ## Mutant pass
 
-23 mutants, 3 to 5 per pass reference, one edit each, all driven through
+22 mutants, 3 to 5 per pass reference, one edit each, all driven through
 `pcal` and then `harness/verdict.sh`. Every mutant must flip the reference's
 `OK` to a failing verdict.
 
@@ -108,9 +108,17 @@ in the final sweep above.
 | Ex5DeadLabel | Ex5M3 | `temp > 40` to `temp > -1` | `ASSERT_VIOLATION` | 14 |
 | Ex5DeadLabel | Ex5M4 | `skip` in `Settle` to `assert FALSE` | `ASSERT_VIOLATION` | 14 |
 
-23 caught, 0 inert, 0 skipped. The three `CONFIG_ERROR` rows are mutants that
-break a labeling rule, so `pcal` exits 255 and refuses to translate. Those
-flip the outcome as surely as the assertion failures do.
+22 caught, 0 inert, 0 skipped. 19 rows land on `ASSERT_VIOLATION` rc 14 and 3
+on `CONFIG_ERROR` rc 151. The three `CONFIG_ERROR` rows are mutants that break
+a labeling rule, so `pcal` exits 255 and refuses to translate. Those flip the
+outcome as surely as the assertion failures do.
+
+Correction, 2026-08-11, central, after the cold-solve review: the prose above
+originally said 23. The table has always held 22 measured rows, and the
+authoring agent was gone before the discrepancy surfaced, so whether a row was
+lost or the count was inflated is not recoverable. The table is the evidence
+and the claim now matches it. The 46-run figure in the invocation tally is
+left as recorded, since it cannot be decomposed after the fact.
 
 ### One mutant escaped on the first pass, and Ex1 changed because of it
 

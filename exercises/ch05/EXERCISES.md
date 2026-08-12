@@ -32,7 +32,10 @@ The tokens you will meet in this set:
   or leaves a declared constant unassigned.
 - `TLC_EXCEPTION` means TLC refused the model outright.
 
-Run everything from the repository root.
+Run everything from the repository root. `harness/verdict.sh` is a path into
+the `tla-puzzles` checkout, so run it from there and give it the path to your
+module. A bare filename in a command below means your own copy, wherever you
+put it.
 
 ## A note on the `.cfg`
 
@@ -67,11 +70,14 @@ The `.cfg` route cannot.
   - Fail run: `SAFETY_VIOLATION`
 - How to run:
   ```
-  bash harness/verdict.sh exercises/ch05/references/ex1-allowance/Allowance.tla
-  bash harness/verdict.sh \
-    -c exercises/ch05/references/ex1-allowance/AllowanceOdd.cfg \
-    exercises/ch05/references/ex1-allowance/Allowance.tla
+  pcal Allowance.tla
+  bash harness/verdict.sh -c Allowance.cfg Allowance.tla
+  bash harness/verdict.sh -c AllowanceOdd.cfg Allowance.tla
   ```
+
+`Allowance.cfg` is the starter's own config with your `CONSTANT` line added.
+`AllowanceOdd.cfg` is the second one you write. Name them whatever you like,
+as long as the `.cfg` you pass goes with the module you edited.
 
 The point is what did not change. One spec, two models, two verdicts. The bug
 was always there. The small model just never reached it.
@@ -90,16 +96,23 @@ was always there. The small model just never reached it.
 - Time budget: `12 min`
 - Uses: `ASSUME` documents and enforces valid constant values before a run
   starts.
+- How to run:
+  ```
+  bash harness/verdict.sh -c Kiln.cfg Kiln.tla
+  bash harness/verdict.sh -c KilnBackwards.cfg Kiln.tla
+  ```
+
+Take your own copy of the module and both `.cfg` files before you start. The
+second half of the task has you commenting lines out, and that edit shouldn't
+land in the shipped file.
+
+### After the run
+
+Run before you read on.
+
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: `ASSUMPTION_FAILED`
-- How to run:
-  ```
-  bash harness/verdict.sh exercises/ch05/references/ex2-kiln/Kiln.tla
-  bash harness/verdict.sh \
-    -c exercises/ch05/references/ex2-kiln/KilnBackwards.cfg \
-    exercises/ch05/references/ex2-kiln/Kiln.tla
-  ```
 
 With the guards commented out the same `.cfg` reports `SAFETY_VIOLATION`
 instead. Both runs fail, so both catch the mistake. They do not cost the same
@@ -133,15 +146,16 @@ A guard nobody can trip is documentation, not a check.
   - Fail run: `SAFETY_VIOLATION`
 - How to run:
   ```
-  bash harness/verdict.sh exercises/ch05/references/ex3-locker/Locker.tla
-  bash harness/verdict.sh \
-    -c exercises/ch05/references/ex3-locker/LockerCollide.cfg \
-    exercises/ch05/references/ex3-locker/Locker.tla
+  bash harness/verdict.sh -c Locker.cfg Locker.tla
+  bash harness/verdict.sh -c LockerCollide.cfg Locker.tla
   ```
 
-Compare the two `.cfg` files in that directory. On the right of the `=`, a bare
-word with no quotes is a model value. `2` is an integer and `"free"` is a
-string, and both of those are values your spec might legitimately hold.
+`Locker.cfg` is the model-value run and `LockerCollide.cfg` is the integer
+one, on the names the reference uses. Your two can be called anything.
+
+Compare your two `.cfg` files. On the right of the `=`, a bare word with no
+quotes is a model value. `2` is an integer and `"free"` is a string, and both
+of those are values your spec might legitimately hold.
 
 Try `"free"` as well. That run reports `SPEC_EVAL_FAILURE`, not a violation.
 TLC did not decide your invariant was false. It could not evaluate it at all,
@@ -168,16 +182,21 @@ violation.
 - Time budget: `10 min`
 - Uses: Symmetry sets collapse states that only differ by relabeling model
   values.
+- How to run:
+  ```
+  bash harness/verdict.sh -c Relay.cfg Relay.tla
+  bash harness/verdict.sh -c RelayOrdinary.cfg Relay.tla
+  ```
+
+Take your own copy of the module and both `.cfg` files here too.
+
+### After the run
+
+Run before you read on.
+
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: `TLC_EXCEPTION`
-- How to run:
-  ```
-  bash harness/verdict.sh exercises/ch05/references/ex4-relay/Relay.tla
-  bash harness/verdict.sh \
-    -c exercises/ch05/references/ex4-relay/RelayOrdinary.cfg \
-    exercises/ch05/references/ex4-relay/Relay.tla
-  ```
 
 The refusal is the lesson. Symmetry says relabeling the values leaves the spec
 alone. That is true of model values, which support nothing but equality. It is
@@ -208,11 +227,13 @@ permutation set yourself and point the `SYMMETRY` keyword at it.
   - Fail run: `SAFETY_VIOLATION`
 - How to run:
   ```
-  bash harness/verdict.sh exercises/ch05/references/ex5-rehearsal/Rehearsal.tla
-  bash harness/verdict.sh \
-    -c exercises/ch05/references/ex5-rehearsal/RehearsalLoose.cfg \
-    exercises/ch05/references/ex5-rehearsal/Rehearsal.tla
+  pcal Rehearsal.tla
+  bash harness/verdict.sh -c Rehearsal.cfg Rehearsal.tla
+  bash harness/verdict.sh -c RehearsalLoose.cfg Rehearsal.tla
   ```
+
+`Rehearsal.cfg` is the strict run and `RehearsalLoose.cfg` is the loose one,
+on the names the reference uses. Yours can differ.
 
 The constant here carries no data at all. It names which of two specs you meant.
 Check your `ASSUME` earns its place by putting a `7` in the `.cfg` where the

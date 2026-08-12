@@ -106,20 +106,7 @@ Run it. Then repair the line and run it again.
 - Task: `Predict the verdict, run the starter, then repair the line.`
 - Time budget: `10 min`
 - Uses: `untyped values, = and # as the only cross-type operators, EXTENDS`
-- Expected outcome:
-  - Pass run: `OK`
-  - Fail run: `SPEC_EVAL_FAILURE`
 - How to run: `bash harness/verdict.sh exercises/ch02/starters/Ex3SlotStatus.tla`
-
-`SPEC_EVAL_FAILURE` means TLC never got as far as checking anything. It doesn't
-say your invariant is false. It says the run fell over while TLC was working
-out the initial state, so nothing at all is known about whether the invariant
-holds.
-
-Most people predict `SAFETY_VIOLATION` here. The chapter says values of
-different types can't be tested for equality and that this throws an error, and
-an error is not the same event as a false invariant. TLC stops rather than
-answering `FALSE`.
 
 To see the reason in words, keep the log and read it.
 
@@ -132,6 +119,24 @@ The second half of the exercise is `EXTENDS`. Once the module is green, delete
 the `EXTENDS Integers` line and run it again. `Restocked` needs `+`, so the
 module stops parsing. Most operators in TLA+ arrive through a module, and `=`
 and `#` are among the few that don't. Put the line back when you're done.
+
+### After the run
+
+Run before you read on.
+
+- Expected outcome:
+  - Pass run: `OK`
+  - Fail run: `SPEC_EVAL_FAILURE`
+
+`SPEC_EVAL_FAILURE` means TLC never got as far as checking anything. It doesn't
+say your invariant is false. It says the run fell over while TLC was working
+out the initial state, so nothing at all is known about whether the invariant
+holds.
+
+Most people predict `SAFETY_VIOLATION` here. The chapter says values of
+different types can't be tested for equality and that this throws an error, and
+an error is not the same event as a false invariant. TLC stops rather than
+answering `FALSE`.
 
 ## Exercise 4
 

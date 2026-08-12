@@ -54,7 +54,8 @@ before you run anything. A prediction written after the fact isn't one.
   original amount, so record it in a label of its own before the loop starts.
 - Time budget: `15 min`
 - Uses: `\in` on a variable declaration. `while`. PlusCal `if`. `macro`.
-  `assert` with `EXTENDS TLC`. Every statement belongs to a label.
+  `assert` with `EXTENDS TLC`. Every statement belongs to a label. Pick any
+  label names you like except `Done`, which the translator reserves.
 - Expected outcome:
   - Pass run: `OK` (rc 0) on `references/Ex1Dispenser.tla`.
   - Fail run: `ASSERT_VIOLATION` (rc 14) on

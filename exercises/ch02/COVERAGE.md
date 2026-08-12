@@ -33,7 +33,7 @@ exercise carrying both reads better than two thin ones.
 | `IF-THEN-ELSE` | 1, 3 | written in 1, read in 3 |
 | Equality and inequality | 1, 2, 3, 4, 5 | written |
 | `EXTENDS` | 1, 3, 4, 5 | read |
-| Integers | 1, 3, 5 | written |
+| Integers | 1, 3, 5 | written in 1, read in 3 and 5 |
 | Strings | 3, 4, 5 | written |
 | Booleans and logical operators | 2 | written |
 | Bullet-point boolean notation | 2 | written |

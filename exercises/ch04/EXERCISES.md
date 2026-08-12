@@ -37,11 +37,14 @@ anything, which is the whole point of this chapter.
 - Task: `TokenMove.tla` moves tokens one at a time from a left tray to a
   right tray. Each tray holds at most `Capacity` tokens, and neither can hold
   a negative number. The `define` block has `TypeInvariant == TRUE` in it.
-  Replace that with a real type invariant over `left` and `right`. Then paste
-  the same text into `TokenMoveBroken.tla`, whose loop guard is wrong on
-  purpose. Run both. `Conserved` is written for you as a worked example of a
-  non-type invariant, so leave it alone. Read the failing trace and say which
-  row first breaks your invariant, and which variable did it.
+  Replace that with a real type invariant over `left` and `right`. That stub
+  sits in the file twice, in the PlusCal comment and again below
+  `BEGIN TRANSLATION`. TLC reads only the translated copy, so edit both, or
+  edit the PlusCal one and re-run `pcal`. Then paste the same text into
+  `TokenMoveBroken.tla`, whose loop guard is wrong on purpose. Run both.
+  `Conserved` is written for you as a worked example of a non-type invariant,
+  so leave it alone. Read the failing trace and say which row first breaks
+  your invariant, and which variable did it.
 - Time budget: `10-15 min`
 - Uses: an invariant is checked on every reachable state rather than being a
   check that the spec runs. Type invariants pin variable shape with `\in`.
@@ -64,11 +67,14 @@ anything, which is the whole point of this chapter.
 - Format: `complete-the-skeleton`
 - Task: `MaxScan.tla` walks `Input` and leaves the largest element in `best`.
   Three definitions in the `define` block have `TRUE` where the real
-  expression belongs. Fill in all three. `UpperBound` says no element of
-  `Input` sits above `best`. `Attained` says some element of `Input` equals
-  `best`. `BestIsMax` restricts the whole check to the point where the
-  algorithm has finished, and chapter 4 tells you which variable carries
-  that. Then paste the three completed definitions into `MaxScanBroken.tla`
+  expression belongs. Fill in all three. Each of the three sits in the file
+  twice, in the PlusCal comment and again below `BEGIN TRANSLATION`. TLC
+  reads only the translated copy, so edit both, or edit the PlusCal one and
+  re-run `pcal`. `UpperBound` says no element of `Input` sits above `best`.
+  `Attained` says some element of `Input` equals `best`. `BestIsMax`
+  restricts the whole check to the point where the algorithm has finished,
+  and chapter 4 tells you which variable carries that.
+  Then paste the three completed definitions into `MaxScanBroken.tla`
   and run both. In the failing trace, find the row where `pc` changes and
   read off the value of `best` that TLC objected to.
 - Time budget: `10-15 min`
@@ -122,9 +128,12 @@ anything, which is the whole point of this chapter.
 - Task: two parts. First, `Ratchet.tla` appends a reading to `log` each step
   and the reading never goes down. Replace `Nondecreasing(s) == TRUE` with a
   real definition. Quantify over pairs of indices into `s` and use `=>` to
-  rule out the pairs that would otherwise sink you. Run it against
-  `Ratchet.cfg`. Second, `NoDropWrong` is written for you and is wrong on
-  purpose. Run it against `RatchetNoDrop.cfg` and work out why it fails on a
+  rule out the pairs that would otherwise sink you. That stub sits in the
+  file twice, in the PlusCal comment and again below `BEGIN TRANSLATION`.
+  TLC reads only the translated copy, so edit both, or edit the PlusCal one
+  and re-run `pcal`. Run it against `Ratchet.cfg`. Second, `NoDropWrong` is
+  written for you and is wrong on purpose.
+  Run it against `RatchetNoDrop.cfg` and work out why it fails on a
   spec that has no drop in it. Write the fixed version of `NoDropWrong` in
   `LOG.md`. You should need to change one operator.
 - Time budget: `10-15 min`
