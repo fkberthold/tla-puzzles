@@ -298,6 +298,13 @@ as a bridge from PlusCal* — the chapter is framed as "here's what the translat
 what it means." Arriving there with real PlusCal fluency means it lands as *"oh, that's what my
 code becomes,"* which is the best available entry point. Reading it cold would waste it.
 
+**Exercise track (added 2026-08-11, epic tla-jb7f).** Reading alone isn't making the chapters
+stick. Each core chapter from ch.2 through ch.11 gets 3-5 drills, 10-15 minutes each,
+self-checkable through one TLC run, plus a per-chapter cheat sheet that is delivered as a
+lookup card once Frank is past that chapter. He works each set cold and re-reads a chapter
+only when he starts struggling. Nothing above changes. Design drawer:
+drawer_tla_puzzles_decisions_c2c9f551b830dad52332a872.
+
 ---
 
 ## 4. Stage 1 — The refinement chapter
