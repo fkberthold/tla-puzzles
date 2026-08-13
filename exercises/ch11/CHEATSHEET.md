@@ -27,7 +27,7 @@
 - A bare next-state formula like `x' = x + 1` is always false as a property, because TLA+ can always insert a stutter step where nothing changes. `[P]_x` fixes this by adding `\/ UNCHANGED x`, so the property tolerates stuttering.
 - Helper actions let you factor primed-variable logic into named operators, the same way you would factor any other repeated expression, and reuse it inside more than one action property.
 - TLC can only check a top-level action property written as `[A]_v`. A quantifier wrapped around the whole `[]` fails to check. Since `[]` commutes with `\A`, a quantified action property moves the quantifier inside the `[]` instead.
-- Action properties are optional, unlike liveness properties, where every spec needs at least one. The chapter frames them as flexible but secondary, good for expressing transition rules that invariants and liveness properties do not reach.
+- Action properties are optional. The chapter frames them as flexible but secondary, good for expressing transition rules that invariants and liveness properties do not reach.
 
 ## Boundary notes
 

@@ -8,7 +8,8 @@
 \* This file ships translated, so the `define` block sits in it twice: once
 \* inside the PlusCal comment, and once more below the translation marker near
 \* the foot of the file. TLC reads only that second copy. Edit both, or edit
-\* the PlusCal copy and run `pcal Thermostat.tla` again.
+\* the PlusCal copy and run `pcal starters/Thermostat.tla` again, from the
+\* directory above this one.
 EXTENDS Integers
 
 Low == 60

@@ -17,8 +17,10 @@ bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex1TruckLoad.tla
 ```
 
 Run it from your chapter directory. The harness lives in the puzzles repo, so
-it's named by its full path. Your module is a starter you're editing, so it's
-named relative to where you're standing.
+it's named by its full path. Adjust that path if you cloned tla-puzzles
+somewhere other than `~/repos`. Your module is a starter you're editing, so
+it's named relative to where you're standing. Every "how to run" line below is
+true as printed.
 
 The `.cfg` beside each starter is picked up for you. You never name it.
 
@@ -29,14 +31,15 @@ up in this set.
 
 - `OK` (0): TLC checked the invariant and found no state that breaks it.
 - `SAFETY_VIOLATION` (12): TLC checked it and found one.
-- `PARSE_ERROR` (150): the module didn't compile, so nothing ran.
+- `PARSE_ERROR` (150): the module didn't compile, so nothing ran. Several
+  starters here won't compile until you've written your answer. That first
+  `PARSE_ERROR` is a checkpoint, not a failure.
 - `SPEC_EVAL_FAILURE` (75): the run fell over before TLC could check anything.
 
-The last one is worth sitting with, because it's the token this chapter
-produces most often and the one most people misread. It doesn't mean your
-answer is wrong. It means TLC hit an error while working out the initial
-state, so nothing at all is known about whether your invariant holds. Three of
-the five exercises below can land on it.
+The last one is the one most people misread. It doesn't mean your answer is
+wrong. It means TLC hit an error while working out the initial state, so
+nothing at all is known about whether your invariant holds. Only exercises 4
+and 5 produce it, and both of them are built around it.
 
 ## The log
 
@@ -64,6 +67,9 @@ The interesting part is picking the crate. `CHOOSE` is how you peel one
 element off a set, and the predicate you give it decides which one. Write a
 predicate that names exactly one crate.
 
+The starter reports `PARSE_ERROR` until you define `Loaded`. That's your first
+checkpoint, and it names the operator it can't find.
+
 - Title: `Loading the truck`
 - Format: `write-from-prompt`
 - Task: `Write Loaded and Dockside so that LoadIsRight holds.`
@@ -73,9 +79,6 @@ predicate that names exactly one crate.
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant LoadIsRight`
 - How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex1TruckLoad.tla`
-
-The starter reports `PARSE_ERROR` until you define `Loaded`. That's your first
-checkpoint, and it names the operator it can't find.
 
 For the fail run, change both selection predicates to `TRUE` and run it again.
 That compiles and it runs. Every crate satisfies `TRUE`, so the predicate
@@ -112,6 +115,9 @@ The parameter lists are already written for you. Read them before you start.
 The `(_)` after a parameter name is what makes it an operator rather than a
 value.
 
+Every stub returns a placeholder, so the module goes red before you touch it.
+Run it first and watch it fail.
+
 - Title: `The gauge panel`
 - Format: `complete-the-skeleton`
 - Task: `Replace all six stubs so PanelIsRight holds.`
@@ -121,9 +127,6 @@ value.
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant PanelIsRight`
 - How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex2GaugePanel.tla`
-
-Every stub returns a placeholder, so the module goes red before you touch it.
-Run it first and watch it fail.
 
 For the fail run, swap `Chained` to apply its arguments the other way round,
 as `G(F(x))`. Both versions typecheck and both run. Only the arithmetic tells
@@ -162,6 +165,9 @@ and inside `Drop`, and notice what it does to how they read.
 calls itself. No `RECURSIVE` declaration belongs anywhere in this module, and
 working out why is half the exercise.
 
+The starter reports `PARSE_ERROR` until you define `\ominus`. That's your
+first checkpoint.
+
 - Title: `The settling tank`
 - Format: `write-from-prompt`
 - Task: `Write the binary operator and the two functions so TankIsRight holds.`
@@ -171,9 +177,6 @@ working out why is half the exercise.
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant TankIsRight`
 - How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex3SettlingTank.tla`
-
-The starter reports `PARSE_ERROR` until you define `\ominus`. That's your
-first checkpoint.
 
 For the fail run, drop the floor and make `\ominus` plain subtraction. The
 tank drains past empty in the last hour and reports a negative level.
@@ -204,7 +207,6 @@ that verdict too.
 - Format: `predict-then-check`
 - Task: `Predict both answers, run the starter, repair the CASE, then reorder the arms.`
 - Time budget: `12 min`
-- Uses: `CASE, OTHER, first match wins, overlapping conditions`
 - How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex4LiftBands.tla`
 
 To see the reason in words, keep the log and read it.
@@ -218,6 +220,7 @@ grep -n Error /tmp/ex4.log
 
 Run before you read on.
 
+- Uses: `CASE, OTHER, first match wins, overlapping conditions`
 - Expected outcome:
   - Pass run: `OK`, once the `CASE` has an `OTHER` arm.
   - Fail run: `SPEC_EVAL_FAILURE` on the starter as it ships.
@@ -247,7 +250,7 @@ the halving rounds down.
 The module ships broken, and then it breaks a second time after you fix it.
 Predict each one before you meet it.
 
-1. Read `Folds`. It's four lines and it looks right. Which token comes back?
+1. Read `Folds`. It's one line and it looks right. Which token comes back?
 2. Fix that, get an `OK`, then change the base case from `len < 3` to
    `len < 0`. One character. Which token comes back now, and how long does the
    run take?
@@ -258,13 +261,13 @@ Write both predictions down first.
 - Format: `predict-then-check`
 - Task: `Predict the first verdict, repair the module, then break the base case and predict again.`
 - Time budget: `10 min`
-- Uses: `RECURSIVE, the declaration rule, recursion with no termination check`
 - How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex5TapeFolds.tla`
 
 ### After the run
 
 Run before you read on.
 
+- Uses: `RECURSIVE, the declaration rule, recursion with no termination check`
 - Expected outcome:
   - Pass run: `OK`, once `RECURSIVE Folds(_)` sits above the definition.
   - Fail run: `SPEC_EVAL_FAILURE` on the runaway base case.
@@ -283,18 +286,6 @@ Two things are worth taking from that. Nothing in TLA+ checks that a recursion
 ends, so a base case you can't reach is a bug your tools will let you write.
 And it lands in well under a second, which is a mercy. The stack runs out fast
 and TLC reports it as an evaluation failure like any other.
-
-## One thing about the scaffolding
-
-Every module here carries a `VARIABLE probe` that never changes, and every
-invariant opens with `/\ probe = 0`. That line is load bearing.
-
-Without it the invariant is a constant. TLC folds it away before the run
-starts, and a wrong answer comes back as `CONFIG_ERROR` with the message "The
-invariant of X is equal to FALSE". That's a true statement and a confusing
-one, because the token means TLC never ran your model. Mentioning the variable
-makes the invariant a state check, and a wrong answer becomes a plain
-`SAFETY_VIOLATION` instead.
 
 ## Answers
 

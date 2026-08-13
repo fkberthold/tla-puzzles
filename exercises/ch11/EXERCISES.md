@@ -2,12 +2,14 @@
 
 Five exercises. Budget 10 to 15 minutes each once you've read the chapter.
 
-Nothing here needs a construct from past chapter 11. Every subscript in this set
-is a single variable name. If you find yourself reaching for
+Nothing here needs a construct from beyond chapter 11. Every subscript in this
+set is a single variable name. If you find yourself reaching for
 `UNCHANGED <<x, y>>` or a tuple subscript `[A]_<<x, y>>`, back up. Those are
 chapter 12, and chapter 11 does not need them.
 
 ## Before you start
+
+PlusCal here uses c-syntax, braces not begin/end.
 
 Work inside this directory, the one holding this file. Your answers go in
 `starters/`, next to the `.cfg` that ships with each one. Every exercise ships
@@ -30,12 +32,19 @@ that exercise's line, or as a comment in the spec, **before** you run TLC.
 ## How to run anything here
 
 Run from this directory. The harness is named by its full path, so it resolves
-from wherever you are, and the spec is named relative to here.
+from wherever you are, and the spec is named relative to here. Adjust that path
+if you cloned tla-puzzles somewhere other than `~/repos`.
 
 ```
-pcal starters/YourSpec.tla                                             # PlusCal specs only
+pcal starters/YourSpec.tla
 bash ~/repos/tla-puzzles/harness/verdict.sh starters/YourSpec.tla -c starters/YourSpec.cfg
 ```
+
+`pcal` comes from the puzzles repo setup. `scripts/setup` installs it into
+`~/bin`, so run that once before you start if the command is not on your path.
+
+The `-c` is spelled out so the pairing is visible. The harness would find the
+matching `.cfg` on its own.
 
 Each exercise's "how to run" line names the commands with the spec name filled
 in. They are true as printed.
@@ -44,15 +53,15 @@ The one line `verdict.sh` prints is your answer. It comes from TLC's exit
 status, not from anything TLC printed, so read that token and ignore the console
 noise above it. Four tokens come up in this chapter.
 
-- `OK` means the model check found nothing.
-- `SAFETY_VIOLATION` is what a failed `INVARIANT` gives you.
-- `LIVENESS_VIOLATION` is what a failed `[][A]_v` gives you. An action property
-  goes through TLC's implied-action channel, and that channel reports this token
-  whatever the counterexample looks like.
-- `PARSE_ERROR` means the module never compiled. Nothing was checked, so nothing
-  at all is known about whether your property holds. That is a different thing
-  from a property coming out false, and this chapter is where the difference
-  starts to bite.
+- `OK` (0) means the model check found nothing.
+- `SAFETY_VIOLATION` (12) is what a failed `INVARIANT` gives you.
+- `LIVENESS_VIOLATION` (13) is what a failed `[][A]_v` gives you. An action
+  property goes through TLC's implied-action channel, and that channel reports
+  this token whatever the counterexample looks like.
+- `PARSE_ERROR` (150) means the module never compiled. Nothing was checked, so
+  nothing at all is known about whether your property holds. That is a different
+  thing from a property coming out false, and this chapter is where the
+  difference starts to bite.
 
 State counts are not part of any expected outcome below. Two correct answers can
 explore different numbers of states, and neither is wrong.
@@ -119,7 +128,7 @@ Run before you read on.
 
 - Expected outcome:
   - Pass run: `OK`
-  - Fail run: `PARSE_ERROR`
+  - Second run: `PARSE_ERROR`
 
 The first one is the easy half. `Grip`, `Release`, and the loop head all leave
 `rung` alone, and `[P]_rung` is shorthand for `P \/ UNCHANGED rung`, so those
@@ -225,11 +234,10 @@ reports here.
   plate does not move at all.
   Then there is the shape it has to be written in. The obvious first attempt
   writes the property for one plate, wraps a quantifier round the outside, and
-  subscripts that one plate's entry, `\A p \in Plates: [][ ... ]_colony[p]`.
-  That module does not compile. TLC checks a top-level box action formula, and
-  the fix is that `[]` commutes with `\A`, so the quantifier can move inside the
-  box. Moving it inside also puts the subscript back on the whole variable,
-  which is the part that actually has to be right.
+  subscripts that one plate's entry,
+  `\A p \in Plates: [][ ... ]_colony[p]`. That module does not compile. Read
+  the error SANY hands back and ask what a subscript is allowed to name.
+  Finding the move is the exercise.
   **The stub sits in the file twice.** This file ships translated, so
   `ColoniesDoubleOrHold == TODO_1` appears once inside the PlusCal comment and
   once below `\* BEGIN TRANSLATION`, and TLC reads only the translated copy.
@@ -248,6 +256,16 @@ reports here.
 - How to run: `pcal starters/Incubator.tla` then
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Incubator.tla -c starters/Incubator.cfg`
 
+### After the run
+
+Run before you read on.
+
+That module does not compile, and the reason is the subscript rather than the
+quantifier. A subscript has to name a whole variable, and `colony[p]` names one
+entry of one. Move the `\A` inside the box. `[]` commutes with `\A`, so the
+property still says the same thing. The subscript becomes `colony`, which is
+the form SANY accepts.
+
 ## Exercise 5
 
 - Title: `Airlock`
@@ -262,8 +280,9 @@ reports here.
      the step is `to`. It mentions a primed variable, so it is an action, and it
      can only appear inside an action property.
      `OuterOnlyShuts` and `InnerOnlyShuts` each say that an open door's only
-     legal move is to shut. Build both of them out of `Moves`, rather than
-     writing the primed expression out twice.
+     legal move is to shut. Write each as a box action formula subscripted on
+     its own door, and build the primed half out of `Moves` rather than writing
+     the primed expression out twice.
   3. One label `Cycle` running `while (TRUE)` over a four-branch `either`. Open
      the outer door, only when both doors are shut. Shut the outer door, only
      when it is open. Open the inner door, only when both are shut. Shut the

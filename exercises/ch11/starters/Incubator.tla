@@ -8,7 +8,8 @@
 \* THE STUB SITS IN THIS FILE TWICE. The file ships translated, so the `define`
 \* block appears once inside the PlusCal comment, and once more below the
 \* translation marker near the foot of the file. TLC reads only that second
-\* copy. Fill both, or fill the PlusCal copy and run `pcal Incubator.tla` again.
+\* copy. Fill both, or fill the PlusCal copy and run `pcal starters/Incubator.tla`
+\* again, from the directory above this one.
 \* Filling only the PlusCal copy and running the model checks the stub.
 EXTENDS Integers
 

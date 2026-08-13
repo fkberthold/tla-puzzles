@@ -26,7 +26,6 @@ Init == probe = 0
 Next == UNCHANGED probe
 
 \* Every row here is the answer the lift controller is supposed to give.
-\* One of them is a load that no arm of the CASE above tests for.
 \*
 \* The `probe = 0` line is load bearing. Without it every conjunct is a
 \* constant, TLC folds the whole invariant away before the run starts, and a
