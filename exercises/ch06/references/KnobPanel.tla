@@ -14,25 +14,27 @@ MaxNotch == 3
 
 Knobs == 1..NumKnobs
 
-(*--algorithm knobpanel
+(*--algorithm knobpanel {
 variables
   ceiling \in 1..MaxNotch;
   dial = [k \in Knobs |-> 0];
   next = 1;
 
-define
+define {
   DialType == [Knobs -> 0..ceiling]
 
   TypeOK == dial \in DialType
-end define;
+}
 
-begin
+{
   Turn:
-    while next <= NumKnobs do
+    while (next <= NumKnobs) {
       dial[next] := ceiling;
       next := next + 1;
-    end while;
-end algorithm; *)
+    };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "7199e90d" /\ chksum(tla) = "2bdd8cbb")
 VARIABLES pc, ceiling, dial, next
 

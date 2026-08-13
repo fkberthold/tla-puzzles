@@ -209,3 +209,32 @@ covers the case where somebody works straight out of the repository.
 The same contract is why `references/`, `reports/`, and `COVERAGE.md` sit
 where they do. All three are on the never-delivered list, which is what keeps
 the answers out of the practice tree.
+
+## Conversion to c-syntax, 2026-08-12
+
+Bead `tla-wza0`, Frank's ruling 2026-08-12. All 12 PlusCal modules under
+`starters/` and `references/` moved from p-syntax to c-syntax: braces for the
+algorithm body, `define`, and `while`, and c-syntax's parenthesized guards on
+`while`, `if`, and `with`. Names, labels, guards, and asserts did not move.
+
+Each module was hand-edited, then re-translated with `tlc -pcal -nocfg`
+(`-nocfg` so the pass never touches a `.cfg`). Every module's post-conversion
+`chksum(tla)` matches its pre-conversion value exactly, module by module.
+That checksum is TLC's own hash of the translated next-state relation. An
+unchanged value across a full syntax rewrite is strong evidence the semantics
+didn't move.
+
+All 8 stated-outcome rows in this file came back through `harness/verdict.sh`
+unchanged: same token, same rc, on the converted references.
+
+The 20 mutants above were reapplied to the converted modules and re-run
+through two new committed scripts, `reports/mutants.py` and
+`reports/run-mutants.sh`, built on the same pattern ch06 already used. All 20
+verdicts match: 14 flips, 6 inert, same split as before conversion.
+
+One pattern needed adapting. M3.4 mutates `DrainQueue`'s loop guard from
+`pending # {}` to `pending = {}`. In p-syntax that guard reads as the
+standalone literal `while pending # {} do`. In c-syntax it doesn't stand
+alone. The loop reads `while (pending # {}) {`, so the seeded pattern now
+carries the parens and the opening brace. The other 19 patterns matched
+their converted modules on the first seeding pass, unchanged.

@@ -3,27 +3,29 @@ EXTENDS Integers
 
 Capacity == 3
 
-(*--algorithm token_move_broken
+(*--algorithm token_move_broken {
 variables
   left = Capacity,
   right = 0;
 
-define
+define {
   \* TODO: paste the SAME invariant you wrote in TokenMove.tla here.
   \* The algorithm below is wrong on purpose. A real invariant has to
   \* fail on it.
   TypeInvariant == TRUE
 
   Conserved == left + right = Capacity
-end define;
+}
 
-begin
+{
 Move:
-  while left >= 0 do
+  while (left >= 0) {
     left := left - 1;
     right := right + 1;
-  end while;
-end algorithm; *)
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "b44969ed" /\ chksum(tla) = "21e63bfe")
 VARIABLES pc, left, right
 

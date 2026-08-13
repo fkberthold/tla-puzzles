@@ -245,3 +245,33 @@ Against `exercises/templates/REVIEW-CHECKLIST.md`:
 - Mutant evidence is present. This file.
 - Every expected outcome is verified through `harness/verdict.sh`. 27 runs,
   5 pass and 22 mutant.
+
+## Conversion to c-syntax, 2026-08-12
+
+Bead `tla-wza0`, Frank's ruling 2026-08-12. All 4 PlusCal modules moved from
+p-syntax to c-syntax: `starters/KnobPanel.tla`, `references/KnobPanel.tla`,
+`references/ParcelDesk.tla`, and `references/PatchDesk.tla`. Braces for the
+algorithm body and `define`, and c-syntax's parenthesized guards on `while`
+and `if`. Names, labels, guards, and asserts did not move.
+
+`starters/KnobPanel.tla` is the one module in this set that never translated.
+Three `TODO_n` placeholders leave it a parse failure by design, and that had
+to stay true after the rewrite. Before conversion, `tlc -pcal` on the
+p-syntax file reports `Expected ":=" but found ";"` at line 41, column 13,
+exit 255. After conversion, the c-syntax file reports the identical error at
+the identical line and column, same exit code. The three other modules
+re-translated with `tlc -pcal -nocfg` and their post-conversion `chksum(tla)`
+matches the pre-conversion value exactly, module by module.
+
+All 5 pass rows ran again through the committed `reports/run-refs.sh`,
+unchanged: `OK`, rc 0, all five.
+
+The 22 mutants seeded by `reports/mutants.py` and run by
+`reports/run-mutants.sh` needed one pattern update. `P2` weakens `ParcelDesk`'s
+`Weigh` guard from `<` to `<=`. The p-syntax anchor was the standalone line
+`if parcel.kilos < MaxKilos then`. In c-syntax the guard carries its own
+parens and brace, `if (parcel.kilos < MaxKilos) {`, so that's the pattern `P2`
+now matches and edits. The other 21 patterns matched their converted modules
+unchanged. All 22 mutants re-ran to the same table: 21 killed, 1 inert (`K5`,
+same reason as before, a widened codomain nothing in the algorithm can
+violate).

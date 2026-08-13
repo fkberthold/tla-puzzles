@@ -3,27 +3,29 @@ EXTENDS Integers
 
 Jobs == {1, 2, 3}
 
-(*--algorithm drain_queue
+(*--algorithm drain_queue {
 variables
   pending = Jobs,
   cleared = {};
 
-define
+define {
   \* Nothing to fill in here. Predict first, then run.
   AllPositive == \A j \in pending: j > 0
 
   SomePositive == \E j \in pending: j > 0
-end define;
+}
 
-begin
+{
 Drain:
-  while pending # {} do
-    with j \in pending do
+  while (pending # {}) {
+    with (j \in pending) {
       pending := pending \ {j};
       cleared := cleared \union {j};
-    end with;
-  end while;
-end algorithm; *)
+    };
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "f65f9170" /\ chksum(tla) = "14c30f5e")
 VARIABLES pc, pending, cleared
 

@@ -18,23 +18,25 @@ CONSTANT Unclaimed
 
 Slots == 1..3
 
-(*--algorithm locker
+(*--algorithm locker {
 variables holder = Unclaimed, claimed = FALSE;
 
-define
+define {
   FreeIffSentinel == TRUE
-end define;
+}
 
-begin
+{
   Claim:
-    with s \in Slots do
+    with (s \in Slots) {
       holder := s;
       claimed := TRUE;
-    end with;
+    };
   Release:
     holder := Unclaimed;
     claimed := FALSE;
-end algorithm; *)
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "16716c" /\ chksum(tla) = "cf4a9769")
 VARIABLES pc, holder, claimed
 

@@ -3,12 +3,12 @@ EXTENDS Integers, Sequences
 
 Steps == 4
 
-(*--algorithm ratchet
+(*--algorithm ratchet {
 variables
   level = 0,
   log = <<>>;
 
-define
+define {
   Nondecreasing(s) ==
     \A a, b \in 1..Len(s):
       a < b => s[a] <= s[b]
@@ -18,17 +18,19 @@ define
   NoDropWrong ==
     ~ \E a, b \in 1..Len(log):
         a < b => log[a] > log[b]
-end define;
+}
 
-begin
+{
 Tick:
-  while Len(log) < Steps do
-    with next \in level..(level + 2) do
+  while (Len(log) < Steps) {
+    with (next \in level..(level + 2)) {
       level := next;
       log := Append(log, next);
-    end with;
-  end while;
-end algorithm; *)
+    };
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "ceb5e30b" /\ chksum(tla) = "f2b05712")
 VARIABLES pc, level, log
 

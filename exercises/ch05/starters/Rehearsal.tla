@@ -14,19 +14,21 @@ EXTENDS Integers
 
 Ceiling == 5
 
-(*--algorithm rehearsal
+(*--algorithm rehearsal {
 variable level = 0;
 
-define
+define {
   LevelCapped == level <= 2
-end define;
+}
 
-begin
+{
   Climb:
-    while level < Ceiling do
+    while (level < Ceiling) {
       level := level + 1;
-    end while;
-end algorithm; *)
+    };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "4334c0d5" /\ chksum(tla) = "46d71b1e")
 VARIABLES pc, level
 

@@ -3,12 +3,12 @@ EXTENDS Integers, Sequences
 
 Input == <<3, 7, 2, 7, 5>>
 
-(*--algorithm max_scan
+(*--algorithm max_scan {
 variables
   i = 1,
   best = Input[1];
 
-define
+define {
   \* TODO: replace TRUE. No element of `Input` is above `best`.
   UpperBound == \A k \in 1..Len(Input): TRUE
 
@@ -18,17 +18,19 @@ define
   \* TODO: replace the first TRUE. The check applies only once the
   \* algorithm has finished. Chapter 4 names the variable that tells you.
   BestIsMax == TRUE => (UpperBound /\ Attained)
-end define;
+}
 
-begin
+{
 Scan:
-  while i <= Len(Input) do
-    if Input[i] > best then
+  while (i <= Len(Input)) {
+    if (Input[i] > best) {
       best := Input[i];
-    end if;
+    };
     i := i + 1;
-  end while;
-end algorithm; *)
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "f14e42db" /\ chksum(tla) = "eab3cd84")
 VARIABLES pc, i, best
 

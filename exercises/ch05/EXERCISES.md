@@ -2,6 +2,8 @@
 
 Five exercises. Ten to fifteen minutes each once you have read the chapter.
 
+PlusCal here uses c-syntax, braces not begin/end.
+
 Everything here uses constructs from chapters 2 to 5 only. No records, no
 functions. Those belong to chapter 6.
 

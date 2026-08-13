@@ -3,27 +3,29 @@ EXTENDS Integers
 
 Capacity == 3
 
-(*--algorithm token_move
+(*--algorithm token_move {
 variables
   left = Capacity,
   right = 0;
 
-define
+define {
   \* TODO: replace TRUE with a type invariant for `left` and `right`.
   \* Both are counts of tokens on a tray, and a tray holds at most
   \* `Capacity` of them.
   TypeInvariant == TRUE
 
   Conserved == left + right = Capacity
-end define;
+}
 
-begin
+{
 Move:
-  while left > 0 do
+  while (left > 0) {
     left := left - 1;
     right := right + 1;
-  end while;
-end algorithm; *)
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "cd4f2340" /\ chksum(tla) = "76ef5220")
 VARIABLES pc, left, right
 

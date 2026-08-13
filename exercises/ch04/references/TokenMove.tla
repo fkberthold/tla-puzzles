@@ -3,26 +3,28 @@ EXTENDS Integers
 
 Capacity == 3
 
-(*--algorithm token_move
+(*--algorithm token_move {
 variables
   left = Capacity,
   right = 0;
 
-define
+define {
   TypeInvariant ==
     /\ left \in 0..Capacity
     /\ right \in 0..Capacity
 
   Conserved == left + right = Capacity
-end define;
+}
 
-begin
+{
 Move:
-  while left > 0 do
+  while (left > 0) {
     left := left - 1;
     right := right + 1;
-  end while;
-end algorithm; *)
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "1907213e" /\ chksum(tla) = "619d5806")
 VARIABLES pc, left, right
 
