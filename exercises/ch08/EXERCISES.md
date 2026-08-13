@@ -42,13 +42,15 @@ The one line `verdict.sh` prints is your answer. It comes from TLC's exit
 status, not from anything TLC printed, so read that token and ignore the
 console noise above it.
 
-- `OK` means the model check found nothing.
-- `SAFETY_VIOLATION` means an invariant failed.
-- `DEADLOCK` means TLC reached a state where no process could do anything.
+- `OK` (0) means the model check found nothing.
+- `SAFETY_VIOLATION` (12) means an invariant failed.
+- `DEADLOCK` (11) means TLC reached a state where no process could do anything.
   `verdict.sh` only looks for it when you pass `-d`, which exercise 2 does.
-- `SPEC_EVAL_FAILURE` means the spec could not be evaluated, so nothing at all
+- `SPEC_EVAL_FAILURE` (75) means the spec could not be evaluated, so nothing at all
   was checked. This is not the same as a violation.
-- `PARSE_ERROR` means the module did not parse.
+- `PARSE_ERROR` (150) means the module did not parse.
+- `CONFIG_ERROR` (151) means the config names something your file does not
+  define yet. The shipped exercise 1 starter begins here.
 
 State counts are not part of any expected outcome below. Two correct answers
 can explore different numbers of states, and neither is wrong.

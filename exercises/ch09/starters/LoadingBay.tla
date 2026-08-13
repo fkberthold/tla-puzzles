@@ -7,7 +7,7 @@
 \* This file is delivered already translated, so TODO 1 sits in it TWICE: once
 \* in the PlusCal comment below, and once again in the translated section at
 \* the foot of the file. TLC reads only the translated copy. Fill the copy in
-\* the PlusCal comment and run `pcal LoadingBay.tla`, which rewrites the
+\* the PlusCal comment and run `pcal starters/LoadingBay.tla`, which rewrites the
 \* translation from it. Editing the translated copy by hand appears to work,
 \* and the next `pcal` run undoes it.
 EXTENDS TLC

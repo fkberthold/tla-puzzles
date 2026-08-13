@@ -173,7 +173,7 @@ A guard nobody can trip is documentation, not a check.
   anything.
   ```
   bash ~/repos/tla-puzzles/harness/verdict.sh starters/Locker.tla -c starters/Locker.cfg
-  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Locker.tla -c starters/LockerCollide.cfg
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Locker.tla -c starters/LockerCollide.cfg  # yours
   ```
 
 Compare your two `.cfg` files. On the right of the `=`, a bare word with no
@@ -184,7 +184,7 @@ There is a third run worth making, once you have seen the first two. Write a
 `.cfg` that assigns `Unclaimed` the string `"free"`:
 
 ```
-bash ~/repos/tla-puzzles/harness/verdict.sh starters/Locker.tla -c starters/LockerString.cfg
+bash ~/repos/tla-puzzles/harness/verdict.sh starters/Locker.tla -c starters/LockerString.cfg  # yours
 ```
 
 That run reports `SPEC_EVAL_FAILURE`, not a violation. TLC did not decide your
