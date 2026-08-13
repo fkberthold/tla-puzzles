@@ -57,18 +57,24 @@ All three constructs on the sheet appear in every exercise.
 
 There are only three, and a chapter this narrow cannot spread them out. What
 varies across the five is the shape of the action inside the brackets: a
-comparison between a variable and its own next value (1, 4), an exact step size
+comparison between a variable and its own next value (1), an exact step size
 (1, 2), arithmetic on the difference (3), an implication guarded on the current
-state (5), and a quantified body (4).
+state (5), and a quantified body naming the whole set of legal next values (4).
+
+Exercise 4's action is the only one in the set that is not an order or a step
+size. `colony[p]' \in {colony[p], 2 * colony[p]}` is a multiplicative coupling
+between a value and its own next value, and it is deliberately not a
+monotonicity claim. A colony that climbs by one breaks it, which is what
+exercise 4's fail run shows.
 
 ## A measured correction to theme 5
 
 The sheet's theme 5, following the chapter, says the failure happens when a
 quantifier is wrapped round the whole `[]`. Measured on this build, that is not
 the trigger. What SANY refuses is a subscript that is not a variable name, and
-`[][level[1]' >= level[1]]_level[1]` is refused with no quantifier anywhere in
-it. An outer `\A` over a whole-variable subscript compiles and is genuinely
-checked.
+`[][colony["left"]' \in {colony["left"], 2 * colony["left"]}]_colony["left"]` is
+refused with no quantifier anywhere in it. An outer `\A` over a whole-variable
+subscript compiles and is genuinely checked.
 
 The chapter's fix is still the right fix, and exercise 4 teaches it, because
 commuting the `\A` inside is exactly what puts the subscript back on the whole

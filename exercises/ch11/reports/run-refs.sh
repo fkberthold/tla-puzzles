@@ -9,7 +9,7 @@
 
 set -uo pipefail
 
-for m in Odometer StepProbe Thermostat TankFarm Airlock; do
+for m in Odometer StepProbe Thermostat Incubator Airlock; do
   token=$(bash harness/verdict.sh "exercises/ch11/references/$m.tla" \
     -c "exercises/ch11/references/$m.cfg" 2>/dev/null)
   rc=$?

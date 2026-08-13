@@ -30,7 +30,20 @@ The chapter has two running specs and reuses neither surface here.
 No exercise here uses a lock, a thread, a `tmp` local, a `NULL` model value, a
 variable named `counter` or `values`, or a set named `Counters`. The five
 surfaces are a delivery van's odometer, a ladder climb, a thermostat setpoint,
-a two-tank farm, and an airlock.
+an incubator rack of culture plates, and an airlock.
+
+Exercise 4 is the one that has to stand closest to `counters.tla`, because it
+is the set's only coverage of theme 5 and `counters.tla` is the chapter's only
+demonstration of it. So the two share a shape they cannot help sharing: a
+function-valued variable, one process per index, and a quantified action
+property. What they do not share is the property. The chapter asserts
+monotonicity, `values[c]' >= values[c]`. Exercise 4 asserts a multiplicative
+coupling, `colony[p]' \in {colony[p], 2 * colony[p]}`, which is not an order
+relation at all and which a merely-increasing spec breaks. The learner has to
+derive that action from a sentence of English, and the only thing the task text
+hands over is the refused shape, written with the body elided as
+`[][ ... ]_colony[p]`. See the 2026-08-12 repair note at the foot of this file
+for why that matters and what it replaced.
 
 The one structural echo I could not design away is exercise 5's helper action.
 "Factor primed logic into a named operator and use it in more than one action
@@ -99,19 +112,25 @@ The chapter's diagnosis of its `counters_2` failure is
 
 > it happens whenever we put our action property inside a quantifier
 
-Measured, that is not the trigger. Three probes, same two-tank spec:
+Measured, that is not the trigger. Three probes, all on exercise 4's own spec.
+
+The probes were first run on the two-tank spec this exercise used before the
+2026-08-12 repair, and re-run unchanged on the `Incubator` spec that replaced
+it. The table below is the re-run. Both surfaces gave the same four verdicts,
+which is worth more than either run alone: the result is about the subscript,
+not about the property that happened to sit inside the box.
 
 | form | verdict |
 |---|---|
-| `\A t \in Tanks: [][level[t]' >= level[t]]_level` | checked, `OK` on a monotone spec and `LIVENESS_VIOLATION` rc=13 on a draining one |
-| `\A t \in Tanks: [][level[t]' >= level[t]]_level[t]` | `PARSE_ERROR` rc=150 |
-| `[][level[1]' >= level[1]]_level[1]`, no quantifier at all | `PARSE_ERROR` rc=150 |
+| `\A p \in Plates: [][colony[p]' \in {colony[p], 2 * colony[p]}]_colony` | checked, `OK` on the reference and `LIVENESS_VIOLATION` rc=13 on the fail-run variant |
+| `\A p \in Plates: [][colony[p]' \in {colony[p], 2 * colony[p]}]_colony[p]` | `PARSE_ERROR` rc=150 |
+| `[][colony["left"]' \in {colony["left"], 2 * colony["left"]}]_colony["left"]`, no quantifier at all | `PARSE_ERROR` rc=150 |
 
 The third row is the one that settles it. There is no quantifier anywhere and
-SANY still refuses, so what it refuses is the subscript `level[1]`, which is not
-a variable name. An outer `\A` over a whole-variable subscript is accepted and
-genuinely checked, which the second column's `LIVENESS_VIOLATION` proves rather
-than assumes.
+SANY still refuses, so what it refuses is the subscript `colony["left"]`, which
+is not a variable name. An outer `\A` over a whole-variable subscript is
+accepted and genuinely checked, which the second column's `LIVENESS_VIOLATION`
+proves rather than assumes.
 
 The chapter's fix is still the right fix, because commuting the `\A` inside is
 what forces the subscript back to the whole variable. Exercise 4 teaches the
@@ -174,18 +193,18 @@ and worth knowing about for any chapter whose starters ship translated.
 | T3 | Thermostat | widen the step set to `{-1, 0, 1}` | `OK` | 0 |
 | T4 | Thermostat | start `setpoint` at 59 | `SAFETY_VIOLATION` | 12 |
 | T5 | Thermostat | subscript `MovesOneDegree` on `mode` | `LIVENESS_VIOLATION` | 13 |
-| K1 | TankFarm | `Top` writes 0 | `LIVENESS_VIOLATION` | 13 |
-| K2 | TankFarm | quantifier outside, `]_level[t]` subscript | `PARSE_ERROR` | 150 |
-| K3 | TankFarm | tanks start full | `OK` | 0 |
-| K4 | TankFarm | strengthen `>=` to `>` | `LIVENESS_VIOLATION` | 13 |
-| K5 | TankFarm | `Top` writes `Cap - 1` | `LIVENESS_VIOLATION` | 13 |
+| I1 | Incubator | the loop adds 1 instead of doubling | `LIVENESS_VIOLATION` | 13 |
+| I2 | Incubator | quantifier outside, `]_colony[p]` subscript | `PARSE_ERROR` | 150 |
+| I3 | Incubator | plates start at `Limit` | `OK` | 0 |
+| I4 | Incubator | drop the hold branch, `= 2 * colony[p]` | `LIVENESS_VIOLATION` | 13 |
+| I5 | Incubator | the loop triples instead of doubling | `LIVENESS_VIOLATION` | 13 |
 | A1 | Airlock | the outer door goes to `"ajar"` | `LIVENESS_VIOLATION` | 13 |
 | A2 | Airlock | `Moves` drops its prime | `LIVENESS_VIOLATION` | 13 |
 | A3 | Airlock | outer opens without checking inner | `SAFETY_VIOLATION` | 12 |
 | A4 | Airlock | subscript `InnerOnlyShuts` on `outer` | `OK` | 0 |
 | A5 | Airlock | inner opens without checking outer | `SAFETY_VIOLATION` | 12 |
 
-Five of these are the fail runs `EXERCISES.md` states: O1, S1, T1, K1, A1. T2
+Five of these are the fail runs `EXERCISES.md` states: O1, S1, T1, I1, A1. T2
 backs the alternative run exercise 3 offers, and S4 backs the closing note in
 exercise 2's after-the-run block.
 
@@ -198,12 +217,22 @@ construction. T3 is worth keeping because it is the mistake the chapter warns
 about from the other side: `]_setpoint` already tolerates a step that leaves the
 setpoint alone, so writing 0 into the set adds nothing.
 
-**O5 and K3 only shrink the reachable state space.** `MaxLegs == 0` means the
-loop never runs, and starting the tanks full means the fill loop is skipped.
-Both properties then hold over a smaller behaviour. Neither edit touches the
-thing being asserted, which is what makes them a useful control: a mutant pass
-where every mutant flips is not measuring the property, it is measuring whether
-the spec still runs.
+**O5 and I3 only shrink the reachable state space.** `MaxLegs == 0` means the
+loop never runs, and starting the plates at `Limit` means the growth loop is
+skipped. Both properties then hold over a smaller behaviour. Neither edit
+touches the thing being asserted, which is what makes them a useful control: a
+mutant pass where every mutant flips is not measuring the property, it is
+measuring whether the spec still runs.
+
+**I4 is the one to read next to A4.** It strengthens exercise 4's property by
+deleting the hold branch, so the body reads `colony[p]' = 2 * colony[p]` and
+demands that every plate doubles on every step. That flips, rc=13, and the
+reason is the whole subtlety of a quantified action property. One plate
+doubling is a step, and on that step the other plate does not move, and the
+`\A` still has to hold for it. The subscript cannot help there, because
+`UNCHANGED colony` is false on a step where some entry did change. So the
+per-plate body has to permit holding still, in a way the un-quantified
+properties in this set never have to.
 
 **A4 is the interesting one.** It moves `InnerOnlyShuts`'s subscript from `inner`
 to `outer`, which is straightforwardly the wrong variable, and the property still
@@ -242,7 +271,7 @@ introduces it.
 |---|---|---|
 | operator definition, `==` | ch02 | all |
 | `EXTENDS Integers`, arithmetic | ch02 | 1, 2, 3, 4 |
-| strings | ch02 | 2, 3, 5 |
+| strings | ch02 | 2, 3, 4, 5 |
 | `=>` implication | ch02 | 5 |
 | `~` negation, `/\`, `\/` | ch02 | 3, 5 |
 | set literal, `\in`, `a..b` | ch02 | 3, 4 |
@@ -261,3 +290,79 @@ Nothing from ch12 or later. In particular no exercise uses the multi-variable
 ch11 sheet's boundary notes place in chapter 12. Every subscript in this set is
 a single variable name, which the sheet's own `[P]_x` construct line permits and
 which finding 2 shows is required anyway.
+
+## Repair note, 2026-08-12
+
+One repair round, against the single DEFECT in `reports/cold-solve.md`. The
+review is left as it was written. This note records what moved under it.
+
+### What the review found
+
+Exercise 4's `LevelsNeverFall` was a rename-only match of the chapter's
+`counters_3` worked example. Same `>=`, same quantifier form, same subscript
+placement, with `c`/`Counters`/`values` swapped for `t`/`Tanks`/`level`. Worse,
+`EXERCISES.md` printed the near-identical predicate itself, as the stated first
+attempt. The learner wasn't deriving the action. They were handed it and asked
+to move a subscript.
+
+### What changed
+
+The surface. The lesson is untouched.
+
+- Story: an incubator rack of two culture plates, not a tank farm.
+- Module: `Incubator`, was `TankFarm`.
+- Variable: `colony` over `Plates`, was `level` over `Tanks`.
+- Property: `ColoniesDoubleOrHold`, was `LevelsNeverFall`.
+- Mutant ids: `I1` to `I5`, were `K1` to `K5`.
+
+The action is now `colony[p]' \in {colony[p], 2 * colony[p]}`. A colony holds
+still or doubles, and nothing else is legal in either direction. That's not an
+order relation, so it isn't the chapter's claim with new names on it. A spec
+that climbs by one breaks it, which no monotonicity property would catch.
+
+The task text no longer prints the body of the refused attempt. It prints
+`\A p \in Plates: [][ ... ]_colony[p]` with the body elided, so the shape lesson
+still lands and the action has to come out of a sentence of English.
+
+### What the lesson still is
+
+Unchanged, all three parts.
+
+1. TLC refuses a subscript on an indexed variable inside an action property.
+2. The fix is commuting the `\A` inside, which puts the subscript on the whole
+   variable.
+3. Finding 2's sharper rule holds. The subscript is the trigger, not the
+   quantifier's position.
+
+Format stays `complete-the-skeleton`, budget stays 12 minutes, and the exercise
+keeps its number. The brief for this round described exercise 4 as
+predict-then-check with an after-the-run block. It has never been either. I kept
+the format it has, because changing it would move exercise 4 out of theme 5's
+sole coverage slot and break `COVERAGE.md`'s accounting of which two exercises
+are the predict-then-checks. Flagging it rather than adapting to it.
+
+### What was re-run
+
+- Finding 2's three probes, on the new spec. Same four verdicts as the old one.
+- All five references through `reports/run-refs.sh`. Five `OK`, rc=0.
+- All 24 mutants. Still 19 flip and 5 inert, with the same five ids inert.
+- Exercise 4's stated pass and fail runs, through `harness/verdict.sh`.
+- A scratch delivery, with every printed exercise-4 command run as printed.
+
+Running the probes twice on two unrelated surfaces is worth more than running
+them once. The old result could have been about `>=`. This one can't be, since
+the property inside the box changed completely and the verdicts didn't.
+
+### One correction picked up on the way
+
+The scope table's `strings` row read `2, 3, 5`. Exercise 4 has always used
+string members, `{"east", "west"}` then and `{"left", "right"}` now, so the row
+was understating. Now `2, 3, 4, 5`.
+
+### The new mutant that earns its place
+
+`I4` deletes the hold branch and demands every plate double on every step. It
+flips, and the reason is the point of a quantified action property. One plate
+doubling is a step where the other plate sits still, the `\A` still has to hold
+for that plate, and the subscript can't rescue it because some entry did change.
+The old `K4` made a thinner version of the same point by tightening `>=` to `>`.

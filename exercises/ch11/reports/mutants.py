@@ -87,23 +87,23 @@ MUTANTS = [
      "MovesOneDegree == [][setpoint' - setpoint \\in {-1, 1}]_setpoint",
      "MovesOneDegree == [][setpoint' - setpoint \\in {-1, 1}]_mode"),
 
-    # --- TankFarm (exercise 4) ---------------------------------------------
-    # K1 is the fail run EXERCISES.md states for exercise 4.
-    ("K1", "TankFarm", 1,
-     "level[self] := Cap;",
-     "level[self] := 0;"),
-    ("K2", "TankFarm", 2,
-     "[][\\A t \\in Tanks: level[t]' >= level[t]]_level",
-     "\\A t \\in Tanks: [][level[t]' >= level[t]]_level[t]"),
-    ("K3", "TankFarm", 1,
-     "level = [t \\in Tanks |-> 0];",
-     "level = [t \\in Tanks |-> Cap];"),
-    ("K4", "TankFarm", 2,
-     "[][\\A t \\in Tanks: level[t]' >= level[t]]_level",
-     "[][\\A t \\in Tanks: level[t]' > level[t]]_level"),
-    ("K5", "TankFarm", 1,
-     "level[self] := Cap;",
-     "level[self] := Cap - 1;"),
+    # --- Incubator (exercise 4) --------------------------------------------
+    # I1 is the fail run EXERCISES.md states for exercise 4.
+    ("I1", "Incubator", 1,
+     "colony[self] := colony[self] * 2;",
+     "colony[self] := colony[self] + 1;"),
+    ("I2", "Incubator", 2,
+     "[][\\A p \\in Plates: colony[p]' \\in {colony[p], 2 * colony[p]}]_colony",
+     "\\A p \\in Plates: [][colony[p]' \\in {colony[p], 2 * colony[p]}]_colony[p]"),
+    ("I3", "Incubator", 1,
+     "colony = [p \\in Plates |-> 1];",
+     "colony = [p \\in Plates |-> Limit];"),
+    ("I4", "Incubator", 2,
+     "[][\\A p \\in Plates: colony[p]' \\in {colony[p], 2 * colony[p]}]_colony",
+     "[][\\A p \\in Plates: colony[p]' = 2 * colony[p]]_colony"),
+    ("I5", "Incubator", 1,
+     "colony[self] := colony[self] * 2;",
+     "colony[self] := colony[self] * 3;"),
 
     # --- Airlock (exercise 5) ----------------------------------------------
     # A1 is the fail run EXERCISES.md states for exercise 5.

@@ -212,33 +212,41 @@ reports here.
 
 ## Exercise 4
 
-- Title: `Two tanks, one property`
+- Title: `Every plate, one property`
 - Format: `complete-the-skeleton`
-- Task: Fill the one hole in `starters/TankFarm.tla`, marked `TODO_1`. The file
+- Task: Fill the one hole in `starters/Incubator.tla`, marked `TODO_1`. The file
   does not parse until you do.
-  `LevelsNeverFall` has to say that no tank's level ever drops, for every tank
-  in `Tanks`.
-  The obvious first attempt is to write the property for one tank and wrap a
-  quantifier round the outside, `\A t \in Tanks: [][level[t]' >= level[t]]_level[t]`.
+  Two culture plates sit in an incubator and grow on their own clocks. On any
+  one step a plate's colony is allowed to do exactly two things. It can stay
+  exactly where it is, or it can exactly double. Nothing else is legal, in
+  either direction. `ColoniesDoubleOrHold` has to say that for every plate in
+  `Plates`. Work the action out from that sentence rather than from a formula,
+  and keep in mind that a step where one plate doubles is a step where the other
+  plate does not move at all.
+  Then there is the shape it has to be written in. The obvious first attempt
+  writes the property for one plate, wraps a quantifier round the outside, and
+  subscripts that one plate's entry, `\A p \in Plates: [][ ... ]_colony[p]`.
   That module does not compile. TLC checks a top-level box action formula, and
   the fix is that `[]` commutes with `\A`, so the quantifier can move inside the
   box. Moving it inside also puts the subscript back on the whole variable,
   which is the part that actually has to be right.
   **The stub sits in the file twice.** This file ships translated, so
-  `LevelsNeverFall == TODO_1` appears once inside the PlusCal comment and once
-  below `\* BEGIN TRANSLATION`, and TLC reads only the translated copy. Fill
-  both, or fill the PlusCal copy and run `pcal` again.
+  `ColoniesDoubleOrHold == TODO_1` appears once inside the PlusCal comment and
+  once below `\* BEGIN TRANSLATION`, and TLC reads only the translated copy.
+  Fill both, or fill the PlusCal copy and run `pcal` again.
 - Time budget: `12 min`
 - Uses: TLC checking only a top-level `[A]_v`, `[]` commuting with `\A`, a
   quantified action property over a function-valued variable
 - Expected outcome:
   - Pass run: `OK`
-  - Fail run: change the `Top` label's assignment from `level[self] := Cap;` to
-    `level[self] := 0;` and re-run. `LIVENESS_VIOLATION`. A top-up that writes 0
-    is a step down, and the quantifier inside the box is what makes the property
-    notice it on whichever tank did it.
-- How to run: `pcal starters/TankFarm.tla` then
-  `bash ~/repos/tla-puzzles/harness/verdict.sh starters/TankFarm.tla -c starters/TankFarm.cfg`
+  - Fail run: change the loop body from `colony[self] := colony[self] * 2;` to
+    `colony[self] := colony[self] + 1;` and re-run. `LIVENESS_VIOLATION`. That
+    edit is in the algorithm body, so one `pcal` run picks it up. A colony that
+    goes from 2 to 3 is still growing, and the property still catches it,
+    because the property pins the shape of the step and not its direction. The
+    quantifier inside the box is what makes it notice on whichever plate did it.
+- How to run: `pcal starters/Incubator.tla` then
+  `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Incubator.tla -c starters/Incubator.cfg`
 
 ## Exercise 5
 
