@@ -172,6 +172,8 @@ fi
 SUITES=(
   "fast|0.7|pipefail idiom ban|./harness/test-pipefail.sh"
   "fast|1.0|puzzle screen|./harness/screen.sh --selftest"
+  # Uncomment when the chapter repair wave merges. Red by design until then.
+  # "fast|1.1|printed commands|./harness/test-printed-commands.sh"
   "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
