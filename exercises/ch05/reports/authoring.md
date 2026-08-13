@@ -177,3 +177,33 @@ collide either.
 
 Both predict-then-check exercises instruct the learner to write the prediction
 into `LOG.md` before running TLC.
+
+## Conversion to c-syntax, 2026-08-12
+
+Bead `tla-wza0`, Frank's ruling 2026-08-12. All 10 PlusCal modules under
+`starters/` and `references/` moved from p-syntax to c-syntax: braces for the
+algorithm body, `define`, and `while`, and c-syntax's parenthesized guards on
+`while` and `with`. Names, labels, guards, and asserts did not move. `Kiln.tla`
+and `Relay.tla` live in both `starters/` and their `references/ex2-kiln` and
+`ex4-relay` copies. Both pairs stayed byte-identical through the conversion,
+same as before it.
+
+Each module was hand-edited, then re-translated with `tlc -pcal -nocfg`. Every
+module's post-conversion `chksum(tla)` matches its pre-conversion value
+exactly. That checksum is TLC's own hash of the translated next-state
+relation. An unchanged value across a full syntax rewrite is good evidence
+the semantics didn't move.
+
+All 10 stated-outcome rows above came back through `harness/verdict.sh`
+unchanged: same token, same rc.
+
+The 25-mutant table above was reapplied to the converted modules and re-run
+through two new committed scripts, `reports/mutants.py` and
+`reports/run-mutants.sh`, on the pattern ch06 already used. Fourteen of the 25
+mutants edit a `.cfg`, which carries no PlusCal and so needed no adapting at
+all. The other 11 edit a `.tla`. Every one of those mutation sites sits inside
+a `define` expression, a variable initializer, or a plain assignment
+statement. None of that moved when braces replaced `begin`/`end`. All 25
+patterns matched their converted modules on the first seeding pass, and all
+25 verdicts match: every mutant flips the `OK` verdict, none inert, same as
+before conversion.

@@ -10,24 +10,26 @@ CONSTANT Runners
 
 Perms == Permutations(Runners)
 
-(*--algorithm relay
+(*--algorithm relay {
 variables carrier \in Runners, touched = {}, passes = 0;
 
-define
+define {
   TouchedAreRunners == touched \subseteq Runners
   CarrierIsRunner == carrier \in Runners
-end define;
+}
 
-begin
+{
   Pass:
-    while passes < 2 do
+    while (passes < 2) {
       touched := touched \union {carrier};
-      with r \in Runners do
+      with (r \in Runners) {
         carrier := r;
-      end with;
+      };
       passes := passes + 1;
-    end while;
-end algorithm; *)
+    };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "af4e467c" /\ chksum(tla) = "cc9a8f2f")
 VARIABLES pc, carrier, touched, passes
 

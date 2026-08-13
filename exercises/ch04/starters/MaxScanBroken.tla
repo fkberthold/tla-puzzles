@@ -3,12 +3,12 @@ EXTENDS Integers, Sequences
 
 Input == <<3, 7, 2, 7, 5>>
 
-(*--algorithm max_scan_broken
+(*--algorithm max_scan_broken {
 variables
   i = 1,
   best = Input[1];
 
-define
+define {
   \* TODO: paste the SAME three definitions you completed in MaxScan.tla.
   \* The algorithm below is wrong on purpose. A real invariant has to
   \* fail on it.
@@ -17,15 +17,17 @@ define
   Attained == \E k \in 1..Len(Input): TRUE
 
   BestIsMax == TRUE => (UpperBound /\ Attained)
-end define;
+}
 
-begin
+{
 Scan:
-  while i <= Len(Input) do
+  while (i <= Len(Input)) {
     best := Input[i];
     i := i + 1;
-  end while;
-end algorithm; *)
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "a3bd5bf7" /\ chksum(tla) = "67ee8efb")
 VARIABLES pc, i, best
 

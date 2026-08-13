@@ -2,6 +2,8 @@
 
 Four exercises. Budget 10 to 15 minutes each after you have read the chapter.
 
+PlusCal here uses c-syntax, braces not begin/end.
+
 Work in `starters/`. Every starter parses and runs before you touch it, so
 you can run TLC at any point and see where you stand. `references/` holds a
 worked answer for each one. Open it after you finish, not before.

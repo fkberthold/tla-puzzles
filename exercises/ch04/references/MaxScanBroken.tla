@@ -3,26 +3,28 @@ EXTENDS Integers, Sequences
 
 Input == <<3, 7, 2, 7, 5>>
 
-(*--algorithm max_scan_broken
+(*--algorithm max_scan_broken {
 variables
   i = 1,
   best = Input[1];
 
-define
+define {
   UpperBound == \A k \in 1..Len(Input): Input[k] <= best
 
   Attained == \E k \in 1..Len(Input): Input[k] = best
 
   BestIsMax == pc = "Done" => (UpperBound /\ Attained)
-end define;
+}
 
-begin
+{
 Scan:
-  while i <= Len(Input) do
+  while (i <= Len(Input)) {
     best := Input[i];
     i := i + 1;
-  end while;
-end algorithm; *)
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "ea49603d" /\ chksum(tla) = "3606dab5")
 VARIABLES pc, i, best
 

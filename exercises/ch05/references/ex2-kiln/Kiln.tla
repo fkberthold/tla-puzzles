@@ -15,19 +15,21 @@ CONSTANT Warmup, Deadline
 ASSUME Deadline > Warmup
 ASSUME Deadline <= 6
 
-(*--algorithm kiln
+(*--algorithm kiln {
 variable clock = Warmup;
 
-define
+define {
   ClockInWindow == clock \in Warmup..Deadline
-end define;
+}
 
-begin
+{
   Tick:
-    while clock < Deadline do
+    while (clock < Deadline) {
       clock := clock + 1;
-    end while;
-end algorithm; *)
+    };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "5ddba3de" /\ chksum(tla) = "50529756")
 VARIABLES pc, clock
 

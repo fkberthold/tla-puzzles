@@ -14,24 +14,26 @@ MaxKilos == 4
 
 ParcelType == [kilos: 1..MaxKilos, depot: Depots, express: BOOLEAN]
 
-(*--algorithm parceldesk
+(*--algorithm parceldesk {
 variables
   parcel \in ParcelType;
 
-define
+define {
   TypeOK == parcel \in ParcelType
 
   KeysAreFixed == DOMAIN parcel = {"kilos", "depot", "express"}
-end define;
+}
 
-begin
+{
   Weigh:
-    if parcel.kilos < MaxKilos then
+    if (parcel.kilos < MaxKilos) {
       parcel.kilos := parcel.kilos + 1;
-    end if;
+    };
   Upgrade:
     parcel := [kilos |-> parcel.kilos, depot |-> parcel.depot, express |-> TRUE];
-end algorithm; *)
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "a8d2638e" /\ chksum(tla) = "e1db9a53")
 VARIABLES pc, parcel
 

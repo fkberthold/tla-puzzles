@@ -7,19 +7,21 @@ EXTENDS Integers
 
 CONSTANT StartingCredit
 
-(*--algorithm allowance
+(*--algorithm allowance {
 variable credit = StartingCredit;
 
-define
+define {
   CreditNeverNegative == credit >= 0
-end define;
+}
 
-begin
+{
   Spend:
-    while credit > 0 do
+    while (credit > 0) {
       credit := credit - 2;
-    end while;
-end algorithm; *)
+    };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "74a67d68" /\ chksum(tla) = "98f32472")
 VARIABLES pc, credit
 

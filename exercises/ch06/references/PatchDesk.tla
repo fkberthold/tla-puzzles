@@ -9,26 +9,28 @@ EXTENDS Integers, TLC
 
 Keys == {"retries", "timeout"}
 
-(*--algorithm patchdesk
+(*--algorithm patchdesk {
 variables
   settings = [k \in Keys |-> 0];
   overridden = FALSE;
 
-define
+define {
   TypeOK == settings \in [Keys -> 0..9]
 
   KeysAreFixed == DOMAIN settings = Keys
 
   OverrideSticks == overridden => settings["retries"] = 5
-end define;
+}
 
-begin
+{
   Override:
     settings := ("retries" :> 5) @@ settings;
     overridden := TRUE;
   Remerge:
     settings := settings @@ ("retries" :> 9);
-end algorithm; *)
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "6f77649d" /\ chksum(tla) = "449e1382")
 VARIABLES pc, settings, overridden
 

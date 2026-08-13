@@ -9,19 +9,21 @@
 \* translation below. TLC runs the translation, not the PlusCal you typed.
 EXTENDS Integers
 
-(*--algorithm allowance
+(*--algorithm allowance {
 variable credit = 4;
 
-define
+define {
   CreditNeverNegative == credit >= 0
-end define;
+}
 
-begin
+{
   Spend:
-    while credit > 0 do
+    while (credit > 0) {
       credit := credit - 2;
-    end while;
-end algorithm; *)
+    };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "f4bd88e2" /\ chksum(tla) = "846fbe1b")
 VARIABLES pc, credit
 

@@ -2,6 +2,8 @@
 
 Five exercises. Budget 10 to 15 minutes each once you've read the chapter.
 
+PlusCal here uses c-syntax, braces not begin/end.
+
 Nothing here needs a construct from past chapter 6. If you find yourself
 reaching for `either`, `with x \in Set`, or a recursive operator, back up. The
 answer is in chapters 2 through 6.

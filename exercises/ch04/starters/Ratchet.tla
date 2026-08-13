@@ -3,12 +3,12 @@ EXTENDS Integers, Sequences
 
 Steps == 4
 
-(*--algorithm ratchet
+(*--algorithm ratchet {
 variables
   level = 0,
   log = <<>>;
 
-define
+define {
   \* TODO: replace TRUE. `s` is a sequence of readings. Nothing later in
   \* it is smaller than anything earlier. Quantify over the index pairs
   \* and rule out the pairs you do not care about.
@@ -20,17 +20,19 @@ define
   NoDropWrong ==
     ~ \E a, b \in 1..Len(log):
         a < b => log[a] > log[b]
-end define;
+}
 
-begin
+{
 Tick:
-  while Len(log) < Steps do
-    with next \in level..(level + 2) do
+  while (Len(log) < Steps) {
+    with (next \in level..(level + 2)) {
       level := next;
       log := Append(log, next);
-    end with;
-  end while;
-end algorithm; *)
+    };
+  };
+}
+}
+*)
 \* BEGIN TRANSLATION (chksum(pcal) = "b129071f" /\ chksum(tla) = "6b099092")
 VARIABLES pc, level, log
 
