@@ -8,25 +8,29 @@ EXTENDS Integers, TLC
 \* "the label never runs" or "the probe never worked", and only this run tells
 \* those two apart.
 
-(*--algorithm sensor
+(*--algorithm sensor {
   variables
     temp \in 0..30,
     mode = "idle";
 
-begin
-  Sense:
-    if temp > 40 then
-      Trip:
-        mode := "alarm";
-    elsif temp > 20 then
-      mode := "cool";
-    else
-      mode := "hold";
-    end if;
-  Settle:
-    assert FALSE;
-end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1946d781" /\ chksum(tla) = "4bcd6bc8")
+  {
+    Sense:
+      if (temp > 40) {
+        Trip:
+          mode := "alarm";
+      } else {
+        if (temp > 20) {
+          mode := "cool";
+        } else {
+          mode := "hold";
+        }
+      };
+    Settle:
+      assert FALSE;
+  }
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "1946d781" /\ chksum(tla) = "82b5cb7b")
 VARIABLES pc, temp, mode
 
 vars == << pc, temp, mode >>
@@ -52,7 +56,7 @@ Trip == /\ pc = "Trip"
         /\ temp' = temp
 
 Settle == /\ pc = "Settle"
-          /\ Assert(FALSE, "Failure of assertion at line 27, column 5.")
+          /\ Assert(FALSE, "Failure of assertion at line 22, column 7.")
           /\ pc' = "Done"
           /\ UNCHANGED << temp, mode >>
 
@@ -66,5 +70,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION 
+\* END TRANSLATION
 ====

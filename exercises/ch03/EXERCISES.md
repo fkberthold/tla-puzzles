@@ -2,6 +2,8 @@
 
 Five exercises, 10 to 15 minutes each once you've read the chapter.
 
+PlusCal here uses c-syntax, braces not begin/end.
+
 ## Before you start
 
 Every module here is PlusCal, so every module needs translating before TLC

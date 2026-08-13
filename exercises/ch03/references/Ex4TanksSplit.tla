@@ -6,21 +6,23 @@ EXTENDS Integers, TLC
 \* Drain and Fill are separate steps, so Audit sits between them and sees a
 \* moment when three litres exist in neither tank.
 
-(*--algorithm tanks
+(*--algorithm tanks {
   variables
     tanks = <<7, 0>>;
 
-begin
-  Drain:
-    tanks[1] := tanks[1] - 3;
-  Audit:
-    assert tanks[1] + tanks[2] = 7;
-  Fill:
-    tanks[2] := tanks[2] + 3;
-  Settle:
-    assert tanks[2] = 3;
-end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "29ba82c4" /\ chksum(tla) = "febc4b4d")
+  {
+    Drain:
+      tanks[1] := tanks[1] - 3;
+    Audit:
+      assert tanks[1] + tanks[2] = 7;
+    Fill:
+      tanks[2] := tanks[2] + 3;
+    Settle:
+      assert tanks[2] = 3;
+  }
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "29ba82c4" /\ chksum(tla) = "30593036")
 VARIABLES pc, tanks
 
 vars == << pc, tanks >>
@@ -34,8 +36,8 @@ Drain == /\ pc = "Drain"
          /\ pc' = "Audit"
 
 Audit == /\ pc = "Audit"
-         /\ Assert(tanks[1] + tanks[2] = 7, 
-                   "Failure of assertion at line 17, column 5.")
+         /\ Assert(tanks[1] + tanks[2] = 7,
+                   "Failure of assertion at line 12, column 7.")
          /\ pc' = "Fill"
          /\ tanks' = tanks
 
@@ -44,8 +46,8 @@ Fill == /\ pc = "Fill"
         /\ pc' = "Settle"
 
 Settle == /\ pc = "Settle"
-          /\ Assert(tanks[2] = 3, 
-                    "Failure of assertion at line 21, column 5.")
+          /\ Assert(tanks[2] = 3,
+                    "Failure of assertion at line 16, column 7.")
           /\ pc' = "Done"
           /\ tanks' = tanks
 
@@ -59,5 +61,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION 
+\* END TRANSLATION
 ====

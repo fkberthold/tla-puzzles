@@ -5,35 +5,37 @@ EXTENDS Integers, TLC
 \* branch guard reads `owed > 5` instead of `owed >= 5`, so an owed of exactly
 \* 5 is paid out in pennies. `assert pennies < 5` catches it.
 
-(*--algorithm dispenser
+(*--algorithm dispenser {
   variables
     owed \in 0..12,
     target = 0,
     nickels = 0,
     pennies = 0;
 
-  macro Give(count, value) begin
+  macro Give(count, value) {
     owed := owed - value;
     count := count + 1;
-  end macro;
+  }
 
-begin
-  Record:
-    target := owed;
-  Dispense:
-    while owed > 0 do
-      if owed > 5 then
-        Give(nickels, 5);
-      else
-        Give(pennies, 1);
-      end if;
-    end while;
-  Check:
-    assert owed = 0;
-    assert pennies < 5;
-    assert nickels * 5 + pennies = target;
-end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6d3c1264" /\ chksum(tla) = "f0fd3c1f")
+  {
+    Record:
+      target := owed;
+    Dispense:
+      while (owed > 0) {
+        if (owed > 5) {
+          Give(nickels, 5);
+        } else {
+          Give(pennies, 1);
+        };
+      };
+    Check:
+      assert owed = 0;
+      assert pennies < 5;
+      assert nickels * 5 + pennies = target;
+  }
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "6d3c1264" /\ chksum(tla) = "cfb283ef")
 VARIABLES pc, owed, target, nickels, pennies
 
 vars == << pc, owed, target, nickels, pennies >>
@@ -65,10 +67,10 @@ Dispense == /\ pc = "Dispense"
             /\ UNCHANGED target
 
 Check == /\ pc = "Check"
-         /\ Assert(owed = 0, "Failure of assertion at line 32, column 5.")
-         /\ Assert(pennies < 5, "Failure of assertion at line 33, column 5.")
-         /\ Assert(nickels * 5 + pennies = target, 
-                   "Failure of assertion at line 34, column 5.")
+         /\ Assert(owed = 0, "Failure of assertion at line 32, column 7.")
+         /\ Assert(pennies < 5, "Failure of assertion at line 33, column 7.")
+         /\ Assert(nickels * 5 + pennies = target,
+                   "Failure of assertion at line 34, column 7.")
          /\ pc' = "Done"
          /\ UNCHANGED << owed, target, nickels, pennies >>
 
@@ -82,5 +84,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION 
+\* END TRANSLATION
 ====
