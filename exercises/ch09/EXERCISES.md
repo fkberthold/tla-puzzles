@@ -2,6 +2,8 @@
 
 Five exercises. Budget 10 to 15 minutes each once you've read the chapter.
 
+PlusCal here uses c-syntax, braces not begin/end.
+
 Nothing here needs a construct from past chapter 9. Processes, `await`, model
 values and symmetry sets all come from chapters 5 and 8, and everything else
 comes from chapters 2 to 6. If you find yourself reaching for a recursive
@@ -11,11 +13,11 @@ operator or `CASE`, back up.
 
 Work in this directory. The starters are in `starters/`, and you write your
 answers there too, next to the `.cfg` that goes with them. Every exercise ships
-its `.cfg`, so you write or fill the `.tla` and leave the config alone. The
-config also pins the property names, which is what makes your verdict match the
-one each exercise states.
+its `.cfg`, so you write or fill the `.tla` and leave the config alone unless an
+exercise says otherwise. The config also pins the property names, which is what
+makes your verdict match the one each exercise states.
 
-Fill in a row of `LOG.md` per exercise. Exercises 4 and 5 are predict-then-check,
+Fill in a line of `LOG.md` per exercise. Exercises 4 and 5 are predict-then-check,
 so write your prediction on that line, or as a comment in the spec, before you
 run TLC.
 
@@ -30,19 +32,21 @@ bash ~/repos/tla-puzzles/harness/verdict.sh starters/YourSpec.tla -c starters/Yo
 ```
 
 The `pcal` step is only needed when you've changed something inside the PlusCal
-comment. Three of the five starters arrive already translated.
+comment. Exercise 1 has you write a module from scratch. The four starters for
+exercises 2 to 5 all arrive already translated.
 
 The one line `verdict.sh` prints is your answer. It comes from TLC's exit
 status, not from anything TLC printed, so read that token and ignore the console
 noise above it.
 
-- `OK` means the check found nothing.
-- `SAFETY_VIOLATION` means something refutable by a finite prefix broke. An
+- `OK` (0) means the model check found nothing.
+- `SAFETY_VIOLATION` (12) means something refutable by a finite prefix broke. An
   invariant, or a property TLC could settle without looking at an infinite
   behavior.
-- `LIVENESS_VIOLATION` means a property that needs an infinite behavior broke.
-- `SAFETY_EVAL_FAILURE` means the check never ran, because TLC couldn't
-  evaluate what you gave it.
+- `LIVENESS_VIOLATION` (13) means a property that needs an infinite behavior
+  broke.
+- `PARSE_ERROR` (150) means the file did not parse. An unfilled `TODO` does
+  this.
 
 State counts are not part of any expected outcome below. Two correct answers can
 explore different numbers of states, and neither is wrong.
@@ -69,7 +73,7 @@ the pass run already went green.
      shuts. Any bridge that isn't already condemned gets condemned.
   3. In a `define` block, write `StateOK`, saying `state` stays in `States`.
   4. In the same block, write `CondemnedIsForever`, saying that once the bridge
-     is condemned it stays condemned. You need two boxes, one inside the other,
+     is condemned it stays condemned. You need two `[]`s, one inside the other,
      and an implication between them.
   The config puts `StateOK` under `INVARIANT` and `CondemnedIsForever` under
   `PROPERTY`. That split is the exercise. Ask yourself why the second one can't
@@ -92,31 +96,34 @@ the pass run already went green.
 
 - Title: `The kiln that never finishes`
 - Format: `complete-the-skeleton`
-- Task: Fill the two `TODO` holes in `starters/Kiln.tla`. The file doesn't parse
-  until you fill the second one.
-  - `TODO 1` is the fairness modifier on the process. One word, immediately
-    before `process`.
-  - `TODO 2` is `FiringFinishes`, saying the firing always reaches
-    `stage = "cooled"`. One temporal operator over one state predicate.
-  This starter arrives already translated, so `TODO_2` sits in the file twice.
-  Once in the PlusCal comment, and once again in the translated section below
-  it. TLC reads only the translated copy. Fill the copy in the PlusCal comment
-  and run `pcal`, which rewrites the translation from it. If you edit the
-  translated copy instead, it works once and the next `pcal` run throws it away.
-  Then do it in the other order. Fill `TODO 2` first, leave `TODO 1` alone, and
-  run it. That's the run worth having.
+- Task: Fill the two `TODO` holes in `starters/Kiln.tla`, in that order, one
+  run each.
+  This starter arrives already translated, so each hole sits in the file
+  twice: once in the PlusCal comment and once again in the translated
+  section below it. TLC reads only the translated copy. Always edit the
+  copy in the PlusCal comment and run `pcal`, which rewrites the
+  translation from it. Editing the translated copy appears to work, and
+  the next `pcal` run throws it away.
+  1. Fill `TODO 2` only, and leave `TODO 1` empty. It is `FiringFinishes`,
+     saying the firing always reaches `stage = "cooled"`. One temporal
+     operator over one state predicate. Run it. Until `TODO 2` is filled
+     the module does not parse, so this is also the first run that gets as
+     far as TLC, and it is the run worth having.
+  2. Then fill `TODO 1`, the fairness modifier on the process: one word,
+     immediately before `process`. Run it again.
 - Time budget: `12 min`
 - Uses: `<>`, `fair process`, stuttering as a way for a spec to crash, and the
   fact that a stutter step breaks no invariant
 - Expected outcome:
   - Pass run: `OK`, with both holes filled.
-  - Fail run: two of them, and you want both. First, delete the `fair` and
-    re-run. `LIVENESS_VIOLATION`. Nothing about the kiln changed. The behavior
-    that breaks it is the one where the kiln stops dead and stutters for ever.
-    Second, put `fair` back, and change `soaks := soaks + 1` to `soaks := 0`.
-    `LIVENESS_VIOLATION` again, this time with fairness in place and the soak
-    looping for ever. That second run is the one that proves your `OK` was
-    about the kiln rather than about a property too weak to fail.
+  - Fail run: two of them, and you want both. The first is step 1 above,
+    before you filled `TODO 1`. `LIVENESS_VIOLATION`. Nothing about the kiln
+    changed. The behavior that breaks it is the one where the kiln stops dead
+    and stutters for ever.
+    Second, keep `TODO 1` filled and change `soaks := soaks + 1` to
+    `soaks := 0`. `LIVENESS_VIOLATION` again, this time with fairness in place
+    and the soak looping for ever. That second run is the one that proves your
+    `OK` was about the kiln rather than about a property too weak to fail.
 - How to run: `pcal starters/Kiln.tla` then
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Kiln.tla -c starters/Kiln.cfg`
 
@@ -130,9 +137,7 @@ the pass run already went green.
      for ever. Not "gets it once", and not "ends up holding it". Quantify over
      `Hauliers`, and put a two-operator temporal shape around `bay = h`.
   2. Run it. The starter ships with weak fairness, and the property doesn't
-     hold under it. Work out which behavior breaks it before you read on. A
-     haulier waiting at `Wait` can only move while the bay is free, so it isn't
-     always able to move.
+     hold under it. Work out which behavior breaks it before you read on.
   3. Change `fair` to `fair+` and run it again.
   This starter also arrives already translated, so `TODO_1` sits in the file
   twice, once in the PlusCal comment and once in the translated section below
@@ -144,7 +149,9 @@ the pass run already went green.
   one alongside a liveness property. I measured what happens if you try. TLC
   gives no warning and reports `LIVENESS_VIOLATION` on the `fair+` spec, which is
   the correct spec. Adding `SYMMETRY Perms` to the config turns a true property
-  into a false alarm, in silence. `COVERAGE.md` has the detail.
+  into a false alarm, in silence. The behavior it reports is one where a single
+  haulier docks over and over and the other never does. Symmetry folded the two
+  together, so TLC cannot tell that trace from a real one.
 - Time budget: `15 min`
 - Uses: `[]<>`, `fair` against `fair+`, a contested resource where a process is
   only intermittently able to move
@@ -158,6 +165,14 @@ the pass run already went green.
     to break.
 - How to run: `pcal starters/LoadingBay.tla` then
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/LoadingBay.tla -c starters/LoadingBay.cfg`
+
+### After the run
+
+Run before you read on.
+
+A haulier waiting at `Wait` can only move while the bay is free, so it is
+not always able to move, and weak fairness promises nothing to a process
+that is only intermittently able to act. That is the gap `fair+` closes.
 
 ## Exercise 4
 
@@ -177,6 +192,9 @@ the pass run already went green.
 - Uses: `<>`, `[]<>` and `<>[]` over the same predicate, and one property per
   config because TLC won't name the property that broke
 - How to run: three runs, same module.
+  The module ships translated, so `pcal starters/Beacon.tla` is only
+  needed after you edit inside the PlusCal comment, which the fail run below
+  asks you to do. Run it there, before the three verdict commands.
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Beacon.tla -c starters/BeaconEver.cfg`
   then
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Beacon.tla -c starters/BeaconAgain.cfg`
@@ -190,9 +208,10 @@ Run before you read on.
 - Expected outcome:
   - Pass run: `OK` for `BeaconEver.cfg`, and `OK` for `BeaconAgain.cfg`.
     `LIVENESS_VIOLATION` for `BeaconSettles.cfg`.
-  - Fail run: delete the `fair` and run all three again. All three come back
-    `LIVENESS_VIOLATION`. Put `fair` back, change `lamp := "lit"` to
-    `lamp := "dark"` so the lamp never lights, and run all three again. All
+  - Fail run: delete the `fair`, run `pcal starters/Beacon.tla`, and run all
+    three again. All three come back `LIVENESS_VIOLATION`. Put `fair` back,
+    change `lamp := "lit"` to `lamp := "dark"` so the lamp never lights, run
+    `pcal starters/Beacon.tla` again, and run all three again. All
     three break again, this time with fairness in place. That second sweep is
     what tells you the two `OK`s above were about the beacon.
 
@@ -232,6 +251,9 @@ worth having.
 - Uses: `~>` chained, weak fairness under a leads-to, and a hand-built
   non-vacuity probe
 - How to run: two configs, same module.
+  `MaxOpen` sits outside the PlusCal comment, so step 3 needs no `pcal`.
+  The fail run below edits inside the comment, so that one does: run
+  `pcal starters/Depot.tla` before the verdict commands.
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Depot.tla -c starters/Depot.cfg`
   then
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Depot.tla -c starters/DepotProbe.cfg`
