@@ -264,10 +264,13 @@ Every construct used is from chapters 2 to 8, checked against
 `exercises/ch02` through `exercises/ch08`'s `CHEATSHEET.md` construct lists.
 
 The ones worth naming, with the chapter that introduces them: `CONSTANT` and
-model values (ch03, `Nobody` in `KitchenLocks`); function literals and function
-update (ch06, `coat` in `Cloakroom`); `CHOOSE` (ch04); `Cardinality` (ch04,
-`BellTower`); the deterministic `with (h = ...)` (ch05); `if` and `while`
-(ch05); `skip` (ch05); `\A` (ch07); `define` blocks and invariants (ch07).
+model values (ch05, `Nobody` in `KitchenLocks`); function literals and function
+update (ch06, `coat` in `Cloakroom`); `CHOOSE` (ch02); `Cardinality` (ch02,
+`BellTower`); the deterministic `with (h = ...)` (ch03); `if` and `while`
+(ch03); `skip` (ch03); `\A` (ch04); `define` blocks and invariants (ch04).
+
+Correction, 2026-08-12, central, after the cold-solve review: the chapter
+numbers above were wrong for nine constructs and now match the cheat sheets.
 
 Nothing from chapter 9 or later appears. No temporal operator, no fairness
 annotation, no `Termination` in any `.cfg`.

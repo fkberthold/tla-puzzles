@@ -183,6 +183,8 @@ reaches the label where it does so.
      second label does `skip`.
   The second label is not decoration. A `call` has to be followed by a label, a
   `goto`, or another `return`, so the call needs somewhere to come back to.
+  Name both labels anything you like except `Done`, which the translator
+  reserves for itself.
   Watch where the procedure goes in the file, too. PlusCal wants it after any
   macros and before any processes.
 - Time budget: `15 min`

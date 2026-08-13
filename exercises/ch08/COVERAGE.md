@@ -72,7 +72,7 @@ interesting wrong one:
   bind the result of a `CHOOSE`. It is a naming convenience there and carries
   no chapter-7 meaning.
 - **Macros.** The sheet mentions them only as the thing procedures extend.
-  Chapter 5 introduces and drills them; repeating that here would spend a
+  Chapter 3 introduces and drills them; repeating that here would spend a
   budget on a construct this chapter does not teach.
 - **`self` inside a macro,** and the `process P \in {val}` trick that lets a
   single process reach it. That is a tip in the chapter
