@@ -14,22 +14,24 @@ EXTENDS Integers, TLC
 \* and then demands the closing one, so a mention in prose is read as a real
 \* translation block and the run dies with "Unrecoverable error".
 
-(*--algorithm retry
+(*--algorithm retry {
   variables
     attempts = 0,
     linked = FALSE;
 
-begin
-  Dial:
-    attempts := attempts + 1;
-    if attempts < 3 then
-      goto Dial;
-      linked := FALSE;
-    else
-      linked := TRUE;
-    end if;
-  Report:
-    assert linked;
-    assert attempts = 3;
-end algorithm; *)
+  {
+    Dial:
+      attempts := attempts + 1;
+      if (attempts < 3) {
+        goto Dial;
+        linked := FALSE;
+      } else {
+        linked := TRUE;
+      };
+    Report:
+      assert linked;
+      assert attempts = 3;
+  }
+}
+*)
 ====

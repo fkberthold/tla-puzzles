@@ -199,3 +199,66 @@ includes. None of the following is reused here, in surface or in shape:
 The chapter also spends a section on reading TLC's run statistics. That is a
 theme rather than an example, and `COVERAGE.md` records what this set does
 with it and what it leaves alone.
+
+## Conversion to c-syntax, 2026-08-12
+
+Converted to c-syntax 2026-08-12 (bead `tla-s7hw`), on Frank's ruling that all
+exercise PlusCal use braces, not `begin`/`end`. Every starter and reference
+under `exercises/ch03/` was rewritten by hand from p-syntax to c-syntax and
+retranslated with `pcal`. Variable names, labels, guards, and asserts stayed
+the same. Only the algorithm's surface syntax changed.
+
+Two checks carried the proof.
+
+First, `pcal` reports the same `chksum(pcal)` value before and after
+conversion, for every reference that ships a translation. That checksum is
+computed from the parsed algorithm, not the source text, so an unchanged
+value means `pcal` sees the exact same algorithm under the new syntax. Every
+converted reference matched: `Ex1Dispenser` (`d1e8c926`), `Ex1DispenserFail`
+(`6d3c1264`), `Ex2Fresh`/`Ex2Stale` (`e05ac07d`), `Ex3Retry` (`7ca0a0f8`),
+`Ex4Tanks` (`f4426267`), `Ex4TanksSplit` (`29ba82c4`), `Ex5DeadLabel`
+(`46f245ce`), `Ex5LiveLabel` (`1946d781`).
+
+Second, the full 13-row stated-outcome sweep and the 22-mutant pass both
+ran again against the converted tree, through `harness/verdict.sh`. All 13
+outcomes matched the table above exactly, token and rc. All 22 mutants
+matched the mutant table exactly, token and rc. No adaptation changed a
+verdict.
+
+`elsif` does not exist in c-syntax. Every p-syntax `elsif` in this set
+(`Ex5DeadLabel`, `Ex5LiveLabel`, the `Ex5Sensor` starter) became a nested
+`if`/`else`, which is the only c-syntax form for a three-way branch. `pcal`
+confirmed this is the same translation p-syntax `elsif` already produced:
+the nested-if source and the old `elsif` source hit the same `chksum(pcal)`.
+
+`Ex2Stale` needed one extra step beyond a plain retranslation, because its
+whole point is a translation that no longer matches its own source. A fresh
+`pcal` run on the converted source gives the correct, matching translation
+(`setpoint' = setpoint + 2`), which is what `Ex2Fresh` now carries. `Ex2Stale`
+instead keeps the same one-line divergence it always had: the `Warmer`
+action reads `setpoint' = setpoint + 3` by hand, with the `chksum(tla)`
+comment left at the value the fresh, pre-edit translation actually had. That
+is what "stale" means: a checksum on record that no longer matches the code
+below it. The starter copy carries the same translation block as the
+reference, unchanged, matching how the original p-syntax pair related to
+each other.
+
+`Ex3RetryFail` stays broken the same way. The statement after the `goto`
+with no label between them is still a labeling-rule violation under
+c-syntax, and `pcal` still refuses it: `Unrecoverable error: -- Missing
+label`, rc 255. The header comment warning about `pcal`'s own translation-
+marker scan needed no change. It never named the p-syntax `begin`/`end`
+forms.
+
+The 22 mutants from the table above needed no adapted edits. Every edit
+carried over as a direct syntactic transliteration: `while owed > 0` became
+`while (owed > 0)`, `if attempts < 3 then` became `if (attempts < 3) {`, and
+so on. The two structural mutants that break translation on purpose,
+`Ex2M4` (delete a label, forcing a double assignment into one step) and
+`Ex4M1` (`||` to `;`, same double-assignment trap), still land on
+`CONFIG_ERROR` under c-syntax through the same labeling-rule failure `pcal`
+already used to catch them under p-syntax. `exercises/ch03/reports/
+mutant-sweep.sh` is the runner that reproduces this pass: for each mutant it
+takes the committed reference, strips its translation, applies the one
+documented edit, retranslates, and checks the verdict. Run it with `bash
+exercises/ch03/reports/mutant-sweep.sh`.

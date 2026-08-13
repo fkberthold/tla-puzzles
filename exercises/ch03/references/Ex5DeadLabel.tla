@@ -5,26 +5,30 @@ EXTENDS Integers, TLC
 \* is never true, so Trip is never entered and the assert never runs. TLC
 \* explores the whole state space and reports OK.
 
-(*--algorithm sensor
+(*--algorithm sensor {
   variables
     temp \in 0..30,
     mode = "idle";
 
-begin
-  Sense:
-    if temp > 40 then
-      Trip:
-        assert FALSE;
-        mode := "alarm";
-    elsif temp > 20 then
-      mode := "cool";
-    else
-      mode := "hold";
-    end if;
-  Settle:
-    skip;
-end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "46f245ce" /\ chksum(tla) = "503c4c3b")
+  {
+    Sense:
+      if (temp > 40) {
+        Trip:
+          assert FALSE;
+          mode := "alarm";
+      } else {
+        if (temp > 20) {
+          mode := "cool";
+        } else {
+          mode := "hold";
+        }
+      };
+    Settle:
+      skip;
+  }
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "46f245ce" /\ chksum(tla) = "de9707f7")
 VARIABLES pc, temp, mode
 
 vars == << pc, temp, mode >>
@@ -45,7 +49,7 @@ Sense == /\ pc = "Sense"
          /\ temp' = temp
 
 Trip == /\ pc = "Trip"
-        /\ Assert(FALSE, "Failure of assertion at line 17, column 9.")
+        /\ Assert(FALSE, "Failure of assertion at line 13, column 11.")
         /\ mode' = "alarm"
         /\ pc' = "Settle"
         /\ temp' = temp
@@ -65,5 +69,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION 
+\* END TRANSLATION
 ====

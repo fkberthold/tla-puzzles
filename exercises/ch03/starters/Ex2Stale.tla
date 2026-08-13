@@ -5,23 +5,25 @@ EXTENDS Integers, TLC
 \* read the translation, and write your prediction in LOG.md before you run
 \* anything.
 
-(*--algorithm thermostat
+(*--algorithm thermostat {
   variables
     setpoint = 68,
     bumps = 0;
 
-begin
-  Warmer:
-    setpoint := setpoint + 2;
-    bumps := bumps + 1;
-  Cooler:
-    setpoint := setpoint - 1;
-    bumps := bumps + 1;
-  Check:
-    assert setpoint = 69;
-    assert bumps = 2;
-end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "7d2b1dc1" /\ chksum(tla) = "923ef2e0")
+  {
+    Warmer:
+      setpoint := setpoint + 2;
+      bumps := bumps + 1;
+    Cooler:
+      setpoint := setpoint - 1;
+      bumps := bumps + 1;
+    Check:
+      assert setpoint = 69;
+      assert bumps = 2;
+  }
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "e05ac07d" /\ chksum(tla) = "bf20e186")
 VARIABLES pc, setpoint, bumps
 
 vars == << pc, setpoint, bumps >>
@@ -43,8 +45,8 @@ Cooler == /\ pc = "Cooler"
 
 Check == /\ pc = "Check"
          /\ Assert(setpoint = 69,
-                   "Failure of assertion at line 17, column 5.")
-         /\ Assert(bumps = 2, "Failure of assertion at line 18, column 5.")
+                   "Failure of assertion at line 17, column 7.")
+         /\ Assert(bumps = 2, "Failure of assertion at line 18, column 7.")
          /\ pc' = "Done"
          /\ UNCHANGED << setpoint, bumps >>
 

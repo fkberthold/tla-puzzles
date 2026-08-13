@@ -5,23 +5,25 @@ EXTENDS Integers, TLC
 \* character for character the PlusCal in Ex2Stale. Running `pcal` on that
 \* file produces this one.
 
-(*--algorithm thermostat
+(*--algorithm thermostat {
   variables
     setpoint = 68,
     bumps = 0;
 
-begin
-  Warmer:
-    setpoint := setpoint + 2;
-    bumps := bumps + 1;
-  Cooler:
-    setpoint := setpoint - 1;
-    bumps := bumps + 1;
-  Check:
-    assert setpoint = 69;
-    assert bumps = 2;
-end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e05ac07d" /\ chksum(tla) = "a92ff9ff")
+  {
+    Warmer:
+      setpoint := setpoint + 2;
+      bumps := bumps + 1;
+    Cooler:
+      setpoint := setpoint - 1;
+      bumps := bumps + 1;
+    Check:
+      assert setpoint = 69;
+      assert bumps = 2;
+  }
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "e05ac07d" /\ chksum(tla) = "90e4665")
 VARIABLES pc, setpoint, bumps
 
 vars == << pc, setpoint, bumps >>
@@ -42,9 +44,9 @@ Cooler == /\ pc = "Cooler"
           /\ pc' = "Check"
 
 Check == /\ pc = "Check"
-         /\ Assert(setpoint = 69, 
-                   "Failure of assertion at line 21, column 5.")
-         /\ Assert(bumps = 2, "Failure of assertion at line 22, column 5.")
+         /\ Assert(setpoint = 69,
+                   "Failure of assertion at line 21, column 7.")
+         /\ Assert(bumps = 2, "Failure of assertion at line 22, column 7.")
          /\ pc' = "Done"
          /\ UNCHANGED << setpoint, bumps >>
 
@@ -58,5 +60,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION 
+\* END TRANSLATION
 ====
