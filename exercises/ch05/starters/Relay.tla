@@ -1,5 +1,6 @@
 ---- MODULE Relay ----
-\* Reference solution for exercise 4.
+\* GIVEN module for exercise 4. Nothing to fill in. Read it, predict,
+\* run it. The worked write-up is under references/ex4-relay/.
 \* Runners is a set of model values. Nothing in this module can tell one
 \* runner from another, which is exactly the condition a symmetry set needs.
 \* Perms is the command line spelling of the toolbox "symmetry" checkbox.

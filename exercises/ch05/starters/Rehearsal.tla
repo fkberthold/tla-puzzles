@@ -1,5 +1,5 @@
 ---- MODULE Rehearsal ----
-\* STARTER for exercise 5. Copy this file somewhere you can edit it.
+\* STARTER for exercise 5. This is your own copy, so edit it in place.
 \*
 \* The climb stops at 5. `LevelCapped` wants it to stop at 2. As written the
 \* two disagree and there is no way to reconcile them without editing the

@@ -17,16 +17,29 @@
   Section anchor: `constants#ASSUME`
 
 - Construct: model value
-  Syntax shape: `X <- [model value]`
+  Syntax shape: `CONSTANT Unclaimed = Unclaimed` in the `.cfg`. A bare word on
+  the right of the `=`, no quotes and no digits, is a model value.
+  Toolbox equivalent: `X <- [model value]` in the constant assignment dialog.
   Section anchor: `constants#model_value`
 
 - Construct: set of model values
-  Syntax shape: `S <- [model value] {s1, s2, s3}`
+  Syntax shape: `CONSTANT Runners = {r1, r2, r3}` in the `.cfg`. Bare words
+  again, one per element.
+  Toolbox equivalent: `S <- [model value] {s1, s2, s3}`.
   Section anchor: `constants#model_set`
 
 - Construct: symmetry set
-  Syntax shape: mark a model-value set "symmetry" in the constant assignment dialog
+  Syntax shape: `Perms == Permutations(Runners)` in the module, then
+  `SYMMETRY Perms` in the `.cfg`. The module names the permutation set and the
+  `.cfg` points at it.
+  Toolbox equivalent: mark a model-value set "symmetry" in the constant
+  assignment dialog.
   Section anchor: `constants#symmetry_set`
+
+- Trap: a `.cfg` assigns a literal, never an expression. `CONSTANT N = 3`
+  works. `CONSTANT N = -1` and `CONSTANT N = 0 - 1` are both config syntax
+  errors. The toolbox takes an expression because it writes a generated module
+  for you. The `.cfg` route has nowhere to put one.
 
 ## Major themes
 

@@ -1,5 +1,5 @@
 ---- MODULE Locker ----
-\* SKELETON for exercise 3. Copy this file somewhere you can edit it.
+\* SKELETON for exercise 3. This is your own copy, so edit it in place.
 \*
 \* `holder` names whoever holds the locker. `claimed` records the same fact a
 \* second way. `Unclaimed` is the placeholder that means nobody holds it.
