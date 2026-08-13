@@ -38,12 +38,21 @@
 
 ## Major themes
 
-- Structs are functions from string keys to values. `[a |-> 1, b |-> 2]` builds one, `struct.a` or `struct["a"]` reads one, and `[key: set, ...]` builds the set of them for a type invariant.
-- `DOMAIN` is the one operation that works on sequences, structs, and functions alike. It is the reveal of the chapter. Sequences and structs both turn out to be functions, sequences over `1..n` and structs over a set of strings.
-- A function literal `[x \in S |-> expr]` maps `S` to values of `expr`, called with `f[x]`. It reaches past single argument mappings too, `[x, y \in S |-> expr]` and `f[a, b]` both work.
-- Function sets `[S -> T]` type a function the way `1..10` types a number. They can be built from filtered or mapped sets to narrow the type further, and their size is `#T` to the power of `#S`.
+- Structs are functions from string keys to values.
+- `[a |-> 1, b |-> 2]` builds a struct, and `struct.a` or `struct["a"]` reads one.
+- `[key: set, ...]` builds the set of all such structs, which is what a type invariant needs.
+- `DOMAIN` is the one operation that works on sequences, structs, and functions alike.
+- That is the reveal of the chapter. Sequences and structs both turn out to be functions, sequences over `1..n` and structs over a set of strings.
+- A function literal `[x \in S |-> expr]` maps `S` to values of `expr`, called with `f[x]`.
+- It reaches past single argument mappings too. `[x, y \in S |-> expr]` and `f[a, b]` both work.
+- Function sets `[S -> T]` type a function the way `1..10` types a number.
+- They can be built from filtered or mapped sets to narrow the type further, and their size is `#T` to the power of `#S`.
 - `:>` and `@@` build and merge functions piece by piece, without writing a set comprehension.
-- The chapter closes on worked examples that put functions to use. `Zip`, `Sort` (via `CHOOSE` over a function set), and a rewrite of the duplicate checker that swaps a hardcoded `\X` chain for a function set, which is what lets its sequence length become a constant (state sweeping).
+- The chapter closes on worked examples that put functions to use.
+- `Zip` builds a function from two sequences.
+- `Sort` picks the sorted arrangement with `CHOOSE` over a function set.
+- The duplicate checker is rewritten to swap a hardcoded `\X` chain for a function set.
+- That rewrite is what lets the checker's sequence length become a constant, which is state sweeping.
 
 ## Boundary notes
 

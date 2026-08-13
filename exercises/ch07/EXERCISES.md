@@ -2,6 +2,8 @@
 
 Five exercises. Budget 10 to 15 minutes each once you have read the chapter.
 
+PlusCal here uses c-syntax, braces not begin/end.
+
 Nothing here needs a construct from past chapter 7. If you find yourself
 reaching for a `process`, a fairness annotation, an `await`, or a temporal
 property, back up. The answer is in chapters 2 through 7.
@@ -32,13 +34,24 @@ pcal starters/Thing.tla
 bash ~/repos/tla-puzzles/harness/verdict.sh starters/Thing.tla -c starters/Thing.cfg
 ```
 
-Swap `Thing` for the module the exercise names. The harness is named by an
-absolute path, so it resolves wherever you put your practice directory. The
-module and the config are named relative to this directory, which is where you
-are running from.
+Swap `Thing` for the module the exercise names. Adjust the harness path to
+wherever you cloned `tla-puzzles`. It is written as an absolute path so that it
+resolves wherever you put your practice directory. The module and the config
+are named relative to this directory, which is where you are running from.
 
 Each exercise below repeats those lines with the name already filled in. Run
 them as printed.
+
+Run `pcal` again after every edit inside the PlusCal comment. TLC reads only
+the translation that `pcal` writes below your algorithm, never the algorithm
+itself, so an untranslated edit changes nothing and you will be reading a stale
+verdict.
+
+Two of the starters ship already translated, so each `TODO_n` in them sits in
+the file twice. Once in the algorithm block, and once again below the
+`\* BEGIN TRANSLATION` line. Fill the algorithm block and re-run `pcal`, or
+fill both copies by hand. Filling only the algorithm block and skipping `pcal`
+leaves the stub in place and you get `PARSE_ERROR`.
 
 On the two write-from-prompt starters `pcal` refuses until you have written an
 algorithm, with `Beginning of algorithm string --algorithm not found`. That is
@@ -48,12 +61,13 @@ The one line `verdict.sh` prints is your answer. It comes from TLC's exit
 status and not from anything TLC printed, so read that token and ignore the
 console noise above it.
 
-- `OK` means the model check found nothing.
-- `SAFETY_VIOLATION` means an invariant failed.
-- `ASSUMPTION_FAILED` means an `ASSUME` came out false.
-- `PARSE_ERROR` means the file did not parse. An unfilled `TODO` does this.
-- `CONFIG_ERROR` means the config names something your file does not define
-  yet. Both write-from-prompt starters begin here.
+- `OK` (0) means the model check found nothing.
+- `SAFETY_VIOLATION` (12) means an invariant failed.
+- `ASSUMPTION_FAILED` (10) means an `ASSUME` came out false.
+- `PARSE_ERROR` (150) means the file did not parse. An unfilled `TODO` does
+  this.
+- `CONFIG_ERROR` (151) means the config names something your file does not
+  define yet. Both write-from-prompt starters begin here.
 
 State counts are not part of any expected outcome below. This is the chapter
 where the state space starts to grow fast, and two correct answers can explore
@@ -74,12 +88,8 @@ different numbers of states. Neither is wrong.
     `with` example before you answer. What you draw from here is not a
     constant.
   - `TODO_3` is the new value of `waiting` once that crate has been taken.
-  The starter ships already translated, so each `TODO_n` sits in the file
-  twice. Once in the algorithm block, and once again below the
-  `\* BEGIN TRANSLATION` line. TLC reads only the translated copy. Fill the
-  algorithm block and re-run `pcal` to regenerate the translation, or fill both
-  copies by hand. Filling only the algorithm block and skipping `pcal` leaves
-  the stub in place and you get `PARSE_ERROR`.
+  This is one of the two starters that ship already translated, so mind the
+  note above about the second copy of each `TODO_n`.
   Leave the `while` guard alone. It counts picks rather than watching the quay,
   which is what keeps a wrong answer finite enough to get a verdict.
 - Time budget: `12 min`
@@ -112,8 +122,8 @@ bash ~/repos/tla-puzzles/harness/verdict.sh starters/Depot.tla -c starters/Depot
     hold on a gate that is already shut.
   Read all four branches before you write anything. Under `either` every branch
   is tried from every state, so a branch with no guard runs whenever it likes.
-  Same note as exercise 1 about the translated copy. Each `TODO_n` sits in the
-  file twice and TLC reads only the copy below `\* BEGIN TRANSLATION`.
+  This is the other already-translated starter, so the same note about the
+  second copy of each `TODO_n` applies.
 - Time budget: `12 min`
 - Uses: `either-or` as nondeterministic control flow, per-branch guards, the
   `or skip` branch that means nothing happened
@@ -147,7 +157,7 @@ bash ~/repos/tla-puzzles/harness/verdict.sh starters/Sluice.tla -c starters/Slui
   editing it.
 - Time budget: `10 min`
 - Uses: `either-or` over six branches, deterministic `with` nested inside a
-  nondeterministic branch, an invariant deliberately written false at the goal
+  nondeterministic branch
 - How to run:
 
 ```
@@ -236,9 +246,11 @@ bash ~/repos/tla-puzzles/harness/verdict.sh starters/BoxOffice.tla -c starters/B
      Then count the trip.
   Do not model why a crossing fails. Weather, engine trouble and a missing
   deckhand are all the same to this spec, and the whole sad path is worth two
-  words.
+  words. A step where nothing observable happens is still a step, and PlusCal
+  has a one-word statement for it.
   You will need two labels inside the loop. Working out why is part of the
-  exercise. The message PlusCal gives you when you use one names the problem.
+  exercise. Try it with a single label first. The error PlusCal prints names
+  the problem.
 - Time budget: `15 min`
 - Uses: the `either or skip` pattern as an abstraction over sad paths, an
   invariant that survives the abstraction
