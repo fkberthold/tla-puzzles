@@ -27,7 +27,7 @@
 
 ## Boundary notes
 
-- Concurrency, the last of the four nondeterminism sources this chapter lists (independent parts running in unknown order), is covered in chapter `08` instead. [cmd: sed -n '17p' docs/core/nondeterminism.rst (in clone) → "The last case, concurrency, we'll cover in the :doc:`next chapter <concurrency>`. To handle the rest, PlusCal has a couple of new constructs."]
-- Deadlock, which an empty nondeterministic `with` set can cause by blocking forever, is covered in chapter `08` instead, where the `deadlock` label is defined. [cmd: grep -n '_deadlock:' docs/core/concurrency.rst (in clone) → "207:.. _deadlock:"]
-- `await`, PlusCal's general blocking-until-condition construct, is covered in chapter `08` instead. [cmd: grep -n '_await:' docs/core/concurrency.rst (in clone) → "187:.. _await:"]
-- Struct set syntax, already in use in the `RequestType == [from: Client, type: {...}, params: ParamType]` example, is defined in chapter `06` instead. [cmd: grep -n '_struct_set:' docs/core/functions.rst (in clone) → "35:.. _struct_set:"]
+- Concurrency, the last of the four nondeterminism sources this chapter lists (independent parts running in unknown order), is covered in chapter `08` instead.
+- Deadlock, which an empty nondeterministic `with` set can cause by blocking forever, is covered in chapter `08` instead.
+- `await`, PlusCal's general blocking-until-condition construct, is covered in chapter `08` instead.
+- Struct set syntax, already in use in the `RequestType == [from: Client, type: {...}, params: ParamType]` example, is defined in chapter `06` instead.
