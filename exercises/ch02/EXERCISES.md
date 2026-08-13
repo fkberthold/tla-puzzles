@@ -8,24 +8,25 @@ through the harness, which prints one verdict token and exits with TLC's own
 status.
 
 ```bash
-bash harness/verdict.sh exercises/ch02/starters/Ex1Postage.tla
+bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex1Postage.tla
 ```
 
-The commands below assume you're in a checkout of the puzzles repo. If you're
-working in a delivered practice tree instead, run the same script out of the
-repo and give it the full path to your file.
+Run every command in this file from this chapter directory, the one holding
+`starters/` and `LOG.md`. They're true as printed. The harness is a script in
+the puzzles repo, so adjust `~/repos/tla-puzzles` to wherever you cloned it.
 
-Fill in a row of `LOG.md` per exercise. For exercise 3, write the prediction
-into the log **before** you run TLC. A prediction you write after the run is
-not a prediction.
+Fill in a line of `LOG.md` per exercise. `LOG.md` is delivered beside this
+file. For exercise 3, write your prediction on that line, or as a comment in
+your spec, before you run TLC. A prediction you write after the run is not a
+prediction.
 
 ## Reading a verdict
 
 Three tokens show up in this set.
 
-- `OK`: TLC checked the invariant and found no state that breaks it.
-- `SAFETY_VIOLATION`: TLC checked it and found one.
-- `PARSE_ERROR`: the module didn't compile, so nothing ran.
+- `OK` (0): TLC checked the invariant and found no state that breaks it.
+- `SAFETY_VIOLATION` (12): TLC checked it and found one.
+- `PARSE_ERROR` (150): the module didn't parse, so nothing ran.
 
 A fourth shows up in exercise 3, and finding out which one is the exercise.
 
@@ -47,13 +48,14 @@ answer block.
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant PostageIsRight`
-- How to run: `bash harness/verdict.sh exercises/ch02/starters/Ex1Postage.tla`
+- How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex1Postage.tla`
 
 The starter reports `PARSE_ERROR` until you define `Postage`. That's your first
 checkpoint, and it names the operator it can't find.
 
-For the fail run, take your working answer and change the first band test from
-`<=` to `<`. A parcel of exactly 100 grams then lands in the wrong band and
+For the fail run, move the first band boundary by one gram, so that a parcel of
+exactly 100 grams pays the 90 as well. However you wrote the band test, that's
+the edit: `Postage(100)` comes back 210 where the prompt says 120, and
 `PostageIsRight` goes red. Change it back afterwards.
 
 ## Exercise 2
@@ -78,10 +80,10 @@ that one on a single line with `~` and `\/`.
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant RuleIsRight`
-- How to run: `bash harness/verdict.sh exercises/ch02/starters/Ex2HoldPickup.tla`
+- How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex2HoldPickup.tla`
 
 The starter returns `FALSE` from both operators, so it goes red before you
-touch it. Run it first and watch it fail.
+touch it.
 
 For the fail run, turn your implication around to
 `staff_override => owes_fines` and run it again. The rule now says an override
@@ -99,21 +101,21 @@ into your log before you run anything.
 1. What does `Status("a2") = 0` evaluate to, `FALSE` or something else?
 2. Which verdict token comes back?
 
-Run it. Then repair the line and run it again.
+Run it. Before you change anything, read TLC's own words for what went wrong:
+
+```bash
+bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex3SlotStatus.tla --log /tmp/ex3.log
+grep -n Error /tmp/ex3.log
+```
+
+Then repair the line and run it again.
 
 - Title: `What type is that answer`
 - Format: `predict-then-check`
 - Task: `Predict the verdict, run the starter, then repair the line.`
 - Time budget: `10 min`
 - Uses: `untyped values, = and # as the only cross-type operators, EXTENDS`
-- How to run: `bash harness/verdict.sh exercises/ch02/starters/Ex3SlotStatus.tla`
-
-To see the reason in words, keep the log and read it.
-
-```bash
-bash harness/verdict.sh exercises/ch02/starters/Ex3SlotStatus.tla --log /tmp/ex3.log
-grep -n Error /tmp/ex3.log
-```
+- How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex3SlotStatus.tla`
 
 The second half of the exercise is `EXTENDS`. Once the module is green, delete
 the `EXTENDS Integers` line and run it again. `Restocked` needs `+`, so the
@@ -163,11 +165,12 @@ Write five operators over routes.
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant RouteIsRight`
-- How to run: `bash harness/verdict.sh exercises/ch02/starters/Ex4FerryRoute.tla`
+- How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex4FerryRoute.tla`
 
-For the fail run, start the `Between` slice at index 1 instead of index 2. That
-is what 0-indexed habits produce, and it's the single most common way to get
-this wrong.
+For the fail run, make `Between` keep the first stop, so that `Between(Coast)`
+still starts at `"quay"`. However you wrote it, that's what a 0-indexed habit
+produces, and it's the single most common way to get this wrong. Change it back
+afterwards.
 
 ## Exercise 5
 
@@ -195,10 +198,10 @@ Work out which before you start typing.
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: `SAFETY_VIOLATION, invariant BankIsRight`
-- How to run: `bash harness/verdict.sh exercises/ch02/starters/Ex5LockerBank.tla`
+- How to run: `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex5LockerBank.tla`
 
 Every stub in the starter returns a placeholder, so it goes red before you
-touch it. Run it first and watch it fail.
+touch it.
 
 For the fail run, swap the operands of the set difference in `Free`. That
 leaves it empty, and the locker counts go red.

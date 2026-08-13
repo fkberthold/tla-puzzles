@@ -1,7 +1,8 @@
 ---- MODULE Ex4Tanks ----
 EXTENDS Integers, TLC
 
-\* Untranslated. Run `pcal Ex4Tanks.tla` before you run TLC.
+\* Untranslated. Run `pcal starters/Ex4Tanks.tla` from the chapter directory
+\* before you run TLC.
 
 (*--algorithm tanks {
   variables

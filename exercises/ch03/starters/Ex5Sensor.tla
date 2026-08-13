@@ -1,7 +1,8 @@
 ---- MODULE Ex5Sensor ----
 EXTENDS Integers, TLC
 
-\* Untranslated. Run `pcal Ex5Sensor.tla` before you run TLC.
+\* Untranslated. Run `pcal starters/Ex5Sensor.tla` from the chapter directory
+\* before you run TLC.
 
 (*--algorithm sensor {
   variables

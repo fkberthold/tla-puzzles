@@ -6,40 +6,60 @@ PlusCal here uses c-syntax, braces not begin/end.
 
 ## Before you start
 
+Run every command in this file from this chapter directory, the one holding
+`starters/` and `LOG.md`. They're true as printed. The harness is a script in
+the puzzles repo, so adjust `~/repos/tla-puzzles` to wherever you cloned it.
+
 Every module here is PlusCal, so every module needs translating before TLC
 sees anything. The translator is `pcal`:
 
 ```
-pcal -nocfg MyModule.tla
+pcal starters/MyModule.tla
 ```
 
-`-nocfg` stops `pcal` rewriting your `.cfg`. Every `.cfg` in this set holds
-one line:
+Every `.cfg` in this set holds one line:
 
 ```
 SPECIFICATION Spec
 ```
 
+`pcal` writes the `.cfg` beside your module as well, but it won't replace a
+`SPECIFICATION` line that's already there. Every `.cfg` here has one, so plain
+`pcal` is safe on all of them.
+
+Exercises 1 and 3 ship no starter: you write the module and its `.cfg`
+yourself. Put both in `starters/`, named after the module, and give the `.cfg`
+the one `SPECIFICATION Spec` line above. Then every command below is true as
+printed.
+
+Two exercises here ask for a module from scratch, so you pick your own label
+names. `Done` is not one of them: the translator uses it for the value `pc`
+takes when the algorithm finishes, and rejects it with
+`Cannot use 'Done' as a label.`
+
 Verdicts come from the harness, never from what TLC printed:
 
 ```
-bash harness/verdict.sh -c MyModule.cfg MyModule.tla
+bash ~/repos/tla-puzzles/harness/verdict.sh starters/MyModule.tla -c starters/MyModule.cfg
 ```
 
-That prints one token and exits with TLC's own status. `harness/verdict.sh`
-is a path into the `tla-puzzles` checkout, so run it from there and give it
-the path to your module.
+That prints one token and exits with TLC's own status.
 
 The tokens you'll meet in this set:
 
-- `OK` (0): TLC explored the whole state space and found nothing wrong.
+- `OK` (0): the model check found nothing.
 - `ASSERT_VIOLATION` (14): an `assert` was false during exploration.
-- `CONFIG_ERROR` (151): the `.cfg` names `Spec` and the module has no `Spec`.
+- `PARSE_ERROR` (150): the file did not parse. A module you're still writing
+  spends time here.
+- `CONFIG_ERROR` (151): the config names something your file does not define
+  yet, such as a `Spec` that only the translation defines.
 
 `CONFIG_ERROR` almost always means you forgot to translate.
 
-For the predict-then-check exercises, write your prediction in `LOG.md`
-before you run anything. A prediction written after the fact isn't one.
+Fill in a line of `LOG.md` per exercise. `LOG.md` is delivered beside this
+file. For the predict-then-check exercises, write your prediction on that line,
+or as a comment in your spec, before you run TLC. A prediction written after
+the fact isn't one.
 
 ## Exercise 1
 
@@ -56,18 +76,16 @@ before you run anything. A prediction written after the fact isn't one.
   original amount, so record it in a label of its own before the loop starts.
 - Time budget: `15 min`
 - Uses: `\in` on a variable declaration. `while`. PlusCal `if`. `macro`.
-  `assert` with `EXTENDS TLC`. Every statement belongs to a label. Pick any
-  label names you like except `Done`, which the translator reserves.
+  `assert` with `EXTENDS TLC`. Every statement belongs to a label.
 - Expected outcome:
-  - Pass run: `OK` (rc 0) on `references/Ex1Dispenser.tla`.
-  - Fail run: `ASSERT_VIOLATION` (rc 14) on
-    `references/Ex1DispenserFail.tla`, which differs by one character. Its
-    guard reads `owed > 5` where the working one reads `owed >= 5`, so an
-    amount of exactly 5 comes out as five pennies.
+  - Pass run: `OK` (rc 0) on your own `Ex1Dispenser.tla`, once it translates.
+  - Fail run: `ASSERT_VIOLATION` (rc 14) once the guard reads `owed > 5` where
+    the working one reads `owed >= 5`, so an amount of exactly 5 comes out as
+    five pennies. Change it back afterwards.
 - How to run:
   ```
-  pcal -nocfg Ex1Dispenser.tla
-  bash harness/verdict.sh -c Ex1Dispenser.cfg Ex1Dispenser.tla
+  pcal starters/Ex1Dispenser.tla
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex1Dispenser.tla -c starters/Ex1Dispenser.cfg
   ```
 
 The third assert is the one that earns its place. Drop it and a dispenser
@@ -84,20 +102,26 @@ that counts a nickel while handing over a penny still passes.
   `pcal` and run TLC again. Explain the difference before you read the
   references.
 - Time budget: `10 min`
-- Uses: PlusCal compiles to TLA+ through a translation step in a comment
-  block, and TLC runs the translated output.
-- Expected outcome:
-  - Pass run: `OK` (rc 0) on `references/Ex2Fresh.tla`, which holds that same
-    PlusCal with the translation regenerated.
-  - Fail run: `ASSERT_VIOLATION` (rc 14) on `references/Ex2Stale.tla` as it
-    ships. The translation is left over from an earlier draft where `Warmer`
-    read `setpoint + 3`, so TLC checks 70 against an assert wanting 69.
+- Uses: The translation comment block. `assert` with `EXTENDS TLC`. Labels.
+- Expected outcome: the same file gives two different verdicts, and which one
+  you get first is the exercise. See After the run below.
 - How to run:
   ```
-  bash harness/verdict.sh -c Ex2Stale.cfg Ex2Stale.tla
-  pcal -nocfg Ex2Stale.tla
-  bash harness/verdict.sh -c Ex2Stale.cfg Ex2Stale.tla
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex2Stale.tla -c starters/Ex2Stale.cfg
+  pcal starters/Ex2Stale.tla
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex2Stale.tla -c starters/Ex2Stale.cfg
   ```
+
+### After the run
+
+Run before you read on.
+
+- Expected outcome:
+  - First run: `ASSERT_VIOLATION` (rc 14) on `starters/Ex2Stale.tla` as it
+    ships. The translation is left over from an earlier draft where `Warmer`
+    read `setpoint + 3`, so TLC checks 70 against an assert wanting 69.
+  - Second run: `OK` (rc 0) on that same file, once `pcal` has regenerated the
+    translation from the PlusCal you read.
 
 Nobody edits a translation on purpose. Everybody forgets to retranslate.
 
@@ -115,15 +139,16 @@ Nobody edits a translation on purpose. Everybody forgets to retranslate.
 - Time budget: `12 min`
 - Uses: `goto` and its labeling rule. Labels as atomic steps. `assert`.
 - Expected outcome:
-  - Pass run: `OK` (rc 0) on `references/Ex3Retry.tla`.
-  - Fail run: `pcal` exits 255 on `references/Ex3RetryFail.tla` and refuses
-    to write a translation, reporting a missing label. Running the harness on
-    the module anyway gives `CONFIG_ERROR` (rc 151), because a module with no
-    translation has no `Spec` for the `.cfg` to name.
+  - Pass run: `OK` (rc 0) on your own `Ex3Retry.tla`, once it translates.
+  - Fail run: once a statement follows the `goto` in the same label, `pcal`
+    exits 255 and refuses to write a translation, reporting a missing label.
+    Running the harness on the module anyway gives `CONFIG_ERROR` (rc 151),
+    because a module with no translation has no `Spec` for the `.cfg` to name.
+    Take the statement back out afterwards.
 - How to run:
   ```
-  pcal -nocfg Ex3Retry.tla
-  bash harness/verdict.sh -c Ex3Retry.cfg Ex3Retry.tla
+  pcal starters/Ex3Retry.tla
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex3Retry.tla -c starters/Ex3Retry.cfg
   ```
 
 A `goto` at the end of a branch is fine. The rule bites when a statement
@@ -145,18 +170,19 @@ follows the `goto` in the same label, because that statement can never run.
 - Uses: `||`. `with`. A variable updates once per label. Label placement
   decides what is atomic.
 - Expected outcome:
-  - Pass run: `OK` (rc 0) on `references/Ex4Tanks.tla`.
-  - Fail run: `ASSERT_VIOLATION` (rc 14) on `references/Ex4TanksSplit.tla`.
-    Nothing changed but the labels. `Drain` and `Fill` are separate steps, so
-    `Audit` sees a moment where 3 litres are in neither tank and the total
-    reads 4.
+  - Pass run: `OK` (rc 0) on your own `starters/Ex4Tanks.tla`, once `Pump`
+    moves the water in one label.
+  - Fail run: `ASSERT_VIOLATION` (rc 14) once the move is split into a `Drain`
+    label and a `Fill` label with `Audit` between them. Nothing changed but the
+    labels. `Drain` and `Fill` are separate steps, so `Audit` sees a moment
+    where 3 litres are in neither tank and the total reads 4.
 - How to run:
   ```
-  pcal -nocfg Ex4Tanks.tla
-  bash harness/verdict.sh -c Ex4Tanks.cfg Ex4Tanks.tla
+  pcal starters/Ex4Tanks.tla
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex4Tanks.tla -c starters/Ex4Tanks.cfg
   ```
 
-The skeleton as shipped gives `ASSERT_VIOLATION` once translated, since a
+The starter as shipped gives `ASSERT_VIOLATION` once translated, since a
 `skip` moves no water. That's your starting red.
 
 ## Exercise 5
@@ -173,18 +199,32 @@ The skeleton as shipped gives `ASSERT_VIOLATION` once translated, since a
 - Time budget: `12 min`
 - Uses: `assert` as a reachability probe. `\in` on a variable declaration.
   A label inside an `if` branch forces a label after the block. `skip`.
-- Expected outcome:
-  - Pass run: `OK` (rc 0) on `references/Ex5DeadLabel.tla`, which carries the
-    probe in `Trip`. `temp` never exceeds 30, so the guard `temp > 40` never
-    holds and `Trip` is dead.
-  - Fail run: `ASSERT_VIOLATION` (rc 14) on `references/Ex5LiveLabel.tla`,
-    the same module with the probe moved to `Settle`.
+- Expected outcome: the same file gives two different verdicts, and which one
+  you get first is the exercise. See After the run below.
 - How to run:
   ```
-  pcal -nocfg Ex5Sensor.tla
-  bash harness/verdict.sh -c Ex5Sensor.cfg Ex5Sensor.tla
+  pcal starters/Ex5Sensor.tla
+  bash ~/repos/tla-puzzles/harness/verdict.sh starters/Ex5Sensor.tla -c starters/Ex5Sensor.cfg
   ```
+
+Retranslate after every move of the probe. The two commands go together.
+
+### After the run
+
+Run before you read on.
+
+- Expected outcome:
+  - Probe in `Trip`: `OK` (rc 0) on your own `starters/Ex5Sensor.tla`. `temp`
+    never exceeds 30, so the guard `temp > 40` never holds and `Trip` is dead.
+  - Probe in `Settle`: `ASSERT_VIOLATION` (rc 14) on that same file, the probe
+    moved and nothing else changed.
 
 Run both. An `OK` from a probe means one of two things, and only the second
 run tells you which. Either the label is unreachable, or your probe never
 worked at all.
+
+## Answers
+
+`references/` in the puzzles repo holds a worked answer per exercise, and a
+broken copy for every fail run named above. It is not delivered into a
+practice tree, on purpose. Read it once your own module runs, not before.
