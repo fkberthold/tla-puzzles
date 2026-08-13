@@ -45,6 +45,7 @@ console noise above it.
 - `OK` means the model check found nothing.
 - `SAFETY_VIOLATION` means an invariant failed.
 - `DEADLOCK` means TLC reached a state where no process could do anything.
+  `verdict.sh` only looks for it when you pass `-d`, which exercise 2 does.
 - `SPEC_EVAL_FAILURE` means the spec could not be evaluated, so nothing at all
   was checked. This is not the same as a violation.
 - `PARSE_ERROR` means the module did not parse.
@@ -140,13 +141,15 @@ reaches the label where it does so.
   3. In a `define` block, write `CoatsAreGuests` saying every hook holds either
      0 or a guest, and `UsedHooksAreTaken` saying a hook with a coat on it is
      never still in `free`.
-  4. A process set over `Guests`, one label. The guest picks a hook out of
-     `free` with `CHOOSE`, hangs its own coat there, and takes that hook out of
-     `free`. Use `self` for "its own".
-  Three guests, two hooks. Somebody arrives to an empty `free`, and `CHOOSE`
-  over an empty set has no answer to give. Deciding what happens instead is
-  the exercise. Guard the whole thing with an `if` so the third guest simply
-  keeps its coat.
+  4. A process set over `Guests`, one label. Guard the whole body with
+     `if (free # {})`. Inside the guard the guest picks a hook out of `free`
+     with `CHOOSE`, hangs its own coat there, and takes that hook out of
+     `free`. Use `self` for "its own". `Hooks == 1..2` needs
+     `EXTENDS Integers`.
+  Three guests, two hooks, so the third guest arrives to an empty `free`, and
+  `CHOOSE` over an empty set has no answer to give. The guard is the spec
+  saying out loud what happens then: that guest keeps its coat. The fail run
+  below is what happens when a spec declines to say.
 - Time budget: `15 min`
 - Uses: `self` inside a process set, and the fact that an action which only
   makes sense in some states needs the spec to say what happens in the others
@@ -175,18 +178,19 @@ reaches the label where it does so.
   3. In a `define` block, write `InkNeverNegative` and `LedgerBalances`. The
      second says every unit of ink is either still in the pad or accounted for
      by a stamp.
-  4. A `procedure Stamp(copies)` with one procedure variable `made` starting
-     at 0. It loops while `made < copies`, and each turn of the loop spends a
-     unit of ink, adds one to `stamped`, and adds one to `made`. Then it
-     returns.
+  4. A `procedure Stamp(copies)` with one procedure variable `made`
+     starting at 0, placed after the `define` block and before the process.
+     PlusCal wants procedures after any macros and before any processes. It
+     needs two labels of its own. The first holds a `while (made < copies)`
+     loop whose body spends a unit of ink, adds one to `stamped` and adds one
+     to `made`. The second holds the `return`, because a statement after a
+     `while` has to start a new label and cannot share the loop's.
   5. A process set over `Clerks`, whose first label calls `Stamp(2)` and whose
      second label does `skip`.
   The second label is not decoration. A `call` has to be followed by a label, a
   `goto`, or another `return`, so the call needs somewhere to come back to.
-  Name both labels anything you like except `Done`, which the translator
+  Name your labels anything you like except `Done`, which the translator
   reserves for itself.
-  Watch where the procedure goes in the file, too. PlusCal wants it after any
-  macros and before any processes.
 - Time budget: `15 min`
 - Uses: `procedure`, `call` and `return`, procedure-local variables, and why a
   spec with a procedure has to extend `Sequences`
