@@ -52,6 +52,9 @@
 #      command is one prefix away from working.
 #   3. The exercise is write-from-prompt and the path is under starters/.
 #      Pass. The learner writes this file, and the print pins where it goes.
+#      A trailing `# yours` comment on the printed line grants the same pass
+#      in any format. The comment is load-bearing: it tells the learner in
+#      print that the file is theirs to write.
 #   4. The exercise is write-from-prompt and the path is not under starters/.
 #      Fail. A file the learner creates with no stated home is how a chapter
 #      ends up with five answers in five places.
@@ -475,6 +478,14 @@ check_target() {
     return 1
   fi
 
+  if [ "${PC_YOURS:-0}" -eq 1 ]; then
+    case "$printed" in
+    starters/*) return 0 ;;
+    esac
+    CHECK_MSG="$printed carries the yours marker but sits outside starters/, so the print does not pin where it goes"
+    return 1
+  fi
+
   if [ "$fmt" = "write-from-prompt" ]; then
     case "$printed" in
     starters/*) return 0 ;;
@@ -493,6 +504,11 @@ check_command() {
   local label="ch$n/EXERCISES.md:$lineno  $5"
   local -a problems=()
   local t p
+
+  PC_YOURS=0
+  case "$text" in
+  *"# yours"*) PC_YOURS=1 ;;
+  esac
 
   parse_command "$text"
   [ -n "$PC_ERR" ] && problems+=("$PC_ERR")
