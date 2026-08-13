@@ -1,5 +1,5 @@
 ---- MODULE Allowance ----
-\* STARTER for exercise 1. Copy this file somewhere you can edit it.
+\* STARTER for exercise 1. This is your own copy, so edit it in place.
 \*
 \* This module runs as it stands. It also has a 4 welded into it, so the only
 \* way to check a different starting credit is to edit the spec. That is the

@@ -1,5 +1,6 @@
 ---- MODULE Kiln ----
-\* Reference solution for exercise 2.
+\* GIVEN module for exercise 2. Nothing to fill in. Read it, predict,
+\* run it. The worked write-up is under references/ex2-kiln/.
 \* Two constants that are only meaningful together, plus a size budget.
 \* The ASSUME lines say both things out loud, so a nonsense pair is rejected
 \* before any state is generated instead of surfacing later as a puzzling

@@ -13,7 +13,8 @@
   Section anchor: `invariants#invariant`
 
 - Construct: `define` block (PlusCal)
-  Syntax shape: `define ... end define;`
+  Syntax shape: `define { ... }`  (c-syntax, as used in every starter here;
+  `define ... end define;` is the p-syntax spelling learntla shows)
   Section anchor: `invariants#define`
 
 - Construct: `pc` (PlusCal's label-tracking variable)
@@ -32,7 +33,7 @@
 
 - An invariant is a property TLC checks on every reachable state, not just whether the spec runs without error.
 - Type invariants use `\in` and `\subseteq` to pin down the shape of each variable.
-- The error trace shows one state per row, with `pc` marking the current label and changed values in red.
+- The error trace shows one state per row, with `pc` marking the current label. The command line prints no colour, so you find the changed values by comparing one row against the row above it.
 - `pc` and `=>` together restrict a check to a specific point, like "only when `pc = \"Done\"`".
 - `\A` and `\E` are vacuous on the empty set: `\A` is always true there, `\E` is always false.
 - `=>` inside a quantifier rules out unwanted combinations, but pairing `=>` with `\E` instead of `/\` makes the check trivially true.
