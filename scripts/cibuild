@@ -55,7 +55,11 @@ fi
 # match. scripts/build-docs.sh is deliberately NOT on that list: it reads the
 # tag out of scripts/setup, so it has no copy to compare (bead tla-urv).
 EXPECT_TLC="2026.07.31"
-TLA_RELEASE="v1.8.0"
+TLA_RELEASE="tla2tools-v1.8.0-20260731"
+# The digest is the half of the pin a tag cannot cover (bead tla-yvky): the
+# tag above is a release this repo controls, but the sha256 is what
+# scripts/setup actually checks the download against.
+EXPECT_SHA256="e22f8ffb4bacdea0a871f444dd94fe5fb0d8013b3388ae39e82e26f852c735d5"
 
 DO_CORPUS=1
 DO_DOCS=1
@@ -111,12 +115,31 @@ fi
 
 # README.md is copied verbatim to docs/index.md by scripts/build-docs.sh, so
 # its install line is learner-facing and has to name the same asset.
-PINNED_JAR_URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+PINNED_JAR_URL="https://github.com/fkberthold/tla-puzzles/releases/download/${TLA_RELEASE}/tla2tools.jar"
 if ! grep -qF "$PINNED_JAR_URL" README.md; then
   echo "cibuild: README.md does not name the pinned jar — expected ${PINNED_JAR_URL}" >&2
   exit 1
 fi
 echo "  ok    all three recorded copies of the release tag agree, and README names it"
+
+# --- the DIGEST, checked the same way ---------------------------------------
+# A tag names one artifact only as long as nobody rebinds it. v1.8.0 got
+# rebound three times in 22 days once GitHub flagged it prerelease, and CI ran
+# 15 days red against a version the tag had stopped serving (bead tla-yvky).
+# The sha256 is what actually pins the download, so it gets the same
+# cross-check the tag and the version string get above.
+sha_in_setup="$(sed -n 's/^TLA_JAR_SHA256_PIN="\(.*\)"$/\1/p' scripts/setup)"
+sha_in_ci="$(sed -n "s/^ *EXPECT_SHA256: *'\(.*\)'\$/\1/p" .github/workflows/verify-puzzles.yml)"
+
+if [ "$sha_in_setup" != "$EXPECT_SHA256" ]; then
+  echo "cibuild: digest drift — scripts/setup says '${sha_in_setup}', this script says '${EXPECT_SHA256}'" >&2
+  exit 1
+fi
+if [ "$sha_in_ci" != "$EXPECT_SHA256" ]; then
+  echo "cibuild: digest drift — verify-puzzles.yml says '${sha_in_ci}', this script says '${EXPECT_SHA256}'" >&2
+  exit 1
+fi
+echo "  ok    all three recorded copies of the sha256 digest agree"
 
 # --- the docs generator must DERIVE the pin, never carry a copy -------------
 # scripts/build-docs.sh reads TLA_RELEASE out of scripts/setup. These two
@@ -134,8 +157,8 @@ for f in scripts/build-docs.sh README.md; do
     exit 1
   fi
 done
-if grep -qF 'tlaplus/releases/download/v' scripts/build-docs.sh; then
-  echo "cibuild: scripts/build-docs.sh hardcodes a tlaplus release tag. It must read" >&2
+if grep -qF 'tla-puzzles/releases/download/tla2tools-v' scripts/build-docs.sh; then
+  echo "cibuild: scripts/build-docs.sh hardcodes a release tag. It must read" >&2
   echo "  TLA_RELEASE from scripts/setup instead, so there is no copy to drift (tla-urv)." >&2
   exit 1
 fi

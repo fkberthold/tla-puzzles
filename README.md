@@ -52,7 +52,7 @@ Workflow per puzzle:
 ## Requirements
 
 - **Java 17+** (for both TLC and Apalache)
-- **TLA+ tools** — `pcal` and `tlc` on `$PATH`. Get the pinned [tla2tools.jar](https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar) — v1.8.0, the release every puzzle's expected result is verified against — and wrap it; this repo's author uses `~/bin/tlc`:
+- **TLA+ tools** — `pcal` and `tlc` on `$PATH`. Get the pinned [tla2tools.jar](https://github.com/fkberthold/tla-puzzles/releases/download/tla2tools-v1.8.0-20260731/tla2tools.jar) (TLC2 Version 2026.07.31.184830, sha256 `e22f8ffb4bacdea0a871f444dd94fe5fb0d8013b3388ae39e82e26f852c735d5`) — the build every puzzle's expected result is verified against — and wrap it; this repo's author uses `~/bin/tlc`:
   ```bash
   #!/usr/bin/env bash
   JAR="$HOME/lib/tla2tools.jar"

@@ -100,16 +100,33 @@ jobs:
           # re-ran the rc table and the frozen-mapping probe on this build
           # (TLC2 2026.07.31.184830) and both held.
           #
+          # A TAG IS NOT ENOUGH EITHER (bead tla-yvky). v1.8.0 stayed flagged
+          # prerelease and got rebuilt in place three times in 22 days, so the
+          # tag alone stopped naming one artifact. CI went red on 2026-08-13
+          # checking a version that tag had stopped serving, and stayed red 15
+          # days. The pin now points at a release this repo controls, and the
+          # download below is checked against its sha256, not trusted by name.
+          #
           # KEEP THIS ON ONE LINE, in this exact form. scripts/cibuild phase 1
           # reads it back out of this file with `sed -n "s/^ *TLA_RELEASE: ..."`
           # and compares it against scripts/setup. Two matching lines, or a
           # reflowed one, and that cross-check breaks.
-          TLA_RELEASE: v1.8.0
+          TLA_RELEASE: tla2tools-v1.8.0-20260731
+          # Same rule as TLA_RELEASE above: one line, this exact form.
+          # scripts/cibuild phase 1 cross-checks it against scripts/setup too.
+          EXPECT_SHA256: 'e22f8ffb4bacdea0a871f444dd94fe5fb0d8013b3388ae39e82e26f852c735d5'
         run: |
           set -euo pipefail
           mkdir -p "$HOME/lib" "$HOME/bin"
           curl -fsSL -o "$HOME/lib/tla2tools.jar" \
-            "https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+            "https://github.com/fkberthold/tla-puzzles/releases/download/${TLA_RELEASE}/tla2tools.jar"
+          actual_sha256="$(sha256sum "$HOME/lib/tla2tools.jar")"
+          actual_sha256="${actual_sha256%% *}"
+          if [ "$actual_sha256" != "$EXPECT_SHA256" ]; then
+            echo "tla2tools.jar sha256 mismatch. wanted $EXPECT_SHA256, got $actual_sha256" >&2
+            rm -f "$HOME/lib/tla2tools.jar"
+            exit 1
+          fi
           cat > "$HOME/bin/tlc" <<EOF
           #!/usr/bin/env bash
           exec java -XX:+UseParallelGC -cp "$HOME/lib/tla2tools.jar" tlc2.TLC "\$@"

@@ -34,7 +34,7 @@ if [ -z "$TLA_RELEASE" ]; then
   echo "  to emit docs with an unresolved toolchain URL." >&2
   exit 1
 fi
-TLA_JAR_URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+TLA_JAR_URL="https://github.com/fkberthold/tla-puzzles/releases/download/${TLA_RELEASE}/tla2tools.jar"
 
 # Copy hand-authored module reference pages from module-docs/
 if [ -d module-docs ]; then
