@@ -37,6 +37,16 @@
 # the learner install instructions. It now reads TLA_RELEASE out of THIS FILE
 # — the line below is the single source for the docs string — and
 # scripts/cibuild phase 1 asserts no copy has drifted.
+#
+# THE DIGEST IS THE REAL PIN (bead tla-yvky). A tag names one artifact only
+# if nobody rebinds it, and v1.8.0 got rebound three times in 22 days once
+# GitHub flagged it prerelease. CI went red on 2026-08-13 checking a version
+# the tag had stopped serving, and stayed red 15 days. So the pin moved to a
+# release this repo controls, plus its sha256, and the install checks the
+# digest instead of trusting the tag. TLA_JAR_URL and TLA_JAR_SHA256 below
+# default to the pinned values and honor an environment override, which is
+# the seam harness/test-toolchain-pin.sh uses to drive the mismatch check
+# offline against a file:// URL.
 # ===========================================================================
 
 set -euo pipefail
@@ -45,13 +55,16 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}" || exit 1
 
-TLA_RELEASE="v1.8.0"
-TLA_URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_RELEASE}/tla2tools.jar"
+TLA_RELEASE="tla2tools-v1.8.0-20260731"
+TLA_JAR_SHA256_PIN="e22f8ffb4bacdea0a871f444dd94fe5fb0d8013b3388ae39e82e26f852c735d5"
+TLA_JAR_URL="${TLA_JAR_URL:-https://github.com/fkberthold/tla-puzzles/releases/download/${TLA_RELEASE}/tla2tools.jar}"
+TLA_JAR_SHA256="${TLA_JAR_SHA256:-$TLA_JAR_SHA256_PIN}"
 # Asserted, not logged. A pin nobody checks is how the drift went unnoticed.
 EXPECT_TLC="2026.07.31"
 # Byte size of the pinned asset, confirmed against the release on 2026-08-07.
 # Guards against a truncated download and against an HTML error page landing
-# where a jar should be.
+# where a jar should be. The sha256 check below is the real gate. This is a
+# cheap early guard in front of it.
 EXPECT_BYTES=4486015
 
 LIB_DIR="${HOME}/lib"
@@ -81,7 +94,7 @@ warn() { printf 'setup: %s\n' "$*" >&2; }
 die()  { printf 'setup: ERROR — %s\n' "$*" >&2; exit 1; }
 
 # --- prerequisites ---------------------------------------------------------
-for tool in java curl; do
+for tool in java curl sha256sum; do
   command -v "$tool" >/dev/null 2>&1 || die "'$tool' not found. Run: bash scripts/bootstrap"
 done
 
@@ -142,17 +155,27 @@ else
   # shellcheck disable=SC2064  # expand $tmp now, at trap-registration time
   trap "rm -f '$tmp'" EXIT
 
-  say "downloading ${TLA_RELEASE} from ${TLA_URL}"
-  curl -fsSL -o "$tmp" "$TLA_URL" || die "download failed"
+  say "downloading ${TLA_RELEASE} from ${TLA_JAR_URL}"
+  curl -fsSL -o "$tmp" "$TLA_JAR_URL" || die "download failed"
 
   actual_bytes="$(wc -c <"$tmp" | tr -d ' ')"
   if [ "$actual_bytes" != "$EXPECT_BYTES" ]; then
     die "downloaded ${actual_bytes} bytes, expected ${EXPECT_BYTES}. Refusing to install."
   fi
 
+  # The digest is the real check. A tag can get rebound out from under a
+  # download; a sha256 cannot, so this is the assertion that actually catches
+  # drift (bead tla-yvky). Named both ways on a mismatch, and nothing gets
+  # installed.
+  actual_sha256="$(sha256sum "$tmp")"
+  actual_sha256="${actual_sha256%% *}"
+  if [ "$actual_sha256" != "$TLA_JAR_SHA256" ]; then
+    die "sha256 mismatch. wanted ${TLA_JAR_SHA256}, got ${actual_sha256}. Refusing to install."
+  fi
+
   mv "$tmp" "$JAR"
   trap - EXIT
-  say "installed ${JAR} (${EXPECT_BYTES} bytes)"
+  say "installed ${JAR} (${EXPECT_BYTES} bytes, sha256 ${TLA_JAR_SHA256})"
 fi
 
 # --- wrappers --------------------------------------------------------------

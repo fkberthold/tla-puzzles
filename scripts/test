@@ -176,6 +176,11 @@ SUITES=(
   "fast|1.1|printed commands|./harness/test-printed-commands.sh"
   "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
+  # Budget measured on the red tree, where the digest check does not exist yet
+  # and part 1 stops at the first fetch: 0.2 s over two runs. Once the check
+  # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and
+  # starts one JVM on it, which costs about another 0.2 s on this box.
+  "fast|0.4|toolchain pin|./harness/test-toolchain-pin.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
