@@ -4,7 +4,7 @@
 #
 # Usage:  scripts/deliver-exercises.sh <chapter> [dest-root]
 #
-#   chapter    integer 2-11, the chapter to deliver exercises for
+#   chapter    integer 2-13, the chapter to deliver exercises for
 #   dest-root  where to deliver into (default: $HOME/tla-practice/exercises)
 #
 # Env:    DELIVER_SRC_ROOT   override the source root (default: exercises/
@@ -47,7 +47,7 @@ usage() {
   cat <<USAGE >&2
 Usage: $0 <chapter> [dest-root]
 
-  chapter    integer 2-11, the chapter to deliver exercises for
+  chapter    integer 2-13, the chapter to deliver exercises for
   dest-root  where to deliver into (default: \$HOME/tla-practice/exercises)
 
 Env:
@@ -68,7 +68,7 @@ fi
 # literal.
 CHAPTER_NUM=$((10#$CHAPTER))
 
-if [ "$CHAPTER_NUM" -lt 2 ] || [ "$CHAPTER_NUM" -gt 11 ]; then
+if [ "$CHAPTER_NUM" -lt 2 ] || [ "$CHAPTER_NUM" -gt 13 ]; then
   usage
   exit 1
 fi

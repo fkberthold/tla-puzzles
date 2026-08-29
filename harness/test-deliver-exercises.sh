@@ -82,7 +82,7 @@ DEST_MAIN="$TMPROOT/dest-main"     # chapter 5, the full happy path
 DEST_BARE="$TMPROOT/dest-bare"     # chapter 3, no starters/ in the source
 DEST_KEEP="$TMPROOT/dest-keep"     # pre-seeded, for the never-overwrite rule
 DEST_LOW="$TMPROOT/dest-low"       # chapter 2, the bottom of the range
-DEST_HIGH="$TMPROOT/dest-high"     # chapter 11, the top of the range
+DEST_HIGH="$TMPROOT/dest-high"     # chapter 13, the top of the range
 DEST_REJECT="$TMPROOT/dest-reject" # never written, the argument-error runs
 
 mkdir -p "$SANDBOX_HOME"
@@ -93,7 +93,7 @@ mkdir -p "$SRC/templates"
 printf '# Practice log\n\n| exercise | cold or after-reread | minutes | stuck on |\n' \
   >"$SRC/templates/LOG.md"
 
-for n in 02 03 04 05 06 07 08 09 10 11; do
+for n in 02 03 04 05 06 07 08 09 10 11 12 13; do
   mkdir -p "$SRC/ch$n"
   printf 'EXERCISES for chapter %s\n' "$n" >"$SRC/ch$n/EXERCISES.md"
   if [ "$n" != "04" ]; then
@@ -401,7 +401,7 @@ assert_says "the skipped starter is reported on stdout" \
 
 # ---------------------------------------------------------------------------
 echo
-echo "== both ends of the 2-11 range =="
+echo "== both ends of the 2-13 range =="
 # ---------------------------------------------------------------------------
 
 run_deliver "$SRC" 2 "$DEST_LOW"
@@ -415,15 +415,15 @@ assert_content "chapter 2 gets its EXERCISES.md" \
 assert_not_delivered "chapter 2 gets no sheet at all" \
   "$DEST_LOW/ch02" "cheatsheets/ch02.md"
 
-run_deliver "$SRC" 11 "$DEST_HIGH"
+run_deliver "$SRC" 13 "$DEST_HIGH"
 
-assert_rc0 "chapter 11 is in range"
+assert_rc0 "chapter 13 is in range"
 
-assert_content "chapter 11 gets the sheet from just below it" \
-  "$DEST_HIGH/ch11/cheatsheets/ch10.md" "CHEATSHEET for chapter 10"
+assert_content "chapter 13 gets the sheet from just below it" \
+  "$DEST_HIGH/ch13/cheatsheets/ch12.md" "CHEATSHEET for chapter 12"
 
-assert_not_delivered "chapter 11's own sheet never lands" \
-  "$DEST_HIGH/ch11" "cheatsheets/ch11.md"
+assert_not_delivered "chapter 13's own sheet never lands" \
+  "$DEST_HIGH/ch13" "cheatsheets/ch13.md"
 
 # ---------------------------------------------------------------------------
 echo
@@ -437,7 +437,7 @@ assert_rejects "a non-integer chapter" abc "$DEST_REJECT"
 
 assert_rejects "chapter 1, below the range" 1 "$DEST_REJECT"
 
-assert_rejects "chapter 12, above the range" 12 "$DEST_REJECT"
+assert_rejects "chapter 14, above the range" 14 "$DEST_REJECT"
 
 # ---------------------------------------------------------------------------
 echo
