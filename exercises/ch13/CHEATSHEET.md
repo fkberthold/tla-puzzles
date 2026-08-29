@@ -45,7 +45,7 @@
 - Namespacing is what makes `INSTANCE` worth the trouble. `Foo == INSTANCE Sequences` keeps the operators behind `Foo!`, an instance can be bound inside a `LET`, and one module can be instantiated twice under two names.
 - Two names for one module only earns its keep once the module has constants. `WITH` rewrites the imported operators to use the values you pass, so `Origin!Add(x, y)` comes out as `<<0 + x, 0 + y>>`. A constant the two modules share by name is passed through by default, and a `WITH` clause overrides that.
 - Partial parameterization leaves a constant open and takes it at the call site. `XAxis(X) == INSTANCE Point WITH Y <- 0` turns the instance itself into an operator, called as `XAxis(2)!Add(x, y)`.
-- The chapter is unfinished in places, and an exercise author should know where. Three `.. todo::` markers sit in the source, at `modules.rst:100`, `:137` and `:166`. The one at `:137` holds the parameterize-over-a-variable technique, so actions imported from a module are named but never taught.
+- SOURCE GAP: The chapter is unfinished in two places, and an exercise author should know where. Two `.. todo::` markers reserve content the chapter never delivers, at `modules.rst:137` and `:166`. The one at `:137` holds the parameterize-over-a-variable technique, so actions imported from a module are named but never taught; `:166` reserves an expansion of the Using Modules material. A third marker at `:100` is a build chore about how the `Point` listing is stored, not a gap.
 
 ## Boundary notes
 
