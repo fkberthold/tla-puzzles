@@ -51,8 +51,8 @@ Each exercise's "how to run" line names the command with the spec name filled
 in. They're true as printed. Exercise 3 adds one flag, and says why.
 
 The one line `verdict.sh` prints is your answer. It comes from TLC's exit
-status, not from anything TLC printed, so read that token and ignore the console
-noise above it. Six tokens come up in this chapter.
+status, not from anything TLC printed, so that token is all that reaches your
+screen. Six tokens come up in this chapter.
 
 - `OK` (0) means the model check found nothing.
 - `SAFETY_VIOLATION` (12) is what a failed `INVARIANT` gives you.
@@ -70,6 +70,20 @@ not mean your invariant failed. It means TLC gave up on the next-state relation
 and never got as far as checking anything, so the run tells you nothing at all
 about whether your invariant holds. Reading it as a violation is how people end
 up believing a check ran when it didn't.
+
+`verdict.sh` prints the token and nothing else. TLC's own output, error trace
+included, goes to a scratch file that is deleted when the run ends. Pass
+`--log` and it's kept instead:
+
+```
+bash ~/repos/tla-puzzles/harness/verdict.sh --log /tmp/tlc.log starters/YourSpec.tla -c starters/YourSpec.cfg
+```
+
+Two of the exercises below quote a message out of that file, and exercise 4
+asks you to read a counterexample trace. The trace sits part way down that
+file, under the two `Error:` lines. Each row is headed `State N:` and carries
+one line per variable. TLC's coverage statistics come after it, so the trace is
+not the last thing in the file.
 
 State counts are not part of any expected outcome below. Two correct answers can
 explore different numbers of states, and neither is wrong.
@@ -259,7 +273,9 @@ hasn't changed.
   set of processes
 - How to run:
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Drawbridge.tla -c starters/Drawbridge.cfg`
-  and, after you edit `Spec`, the same command again
+  and, after you edit `Spec`,
+  `bash ~/repos/tla-puzzles/harness/verdict.sh --log /tmp/drawbridge.log starters/Drawbridge.tla -c starters/Drawbridge.cfg`.
+  The second run is the one whose counterexample you need, so keep its log.
 
 ### After the run
 
@@ -269,17 +285,20 @@ Run before you read on.
   - Pass run: `OK`
   - Second run: `LIVENESS_VIOLATION`
 
+Neither run is a `PARSE_ERROR`, because TLC accepts a quantifier over a
+temporal formula, and `\E` here is a spec with a meaning rather than a typo.
+
 `\A` promises that every winch keeps turning while it still can, so both of them
 reach `Target` and the bridge goes up.
 
 `\E` promises that some winch does. One is enough to satisfy the whole
 conjunct, and TLC's counterexample is a behavior where one winch reaches
-`Target` and the other stops short and stays there. Read the trace and check
-which winch stalled, because the fairness conjunct is still satisfied in that
-behavior and the reason is worth sitting with. The winch that finished has
-`Raise` disabled from then on, and weak fairness on a permanently disabled
-action is vacuously true. The `\E` is satisfied by a winch that has nothing
-left to do.
+`Target` and the other stops short and stays there. Read the trace in
+`/tmp/drawbridge.log` and check which winch stalled, because the fairness
+conjunct is still satisfied in that behavior and the reason is worth sitting
+with. The winch that finished has `Raise` disabled from then on, and weak
+fairness on a permanently disabled action is vacuously true. The `\E` is
+satisfied by a winch that has nothing left to do.
 
 Two smaller things worth keeping.
 
