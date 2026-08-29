@@ -17,11 +17,11 @@
   Section anchor: `tla § Learning from PlusCal`
 
 - Construct: `Init` / `Next` / `Spec` (the pure-TLA+ spec skeleton)
-  Syntax shape: `Init == /\ hr = 1`, `Next == hr' = hr + 1`, `Spec == Init /\ [][Next]_vars`. `Spec` is what you register as the temporal property to run.
+  Syntax shape: `Init == /\ hr = 1`, `Next == IF hr = 12 THEN /\ hr' = 1 ELSE /\ hr' = hr + 1`, `Spec == Init /\ [][Next]_vars`. `Spec` is what you register as the temporal property to run.
   Section anchor: `tla § Learning from PlusCal`
 
 - Construct: `action` (formal definition)
-  Syntax shape: any boolean operator containing a primed variable, like `Next == hr' = hr + 1`. It is true for a pair `<<hr, hr'>>` exactly when it describes that step.
+  Syntax shape: any boolean operator containing a primed variable, like `Next == IF hr = 12 THEN /\ hr' = 1 ELSE /\ hr' = hr + 1`. It is true for a pair `<<hr, hr'>>` exactly when it describes that step.
   Section anchor: `tla § Learning from PlusCal`
 
 - Construct: `UNCHANGED`
@@ -53,7 +53,7 @@
   Section anchor: `tla#trans`
 
 - Construct: `Terminating`
-  Syntax shape: `Terminating == /\ \A self \in ProcSet: pc[self] = "Done" /\ UNCHANGED vars`, disjoined into `Next` to allow infinite stuttering once every process is done
+  Syntax shape: `Terminating == /\ (\A self \in ProcSet: pc[self] = "Done") /\ UNCHANGED vars`, disjoined into `Next` to allow infinite stuttering once every process is done
   Section anchor: `tla § Modeling Concurrency`
 
 - Construct: `ENABLED`
@@ -94,6 +94,7 @@
 - Fairness is a constraint appended to `Spec`, not a property checked against it. `Spec` defines what counts as a valid trace, and the fairness conjuncts rule out traces that stutter forever instead of taking an available step.
 - Whether you write `\A self \in Threads : SF_vars(thread(self))` or `\E` decides whether every thread is fair or only one of them is. The chapter offers this as its own comprehension test: if both readings are syntactically intuitive, you understand pure TLA+.
 - Pure TLA+ earns its steeper learning curve on a short list of things PlusCal cannot reach: helper actions, fairness on subactions rather than whole labels, verifying a refactored spec behaves the same, interruptible algorithms (a `\/ pc' = "Start"` disjunct instead of a duplicated `either` in every label), several sequential tasks per worker, and refinement. Sticking with PlusCal is fine, as long as you know where its limits are.
+- SOURCE GAP: The chapter is unfinished in two places, and an exercise author should know where. `tla.rst:411` reserves a warning about how machine closure can blow up in your face and an example of fairness in a temporal property, both of which land inside the fairness section that five of this sheet's constructs are anchored to. `tla.rst:459` is a bare `.. todo:: Summary`, so this chapter has no summary section to write from the way chapters 9 and 11 do. The third marker, at `:87`, is a graphic chore rather than a gap.
 
 ## Boundary notes
 
@@ -106,11 +107,11 @@
 - Deadlock, and the fact that the translator inserts `Terminating` to avoid one on completion, is covered in chapter `08` instead (`concurrency.rst:219`). That chapter names `Terminating` in prose without showing it; this chapter gives its body.
 - The PlusCal `label` (`Name: statement;`) is covered in chapter `03` instead. The label-as-action entry here is what one becomes after translation, a `pc` guard plus a `pc'` update.
 - `pc` is covered in chapter `04` instead, and its multi-process function form in chapter `08`. This chapter only shows the TLA+ side, its `ProcSet` initialization and its `EXCEPT` update.
-- `\A` and `\E` are covered in chapter `04` instead. This chapter puts them to two new uses, a primed variable assigned inside `\E`, and process interleaving expressed as `\E self \in ProcSet`.
+- `\A` and `\E` are covered in chapter `04` instead. This chapter puts them to two new uses, a primed variable assigned inside `\E`, and process interleaving expressed as `\E self \in Threads`.
 - Nondeterministic `with x \in set` and `either-or`, the PlusCal forms of this chapter's `\E` and `\/` actions, are covered in chapter `07` instead.
 - Deterministic `with` is covered in chapter `03` instead, and the `LET` it translates into in chapter `02`.
 - Function literals (`[x \in S |-> expr]`), used here to initialize `pc`, are covered in chapter `06` instead. `EXCEPT` is the update counterpart this chapter adds.
 - `IF-THEN-ELSE`, `LET-IN`, and the boolean operators `/\`, `\/`, `~` are covered in chapter `02` instead.
 - `CONSTANT` declarations, which `VARIABLE` is introduced by analogy to, are covered in chapter `05` instead.
-- Verifying that a refactored spec has the same behavior is covered in `topics/tips.rst` instead, outside `core` (target `action_refactoring` at `tips.rst:279`). Refinement properties, the last item on the chapter's why-TLA+ list, are covered in `topics/refinement.rst`, also outside `core`.
+- Verifying that a refactored spec has the same behavior is covered in `topics/tips.rst` instead, outside `core` (target `action_refactoring` at `tips.rst:279`). Refinement properties, the last item on the chapter's why-TLA+ list, are routed to `topics/refinement.rst`, also outside `core`, but that page is a 12-line stub saying the author has not written it yet and pointing at a blog post instead (`refinement.rst:8`). Nothing in the curriculum teaches refinement.
 - Multi-module specs and `INSTANCE`, the other place `VARIABLE` declarations appear, are covered in chapter `13` instead.

@@ -54,3 +54,4 @@
 - Declaring a PlusCal `process`, including process sets (`process Name \in Set`), is covered in chapter `08` instead. This chapter only adds the `fair` and `fair+` modifiers on top of that existing syntax.
 - `await`, used inside this chapter's example actions (`await lock = NULL`), is covered in chapter `08` instead.
 - Recursive operators, higher-order operators, binary operators, function operators, and `CASE` are not used or taught here. They are covered in chapter `10` instead.
+- The pure-TLA+ fairness operators `WF_v(A)` and `SF_v(A)`, which this chapter's `fair`, `fair+`, and `Label:+` forms translate into, are covered in chapter `12` instead. That chapter also marks a single subaction fair rather than a whole label, which PlusCal has no way to say.

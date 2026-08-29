@@ -109,3 +109,4 @@
 - `Invariants` is covered in chapter `4` instead.
 - `PlusCal algorithm syntax and state updates` is covered in chapter `3` instead.
 - `Running specs and the scratch file setup` is covered in chapter `1` instead.
+- `LOCAL, INSTANCE, and the named and parameterized instance forms, the other ways to import a module` is covered in chapter `13` instead.
