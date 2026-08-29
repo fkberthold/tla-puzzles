@@ -25,6 +25,10 @@ Next == level' = level
 
 Spec == Init /\ [][Next]_level
 
-Observe == [level |-> level]
+(* The `full` flag is part of the graded interface (see LockboxRef.tla). It  *)
+(* is never evaluated here, because there are no states to evaluate it in,   *)
+(* and it is written all the same so the fixture presents the interface it   *)
+(* claims to.                                                                *)
+Observe == [level |-> level, full |-> (level = 3)]
 
 =============================================================================

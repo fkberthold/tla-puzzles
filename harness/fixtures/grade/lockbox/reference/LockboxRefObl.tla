@@ -18,17 +18,37 @@
 EXTENDS Naturals
 
 (***************************************************************************)
+(* THE DECLARED OBSERVATION DOMAIN: the records the observation may take.   *)
+(*                                                                          *)
+(* grade.sh generates a chaos submission over this -- every record an       *)
+(* initial state, any record able to follow any other -- and refuses the    *)
+(* package if every obligation below is true of it. A module with no domain *)
+(* gives the probe nothing to range over, so the line is required rather    *)
+(* than optional. Bead tla-x8s.                                             *)
+(***************************************************************************)
+ObsDomain == [level: 0..3, full: BOOLEAN]
+
+(***************************************************************************)
 (* PHI_1 -- the lockbox never holds more than three parcels.                *)
 (***************************************************************************)
 Req_capacity(o) == o.level =< 3
 
 (***************************************************************************)
-(* PHI_2 -- the lockbox never holds a negative number of parcels. Distinct  *)
-(* from PHI_1, and separately creditable: a submission that gets the cap    *)
-(* wrong can still get this one right, which is where per-conjunct partial  *)
-(* credit comes from.                                                       *)
+(* PHI_2 -- the `full` flag agrees with the level. One observation, two     *)
+(* fields, and it is the obligation that refuses chaos: the domain lets the *)
+(* flag float free of the level, so chaos reaches [level |-> 0,             *)
+(* full |-> TRUE] and this is false there.                                   *)
+(*                                                                          *)
+(* IT REPLACED A `Req_floor(o) == o.level >= 0`, and the swap is worth      *)
+(* recording. That obligation was true at every record in the domain, so    *)
+(* the pair it made with PHI_1 could not tell this box from one whose       *)
+(* contents teleport -- which is exactly the package the chaos probe        *)
+(* refuses, and this reference was one of them until bead tla-x8s. The role *)
+(* PHI_2 plays in the fixture matrix is unchanged: it is the obligation a   *)
+(* submission still meets when it gets the cap wrong, which is where        *)
+(* per-conjunct partial credit comes from.                                  *)
 (***************************************************************************)
-Req_floor(o) == o.level >= 0
+Req_fullflag(o) == o.full <=> (o.level = 3)
 
 (***************************************************************************)
 (* LANDMARK -- an observation the reference reaches, so a submission must   *)

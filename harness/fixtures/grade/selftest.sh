@@ -367,7 +367,13 @@ echo "== a structureless spec must NOT grade clean =="
 # observation operator is maximally HONEST -- the variable is the observation
 # -- so nothing in this block is about catching a lie. It is about a spec with
 # no transition structure at all, and it graded PASS with zero witnesses
-# against the state-only `lockbox` reference that still ships beside this one.
+# against the state-only `lockbox` reference as it stood before tla-x8s.
+#
+# THAT MEASUREMENT NO LONGER REPRODUCES. `lockbox` was one of the packages the
+# chaos probe refuses, so tla-x8s repaired it, and its observation now carries
+# a `full` flag this submission does not define -- INVALID, exit 3, rather
+# than a PASS. The reproducible form of the same fact is the `chaos-probe`
+# package further down, where the reference that admits chaos is kept broken.
 STEP_REF="harness/fixtures/grade/stepwise/reference"
 STEP_SUB="harness/fixtures/grade/stepwise/submissions"
 
@@ -476,8 +482,20 @@ assert_package_refused "a step obligation with OVERLAPPING landmarks is refused"
   harness/fixtures/grade/stepwise/reference-overlapping
 
 # And the requirement is conditional on Step_*, not universal. The `lockbox`
-# reference states one landmark and no step obligation, which is a legitimate
-# problem: every fixture above it in this file grades against it.
+# reference states one landmark and no step obligation, and it still grades:
+# every fixture above it in this file runs against it.
+#
+# WHAT MAKES IT LEGITIMATE MOVED UNDER BEAD tla-x8s, so read this assertion as
+# the narrow claim it is. Stating no Step_* is what excuses the second
+# landmark. It is not what excuses the package, and until tla-x8s landed
+# `lockbox` had nothing else going for it: two requirements true of every
+# record its own observation could take, which is the shape the chaos probe in
+# the next block refuses. The reference was repaired rather than dropped. It
+# gained an ObsDomain, a derived `full` flag beside the level in the
+# observation, and one requirement relating the two, so chaos over the record
+# type breaks it and the package now stands on its own account. The Step_*
+# clause survived that repair untouched, which is why this assertion reads
+# exactly as it did before.
 run_fixture correct-different
 assert_rc "a problem with no Step_* keeps its single landmark" 0
 

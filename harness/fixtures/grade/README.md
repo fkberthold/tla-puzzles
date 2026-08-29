@@ -8,13 +8,14 @@ with no arguments.
 harness/grade.sh --selftest          # or run selftest.sh directly
 ```
 
-There are three problem packages, and the same system underlies all of them: a
+There are four problem packages, and the same system underlies all of them: a
 box that holds between zero and three parcels, one in or one out at a time.
 
 | package | what it is for |
 |---|---|
 | `lockbox/` | the state-predicate problem, every obligation over ONE observation |
 | `stepwise/` | the same system with "one at a time" stated over a PAIR of successive observations |
+| `chaos-probe/` | three references over that system, one of which cannot tell it from chaos |
 | `smuggled-constants/` | a problem package whose `constants.cfg` carries a directive |
 
 ## The fixture matrix
@@ -92,13 +93,20 @@ of successive observations and judged as
   say about it is what it is not. Its observation operator is maximally
   *honest*. The variable **is** the observation. What it has no trace of is
   transition structure: every permitted observation is an initial state and
-  any may follow any other. Against `lockbox/reference/` it grades a clean
-  PASS with zero witnesses, and it is right to. Every single-state requirement
-  a reference can state about this system is true of it, because its reachable
-  observation set is exactly the admissible one. The maximally permissive spec
-  passes obligation 1 **by construction**, for any reference, and needs no lie
-  to do it. Only a two-state obligation refuses it. Beads `tla-59s` and
-  `tla-x8s`.
+  any may follow any other. Against `lockbox/reference/` as it stood before
+  `tla-x8s` it graded a clean PASS with zero witnesses, and it was right to.
+  Every single-state requirement a reference can state about this system is
+  true of it, because its reachable observation set is exactly the admissible
+  one. The maximally permissive spec passes obligation 1 **by construction**,
+  for any reference, and needs no lie to do it. Beads `tla-59s` and `tla-x8s`.
+
+  That measurement is no longer reproducible against the reference that ships
+  today, and the reason is the point rather than a footnote. `lockbox` was one
+  of the packages the chaos probe refuses, so `tla-x8s` repaired it, and its
+  observation now carries a `full` flag this submission does not define.
+  Graded against it now the result is `INVALID`, `SPEC_EVAL_FAILURE`, exit 3.
+  The reproducible statement of the same fact is the `chaos-probe/` package,
+  where the reference that admits chaos is kept broken on purpose.
 
 - **`frozen-observe`** is the trapdoor inside that fix. `[][A]_Observe`
   unfolds to `A \/ UNCHANGED Observe`, so an observation that never moves
@@ -113,6 +121,50 @@ purpose and drive that requirement: `reference-one-landmark/` states a
 `Step_*` with one landmark, and `reference-overlapping/` states two that
 level 3 satisfies together. Both are exit 2 against any submission. The
 defect is the problem author's, and no verdict about a submission is printed.
+
+### `chaos-probe/`: three references, and the variable is what they can say
+
+Every other package here varies the SUBMISSION against one reference. This one
+holds the submission fixed and varies the REFERENCE, which is what makes a
+refusal a fact about the reference rather than about the spec beside it. All
+three reference the same lockbox, under three module names, and `paired/` is
+the one honest submission graded against each.
+
+`grade.sh` builds a chaos submission over each obligations module's declared
+`ObsDomain`, and refuses the package when every obligation it states is true
+of that. Beads `tla-59s` and `tla-x8s`.
+
+| reference | probe result | Adequacy | Relational | NonVacuity | exit |
+|---|---|---|---|---|---|
+| `reference-admits-chaos` | package refused | — | — | — | 2 |
+| `reference-step-refuses` | package stands | PASS 2/2 | PASS 2/2 | PASS | 0 |
+| `reference-state-refuses` | package stands | PASS 1/1 | PASS 1/1 | PASS | 0 |
+
+- **`reference-admits-chaos`** states `Req_capacity(o) == o.level \in 0..3`
+  and one landmark, and nothing else. Every record in its own domain satisfies
+  that, so a box whose contents teleport from empty to full passes the set
+  entire. Measured before the gate existed: verdict PASS, Adequacy 1/1,
+  Relational 1/1, zero witnesses. Nothing else about the package is wrong,
+  which is what makes it a fixture. It parses, its landmark is reachable, and
+  the submission beside it is correct.
+
+- **`reference-step-refuses`** is the obvious way out. `Step_onestep(o, p)`
+  is false of chaos, because chaos jumps from empty to full in one step.
+
+- **`reference-state-refuses`** is the way out that says what the gate really
+  asks for, and it states **no `Step_*` at all**. `Req_fullflag(o)` relates
+  two fields of one observation, chaos over the record type reaches
+  `[level |-> 0, full |-> TRUE]`, and that is false there. A gate that
+  demanded a `Step_*` instead would be a syntactic stand-in that fails both
+  ways: a vacuous `Step_*` satisfies it while refusing nothing, and a problem
+  with no concurrency in it would have to fabricate a transition obligation.
+  This fixture goes red if anyone builds the stand-in.
+
+`lockbox/` was one of the packages this gate refuses, and it was repaired
+rather than dropped. Its observation grew a derived `full` flag beside the
+level, and `Req_floor(o) == o.level >= 0` became
+`Req_fullflag(o) == o.full <=> (o.level = 3)`. Every row of the `lockbox/`
+matrix above was re-measured after the repair and none of them moved.
 
 ### `smuggled-constants/`
 
@@ -203,8 +255,8 @@ waiting to be made here — it is the arm that measured as worthless.
 
 ```
 <problem>/reference/*Ref.tla       PHI: Spec, Observe
-<problem>/reference/*RefObl.tla    variable-free: Req_*(o), Step_*(o, p),
-                                   Landmark_*(o)
+<problem>/reference/*RefObl.tla    variable-free: ObsDomain, Req_*(o),
+                                   Step_*(o, p), Landmark_*(o)
 <problem>/reference/constants.cfg  optional, CONSTANT assignments ONLY
 <problem>/submissions/<name>/*.tla     PSI: Spec, Observe
 <problem>/submissions/<name>/*Obl.tla  variable-free: Req_*(o), optional
@@ -216,6 +268,22 @@ grades it. It carries `CONSTANT` / `CONSTANTS` and nothing else, and a
 directive anywhere in it is refused, including one behind a `(* block
 comment *)` or riding the tail of an assignment, both of which TLC reads as
 live directives.
+
+**You must declare an `ObsDomain`, and your obligations must refuse chaos over
+it.** `ObsDomain` names the records your observation may take, in the shape
+`[level: 0..3, full: BOOLEAN]`. `grade.sh` builds the maximally permissive
+spec over it (every record an initial state, any record able to follow any
+other) and refuses the package if every obligation you state is true of that
+spec. A set of requirements a teleporting box satisfies is not a description
+of a box, and a submission with no structure at all would grade a clean PASS
+against it.
+
+It is a probe rather than a rule about what you must write, so there is more
+than one way to satisfy it. State an obligation over a PAIR of successive
+observations, or state one that relates two fields of a single observation.
+A one-field observation cannot do it: chaos over that domain reaches exactly
+the records your own spec reaches, so every requirement true of your spec is
+true of chaos too.
 
 **A `Step_*` obliges you to two landmarks.** `[][Step(Observe, Observe')]_Observe`
 is satisfied vacuously by a submission whose observation never moves, and
