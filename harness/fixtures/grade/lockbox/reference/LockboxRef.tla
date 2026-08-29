@@ -31,7 +31,17 @@ Spec == Init /\ [][Next]_level
 
 (***************************************************************************)
 (* The observation operator. Grading keys off this and never off `level`.   *)
+(*                                                                          *)
+(* THE `full` FLAG IS DERIVED AND SAYS NOTHING THE LEVEL DOES NOT, which is *)
+(* what makes it useful. Bead tla-x8s made a reference owe the chaos probe  *)
+(* an answer, and a one-field observation cannot give one: chaos over       *)
+(* [level: 0..3] reaches exactly the records this spec reaches, so every    *)
+(* requirement true here is true of chaos too. A second field that the      *)
+(* first one determines is what a requirement can relate, and                *)
+(* LockboxRefObl!Req_fullflag is false at [level |-> 0, full |-> TRUE] --   *)
+(* a box calling itself full while it is empty, which chaos reaches and     *)
+(* this spec never does.                                                     *)
 (***************************************************************************)
-Observe == [level |-> level]
+Observe == [level |-> level, full |-> (level = 3)]
 
 =============================================================================

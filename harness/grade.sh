@@ -97,7 +97,8 @@
 #
 #   <reference-dir>/
 #     *Ref.tla         PHI. Defines Spec and Observe.
-#     *RefObl.tla      variable-free. Req_*(o) are the conjuncts phi_i;
+#     *RefObl.tla      variable-free. ObsDomain names the records the
+#                      observation may take; Req_*(o) are the conjuncts phi_i;
 #                      Step_*(o, p) are conjuncts over a PAIR of successive
 #                      observations; Landmark_*(o) are observations PHI
 #                      reaches.
@@ -182,12 +183,18 @@
 # INVALID. After it has passed, the same failure on a reference-driven run can
 # only be a harness fault, and is reported as one.
 #
-# Every run also carries `-postCondition Gate!InvariantConfigured`. The
+# Every run also carries a postcondition guard: `Gate!InvariantConfigured` on
+# the INVARIANT form, `Gate!ActionPropertyConfigured` on the PROPERTY form. The
 # generated .cfg files are this script's own output, and a .cfg keyword with a
-# missing operand is not an error -- TLC exits 0 having checked no invariant
-# at all (§5.3). Without the guard, a bug in the generator below would grade
-# every submission a perfect pass. With it, that bug is rc=10 and a harness
-# error. Gate.tla is harness-owned and read-only here.
+# missing operand is not an error -- TLC exits 0 having checked nothing at all
+# (§5.3). Without the guard, a bug in the generator below would grade every
+# submission a perfect pass. With it, that bug is rc=10 and a harness error.
+# The two guards are not interchangeable; see the note at run_judge. Gate.tla
+# is harness-owned and read-only here.
+#
+# Before any of that, the PACKAGE is checked. A reference whose obligations are
+# all true of pure chaos over its own declared ObsDomain cannot grade at all,
+# and is refused at exit 2 rather than used. See the chaos-probe block.
 #
 # The NonVacuity threshold gate, `Gate!NonVacuous` with a per-problem
 # `TLCGet("distinct") >= N`, belongs to §5.3 and bead tla-kl5.6. This file
@@ -471,29 +478,24 @@ digest() { printf '%s|%s' "$PROBLEM_ID" "$1" | sha256sum | cut -c1-6; }
 # goes in as PROPERTY, which TLC checks through the implied-action channel and
 # which exits 13 rather than 12 when it fails.
 #
-# THE POSTCONDITION GUARD IS MISSING ON THE PROPERTY FORM, AND THAT IS A GAP
-# RATHER THAN A CHOICE. Gate.tla is centrally owned and neither operator in it
-# fits. Measured on v1.8.0 against a well-formed `PROPERTY GRADE_OBLIGATION`
-# cfg whose obligation is a satisfied boxed action:
+# BOTH FORMS CARRY A POSTCONDITION GUARD, AND THE TWO GUARDS DIFFER. Neither
+# is interchangeable with the other, and that was measured rather than assumed.
+# Against a well-formed `PROPERTY GRADE_OBLIGATION` cfg on v1.8.0, whose
+# obligation is a satisfied boxed action:
 #
 #   TLCGet("spec") reports  impliedactions # {},  invariants = {},
 #                           impliedinits = {},    temporals = {}
 #   Gate!InvariantConfigured   rc=10  (invariants is empty)
 #   Gate!RefinementConfigured  rc=10  (impliedinits is empty; it wants BOTH)
 #
-# so passing either would turn every step obligation into a harness error. The
-# operator this form needs is one line and belongs beside the other two:
-#
-#   ActionPropertyConfigured == TLCGet("spec").impliedactions # {}
-#
-# Until it lands, the vector it would close is covered behaviourally instead: a
-# bare `PROPERTY` line with no operand exits 0 having checked nothing (measured
-# rc=0, same shape as the bare `INVARIANT` line that InvariantConfigured
-# exists for), so a generator bug here would grade every submission a pass --
-# and the stepwise fixtures in the selftest go red the moment it does, because
-# `chaos-observations` can only fail if the step obligation was really checked.
-# A fixture is a weaker guard than a postcondition, since it proves the .cfg is
-# well-formed for the shapes it happens to cover rather than for every run.
+# so passing either of those to the PROPERTY form would turn every step
+# obligation into a harness error. `Gate!ActionPropertyConfigured` is the
+# operator that fits, and it closes the vector InvariantConfigured exists for
+# one keyword over: a bare `PROPERTY` line with no operand is not an error to
+# TLC's .cfg parser, so an unguarded generator bug that dropped the operand
+# would grade every submission a pass on every step obligation the problem
+# states. The operator sat in Gate.tla for a while with nothing naming it.
+# Bead tla-x8s.
 # ---------------------------------------------------------------------------
 RUN_RC=0
 RUN_TRACE=""
@@ -505,7 +507,7 @@ run_judge() {
   local -a guard=(--postcondition "Gate!InvariantConfigured")
   if [ "$kind" = "property" ]; then
     keyword=PROPERTY
-    guard=()
+    guard=(--postcondition "Gate!ActionPropertyConfigured")
   fi
   {
     printf -- '---- MODULE %s ----\n' "$mod"
@@ -686,9 +688,16 @@ location_of() {
 # The residual hole that leaves: disjointness is proven over the observations
 # the REFERENCE reaches, not over every record. Two landmarks that overlap only
 # at an observation the reference cannot reach would pass this check, and a
-# submission frozen at that observation would then satisfy both. Closing it
-# needs a declared observation domain in the obligation module, which is a new
-# authoring requirement and a separate decision.
+# submission frozen at that observation would then satisfy both.
+#
+# THE HOLE IS STILL OPEN, and what changed under bead tla-x8s is that the
+# obligations module now declares an ObsDomain. Quantifying disjointness over
+# the domain rather than over the reference's reachable set is therefore
+# available, and it would close the hole. It was left alone because no fixture
+# separates the two readings: `reference-overlapping` overlaps at level 3,
+# which the reference reaches, so both quantifications refuse it and the change
+# would land with nothing watching it. Worth doing behind a fixture that tells
+# them apart.
 # ===========================================================================
 if [ "${#REF_STEPS[@]}" -gt 0 ]; then
   if [ "${#REF_LANDMARKS[@]}" -lt 2 ]; then
@@ -729,10 +738,108 @@ then satisfy vacuously is the one this problem exists to check."
 fi
 
 # ===========================================================================
+# THE CHAOS PROBE. A REFERENCE THAT CANNOT TELL CHAOS FROM THE SYSTEM CANNOT
+# GRADE, SO ITS PACKAGE IS REFUSED. Beads tla-59s and tla-x8s.
+#
+# Everything below this point grades a SUBMISSION. Nothing below asks whether
+# the reference says enough to grade against, and the Adequacy denominator is
+# whatever the author happened to write -- so a package whose obligations are
+# all true of a spec with no transition structure grades that spec a clean
+# PASS and reports a full score doing it.
+#
+# The probe is the maximally permissive spec over the reference's own declared
+# observation domain: every record in the domain is an initial state, and any
+# record may follow any other. No ordering, no causality, nothing that could
+# be called a system. If every obligation the package states is true of that,
+# the obligations describe the domain rather than the system.
+#
+# WHY A PROBE RATHER THAN "EVERY REFERENCE MUST STATE A Step_*". The syntactic
+# form is a stand-in for the property actually wanted, and it fails in both
+# directions. A vacuous Step_* satisfies it while refusing nothing, and a
+# problem with no concurrency in it would have to fabricate a transition
+# obligation to get past it. The `chaos-probe/reference-state-refuses` fixture
+# states no Step_* at all, refuses chaos on a single requirement relating two
+# fields of one observation, and is required to be ACCEPTED.
+#
+# ObsDomain IS A NEW AUTHORING REQUIREMENT, and there is nothing to probe over
+# without it. An obligations module is variable-free by construction, so it
+# carries no state space of its own and no domain to quantify a record over.
+# A module that declares none is refused rather than having the gate quietly
+# switch itself off for that package.
+#
+# WHAT THE PROBE ASKS AND WHAT IT LEAVES ALONE. It runs the Adequacy members,
+# Req_* and Step_*, and nothing else. Landmark reachability is not asked,
+# because chaos reaches every record in the domain and so reaches every
+# landmark the domain contains; a landmark it missed would be a landmark
+# outside the declared domain, which is a different defect and deserves its
+# own message rather than this one.
+# ===========================================================================
+grep -qE '^ObsDomain[[:space:]]*==' "$REF_OBL" || die_package \
+  "$REF_OBL declares no ObsDomain.
+
+An obligations module owes one line naming the records its observation may
+take, in the shape ObsDomain == [level: 0..3, full: BOOLEAN]. It is what the
+chaos probe ranges over, and the requirements below it are what carve it.
+
+The module is variable-free by construction, so there is no other domain to
+quantify a record over and no way to ask whether these obligations describe
+the system or merely restate the domain."
+
+CHAOS_MOD="GJ_Chaos"
+cat >"$SCRATCH/$CHAOS_MOD.tla" <<CHAOS_END
+---- MODULE $CHAOS_MOD ----
+EXTENDS $M_REF_OBL
+VARIABLE obs
+Init == obs \\in ObsDomain
+Next == obs' \\in ObsDomain
+Spec == Init /\\ [][Next]_obs
+Observe == obs
+====
+CHAOS_END
+
+# One UNMET obligation is the whole answer, so the loops stop at the first one.
+# The probe runs on every grading, and a package that survives it survives it
+# for the same reason every time.
+CHAOS_ALL_MET=1
+x=0
+for conj in "${REF_CONJUNCTS[@]}"; do
+  [ "$CHAOS_ALL_MET" = "1" ] || break
+  x=$((x + 1))
+  run_judge "X$x" "$CHAOS_MOD" "$conj(Observe)"
+  classify 0 reference "chaos probe, reference obligation $x"
+  [ "$CLASS" = "MET" ] || CHAOS_ALL_MET=0
+done
+
+for st in ${REF_STEPS[@]+"${REF_STEPS[@]}"}; do
+  [ -z "$st" ] && continue
+  [ "$CHAOS_ALL_MET" = "1" ] || break
+  x=$((x + 1))
+  run_judge "X$x" "$CHAOS_MOD" "[][$st(Observe, Observe')]_Observe" property
+  classify 0 reference "chaos probe, reference step obligation $x"
+  [ "$CLASS" = "MET" ] || CHAOS_ALL_MET=0
+done
+
+if [ "$CHAOS_ALL_MET" = "1" ]; then
+  die_package "$REF_OBL is satisfied by pure chaos over its own ObsDomain.
+
+Every obligation this module states is true of a spec that has no transitions
+at all -- one that starts at any record in the domain and jumps to any other.
+A box whose contents teleport from empty to full satisfies this set entire, so
+the set cannot tell a system from the space its observations live in, and a
+submission with no structure would grade a clean PASS against it.
+
+The defect is the problem author's and no verdict about a submission is
+printed for it. Two ways out, and neither is a rule about what you must write:
+state an obligation over a PAIR of successive observations, or state one that
+relates two fields of a single observation. Either gives the probe something
+to break."
+fi
+
+# ===========================================================================
 # Obligation 3 first among the submission-driven runs: non-vacuity, and the
-# parse gate. The landmark-disjointness run above is reference-only -- its
-# judge extends nothing the submission wrote -- so it does not disturb the
-# attribution argument below.
+# parse gate. Every run above is reference-only -- the landmark-disjointness
+# run and the chaos probe both extend nothing the submission wrote -- so
+# neither disturbs the attribution argument below.
 # ===========================================================================
 vac_ext="$M_SUB_SPEC"
 [ -n "$M_SUB_OBL" ] && vac_ext="$M_SUB_SPEC, $M_SUB_OBL"
@@ -803,7 +910,8 @@ done
 # spec that is pure chaos over an entirely honest observation space (`Init ==
 # obs \in 0..3`, `Next == obs' \in 0..3`, `Observe` the identity) has no
 # transitions, no ordering and no causality, and it graded PASS with zero
-# witnesses against the reference fixture that ships in this repository.
+# witnesses against the `lockbox` reference fixture as it stood before
+# tla-x8s, which is the same reference the chaos probe above now refuses.
 # Beads tla-59s and tla-x8s, which are one defect: the first says a transition
 # obligation cannot be expressed, the second is the consequence.
 #

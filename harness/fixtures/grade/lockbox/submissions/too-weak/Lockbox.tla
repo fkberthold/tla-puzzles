@@ -21,6 +21,9 @@ Next == Put \/ Take
 
 Spec == Init /\ [][Next]_level
 
-Observe == [level |-> level]
+(* The `full` flag is part of the graded interface (see LockboxRef.tla). It  *)
+(* is derived here as it is there, so Req_fullflag is the obligation this    *)
+(* submission still meets while the capacity one is unmet.                   *)
+Observe == [level |-> level, full |-> (level = 3)]
 
 =============================================================================

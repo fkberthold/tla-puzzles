@@ -186,8 +186,15 @@ SUITES=(
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
   "slow|16.8|refinement harness|bash harness/fixtures/refinement/selftest.sh"
   "slow|18.4|vacuity gate|./harness/test-vacuity.sh"
-  "slow|19.7|grader|bash harness/grade.sh --selftest"
   "slow|46.9|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
+  # Re-measured 2026-08-28 for bead tla-x8s: 56.6 / 56.8 / 59.1 s over three
+  # serial runs, up from 19.7. The jump is the chaos probe, which grade.sh now
+  # runs against the problem package on every invocation, so the selftest's
+  # twenty-odd gradings each carry one or two extra TLC runs. The tier is
+  # unchanged. Two ways to buy some of it back if it starts to hurt: probe the
+  # Req_* set as a single conjoined invariant rather than one run per member,
+  # or cache the probe verdict per reference package.
+  "slow|59.1|grader|bash harness/grade.sh --selftest"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

@@ -36,6 +36,9 @@ Next == Put \/ Take \/ Stuff \/ Unload
 
 Spec == Init /\ [][Next]_level
 
-Observe == [level |-> level]
+(* The `full` flag is part of the graded interface (see LockboxRef.tla). The *)
+(* reachable levels are {0, 1, 2, 5}, so the flag is FALSE throughout and    *)
+(* Req_fullflag holds. The capacity obligation is the one that is unmet.     *)
+Observe == [level |-> level, full |-> (level = 3)]
 
 =============================================================================

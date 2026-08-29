@@ -367,7 +367,13 @@ echo "== a structureless spec must NOT grade clean =="
 # observation operator is maximally HONEST -- the variable is the observation
 # -- so nothing in this block is about catching a lie. It is about a spec with
 # no transition structure at all, and it graded PASS with zero witnesses
-# against the state-only `lockbox` reference that still ships beside this one.
+# against the state-only `lockbox` reference as it stood before tla-x8s.
+#
+# THAT MEASUREMENT NO LONGER REPRODUCES. `lockbox` was one of the packages the
+# chaos probe refuses, so tla-x8s repaired it, and its observation now carries
+# a `full` flag this submission does not define -- INVALID, exit 3, rather
+# than a PASS. The reproducible form of the same fact is the `chaos-probe`
+# package further down, where the reference that admits chaos is kept broken.
 STEP_REF="harness/fixtures/grade/stepwise/reference"
 STEP_SUB="harness/fixtures/grade/stepwise/submissions"
 
@@ -445,20 +451,29 @@ echo "== so the landmark requirement is a GATE, not a note in a header =="
 # Both halves are checked, and the second fixture is why the first is not
 # enough on its own: counting landmarks does not tell you whether one
 # observation satisfies two of them.
+# The submission and the problem id are OPTIONAL ARGUMENTS, added for bead
+# tla-x8s, which refuses a package for a reason of its own and brings its own
+# fixtures to do it. Both default to what the two call sites below already
+# passed, so those are unchanged.
+#
+# The stderr goes in a global instead of being deleted. A refusal that does not
+# say whose defect it is sends a problem author hunting through the submission,
+# so what it names is worth asserting rather than only reporting on a failure.
+PKG_ERR=""
 assert_package_refused() {
-  local label="$1" refdir="$2" err out rc
-  err=$(mktemp)
-  out=$(bash "$GRADE" --reference "$refdir" --submission "$STEP_SUB/correct" \
-                      --problem-id stepwise 2>"$err")
+  local label="$1" refdir="$2" subdir="${3:-$STEP_SUB/correct}" pid="${4:-stepwise}"
+  local out rc
+  PKG_ERR=$(mktemp)
+  out=$(bash "$GRADE" --reference "$refdir" --submission "$subdir" \
+                      --problem-id "$pid" 2>"$PKG_ERR")
   rc=$?
   if [ "$rc" != "2" ]; then
-    nope "$label — wanted exit 2, got $rc (stderr: $(tr '\n' ' ' <"$err" | cut -c1-200))"
+    nope "$label — wanted exit 2, got $rc (stderr: $(tr '\n' ' ' <"$PKG_ERR" | cut -c1-200))"
   elif [ -n "$out" ]; then
     nope "$label — a refused package emitted a verdict object"
   else
     ok "$label — exit 2, nothing printed"
   fi
-  rm -f "$err"
 }
 
 assert_package_refused "a step obligation with one landmark is refused" \
@@ -467,10 +482,89 @@ assert_package_refused "a step obligation with OVERLAPPING landmarks is refused"
   harness/fixtures/grade/stepwise/reference-overlapping
 
 # And the requirement is conditional on Step_*, not universal. The `lockbox`
-# reference states one landmark and no step obligation, which is a legitimate
-# problem: every fixture above it in this file grades against it.
+# reference states one landmark and no step obligation, and it still grades:
+# every fixture above it in this file runs against it.
+#
+# WHAT MAKES IT LEGITIMATE MOVED UNDER BEAD tla-x8s, so read this assertion as
+# the narrow claim it is. Stating no Step_* is what excuses the second
+# landmark. It is not what excuses the package, and until tla-x8s landed
+# `lockbox` had nothing else going for it: two requirements true of every
+# record its own observation could take, which is the shape the chaos probe in
+# the next block refuses. The reference was repaired rather than dropped. It
+# gained an ObsDomain, a derived `full` flag beside the level in the
+# observation, and one requirement relating the two, so chaos over the record
+# type breaks it and the package now stands on its own account. The Step_*
+# clause survived that repair untouched, which is why this assertion reads
+# exactly as it did before.
 run_fixture correct-different
 assert_rc "a problem with no Step_* keeps its single landmark" 0
+
+echo
+# ===========================================================================
+echo "== an obligation set that cannot tell chaos from the system is refused =="
+# ===========================================================================
+
+# Bead tla-x8s, the consequence half of tla-59s. Everything above grades a
+# SUBMISSION. Nothing above asks whether the REFERENCE says enough to grade
+# against, and grade.sh computes the Adequacy denominator from whatever the
+# author happened to write. So a problem whose obligations are all true of a
+# spec with no transition structure grades that spec a clean PASS, and reports
+# a full score while doing it.
+#
+# The gate is a PROBE, not a rule about what a reference must contain.
+# grade.sh generates the chaos submission over the obligations module's
+# declared ObsDomain (`Init == obs \in ObsDomain`, `Next == obs' \in
+# ObsDomain`, `Observe == obs`) and refuses the PACKAGE when that submission
+# satisfies the whole obligation set. Exit 2, the author's defect, and never a
+# verdict about a submission.
+#
+# WHY A PROBE RATHER THAN "EVERY REFERENCE MUST STATE A Step_*". The syntactic
+# form is a stand-in for the property actually wanted, and it fails in both
+# directions. A vacuous Step_* satisfies it while refusing nothing, and a
+# business-rule problem with no concurrency in it would have to invent a
+# transition obligation to get past it. `reference-state-refuses` below states
+# no Step_* at all and refuses chaos on a one-state requirement, so it goes red
+# if anyone builds the stand-in.
+CHAOS="harness/fixtures/grade/chaos-probe"
+CHAOS_SUB="$CHAOS/submissions/paired"
+
+run_chaos() {
+  GOT_ERR=$(mktemp)
+  GOT_JSON=$(bash "$GRADE" --reference "$CHAOS/$1" --submission "$CHAOS_SUB" \
+                           --problem-id chaos-probe 2>"$GOT_ERR")
+  GOT_RC=$?
+}
+
+# Direction one. Measured against a hand-built probe before this assertion was
+# written: chaos over `[level: 0..3, full: BOOLEAN]` grades PASS, Adequacy 1/1,
+# Relational 1/1, zero witnesses. Every obligation the package states is true
+# of a box whose contents teleport, so the package cannot grade.
+assert_package_refused "an obligation set satisfied by chaos is refused" \
+  "$CHAOS/reference-admits-chaos" "$CHAOS_SUB" chaos-probe
+
+# And it says whose defect it is. The submission here is correct, so a refusal
+# that names nothing sends the author to the one file that is not at fault.
+if grep -qE -- 'AdmitsChaosRefObl' "$PKG_ERR"; then
+  ok "the refusal names the reference obligations module"
+else
+  nope "the refusal does not name the reference obligations module: $(tr '\n' ' ' <"$PKG_ERR" | cut -c1-200)"
+fi
+
+# Direction two, on the SAME submission, which is what makes direction one a
+# fact about the reference rather than about the spec beside it. Measured
+# against the probe: FAIL, Adequacy 1/2, the step obligation unmet.
+run_chaos reference-step-refuses
+assert_rc   "a package whose Step_* refuses chaos stands" 0
+assert_json "and it grades the submission the other package was refused beside" \
+  '.verdict' 'PASS'
+
+# Direction two again, with no Step_* anywhere in the module. Chaos over the
+# record type reaches `[level |-> 0, full |-> TRUE]`, a box calling itself full
+# while it is empty, and one requirement relating the two fields is false
+# there. Measured against the probe: FAIL, Adequacy 0/1.
+run_chaos reference-state-refuses
+assert_rc   "a package with no Step_* stands when its own requirements refuse chaos" 0
+assert_json "and it grades the same submission PASS" '.verdict' 'PASS'
 
 echo
 # ===========================================================================
@@ -614,6 +708,80 @@ else
   nope "a tripped leak gate emitted $(printf '%s' "$leak_out" | wc -c) bytes on stdout"
 fi
 rm -f "$leak_err"
+
+echo
+# ===========================================================================
+echo "== a PROPERTY line with no operand is caught, not graded =="
+# ===========================================================================
+
+# Bead tla-x8s. A step obligation goes into the generated .cfg as PROPERTY, and
+# that form ran with NO postcondition guard at all, while every INVARIANT run
+# carried `Gate!InvariantConfigured` to catch a .cfg that configured nothing.
+# The gap was not an oversight in the guard's design. Neither operator in
+# Gate.tla fitted: InvariantConfigured wants a non-empty `invariants` and
+# RefinementConfigured wants a non-empty `impliedinits`, and a bare boxed
+# action populates neither, so passing either would have turned every step
+# obligation into a harness error.
+#
+# Gate!ActionPropertyConfigured is the operator that does fit, and it landed in
+# Gate.tla without grade.sh ever naming it. The three runs below are the
+# evidence that it catches the vector and stays quiet on a real run. The two
+# structural checks after them are what say grade.sh asks for it, and no
+# fixture can observe that. The verdict object of a run that checked nothing
+# looks exactly like the verdict object of a run that passed.
+prop_dir=$(mktemp -d -t tla_grade_prop.XXXXXX)
+cp harness/Gate.tla "$prop_dir/"
+cat >"$prop_dir/BareProperty.tla" <<'PROBE'
+-------------------------- MODULE BareProperty --------------------------
+EXTENDS Naturals
+VARIABLE n
+Init == n = 0
+Next == n' = (n + 1) % 4
+Spec == Init /\ [][Next]_n
+GRADE_OBLIGATION == [][n' # n]_n
+=============================================================================
+PROBE
+printf 'SPECIFICATION Spec\nPROPERTY\n' >"$prop_dir/bare.cfg"
+printf 'SPECIFICATION Spec\nPROPERTY GRADE_OBLIGATION\n' >"$prop_dir/good.cfg"
+
+# The vector itself. A .cfg keyword with no operand is not an error to TLC's
+# parser, so this run reports OK and exits 0 having checked no property at all.
+# Unguarded, a generator bug that dropped the operand would grade every
+# submission a pass on every step obligation it states.
+bash harness/verdict.sh --quiet --config "$prop_dir/bare.cfg" \
+     "$prop_dir/BareProperty.tla"
+bare_unguarded_rc=$?
+if [ "$bare_unguarded_rc" = "0" ]; then
+  ok "a bare PROPERTY line exits 0 having checked nothing"
+else
+  nope "a bare PROPERTY line exits 0 having checked nothing -- got $bare_unguarded_rc"
+fi
+
+bash harness/verdict.sh --quiet --postcondition "Gate!ActionPropertyConfigured" \
+     --config "$prop_dir/bare.cfg" "$prop_dir/BareProperty.tla"
+bare_guarded_rc=$?
+if [ "$bare_guarded_rc" = "10" ]; then
+  ok "and the action-property guard catches it -- exit 10"
+else
+  nope "and the action-property guard catches it -- wanted exit 10, got $bare_guarded_rc"
+fi
+
+# The other direction, so the guard is not one that simply always fires. A real
+# boxed action populates `impliedactions` and passes.
+bash harness/verdict.sh --quiet --postcondition "Gate!ActionPropertyConfigured" \
+     --config "$prop_dir/good.cfg" "$prop_dir/BareProperty.tla"
+good_guarded_rc=$?
+if [ "$good_guarded_rc" = "0" ]; then
+  ok "while a real boxed action passes the same guard -- exit 0"
+else
+  nope "while a real boxed action passes the same guard -- wanted exit 0, got $good_guarded_rc"
+fi
+rm -rf "$prop_dir"
+
+assert_present "grade.sh names the action-property guard" \
+  'Gate!ActionPropertyConfigured'
+assert_present "and asks for it as the PROPERTY form's postcondition" \
+  '(--postcondition|-p)[[:space:]]+"?Gate!ActionPropertyConfigured'
 
 echo
 # ===========================================================================

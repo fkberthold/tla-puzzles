@@ -14,6 +14,17 @@
 EXTENDS Naturals, Integers
 
 (***************************************************************************)
+(* THE DECLARED OBSERVATION DOMAIN: the records the observation may take.   *)
+(*                                                                          *)
+(* grade.sh generates a chaos submission over this and refuses the package  *)
+(* if every obligation below is true of it. That is the whole reason this   *)
+(* package exists, read from the reference side rather than the submission  *)
+(* side: `chaos-observations` is the same spec by hand, and Step_onestep is *)
+(* what refuses both. Bead tla-x8s.                                         *)
+(***************************************************************************)
+ObsDomain == [level: 0..3]
+
+(***************************************************************************)
 (* PHI_1 -- the box holds between zero and three parcels. A one-state       *)
 (* predicate, and everything the grading engine could express before.       *)
 (***************************************************************************)
@@ -30,7 +41,8 @@ Req_capacity(o) == o.level \in 0..3
 (* pure chaos over 0..3 satisfies every single-state requirement a          *)
 (* reference can state about this system while having no transition         *)
 (* structure whatsoever -- see the `chaos-observations` submission, which   *)
-(* graded a clean PASS against the state-only `lockbox` reference.          *)
+(* graded a clean PASS against the state-only `lockbox` reference as it     *)
+(* stood before bead tla-x8s repaired that reference.                       *)
 (*                                                                          *)
 (* grade.sh judges this as [][Step_onestep(Observe, Observe')]_Observe,     *)
 (* declared PROPERTY. The subscript is Observe rather than vars on purpose: *)

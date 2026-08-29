@@ -26,6 +26,9 @@ Next == Deposit \/ Withdraw
 
 Spec == Init /\ [][Next]_held
 
-Observe == [level |-> Cardinality(held)]
+(* The `full` flag is part of the graded interface (see LockboxRef.tla), and *)
+(* it is derived from this module's own representation rather than copied    *)
+(* from the reference's. That is the point of the fixture one field over.    *)
+Observe == [level |-> Cardinality(held), full |-> (Cardinality(held) = 3)]
 
 =============================================================================
