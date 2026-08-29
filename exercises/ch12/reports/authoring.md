@@ -68,8 +68,21 @@ shares a two-label process, a `pc` function over a process set, a `Trans`
 helper, and a `Terminating` disjunct. What it doesn't share is what the
 processes do. The chapter's threads take a lock, read a shared counter into a
 local, and write it back, which is a data race. Exercise 3's glaziers take a
-bench and give it back, with no local, no lock variable, and a mutual-exclusion
-invariant instead of a lost-update one.
+bench and give it back, with no local and a mutual-exclusion invariant instead
+of a lost-update one.
+
+**Correction, from the cold-solve review.** This note first said the glaziers
+work "with no lock variable", and that was wrong. The lock is there under
+another name. `bench` is the chapter's `lock` and `Free` is its `NULL`, so
+`Mount` is the chapter's `GetLock` with the `pc` pair folded into `Trans`
+[`references/GlazingBench.tla`, `Mount`, against the `await lock = NULL` form
+at `exercises/ch12/CHEATSHEET.md:92`]. The review pins the chapter side at
+`tla.rst:330-334`, which this machine has no clone to check
+[`reports/cold-solve.md`, "Finding: exercise 3 sits closer to the chapter than
+the report says"]. A learner with the chapter open can transcribe that hole.
+`Cut` isn't transcribable, because the chapter never shows a release, and both
+invariants are new. So one hole is a rename and the other wants the learner's
+own reasoning, which the review judged a fair trade rather than a send-back.
 
 **Exercise 5's `Fairness` operator has the chapter's shape**, `WF` on one action
 and `SF` on another, conjoined and named. That shape is the construct. The
