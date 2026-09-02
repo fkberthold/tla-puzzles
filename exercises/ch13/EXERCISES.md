@@ -43,11 +43,12 @@ The `-c` is spelled out so the pairing is visible. The harness would find the
 matching `.cfg` on its own.
 
 Each exercise's "how to run" line names the command with the spec name filled
-in. They are true as printed.
+in. They are true as printed. Exercise 2 adds one flag on its second run, and
+says why.
 
 The one line `verdict.sh` prints is your answer. It comes from TLC's exit
-status, not from anything TLC printed, so read that token and ignore the console
-noise above it. Three tokens come up in this chapter.
+status, not from anything TLC printed, so that token is all that reaches your
+screen. Three tokens come up in this chapter.
 
 - `OK` (0) means the model check found nothing.
 - `SAFETY_VIOLATION` (12) is what a failed `INVARIANT` gives you.
@@ -57,6 +58,19 @@ noise above it. Three tokens come up in this chapter.
 this chapter teaches is which names reach which file, and a name that doesn't
 reach is a name SANY can't resolve. In this chapter it's often the answer rather
 than a slip on the way to one.
+
+`verdict.sh` prints the token and nothing else. TLC's own output, SANY's error
+messages included, goes to a scratch file that is deleted when the run ends.
+Pass `--log` and it's kept instead:
+
+```
+bash ~/repos/tla-puzzles/harness/verdict.sh --log /tmp/tlc.log starters/YourSpec.tla -c starters/YourSpec.cfg
+```
+
+A `PARSE_ERROR` run puts its reason in that file, under a `Semantic errors:`
+heading part way down. You get the line, the columns and the module, then the
+message on its own line under them. Two exercises below tell you what SANY says
+and where it lands, and that file is the only place either is visible.
 
 State counts are not part of any expected outcome below. Two correct answers can
 explore different numbers of states, and neither is wrong.
@@ -121,6 +135,9 @@ explore different numbers of states, and neither is wrong.
   a chain, `EXTENDS` and `INSTANCE` reaching into the same namespace
 - How to run:
   `bash ~/repos/tla-puzzles/harness/verdict.sh starters/Beacon.tla -c starters/Beacon.cfg`
+  and, after you add the `LOCAL`,
+  `bash ~/repos/tla-puzzles/harness/verdict.sh --log /tmp/beacon.log starters/Beacon.tla -c starters/Beacon.cfg`.
+  The second run is the one whose error message you need, so keep its log.
 
 ### After the run
 
@@ -166,6 +183,11 @@ other tells you nothing at all about your property.
   constants and two operators, and it does nothing at all until somebody fills
   the constants in. A wine room runs at 10 to 14 degrees and a beer room runs at
   2 to 6, and one `Band.tla` is going to serve both.
+  `Band.tla` also carries an `ASSUME` about its two bounds, and the ch.05 sheet
+  in `cheatsheets/` says an `ASSUME` gets enforced before a run starts. That's
+  true of one written in the module you run, and not of one you reach through
+  `INSTANCE`. "One thing this set can't show you" at the end of this file has
+  the run that shows it.
   1. `EXTENDS Integers`. You get one `EXTENDS` line and as many instance lines
      as you want.
   2. Two named instances of `Band`, called `WineBand` and `BeerBand`, each
@@ -179,9 +201,10 @@ other tells you nothing at all about your property.
   6. Two invariants, named as the `.cfg` names them. `BothInBand` says each room
      sits inside its own band. `NeitherRoomOverfull` says neither room's
      headroom has gone below zero.
-  The numbers 10, 14, 2 and 6 should each appear exactly once in your file, on
-  the instance lines. If one of them turns up again further down, you've written
-  a range twice, and the second copy is the one that drifts.
+  Write each of 10, 14, 2 and 6 once, on an instance line, and nowhere else.
+  (The `2` inside the starting value `12` doesn't count, since it isn't a
+  bound.) A bound written twice is a range written twice, and the second copy is
+  the one that drifts.
 - Time budget: `15 min`
 - Uses: `INSTANCE ... WITH` and `<-`, one module instantiated twice under two
   names, `!` lookup, an abstract library that pays for its own file

@@ -120,7 +120,7 @@ command run from the delivered directory as printed. This is the check the
 wave-1 review found four of its five defects behind, so it ran here on the real
 delivered tree rather than on the repo.
 
-The delivered tree holds `EXERCISES.md`, `LOG.md`, eleven starter files and
+The delivered tree holds `EXERCISES.md`, `LOG.md`, twelve starter files and
 eleven earlier cheat sheets. It holds no `references/`, no `reports/`, no
 `COVERAGE.md`, and not chapter 13's own sheet.
 
@@ -160,11 +160,11 @@ ex4 fail   SAFETY_VIOLATION   rc=12
 All four back to `OK` after each edit was restored.
 
 A second delivery over the same tree reported `skipped (exists)` for all
-twenty-four files and wrote nothing, so a learner who re-delivers over
+twenty-five files and wrote nothing, so a learner who re-delivers over
 half-solved work keeps it.
 
 The script needed no extension for the multi-file case. It copies `starters/`
-recursively, one file at a time, so eleven files land as readily as three
+recursively, one file at a time, so twelve files land as readily as three
 [`scripts/deliver-exercises.sh`, the `find ... -print0` loop]. Nothing about
 this chapter exposed a gap in it.
 
