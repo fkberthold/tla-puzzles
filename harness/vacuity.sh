@@ -14,6 +14,10 @@
 #   -t, --timeout SECS    per-probe wall-clock budget (default 60)
 #   -e, --expect KIND     which member of the configured-check guard family to
 #                         run: invariant (default) | refinement | none
+#       --expect-actions NAME[,NAME...]
+#                         action names the problem requires. An action MISSING
+#                         from the coverage block is reported as dead, which is
+#                         the only way a DELETED action can be caught at all.
 #       --no-dead-actions skip the dead-action probe
 #       --keep-logs DIR   keep each probe's TLC log here
 #   -q, --quiet           print the verdict token only, no remediation
@@ -30,12 +34,13 @@
 #     4  VACUOUS_UNCHECKED      vector 2 — healthy space, nothing checked
 #     5  VACUOUS_DEAD_ACTION    vector 3 — an action never fired
 #     6  PROBE_INCONCLUSIVE     the spec never ran; not a vacuity verdict
+#     7  VACUOUS_UNSATISFIABLE  vector 4 — Spec admits no behaviour at all
 #
 #   The codes are deliberately disjoint from TLC's own (0/10/11/12/13/124/
 #   150/151/255) so a caller can never confuse a vacuity verdict with a
 #   model-checking one.
 #
-# THREE VECTORS, AND WHY ONE VERDICT WOULD NOT DO
+# FOUR VECTORS, AND WHY ONE VERDICT WOULD NOT DO
 #
 #   They are not variants of each other. They have disjoint causes and need
 #   disjoint remediation, so each gets its own token and its own message. All
@@ -74,6 +79,70 @@
 #      -- because a stutter step re-finds the state it started in. Keying on
 #      distinct therefore flags essentially every PlusCal submission.
 #      fixtures/vacuity/TerminatingPcal.tla holds that line.
+#
+#      AND THE PREDICATE HAS A SECOND SHAPE IT CANNOT SEE ON ITS OWN. TLC
+#      prints one coverage row per disjunct of Next. An action RESTRICTED by a
+#      guard that is never true is still a disjunct, so it gets a row reading
+#      0 total and `total == 0` matches it. An action DELETED from Next is not
+#      a disjunct, so it gets NO ROW AT ALL and there is nothing to match --
+#      the run ends reporting that every action fired, which is false.
+#      Deletion is invisible to any predicate over the rows that are there,
+#      however the predicate is written. The only way to notice something
+#      absent is to know what to expect, so --expect-actions takes the names
+#      and the probe reports any of them the block never mentions.
+#      fixtures/vacuity/DeletedAction.tla holds that shape.
+#
+#   4. AN UNSATISFIABLE Spec. A fairness conjunct on an action Next does not
+#      allow demands a step the next-state relation forbids, so NO behaviour
+#      satisfies Spec and every temporal obligation holds over nothing.
+#
+#      THE FIRST THREE PROBES ARE ALL BLIND TO IT BY CONSTRUCTION. Fairness
+#      does not touch the state graph -- it constrains the behaviours over
+#      that graph -- so the space is healthy, NonVacuous passes,
+#      InvariantConfigured passes, and every action that IS in Next reports a
+#      non-zero total. Only the liveness half goes blind, and it goes blind at
+#      rc=0 reporting success. fixtures/vacuity/UnsatFairness.tla holds it,
+#      and LiveFairness.tla is the same module with the disjunct restored.
+#
+# HOW THE SATISFIABILITY PROBE IS INJECTED, AND WHY NOT THE WAY PROBE 1 IS
+#
+#   Probe 1 injects its invariant on the command line, as `-inv FALSE`. THE
+#   SAME TRICK IS NOT AVAILABLE HERE: TLC has -inv but no -prop. Measured on
+#   v1.8.0 -- `tlc -help` lists -inv, -invlevel and -postCondition, and no
+#   flag that takes a temporal formula. So a temporal probe has to arrive
+#   through a .cfg, and a .cfg PROPERTY names an operator rather than
+#   carrying an expression, so the operator has to exist in the main module.
+#
+#   Hence a generated wrapper in the scratch directory that EXTENDS the
+#   learner's module and defines one operator, run as the main module with a
+#   copy of the learner's .cfg plus one appended PROPERTY line. The wrapper
+#   pattern is grade.sh's (§5.2 run_judge); what differs is that the .cfg is
+#   COPIED rather than rebuilt, so CONSTANTS, CONSTRAINT, SYMMETRY and the
+#   learner's own obligations all survive into the probe run untouched.
+#
+#   THE PROBE BODY IS `[]<>FALSE`, AND ITS BEING TEMPORAL IS THE WHOLE POINT.
+#   `[](counter # counter)` over a state predicate is not a weaker probe, it
+#   is a different channel: TLC lifts a state-level formula into an INVARIANT
+#   and refutes it against the state graph, which ignores fairness by
+#   construction, so it exits 12 on a spec that has no behaviours at all --
+#   the opposite of the signal wanted. Measured, on both fixtures:
+#
+#     rc=13  the formula was refuted, so a behaviour exists to refute it;
+#     rc=0   nothing refuted it, because there is nothing to refute it WITH.
+#
+#   `FALSE` does NOT constant-fold out of the temporal channel here, which
+#   was measured rather than assumed: TLC logs "Implied-temporal checking"
+#   for this formula and returns 13 on the satisfiable twin. That check is
+#   worth repeating on a new build before trusting the row, because a
+#   constant-folded probe would silently move to the invariant channel and
+#   report every healthy spec unsatisfiable.
+#
+#   The probe runs only after probe 2 completed at rc=0. That is the same
+#   guard the dead-action probe uses and it is load-bearing for the same
+#   reason: appending a PROPERTY to a .cfg whose INVARIANT is already
+#   violated would exit 12 on the safety violation before liveness checking
+#   began, and a safety violation says nothing either way about whether Spec
+#   admits a behaviour.
 #
 # WHY THE DEAD-ACTION PROBE READS A LOG, AND WHY THAT IS NOT A §5.1 BREACH
 #
@@ -128,6 +197,7 @@ CONFIG=""
 MIN_STATES=4
 TIMEOUT=60
 EXPECT="invariant"
+EXPECT_ACTIONS=""
 DEAD_ACTIONS=1
 KEEP_LOGS=""
 QUIET=0
@@ -140,12 +210,15 @@ usage: harness/vacuity.sh [OPTIONS] <module.tla>
   -n, --min-states N    NonVacuous threshold (default 4)
   -t, --timeout SECS    per-probe wall-clock budget (default 60)
   -e, --expect KIND     invariant (default) | refinement | none
+      --expect-actions NAME[,NAME...]
+                        action names the problem requires; one absent from the
+                        coverage block is reported as dead
       --no-dead-actions skip the dead-action probe
       --keep-logs DIR   keep each probe's TLC log here
   -q, --quiet           verdict token only
   -h, --help            this text
 
-Prints the verdict token on line 1; exits 0/3/4/5/6.
+Prints the verdict token on line 1; exits 0/3/4/5/6/7.
 USAGE
 }
 
@@ -155,6 +228,7 @@ while [ $# -gt 0 ]; do
     -n|--min-states)  MIN_STATES="${2:-}"; shift 2 ;;
     -t|--timeout)     TIMEOUT="${2:-}"; shift 2 ;;
     -e|--expect)      EXPECT="${2:-}"; shift 2 ;;
+    --expect-actions) EXPECT_ACTIONS="${2:-}"; shift 2 ;;
     --no-dead-actions) DEAD_ACTIONS=0; shift ;;
     --keep-logs)      KEEP_LOGS="${2:-}"; shift 2 ;;
     -q|--quiet)       QUIET=1; shift ;;
@@ -205,7 +279,14 @@ trap cleanup EXIT
 
 # Gate.tla stays where central owns it; TLA-Library points at it. The scratch
 # directory comes first so a generated VacuityGate is found.
-export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-DTLA-Library=$SCRATCH:$GATE_DIR"
+#
+# The learner's own directory is on the end, and only the satisfiability probe
+# needs it: that probe's main module is a GENERATED wrapper living in the
+# scratch directory, so the learner's module is an auxiliary one there and is
+# no longer found by sitting beside the main module. It goes LAST so that a
+# stray Gate.tla beside a submission cannot shadow the centrally-owned one.
+MODULE_DIR=$(dirname -- "$MODULE_ABS")
+export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-DTLA-Library=$SCRATCH:$GATE_DIR:$MODULE_DIR"
 
 # The NonVacuous operator to use. Gate!NonVacuous is the default; any other
 # threshold gets a generated module, because Gate.tla is read-only here.
@@ -312,6 +393,23 @@ scan_dead_actions() {
     }
     { flush() }
     END { flush() }
+  ' "$1"
+}
+
+# Every action name the coverage block mentions, one per line, whatever its
+# counts. scan_dead_actions above answers "which rows read zero"; this answers
+# "which rows are there at all", and only the second can see an action that
+# was deleted rather than restricted.
+scan_action_names() {
+  awk '
+    /^</ {
+      n = split($0, f, " ")
+      counts = f[n]
+      # Same positional test as scan_dead_actions: a header without a
+      # distinct:total pair is variable or definition coverage, not an action.
+      if (counts !~ /^[0-9]+:[0-9]+$/) { next }
+      print substr(f[1], 2)
+    }
   ' "$1"
 }
 
@@ -452,24 +550,131 @@ if [ "$EXPECT" != "none" ]; then
 fi
 
 # ===========================================================================
-# PROBE 4 -- dead actions.
+# PROBE 4 -- does Spec admit any behaviour at all?
+#
+# Ordered BEFORE dead actions deliberately. Both can be true of one module --
+# an action dropped from Next while a fairness conjunct still names it is
+# exactly how vector 4 arises -- and of the two descriptions the unsatisfiable
+# one is the root cause. "This action never fired" invites the learner to
+# weaken a guard; "no behaviour satisfies Spec" sends them to the mismatch
+# that actually broke the run.
+#
+# Runs only after probe 2 completed at rc=0; see the injection note in the
+# header for why that guard is load-bearing rather than merely tidy.
+# ===========================================================================
+if [ "$nv_rc" = "0" ]; then
+  MODULE_NAME=$(basename -- "$MODULE_ABS" .tla)
+  cat >"$SCRATCH/VacuitySatProbe.tla" <<TLA
+---- MODULE VacuitySatProbe ----
+(* Generated by harness/vacuity.sh. TLC has -inv but no -prop, so a temporal *)
+(* probe cannot be injected on the command line the way probe 1's invariant  *)
+(* is; it arrives as a .cfg PROPERTY, and a .cfg PROPERTY names an operator, *)
+(* so the operator has to exist in the main module.                          *)
+(*                                                                           *)
+(* []<>FALSE is refuted by any behaviour whatsoever and by nothing else, so  *)
+(* rc=13 means Spec admits a behaviour and rc=0 means it admits none. It has *)
+(* to be TEMPORAL: the same falsehood as a state predicate is lifted into an *)
+(* INVARIANT and checked against the state graph, which ignores fairness.    *)
+EXTENDS $MODULE_NAME
+VACUITY_SATISFIABLE == []<>FALSE
+====
+TLA
+  # The learner's .cfg is COPIED rather than rebuilt, so CONSTANTS, CONSTRAINT,
+  # SYMMETRY and the learner's own obligations reach the probe run unchanged.
+  # Probe 1 has already established that this file is readable by TLC.
+  cat "$CONFIG_ABS" >"$SCRATCH/VacuitySatProbe.cfg" 2>/dev/null
+  printf 'PROPERTY VACUITY_SATISFIABLE\n' >>"$SCRATCH/VacuitySatProbe.cfg"
+
+  # Not run_probe: this is the one probe whose main module and .cfg are
+  # generated rather than the learner's, and run_probe exists to guarantee the
+  # opposite. Deadlock checking stays off, as it is for every probe -- a
+  # terminal state would otherwise exit 11 before the probe meant anything.
+  PROBE_N=$((PROBE_N + 1))
+  sat_log="$SCRATCH/probe${PROBE_N}-satisfiable.log"
+  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$sat_log" \
+    --config "$SCRATCH/VacuitySatProbe.cfg" "$SCRATCH/VacuitySatProbe.tla" \
+    >/dev/null 2>&1
+  sat_rc=$?
+  if [ -n "$KEEP_LOGS" ]; then
+    cp "$sat_log" "$KEEP_LOGS/" 2>/dev/null
+  fi
+
+  case "$sat_rc" in
+    13)
+      : ;;   # a behaviour exists, and it refuted the probe
+    0)
+      say "VECTOR 4: no behaviour satisfies your Spec."
+      say ""
+      say "The state space is healthy and the model is configured, but the"
+      say "set of behaviours Spec admits is EMPTY. Every temporal obligation"
+      say "you wrote then holds over nothing, and TLC still exits 0 reporting"
+      say "success -- so a passing run means only that there was nothing to"
+      say "fail."
+      say ""
+      say "This is NOT an empty state space: TLC reached"
+      say "$(distinct_count "$nv_log") distinct states. Fairness never touches the state graph,"
+      say "it constrains the behaviours over that graph, which is why every"
+      say "earlier probe passed."
+      say ""
+      say "Look at Spec in $(basename "$MODULE_ABS"). A fairness conjunct is"
+      say "the usual cause: WF_ or SF_ on an action that Next does not allow"
+      say "demands a step the next-state relation forbids, so no behaviour"
+      say "can satisfy both. Check that every action named in a fairness"
+      say "conjunct is also a disjunct of Next."
+      finish "VACUOUS_UNSATISFIABLE" 7 ;;
+    *)
+      say "The specification did not run, so vacuity could not be assessed."
+      say "verdict.sh reported rc=$sat_rc on the satisfiability probe."
+      finish "PROBE_INCONCLUSIVE" 6 ;;
+  esac
+fi
+
+# ===========================================================================
+# PROBE 5 -- dead actions.
 #
 # Reuses probe 2's log rather than spending another TLC run, and only when
 # that probe COMPLETED (rc=0). A run cut short by a violation has partial
 # coverage, which would report live actions as dead.
+#
+# TWO FAULTS, ONE VERDICT. A row reading `total == 0` is an action that could
+# not fire; a name in --expect-actions with no row at all is an action Next
+# never mentions. Same lesson -- something you wrote was never exercised --
+# so they share the token, and the remediation below says which happened,
+# because the fixes are not the same.
 # ===========================================================================
 if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
   dead=$(scan_dead_actions "$nv_log")
-  if [ -n "$dead" ]; then
+
+  # Absent actions. Without names there is nothing to compare against, so the
+  # probe stays exactly as strong as it was and no stronger.
+  absent=""
+  if [ -n "$EXPECT_ACTIONS" ]; then
+    seen=$(scan_action_names "$nv_log")
+    IFS=',' read -r -a want_actions <<<"$EXPECT_ACTIONS"
+    for want in ${want_actions[@]+"${want_actions[@]}"}; do
+      [ -z "$want" ] && continue
+      # A here-string, never a pipe into grep -q: -q exits on the first match
+      # and SIGPIPEs the producer, which under `set -o pipefail` returns 141.
+      # Inside this `if` a 141 is merely falsy, so a present action would be
+      # reported ABSENT and the spec failed for a fault it does not have.
+      # Bead tla-kr9.
+      if ! grep -qxF -- "$want" <<<"$seen"; then
+        absent="${absent}${want}"$'\n'
+      fi
+    done
+  fi
+
+  if [ -n "$dead" ] || [ -n "$absent" ]; then
     say "VECTOR 3: an action in your specification can never fire."
     say ""
     say "The state space is healthy and the model is configured, but part of"
     say "what you wrote is unreachable -- so the behaviour it describes was"
-    say "never tested. TLC counts it as 0 total states generated."
+    say "never tested."
     say ""
     while IFS=$'\t' read -r name aline amod loc lcount; do
       [ -z "$name" ] && continue
       say "  action $name (line $aline of module $amod) never fired."
+      say "    TLC counts it as 0 total states generated."
       if [ -n "$loc" ]; then
         # shellcheck disable=SC2086
         set -- $loc
@@ -487,6 +692,18 @@ if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
     done <<EOF
 $dead
 EOF
+    while IFS= read -r name; do
+      [ -z "$name" ] && continue
+      say "  action $name never fired: it has no coverage row at all."
+      say "    This is the DELETED shape, not the restricted one, and the fix"
+      say "    differs. TLC prints one coverage row per disjunct of Next: an"
+      say "    action whose guard is never true still gets a row, reading 0"
+      say "    total, and an action Next never mentions gets no row. $name"
+      say "    got no row, so there is no guard here to weaken -- $name is"
+      say "    missing from Next. Check that it is one of Next's disjuncts."
+    done <<EOF
+$absent
+EOF
     finish "VACUOUS_DEAD_ACTION" 5
   fi
 fi
@@ -502,8 +719,24 @@ else
   say "The configured-check probe was skipped (--expect none), so nothing"
   say "here says an obligation was actually checked."
 fi
+if [ "$nv_rc" = "0" ]; then
+  say "Spec admits at least one behaviour, so the temporal obligations in"
+  say "the model were checked over something."
+else
+  say "The satisfiability probe did not run, so nothing here says Spec"
+  say "admits a behaviour."
+fi
 if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
-  say "Every action fired at least once."
+  if [ -n "$EXPECT_ACTIONS" ]; then
+    say "Every action fired at least once, and every expected action"
+    say "($EXPECT_ACTIONS) reached the coverage block."
+  else
+    # No names were given, so an action DELETED from Next leaves no row and
+    # cannot have been checked for. Claiming "every action" would overstate
+    # what this run actually saw.
+    say "Every action Next mentions fired at least once. No action names"
+    say "were expected, so an action missing from Next was not looked for."
+  fi
 else
   say "The dead-action probe did not run, so no action was proved live."
 fi

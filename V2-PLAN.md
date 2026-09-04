@@ -640,6 +640,80 @@ NonVacuous == TLCGet("distinct") >= 4
   `puzzles/T01-the-light-switch` solution). Indented sub-counts localize where an action died,
   enabling "your guard `x > 100` is never true" rather than "unreachable."
 
+- **Vector 3 has a second shape the `total == 0` predicate can't see (`tla-hf39`, 2026-09-03).**
+  TLC prints one coverage row per disjunct of `Next`. An action restricted by a guard that's
+  never true is still a disjunct, so it gets a row reading 0 total and the predicate matches it.
+  An action *deleted* from `Next` isn't a disjunct at all, so it gets no row, and there's nothing
+  for the predicate to match. The run ends reporting that every action fired, which is false.
+
+  Deletion is invisible to any predicate over the rows that are there, however you write the
+  predicate. The only way to notice something absent is to know what to expect. So
+  `vacuity.sh --expect-actions Up,Down` takes the action names the problem requires, and reports
+  any of them the coverage block never mentions. Both shapes return `VACUOUS_DEAD_ACTION` at
+  rc=5, because the lesson is the same one. Only the remediation splits. Telling a learner their
+  guard is never true is wrong advice for an action that has no guard problem.
+
+  Passing no names leaves the probe exactly as strong as it was and no stronger.
+  `harness/fixtures/vacuity/DeletedAction.tla` holds the shape.
+
+- **A fourth vector (`tla-hf39`, 2026-09-03): `Spec` admits no behaviour at all.** Drop an action
+  from `Next`, keep `WF_vars(Action)` in `Spec`, and fairness now demands a step the next-state
+  relation forbids. No behaviour satisfies `Spec`. Every temporal obligation then holds over
+  nothing, and TLC still exits 0. The token is `VACUOUS_UNSATISFIABLE` at rc=7.
+
+  **All three probes above are blind to it by construction.** Fairness doesn't touch the state
+  graph, it constrains the behaviours over that graph. The space stays healthy, `NonVacuous`
+  passes, `InvariantConfigured` passes, and every action still in `Next` reports a non-zero
+  total. Only the liveness half goes blind, and it goes blind at rc=0 reporting success.
+  `harness/fixtures/vacuity/UnsatFairness.tla` holds the shape, and `LiveFairness.tla` is the
+  same module with the disjunct restored.
+
+  The probe is an always-false *temporal* formula, and its being temporal is the whole point.
+  Measured on v1.8.0 against both fixtures:
+
+  | probe body | fixture | rc | reading |
+  |---|---|---|---|
+  | `[]<>FALSE` | unsatisfiable `Spec` | 0 | nothing refuted it, so there's nothing to refute it with |
+  | `[]<>FALSE` | satisfiable twin | 13 | a behaviour exists, and it refuted the formula |
+  | `[](counter # counter)` | unsatisfiable `Spec` | 12 | wrong channel (see below) |
+
+  Row 3 is the trap. `[]P` over a state predicate isn't a weaker probe, it's a different channel.
+  TLC lifts a state-level formula into an INVARIANT and refutes it against the state graph, which
+  ignores fairness by construction. It reports a violation on a spec that has no behaviours at
+  all, which is the opposite of the signal wanted.
+
+- **`-inv` has no `-prop` twin, so the temporal probe needs a generated module.** `tlc -help` on
+  v1.8.0 lists `-inv`, `-invlevel` and `-postCondition`, and no flag that takes a temporal
+  formula. It documents `-inv` as taking a *state-level* formula, so the restriction is stated
+  rather than merely observed. CLI injection works for a state predicate and nothing else. A
+  temporal probe has
+  to arrive through a `.cfg` `PROPERTY`, and a `.cfg` `PROPERTY` names an operator rather than
+  carrying an expression, so the operator has to exist in the main module.
+
+  `vacuity.sh` generates a wrapper in its scratch directory that `EXTENDS` the learner's module
+  and defines the one operator, then runs the wrapper as the main module. This is §5.2's
+  `run_judge` pattern with one difference: the `.cfg` is **copied** from the learner's and given
+  one appended `PROPERTY` line, rather than rebuilt. Copying is what carries `CONSTANTS`,
+  `CONSTRAINT`, `SYMMETRY` and the learner's own obligations into the probe run untouched. The
+  learner's directory has to go on `TLA-Library` for this, because the module is no longer
+  sitting beside the main module once the wrapper takes that role.
+
+  Two constraints on when the probe may run. It goes after the `NonVacuous` probe and only when
+  that probe finished at rc=0. Appending a `PROPERTY` to a `.cfg` whose `INVARIANT` is already
+  violated exits 12 on the safety violation before liveness checking starts, and a safety
+  violation says nothing either way about whether `Spec` admits a behaviour. Deadlock checking
+  also stays off, or a terminal state exits 11 before the probe means anything.
+
+  `FALSE` doesn't constant-fold out of the temporal channel here, and that's worth flagging
+  against the `INVARIANT FALSE` result above, which does fold at rc=151. TLC logs
+  `Implied-temporal checking` for this formula. I'd re-measure it on a new build before trusting
+  the row. A folded probe would move to the invariant channel and flag every healthy spec.
+
+  It costs one extra TLC run per `vacuity.sh` invocation. The vacuity suite went from 18.4s to
+  42.7s. Gating the probe on the spec carrying a `WF_` or `SF_` conjunct would buy most of that
+  back, and I'd take it if the suite gets tight. For now I'd rather not have a source grep
+  deciding whether a correctness probe runs.
+
 ### 5.4 Component: refinement checking
 
 Idiom: define `Refines == Abstract!Spec` in the module; `.cfg` gets `SPECIFICATION Spec`
