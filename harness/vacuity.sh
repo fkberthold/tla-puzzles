@@ -19,6 +19,11 @@
 #                         from the coverage block is reported as dead, which is
 #                         the only way a DELETED action can be caught at all.
 #       --no-dead-actions skip the dead-action probe
+#       --observe NAME    an observation operator the problem defines. Every
+#                         field of it that never changes anywhere in the
+#                         reachable state space is reported. OPT-IN: with no
+#                         --observe nothing is looked for, and the summary
+#                         says so.
 #       --keep-logs DIR   keep each probe's TLC log here
 #   -q, --quiet           print the verdict token only, no remediation
 #   -h, --help            this text
@@ -35,12 +40,14 @@
 #     5  VACUOUS_DEAD_ACTION    vector 3 — an action never fired
 #     6  PROBE_INCONCLUSIVE     the spec never ran; not a vacuity verdict
 #     7  VACUOUS_UNSATISFIABLE  vector 4 — Spec admits no behaviour at all
+#     8  VACUOUS_FROZEN_OBSERVE vector 5 — a field of the observation never
+#                                          changes anywhere in the space
 #
 #   The codes are deliberately disjoint from TLC's own (0/10/11/12/13/124/
 #   150/151/255) so a caller can never confuse a vacuity verdict with a
 #   model-checking one.
 #
-# FOUR VECTORS, AND WHY ONE VERDICT WOULD NOT DO
+# FIVE VECTORS, AND WHY ONE VERDICT WOULD NOT DO
 #
 #   They are not variants of each other. They have disjoint causes and need
 #   disjoint remediation, so each gets its own token and its own message. All
@@ -103,6 +110,72 @@
 #      non-zero total. Only the liveness half goes blind, and it goes blind at
 #      rc=0 reporting success. fixtures/vacuity/UnsatFairness.tla holds it,
 #      and LiveFairness.tla is the same module with the disjunct restored.
+#
+#   5. A FROZEN OBSERVATION. The specification is healthy and every action
+#      fires, but the operator a problem's obligations are stated over holds
+#      one value in a field for the whole run. The window is painted shut, and
+#      an obligation read through it holds for the same reason an obligation
+#      over an empty state space holds.
+#
+#      THE MODEL NEVER BREAKS HERE, WHICH IS WHY THE FIRST FOUR PROBES ARE ALL
+#      BLIND. fixtures/vacuity/ObserveLattice.tla is the shape in miniature:
+#      16 distinct states on every row, all four actions firing on every row,
+#      Spec satisfiable on every row, and the only thing that varies is how
+#      many of Observe's four fields pass the motion through.
+#
+#      AND THE FIELD IS THE ALTITUDE, NOT THE RECORD. 5.4 states the probe
+#      idiom for a refinement mapping at harness/refinement.sh:22-25 -- assert
+#      that the mapped expression never leaves its initial value, and require
+#      TLC to refute it -- and that idiom is right for a mapping, which either
+#      moves or does not. An observation record is a lattice of 2^n subsets,
+#      and a whole-record probe sits at the top of it. Measured on v1.8.0:
+#
+#        one field frozen      whole-record probe rc=12  -> "moves", MISS
+#        three fields frozen   whole-record probe rc=12  -> "moves", MISS
+#        all four frozen       whole-record probe rc=0   -> FROZEN, caught
+#
+#      One of sixteen subsets, and it is the subset a learner is least likely
+#      to write. Bead tla-29m4.
+#
+# HOW THE FROZEN-OBSERVE PROBE AVOIDS COMPARING ANYTHING
+#
+#   A per-field probe has to decide whether a field's values are all the same,
+#   and the obvious way to ask is to compare the field against its initial
+#   value. THAT IS UNSOUND ON A HETEROGENEOUS FIELD. TLC does not return FALSE
+#   when the two sides of a comparison have different types, it ABORTS the
+#   evaluation, and an aborted probe reports nothing about the field next to
+#   the one that killed it. Measured at rc=76 SAFETY_EVAL_FAILURE on
+#   fixtures/vacuity/ObserveMixedType.tla, whose `phase` field holds 0, 1 and
+#   "closed" across the reachable space.
+#
+#   THE HAZARD IS LATENT RATHER THAN LOUD, so measuring once gives the wrong
+#   answer. The same comparison against the initial value answers correctly on
+#   that fixture, at rc=12, because `phase` leaves 0 for 1 before it ever
+#   reaches "closed" and TLC stops at the first violation. Hand it a spec
+#   whose heterogeneous field holds its initial value longest and it is the
+#   rc=76 above.
+#
+#   So this probe COMPARES NOTHING IN TLA+. It prints one line per field per
+#   state, as `<<"VACUITY_OBSERVE", field, value>>`, from an invariant that is
+#   always true so exploration runs to completion, and the distinct-value
+#   count is done in awk over the log. A field with one distinct printed value
+#   never changed. Printing has no type discipline to violate, so the abort
+#   above has nothing to fire on. Measured on ObserveMixedType: rc=0, `phase`
+#   at three values, `ledger` at one.
+#
+#   VIEW plus a distinct-count postcondition would need no comparison either,
+#   and it is the route NOT taken: VIEW prunes exploration, so it can
+#   under-count a field's values and report a healthy submission FROZEN. A
+#   false FROZEN is the one direction this gate must not fail in.
+#
+#   READING THE LOG IS THE SAME BARGAIN THE DEAD-ACTION PROBE STRUCK. What is
+#   extracted is a marker this script printed itself, in a format it chose, and
+#   the run's validity still comes from verdict.sh's rc. No TLC prose decides
+#   anything.
+#
+#   THE COST IS ONE FULL EXPLORATION PLUS ONE PRINTED LINE PER FIELD PER STATE.
+#   That is cheap on a submission the state-count floor will pass and expensive
+#   on a large one, so the flag is opt-in and the probe runs last.
 #
 # HOW THE SATISFIABILITY PROBE IS INJECTED, AND WHY NOT THE WAY PROBE 1 IS
 #
@@ -216,6 +289,12 @@ TIMEOUT=60
 EXPECT="invariant"
 EXPECT_ACTIONS=""
 DEAD_ACTIONS=1
+# Opt-in, and it stays opt-in. The state-count floor is mandatory because
+# every problem has a state space. An observation operator is a thing a
+# problem either defines or does not, so a mandatory flag here would refuse
+# submissions that have no observation to look at. The honesty burden moves
+# to the summary, which says when no operator was named. Bead tla-29m4.
+OBSERVE=""
 KEEP_LOGS=""
 QUIET=0
 
@@ -231,11 +310,14 @@ usage: harness/vacuity.sh [OPTIONS] <module.tla>
                         action names the problem requires; one absent from the
                         coverage block is reported as dead
       --no-dead-actions skip the dead-action probe
+      --observe NAME    an observation operator the problem defines. Every
+                        field of it that never changes is reported. Opt-in:
+                        with no --observe, nothing is looked for
       --keep-logs DIR   keep each probe's TLC log here
   -q, --quiet           verdict token only
   -h, --help            this text
 
-Prints the verdict token on line 1; exits 0/3/4/5/6/7.
+Prints the verdict token on line 1; exits 0/3/4/5/6/7/8.
 USAGE
 }
 
@@ -247,6 +329,7 @@ while [ $# -gt 0 ]; do
     -e|--expect)      EXPECT="${2:-}"; shift 2 ;;
     --expect-actions) EXPECT_ACTIONS="${2:-}"; shift 2 ;;
     --no-dead-actions) DEAD_ACTIONS=0; shift ;;
+    --observe)        OBSERVE="${2:-}"; shift 2 ;;
     --keep-logs)      KEEP_LOGS="${2:-}"; shift 2 ;;
     -q|--quiet)       QUIET=1; shift ;;
     -h|--help)        usage; exit 0 ;;
@@ -287,6 +370,18 @@ fi
 
 case "$MIN_STATES" in
   *[!0-9]*) echo "vacuity.sh: --min-states must be a non-negative integer" >&2; exit 2 ;;
+esac
+
+# The name reaches TLC inside a GENERATED module, so anything that is not a
+# TLA+ identifier would land as source text rather than as an operator. A name
+# the module does not DEFINE is a different thing and is not refused here: it
+# is a fact about the submission, and the probe reports it as inconclusive
+# once TLC has said so. This arm is about the caller.
+case "$OBSERVE" in
+  "") ;;
+  [!A-Za-z_]*|*[!A-Za-z0-9_]*)
+    echo "vacuity.sh: --observe must name a TLA+ operator (letters, digits, underscore)" >&2
+    exit 2 ;;
 esac
 
 # The module goes to TLC as an ABSOLUTE path; see the MODULE RESOLUTION note.
@@ -442,6 +537,47 @@ scan_action_names() {
       # distinct:total pair is variable or definition coverage, not an action.
       if (counts !~ /^[0-9]+:[0-9]+$/) { next }
       print substr(f[1], 2)
+    }
+  ' "$1"
+}
+
+# ---------------------------------------------------------------------------
+# Per-field motion over the frozen-observe probe's log.
+#
+# The probe prints one line per field per state, in a format this script chose
+# itself:
+#
+#   <<"VACUITY_OBSERVE", "shelf", 0>>
+#
+# Output is one row per field, in the order the fields were first seen, as
+#
+#   <name> <TAB> <distinct printed values> <TAB> <first value>
+#
+# so a count of 1 is a field that never changed. The regex guard is what makes
+# the substring arithmetic below safe: a line that does not match the whole
+# shape is dropped rather than half-parsed.
+#
+# TLC prints a value on one line, so a field whose value spanned lines would
+# go unreported rather than misreported. Measured shapes: a number, a string,
+# and a record all print inline.
+# ---------------------------------------------------------------------------
+scan_observe_motion() {
+  awk '
+    $0 ~ /^<<"VACUITY_OBSERVE", "[^"]*", .*>>$/ {
+      rest = substr($0, 23)
+      q = index(rest, "\"")
+      name = substr(rest, 1, q - 1)
+      val = substr(rest, q + 3)
+      val = substr(val, 1, length(val) - 2)
+      if (!(name in firstval)) { order[++n] = name; firstval[name] = val }
+      key = name SUBSEP val
+      if (!(key in seen)) { seen[key] = 1; values[name]++ }
+    }
+    END {
+      for (i = 1; i <= n; i++) {
+        nm = order[i]
+        printf "%s\t%d\t%s\n", nm, values[nm], firstval[nm]
+      }
     }
   ' "$1"
 }
@@ -741,6 +877,138 @@ EOF
   fi
 fi
 
+# ===========================================================================
+# PROBE 6 -- a field of the observation that never changes.
+#
+# LAST, AND AFTER DEAD ACTIONS ON PURPOSE. Nothing in the fixtures separates
+# the two orders, so this is a choice rather than a measurement, and it is the
+# same choice probe 4 makes over probe 5: report the root cause. An action
+# that never fired is a plausible REASON a field never moves, since the step
+# that would have moved it is the step that never ran. "Your guard is never
+# true" sends a learner to the break. "This field never changes" sends them to
+# a window that is doing exactly what the model told it to.
+#
+# The cheaper of the two also goes first, which is a happy accident rather
+# than the argument. Probe 5 re-reads probe 2's log and costs nothing. This one
+# costs a whole extra exploration, and a submission already failing on a dead
+# action never pays for it.
+#
+# RUNS ONLY AFTER PROBE 2 COMPLETED AT rc=0, for the reason probe 5 does. This
+# probe reads the WHOLE reachable space, and a run cut short by a violation
+# has seen part of it. A field that moves late would then read as frozen,
+# which is the one direction this gate must not fail in.
+# ===========================================================================
+OBSERVE_RAN=0
+if [ -n "$OBSERVE" ] && [ "$nv_rc" = "0" ]; then
+  OBSERVE_MODULE=$(basename -- "$MODULE_ABS" .tla)
+  cat >"$SCRATCH/VacuityObserve.tla" <<TLA
+---- MODULE VacuityObserve ----
+(* Generated by harness/vacuity.sh for --observe $OBSERVE.                   *)
+(*                                                                           *)
+(* The invariant is ALWAYS TRUE, so exploration runs to completion and every *)
+(* reachable state prints a line per field. Nothing is compared here: a       *)
+(* field whose values span types would abort a comparison rather than answer  *)
+(* one, and take the report on the field beside it down with it. The          *)
+(* distinct-value count happens in awk over the log instead.                  *)
+EXTENDS $OBSERVE_MODULE, TLC
+VACUITY_OBSERVE_TRACE ==
+    \A vacuity_field \in DOMAIN $OBSERVE :
+        PrintT(<<"VACUITY_OBSERVE", vacuity_field, ${OBSERVE}[vacuity_field]>>)
+====
+TLA
+  # The learner's .cfg is copied unchanged, as probe 4 copies it: CONSTANTS,
+  # CONSTRAINT, SYMMETRY and the learner's own obligations all have to reach
+  # this run, or it explores a different state space from the one probe 2
+  # measured. The probe arrives on the command line as -inv, the way probe 1's
+  # does, which leaves the copied file untouched.
+  cat "$CONFIG_ABS" >"$SCRATCH/VacuityObserve.cfg" 2>/dev/null
+
+  PROBE_N=$((PROBE_N + 1))
+  obs_log="$SCRATCH/probe${PROBE_N}-observe.log"
+  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$obs_log" \
+    --config "$SCRATCH/VacuityObserve.cfg" "$SCRATCH/VacuityObserve.tla" \
+    -- -inv VACUITY_OBSERVE_TRACE >/dev/null 2>&1
+  obs_rc=$?
+  if [ -n "$KEEP_LOGS" ]; then
+    cp "$obs_log" "$KEEP_LOGS/" 2>/dev/null
+  fi
+
+  # An operator the module does not define lands at rc=150, measured. An
+  # operator that has no DOMAIN lands at rc=76. Both mean the same thing to a
+  # caller -- the observation was never looked at -- and neither is a verdict
+  # about the submission's vacuity. Reporting NON_VACUOUS here would be a
+  # false pass reachable by misspelling a flag.
+  if [ "$obs_rc" != "0" ]; then
+    say "The observation $OBSERVE could not be probed, so vacuity could not"
+    say "be assessed. verdict.sh reported rc=$obs_rc on the frozen-observation"
+    say "probe."
+    say ""
+    say "Check that $(basename "$MODULE_ABS") defines $OBSERVE, that the name"
+    say "is spelled the way the module spells it, and that $OBSERVE is a"
+    say "record or a function rather than a single value."
+    finish "PROBE_INCONCLUSIVE" 6
+  fi
+
+  obs_motion=$(scan_observe_motion "$obs_log")
+  if [ -z "$obs_motion" ]; then
+    say "The observation $OBSERVE ran but reported no fields at all, so"
+    say "nothing is known about it. An observation with an empty domain is"
+    say "the usual cause."
+    finish "PROBE_INCONCLUSIVE" 6
+  fi
+
+  obs_frozen=""
+  obs_moving=""
+  while IFS=$'\t' read -r obs_name obs_count obs_val; do
+    [ -z "$obs_name" ] && continue
+    if [ "$obs_count" = "1" ]; then
+      obs_frozen="${obs_frozen}${obs_name}	${obs_val}"$'\n'
+    else
+      obs_moving="${obs_moving}${obs_name}	${obs_count}"$'\n'
+    fi
+  done <<EOF
+$obs_motion
+EOF
+
+  if [ -n "$obs_frozen" ]; then
+    say "VECTOR 5: part of your observation never changes."
+    say ""
+    say "The state space is healthy, the obligation is configured, and every"
+    say "action fired. What is stuck is the WINDOW. $OBSERVE is what the"
+    say "problem reads your model through, and a field of it holds one value"
+    say "in every reachable state, so nothing your model does reaches that"
+    say "field. An obligation stated over it holds for the same reason an"
+    say "obligation over an empty state space holds."
+    say ""
+    while IFS=$'\t' read -r obs_name obs_val; do
+      [ -z "$obs_name" ] && continue
+      say "  field $obs_name never changes."
+      say "    It is $obs_val in all $(distinct_count "$nv_log") distinct states TLC reached."
+    done <<EOF
+$obs_frozen
+EOF
+    if [ -n "$obs_moving" ]; then
+      say ""
+      say "The record as a whole DOES move, which is why a probe at the record"
+      say "altitude cannot see this: such a probe is refuted the moment any"
+      say "one field moves, so it catches one subset out of the 2^n a record"
+      say "has. These fields do change:"
+      while IFS=$'\t' read -r obs_name obs_count; do
+        [ -z "$obs_name" ] && continue
+        say "  field $obs_name takes $obs_count distinct values."
+      done <<EOF
+$obs_moving
+EOF
+    fi
+    say ""
+    say "Look at $OBSERVE in $(basename "$MODULE_ABS"). A field wired to a"
+    say "literal, or reading a variable no action ever assigns, is the usual"
+    say "cause."
+    finish "VACUOUS_FROZEN_OBSERVE" 8
+  fi
+  OBSERVE_RAN=1
+fi
+
 # The summary names only the probes that actually ran. Saying "a configured
 # check" after --expect none skipped that probe would claim a guarantee this
 # run did not obtain.
@@ -772,5 +1040,17 @@ if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
   fi
 else
   say "The dead-action probe did not run, so no action was proved live."
+fi
+# The opt-in flag's whole honesty burden sits here. A run that never looked
+# for a frozen field must not read like a run that looked and found none.
+if [ -z "$OBSERVE" ]; then
+  say "No frozen-observation probe ran, because no observation operator was named."
+  say "A field of an observation that never changes was not looked for."
+elif [ "$OBSERVE_RAN" = "1" ]; then
+  say "Every field of $OBSERVE takes more than one value across the reachable"
+  say "states, so the observation passes the model's motion through."
+else
+  say "The frozen-observation probe did not run, so no field of $OBSERVE was"
+  say "shown to move."
 fi
 finish "NON_VACUOUS" 0

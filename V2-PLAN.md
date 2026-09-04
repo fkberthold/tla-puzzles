@@ -582,6 +582,20 @@ Include a **`Relational` suite** that rejects specs which are *too strict*. Over
 is the sin that reference-comparison grading actively teaches, and it dominates in the measured
 data.
 
+**The judge's own non-vacuity check sits at the record altitude (`tla-29m4`, 2026-09-04).**
+Step 3 above is `Ψ => false` must fail, and §5.3 records how it's written in a generated judge
+module: `Observe # Observe`, state-dependent so TLC can't fold it, and loud when the learner
+never defined `Observe` at all. That check asks whether the observation record moves. It does not
+ask whether each field does, and those are different questions. Measured, a record with one live
+field is refuted whatever the other three are doing, so the judge answers "not vacuous" on an
+observation that is three-quarters painted shut. Nothing here is wrong. It's the wrong altitude
+for a fault the whole grading pipeline reads the model through, and it can't be fixed by writing
+step 3 differently, because a record either moves or it doesn't.
+
+So a grading run passes `--observe <operator>` to `vacuity.sh` and takes the per-field verdict
+from there. §5.3 carries the lattice measurement, the type-safe mechanism, and why the naive
+per-field comparison is unsound.
+
 ### 5.3 Component: vacuity probes
 
 The trap: unsatisfiable `Init` yields `No error has been found`, `0 states generated`, **rc=0**.
@@ -743,6 +757,88 @@ NonVacuous == TLCGet("distinct") >= 4
   passes the reference model and refuses the transcription. No harness change buys this. It's a
   choice the problem author makes when writing the witness set, and I'd put it in the authoring
   checklist rather than try to detect it.
+
+- **A fifth vector (`tla-29m4`, 2026-09-04): a field of the observation never changes.** The
+  model is healthy on every count the first four probes measure. What's stuck is the window.
+  `Observe` is the operator a problem's obligations are read through, and a field of it that
+  holds one value in every reachable state passes no information about the model at all. An
+  obligation stated over that field holds for the same reason an obligation over an empty state
+  space holds. The token is `VACUOUS_FROZEN_OBSERVE` at rc=8.
+
+  **The field is the altitude, and that's the finding.** §5.4 states the probe idiom for a
+  refinement mapping at `harness/refinement.sh:22-25`: assert that the mapped expression never
+  leaves its initial value, and require TLC to refute it, so rc=12 reads "it moves" and rc=0
+  reads "frozen". That's right for a mapping, which either moves or doesn't. An observation
+  record is a lattice of 2^n subsets, and a whole-record probe sits at the top of it. Measured on
+  v1.8.0 over `harness/fixtures/vacuity/ObserveLattice.tla`, one module with one `.cfg` per row:
+
+  | row | whole-record probe | reads as |
+  |---|---|---|
+  | one field frozen | rc=12 | "moves", MISS |
+  | three fields frozen | rc=12 | "moves", MISS |
+  | all four frozen | rc=0 | frozen, caught |
+
+  One subset out of sixteen, and it's the one a learner is least likely to write. Seedlib V43
+  freezes the three non-season fields and clears `verdict.sh`, `vacuity.sh` and all four §9.5
+  checks. V45 stacks a broken guard underneath the same freeze and stays invisible too. The rows
+  seedlib does catch, V38 and V41 through `CloseSquaresTheBook`, V42 through
+  `DefaultIsNeverClean`, V44 through `TheReckoningComes`, are caught by obligations that happen
+  to notice rather than by a probe that was looking.
+
+  **A comparison-based per-field probe is unsound, and measuring it once tells you the
+  opposite.** TLC doesn't return FALSE when the two sides of a comparison have different types,
+  it aborts the evaluation, and an aborted probe reports nothing about the field beside the one
+  that killed it. Both readings are pinned in the suite, because either alone says the wrong
+  thing:
+
+  | probe over `ObserveMixedType.tla` | rc | reading |
+  |---|---|---|
+  | `phase` against its initial value | 12 | correct, and correct by luck |
+  | a probe true on both numeric states | 76 | `SAFETY_EVAL_FAILURE`, the check never happened |
+
+  Row 1 is correct because `phase` leaves `0` for `1` before it ever reaches `"closed"`, so TLC
+  stops at that violation and never evaluates the cross-type case. Hand the same probe a spec
+  whose heterogeneous field holds its initial value longest and it's row 2. The frozen `ledger`
+  on that fixture is the thing the gate exists to find, and it's sitting behind the field most
+  likely to take the instrument down.
+
+  **So the probe compares nothing in TLA+.** A generated wrapper defines an invariant that is
+  always true, `\A f \in DOMAIN Observe : PrintT(<<"VACUITY_OBSERVE", f, Observe[f]>>)`, so
+  exploration runs to completion and every reachable state prints one line per field. The
+  distinct-value count happens in awk over the log. A field with one distinct printed value never
+  changed. Printing has no type discipline to violate, so the abort has nothing to fire on.
+  Measured on `ObserveMixedType.tla`: rc=0, `phase` at three values, `ledger` at one.
+
+  Reading the log is the same bargain the dead-action probe struck, and it holds for the same
+  reason. What's extracted is a marker the script printed itself in a format it chose, and the
+  run's validity still comes from `verdict.sh`'s rc. No TLC prose decides anything.
+
+  `VIEW` plus a distinct-count postcondition needs no comparison either, and it's the route not
+  taken. `VIEW` prunes exploration, so it can under-count a field's values and report a healthy
+  submission frozen. A false FROZEN is the one direction this gate must not fail in. That's
+  reasoning rather than measurement, and worth measuring if anyone wants the cheaper route.
+
+  **`--observe` is opt-in, and `tla-dk7w`'s "opt-in is the defect" doesn't carry.** A state-count
+  floor applies to every problem, so a default there was a number nobody stated. An observation
+  operator is a thing a problem either defines or doesn't, and a mandatory flag would refuse
+  submissions that have nothing to observe. The honesty burden moves to the summary, which says
+  `no observation operator was named` when none was, so a run that didn't look can't read like a
+  run that looked and found nothing. `--observe` on an operator the module doesn't define is
+  `PROBE_INCONCLUSIVE` at rc=6 (measured: the generated wrapper fails to resolve and
+  `verdict.sh` reports 150), never `NON_VACUOUS`. A false pass reachable by misspelling a flag
+  is worse than the bug.
+
+  **The probe runs last, after dead actions.** Nothing in the fixtures separates the two orders,
+  so this is a choice. It's the same one probe 4 makes over probe 5. An action that never fired
+  is a plausible reason a field never moves, since the step that would have moved it is the step
+  that never ran, and the root cause is the better report. The cheaper probe also going first is
+  a convenience rather than the argument: probe 5 re-reads probe 2's log and costs nothing, while
+  this one costs a whole extra exploration that a submission already failing on a dead action
+  never pays for.
+
+  Cost: the vacuity suite went from 47.7s to 80.7s, which makes it the slowest suite in the gate.
+  The tests are 17 assertions, 6 of which drive `--observe` and so pay for the extra run. The
+  budget row in `scripts/test` is central's to move.
 
 ### 5.4 Component: refinement checking
 
