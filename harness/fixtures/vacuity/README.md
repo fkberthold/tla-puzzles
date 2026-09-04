@@ -11,7 +11,9 @@ both builds.
 `DeletedAction.tla`, `UnsatFairness.tla` and `LiveFairness.tla` arrived later, on
 2026-09-03 with bead `tla-hf39`, and were measured on v1.8.0 only.
 `TranscriptFloor.tla` and `ModelledFloor.tla` arrived on 2026-09-04 with bead
-`tla-dk7w`, and were measured on v1.8.0 only.
+`tla-dk7w`, and were measured on v1.8.0 only. `ObserveLattice.tla` and
+`ObserveMixedType.tla` arrived on 2026-09-04 with bead `tla-29m4`, and were
+measured on v1.8.0 only.
 
 ## The vectors are not variants of each other
 
@@ -32,11 +34,22 @@ fired tells a learner nothing they can act on, so each gets its own token.
 | `LiveFairness.tla` | — | `NON_VACUOUS` | 0 | negative control for vector 4; see below |
 | `TranscriptFloor.tla` at `--min-states 4` | — | `NON_VACUOUS` | 0 | **the hole**; the placeholder floor waves it through |
 | `ModelledFloor.tla` at `--min-states 24` | — | `NON_VACUOUS` | 0 | negative control for the floor; see below |
+| `ObserveLattice.tla` + `ObserveLatticeOne.cfg` | 5 | `VACUOUS_FROZEN_OBSERVE` | 8 | one field of `Observe` never changes |
+| `ObserveLattice.tla` + `ObserveLatticePair.cfg` | 5 | `VACUOUS_FROZEN_OBSERVE` | 8 | two fields never change |
+| `ObserveLattice.tla` + `ObserveLatticeThree.cfg` | 5 | `VACUOUS_FROZEN_OBSERVE` | 8 | **the hole**; three frozen, one live, nothing catches it today |
+| `ObserveLattice.tla` + `ObserveLatticeAll.cfg` | 5 | `VACUOUS_FROZEN_OBSERVE` | 8 | the whole record is constant |
+| `ObserveMixedType.tla` | 5 | `VACUOUS_FROZEN_OBSERVE` | 8 | `ledger` frozen, next to a field whose type changes |
+| `ObserveLattice.tla` + `ObserveLattice.cfg` | — | `NON_VACUOUS` | 0 | negative control for vector 5; every field moves |
 
 The `DeletedAction.tla` and `UnsatFairness.tla` rows are the contract from bead
 `tla-hf39`, not a measurement. As this file is written `vacuity.sh` reports
-`NON_VACUOUS` at rc=0 on both of them, which is the bug. Everything else in
-this README is measured.
+`NON_VACUOUS` at rc=0 on both of them, which is the bug. The six
+`ObserveLattice` and `ObserveMixedType` rows are the contract from bead
+`tla-29m4` on the same terms: `vacuity.sh` has no `--observe` flag yet, so it
+exits 2 `USAGE` on every one of them. `VACUOUS_FROZEN_OBSERVE` and rc=8 are
+that bead's pinned choices, not measurements — rc=8 is free of both tables
+this component answers to, `vacuity.sh`'s own 0/2/3/4/5/6/7 and TLC's
+0/10/11/12/13/124/150/151/255. Everything else in this README is measured.
 
 ## What each fixture proves that the others cannot
 
@@ -195,6 +208,70 @@ That is the opposite experiment from the two `Healthy.tla` rows in
 `--min-states 5` passed). Neither direction substitutes for the other: theirs
 shows the number moves the verdict, this pair shows the submission does.
 
+**`ObserveLattice.tla`** is the freeze lattice in one module. Four state
+variables that all genuinely move, and one `Observe` record whose four fields
+are frozen or live **independently**, chosen by four boolean `CONSTANT`s — so
+the five `.cfg` rows differ in nothing but how much of the model the
+observation passes through. The state space is 16 distinct states on every row,
+all four actions fire on every row, and `Spec` is satisfiable on every row.
+Nothing about the model ever breaks; only the window onto it does.
+
+The measurement that makes it a fixture, taken on v1.8.0 with the refinement
+idiom from `harness/refinement.sh:22-25` — assert as an ordinary `INVARIANT`
+that the expression never leaves its initial value, and require TLC to violate
+it, so rc=12 reads *it moves* and rc=0 reads *frozen*:
+
+| row | whole-record probe | reads as |
+|---|---|---|
+| `ObserveLatticeOne.cfg` | rc=12 | "moves" — **miss** |
+| `ObserveLatticeThree.cfg` | rc=12 | "moves" — **miss** |
+| `ObserveLatticeAll.cfg` | rc=0 | frozen — caught |
+
+A whole-record probe therefore catches exactly one of the sixteen subsets, and
+it is the one subset a learner is least likely to write. The same idiom one
+altitude down separates the rows correctly: on `ObserveLatticeThree.cfg`,
+`FieldProbeShelf` comes back rc=0 (frozen) and `FieldProbeSeason` rc=12 (it
+moves). `ObserveLatticeThreeWholeProbe.cfg`, `...FieldProbe.cfg` and
+`...LiveFieldProbe.cfg` are those three runs.
+
+**The only obligation in the module is `TypeOK`, and it is stated over the raw
+variables on purpose.** In seedlib every lattice row except V43 is caught by
+some obligation that happens to notice — `CloseSquaresTheBook` at V38 and V41,
+`DefaultIsNeverClean` at V42, `TheReckoningComes` at V44. That makes the
+seedlib package a poor instrument for asking what the *probes* can see, because
+an obligation firing masks a probe that saw nothing. Here nothing reads
+`Observe` at all, so every row is exactly as visible as the probe layer makes
+it, and the answer comes out uniform instead of accidental.
+
+**`ObserveMixedType.tla`** is the field next door. Its `phase` field holds `0`,
+`1` and `"closed"` across the reachable space, and TLC does not return `FALSE`
+when the two sides of a comparison are of different types — it **aborts the
+evaluation**. Measured: `ObserveMixedTypeCrossProbe.cfg`, whose invariant
+compares `phase` against a number, comes back `SAFETY_EVAL_FAILURE` at rc=76.
+The check never happened.
+
+**The hazard is latent rather than absent, and both readings are pinned.** The
+same comparison written the way `refinement.sh` writes it —
+`ObserveMixedTypeFieldProbe.cfg`, the field against its initial value — answers
+*correctly* here, at rc=12. It answers correctly by luck: `phase` leaves `0` for
+`1` before it ever reaches `"closed"`, so TLC stops at that violation and never
+evaluates the cross-type case. Hand the same probe a spec whose heterogeneous
+field holds its initial value longest and it is the rc=76 above. One row without
+the other would say the opposite of what it means.
+
+That is a hazard for a per-field probe specifically, and it fails in the
+dangerous direction. `ledger` is frozen on this fixture and is the thing the
+gate exists to find; it is sitting beside the field most likely to take the
+instrument down, and a run that aborts on `phase` reports nothing about
+`ledger` at all. A type-safe comparison exists — `ToString` on both sides
+returns rc=12 on `phase` and rc=0 on `ledger`, measured — so the fixture states
+a requirement rather than an impossibility, and does not pin how it is met.
+
+The heterogeneity lives in `Observe` rather than in a state variable
+deliberately. It is the *observation* the probe reads, so that is where the
+hazard has to be for the fixture to exercise it, and it keeps `Next` free of
+cross-type guards that would only move the same abort earlier.
+
 ## Fixtures that are wrong on purpose
 
 `EmptyInit.tla` has an `Init` with no solution, `DanglingInvariant.cfg` has a
@@ -213,6 +290,18 @@ both at, so the two counts and that number move together or not at all.
 `NoSuchModule.tla` is a fixture by its **absence** — `test-vacuity.sh` uses it
 to check that a spec which will not run is reported as `PROBE_INCONCLUSIVE`
 rather than as vacuous. Creating a file at that path breaks the row.
+
+`ObserveLattice.tla` belongs here in the `TranscriptFloor.tla` sense: nothing
+about the *model* is wrong on any row, and that is the load-bearing part. Give
+`season`, `shelf`, `owed` or `standing` a reason not to move, or add an
+obligation that reads `Observe`, and the module stops being able to ask what
+the probe layer can see on its own. The four `Freeze*` constants are the only
+thing that varies between rows, and a fifth field or a sixth `.cfg` should
+follow that same shape rather than forking the module.
+
+`ObserveMixedType.tla`'s `phase` field is heterogeneous on purpose. Making it
+uniformly numeric deletes the only fixture that shows a per-field probe dying
+on one field and taking its neighbour's verdict with it.
 
 `Gate.tla` is **not** here and must not be copied here. It is centrally owned
 at `harness/Gate.tla`, shared with §5.4, and `vacuity.sh` reaches it through

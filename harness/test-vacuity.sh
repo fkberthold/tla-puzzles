@@ -57,6 +57,44 @@
 #          never mentions the floor gets 4, and 4 is a number the
 #          transcription clears three times over.
 #
+# A sixth follows, from bead tla-29m4 / seedlib step-2 variants V43 and V45,
+# and it is about a LATTICE rather than a switch.
+#
+#   RED 6  GIVEN an observation operator with a field that never changes
+#          anywhere in the reachable state space, WHEN vacuity.sh runs with
+#          that operator named, THEN it reports THAT FIELD -- independently of
+#          whether any other field of the same record moves.
+#
+#          5.4 already closes this for refinement, and states the idiom at
+#          harness/refinement.sh:22-25: name the mapped expression, assert as
+#          an ORDINARY INVARIANT that it never leaves its initial value, and
+#          require TLC to VIOLATE it. A PASSING PROBE IS A FAILING CHECK.
+#
+#          That probe is WHOLE-EXPRESSION, which is right for a refinement
+#          mapping -- the mapped tuple either moves or it does not. AN
+#          OBSERVATION RECORD IS A LATTICE, AND A WHOLE-RECORD PROBE SITS AT
+#          THE TOP OF IT. Measured on ObserveLattice.tla, one module with one
+#          .cfg per row, on v1.8.0:
+#
+#            one field frozen      whole-record probe rc=12  -> "moves", MISS
+#            three fields frozen   whole-record probe rc=12  -> "moves", MISS
+#            all four frozen       whole-record probe rc=0   -> FROZEN, caught
+#
+#          So a whole-record probe catches exactly one of the sixteen subsets,
+#          and it is the one subset a learner is least likely to write. In
+#          seedlib the other rows are caught by OBLIGATIONS that happen to
+#          notice -- CloseSquaresTheBook at V38 and V41, DefaultIsNeverClean at
+#          V42, TheReckoningComes at V44 -- which is coincidence rather than
+#          coverage, and V43, the three non-season fields, is caught by
+#          nothing at all. V45 stacks a real broken guard underneath the same
+#          freeze and stays invisible too.
+#
+#          THE FIELD IS THE ALTITUDE, THEN, AND EVERY ROW OF THE LATTICE IS
+#          ASSERTED RATHER THAN JUST THE HOLE. A gate that catches all five
+#          rows for one stated reason is a gate; one that catches four of them
+#          because something else happened to fire is a coincidence, and the
+#          difference is only visible if the uniform rows are pinned too.
+#
 # Three kinds of assertion:
 #
 #   Behavioural  — drive vacuity.sh against a fixture and require both the
@@ -175,6 +213,58 @@ assert_reports() {
   else
     nope "$label — remediation did not mention: $want"
   fi
+}
+
+# assert_observe <label> <token> <rc> <frozen-fields> <live-fields> [args...]
+#
+# One invocation, four questions: the verdict token, the exit code, that every
+# field named in <frozen-fields> is reported, and that no field named in
+# <live-fields> is. Both lists are space-separated and either may be empty.
+#
+# THE FOUR ARE ASSERTED TOGETHER BECAUSE THEY ARE ONE CLAIM. "Reports every
+# frozen field" and "reports only frozen fields" are the two halves of the
+# contract, and a gate satisfying either alone is useless -- one that names
+# nothing passes the first half read as a token check, and one that names all
+# four fields on every row passes it too. The token alone cannot tell those
+# apart. Splitting them would also double the TLC runs for no discriminating
+# power, on the slowest suite in the gate.
+#
+# The report phrasing this matches is a CONTRACT DECISION, not a measurement:
+# the per-field line reads `field <name> never changes`. Bead tla-29m4.
+assert_observe() {
+  local label="$1" want_token="$2" want_rc="$3" frozen="$4" live="$5"
+  shift 5
+  local got_out got_token got_rc missing extra f
+  # Captured whole, then sliced -- never piped into an early-exiting consumer.
+  # Bead tla-kr9.
+  got_out=$(bash "$VACUITY" "$@" 2>/dev/null)
+  got_rc=$?
+  got_token=${got_out%%$'\n'*}
+  if [ "$got_token" != "$want_token" ] || [ "$got_rc" != "$want_rc" ]; then
+    nope "$label — wanted $want_token/rc=$want_rc, got '${got_token}'/rc=${got_rc}"
+    return
+  fi
+  missing=""
+  extra=""
+  # Word-splitting is what the space-separated field lists are FOR, so the
+  # unquoted expansion is deliberate here rather than an oversight.
+  # shellcheck disable=SC2086
+  for f in $frozen; do
+    if ! grep -qF -- "field $f never changes" <<<"$got_out"; then
+      missing="$missing $f"
+    fi
+  done
+  # shellcheck disable=SC2086
+  for f in $live; do
+    if grep -qF -- "field $f never changes" <<<"$got_out"; then
+      extra="$extra $f"
+    fi
+  done
+  if [ -n "$missing" ] || [ -n "$extra" ]; then
+    nope "$label — $want_token, but frozen fields not reported:${missing:- none}; live fields wrongly reported:${extra:- none}"
+    return
+  fi
+  ok "$label — $want_token (rc=$want_rc), frozen:${frozen:- none}, live untouched:${live:- none}"
 }
 
 # vacuity.sh with whole-line comments stripped. BOTH structural assertions read
@@ -663,6 +753,153 @@ if [ -z "$help_default" ]; then
 else
   nope "--help still advertises a default floor — $(tr '\n' ' ' <<<"$help_default")"
 fi
+
+echo
+echo "== RED 6: the Observe-freeze LATTICE, a field at a time =="
+echo "== (bead tla-29m4, seedlib V43 and V45)                 =="
+
+# THE CONTROL FIRST, as with vectors 1 and 4. Three of Observe's four fields are
+# dead on this row and the harness's own verdict channel calls the submission
+# fine, at the reference's own numbers.
+assert_verdict "control: bare TLC on the three-frozen row reports success" \
+  "OK" 0 \
+  --config "$FIXTURES/ObserveLatticeThree.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# THE HOLE, pinned from the MISS side, the way RED 4's deleted action and RED
+# 5's transcription are. Name no observation operator and the component is as
+# blind as it is today -- and this row must KEEP PASSING after the fix, because
+# a submission whose problem never states an observation operator has not
+# acquired a fault, it has acquired a check nobody asked for.
+assert_vacuity "the three-frozen row is missed when no observation is named" \
+  "NON_VACUOUS" 0 \
+  --min-states 16 --config "$FIXTURES/ObserveLatticeThree.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# ...and the report has to SAY that, rather than closing with a claim the run
+# did not earn. vacuity.sh already does this for --expect none and for absent
+# --expect-actions; a summary that stayed silent here would let "NON_VACUOUS"
+# be read as "the observation was checked and moves".
+assert_reports "the summary admits the freeze was not looked for" \
+  "no observation operator was named" \
+  --min-states 16 --config "$FIXTURES/ObserveLatticeThree.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# THE CONTRACT. Three fields dead, one alive, and the gate names the three.
+assert_observe "the three-frozen row is caught, and names all three" \
+  "VACUOUS_FROZEN_OBSERVE" 8 "shelf owed standing" "season" \
+  --min-states 16 --observe Observe \
+  --config "$FIXTURES/ObserveLatticeThree.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# THE NEGATIVE CONTROL, and it is the same module one .cfg over. A probe that
+# flagged every submission would satisfy every row above on its own, so the
+# discriminating thing has to be shown to be the freeze rather than the
+# presence of --observe.
+assert_observe "an observation whose every field moves is NOT flagged" \
+  "NON_VACUOUS" 0 "" "season shelf owed standing" \
+  --min-states 16 --observe Observe \
+  --config "$FIXTURES/ObserveLattice.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# THE REST OF THE LATTICE. Seedlib catches these rows today, but by obligations
+# that happen to notice rather than by a probe that was looking, so nothing in
+# the pipeline states WHY they are caught or promises they stay caught. A gate
+# that answers all five rows for one reason is what replaces that coincidence,
+# and it is only visible as uniform if the uniform rows are asserted too.
+assert_observe "one frozen field is caught, and only that one is named" \
+  "VACUOUS_FROZEN_OBSERVE" 8 "shelf" "season owed standing" \
+  --min-states 16 --observe Observe \
+  --config "$FIXTURES/ObserveLatticeOne.cfg" "$FIXTURES/ObserveLattice.tla"
+
+assert_observe "a frozen PAIR is caught, and both are named" \
+  "VACUOUS_FROZEN_OBSERVE" 8 "shelf owed" "season standing" \
+  --min-states 16 --observe Observe \
+  --config "$FIXTURES/ObserveLatticePair.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# The top of the lattice, and the only row a whole-record probe can see. It has
+# to keep being caught after the altitude drops, or the fix has traded one
+# blind spot for another.
+assert_observe "a wholly frozen observation is caught, and all four are named" \
+  "VACUOUS_FROZEN_OBSERVE" 8 "season shelf owed standing" "" \
+  --min-states 16 --observe Observe \
+  --config "$FIXTURES/ObserveLatticeAll.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# An operator the module does not define. The probe cannot run, so nothing is
+# known about the observation -- and "nothing is known" is PROBE_INCONCLUSIVE,
+# never NON_VACUOUS. Reporting a pass here would be a false PASS on the gate,
+# reached by misspelling a flag.
+assert_vacuity "--observe naming an undefined operator is inconclusive" \
+  "PROBE_INCONCLUSIVE" 6 \
+  --min-states 16 --observe NoSuchObservation \
+  --config "$FIXTURES/ObserveLatticeThree.cfg" "$FIXTURES/ObserveLattice.tla"
+
+echo
+echo "== differential: a WHOLE-RECORD probe sees only the top of the lattice =="
+
+# The refinement idiom, run at the record altitude against three rows of the
+# lattice. harness/refinement.sh:22-25 -- assert as an ordinary INVARIANT that
+# the expression never leaves its initial value and require TLC to VIOLATE it,
+# so rc=12 reads "it moves, nothing frozen here" and rc=0 reads "FROZEN".
+#
+# This is the whole finding. The probe is correct for a refinement mapping and
+# wrong for an observation record, and it is wrong in the direction that waves
+# submissions through.
+assert_verdict "whole-record probe MISSES one frozen field (rc=12 reads 'moves')" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$FIXTURES/ObserveLatticeOneWholeProbe.cfg" "$FIXTURES/ObserveLattice.tla"
+
+assert_verdict "whole-record probe MISSES three frozen fields — the V43 hole" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$FIXTURES/ObserveLatticeThreeWholeProbe.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# ...and catches the one row where the record itself is constant, which is why
+# the probe looks like it works until somebody leaves a field live.
+assert_verdict "whole-record probe CATCHES only the wholly frozen row" \
+  "OK" 0 \
+  --config "$FIXTURES/ObserveLatticeAllWholeProbe.cfg" "$FIXTURES/ObserveLattice.tla"
+
+# THE SAME IDIOM ONE ALTITUDE DOWN, on the same .cfg row the record probe just
+# missed. Both directions, because a per-field probe that returned 0 on every
+# field would satisfy the frozen row alone and flag every healthy submission.
+assert_verdict "per-field probe on a frozen field is NOT violated — FROZEN" \
+  "OK" 0 \
+  --config "$FIXTURES/ObserveLatticeThreeFieldProbe.cfg" "$FIXTURES/ObserveLattice.tla"
+
+assert_verdict "per-field probe on the live field IS violated — it moves" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$FIXTURES/ObserveLatticeThreeLiveFieldProbe.cfg" "$FIXTURES/ObserveLattice.tla"
+
+echo
+echo "== the field next door: a probe that dies reports nothing =="
+
+# TLC does not return FALSE when the two sides of a comparison are of different
+# types; it ABORTS the evaluation. Measured on v1.8.0 over ObserveMixedType,
+# whose `phase` field holds 0, 1 and "closed" across the reachable space:
+# an invariant that compares it against a number reaches the string state and
+# comes back SAFETY_EVAL_FAILURE, rc=76 -- the check never happened.
+#
+# That is a hazard for a PER-FIELD probe specifically, and the direction it
+# fails in is the dangerous one. `ledger` is frozen on this fixture and is the
+# thing the gate exists to find; it is sitting next to the field most likely to
+# take the instrument down, and a run that aborts on `phase` reports nothing
+# about `ledger` at all.
+assert_verdict "a naive equality probe ABORTS on a mixed-type field" \
+  "SAFETY_EVAL_FAILURE" 76 \
+  --config "$FIXTURES/ObserveMixedTypeCrossProbe.cfg" "$FIXTURES/ObserveMixedType.tla"
+
+# AND THE HAZARD IS LATENT RATHER THAN ABSENT, which is the part an implementer
+# who measures once will get wrong. The SAME comparison written the way
+# refinement.sh writes it -- the field against its initial value -- answers
+# correctly here, at rc=12. It answers correctly by luck: `phase` leaves 0 for 1
+# before it ever reaches "closed", so TLC stops at that violation and never
+# evaluates the cross-type case. Reorder the fixture, or hand it a spec whose
+# heterogeneous field holds its initial value longest, and the same probe is the
+# rc=76 above. Both rows are here so that neither reading stands alone.
+assert_verdict "the same probe against the initial value answers by luck (rc=12)" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$FIXTURES/ObserveMixedTypeFieldProbe.cfg" "$FIXTURES/ObserveMixedType.tla"
+
+# THE CONTRACT. The frozen field is still reported, and the mixed-type field is
+# still not reported as frozen, because it is not.
+assert_observe "the frozen field is still found next to a mixed-type one" \
+  "VACUOUS_FROZEN_OBSERVE" 8 "ledger" "phase" \
+  --min-states 4 --observe Observe "$FIXTURES/ObserveMixedType.tla"
 
 echo
 echo "== structural: the constraints no fixture can observe =="
