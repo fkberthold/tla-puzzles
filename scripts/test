@@ -185,17 +185,20 @@ SUITES=(
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
   "slow|16.8|refinement harness|bash harness/fixtures/refinement/selftest.sh"
-  # Re-measured 2026-09-03 for bead tla-hf39: 45.0 / 46.3 / 47.7 s over three
-  # runs, up from 18.4. The jump is the satisfiability probe, which adds one
-  # TLC run per invocation, against both a satisfiable and an unsatisfiable
-  # fixture. The tier is unchanged.
+  # Re-measured 2026-09-04 for bead tla-dk7w: 53.7 s in-suite, up from the
+  # 47.7 this row carried after tla-hf39 added the satisfiability probe. The
+  # further jump is tla-dk7w's nine new rows, not its fix, which measured
+  # FASTER standalone (52.4 s to 48.9 s) because two refusal rows now exit
+  # before any probe and two duplicate rows went away. In-suite is the number
+  # this row is compared against, so in-suite is the number recorded.
+  # The tier is unchanged.
   #
   # The cheap way to buy it back is to run the probe only when the spec carries
   # a WF_ or SF_ conjunct. Rejected, and the implementer said so in §5.3 first:
   # a source grep would then decide whether a correctness probe runs, and a
   # spec can be unsatisfiable without any fairness at all. If this suite gets
   # tight, the honest lever is the fixture count, never the coverage.
-  "slow|47.7|vacuity gate|./harness/test-vacuity.sh"
+  "slow|53.7|vacuity gate|./harness/test-vacuity.sh"
   "slow|46.9|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
   # Re-measured 2026-08-28 for bead tla-x8s: 56.6 / 56.8 / 59.1 s over three
   # serial runs, up from 19.7. The jump is the chaos probe, which grade.sh now
