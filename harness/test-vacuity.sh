@@ -231,7 +231,7 @@ assert_verdict "control: bare TLC on the same spec reports success" \
 
 assert_vacuity "unsatisfiable Init is caught" \
   "VACUOUS_EMPTY_SPACE" 3 \
-  "$FIXTURES/EmptyInit.tla"
+  --min-states 4 "$FIXTURES/EmptyInit.tla"
 
 # Deadlock checking is the thing people reach for instead, and it does not
 # work: there is no reachable state in which to deadlock.
@@ -248,17 +248,17 @@ assert_verdict "control: bare TLC on the dangling-keyword cfg reports success" \
 
 assert_vacuity "dangling INVARIANT keyword is caught" \
   "VACUOUS_UNCHECKED" 4 \
-  --config "$FIXTURES/DanglingInvariant.cfg" "$FIXTURES/Healthy.tla"
+  --min-states 4 --config "$FIXTURES/DanglingInvariant.cfg" "$FIXTURES/Healthy.tla"
 
 # The two vectors must not collapse into one verdict: they have different
 # causes and different remediation, so a learner needs to be told which.
 assert_reports "vector 1 remediation names the empty state space" \
   "no reachable states" \
-  "$FIXTURES/EmptyInit.tla"
+  --min-states 4 "$FIXTURES/EmptyInit.tla"
 
 assert_reports "vector 2 remediation names the missing operand, not Init" \
   "but the operator name after it is missing" \
-  --config "$FIXTURES/DanglingInvariant.cfg" "$FIXTURES/Healthy.tla"
+  --min-states 4 --config "$FIXTURES/DanglingInvariant.cfg" "$FIXTURES/Healthy.tla"
 
 echo
 echo "== differential: NonVacuous alone does NOT catch vector 2 =="
@@ -308,24 +308,24 @@ fi
 # original plan's gate would report on the vector-2 fixture.
 assert_vacuity "vacuity.sh WITHOUT the configured-check probe misses vector 2" \
   "NON_VACUOUS" 0 \
-  --expect none --config "$FIXTURES/DanglingInvariant.cfg" "$FIXTURES/Healthy.tla"
+  --min-states 4 --expect none --config "$FIXTURES/DanglingInvariant.cfg" "$FIXTURES/Healthy.tla"
 
 echo
 echo "== vector 3: dead actions, and the false positive that predicate avoids =="
 
 assert_vacuity "an unreachable guard is caught" \
   "VACUOUS_DEAD_ACTION" 5 \
-  "$FIXTURES/DeadGuard.tla"
+  --min-states 4 "$FIXTURES/DeadGuard.tla"
 
 # Error location is the only feedback form that measured as working (3.7), so
 # the report must name the guard rather than say "unreachable".
 assert_reports "dead-action remediation quotes the guard that is never true" \
   "counter > 100" \
-  "$FIXTURES/DeadGuard.tla"
+  --min-states 4 "$FIXTURES/DeadGuard.tla"
 
 assert_reports "dead-action remediation names the action" \
   "action Overflow" \
-  "$FIXTURES/DeadGuard.tla"
+  --min-states 4 "$FIXTURES/DeadGuard.tla"
 
 # THE FALSE-POSITIVE CONTROL. PlusCal emits Terminating into every
 # terminating algorithm and it reports 0 distinct : 1 total. A probe keyed on
@@ -333,7 +333,7 @@ assert_reports "dead-action remediation names the action" \
 # PlusCal submission in the problem set.
 assert_vacuity "a terminating PlusCal spec is NOT flagged" \
   "NON_VACUOUS" 0 \
-  "$FIXTURES/TerminatingPcal.tla"
+  --min-states 4 "$FIXTURES/TerminatingPcal.tla"
 
 # Pinned so the reason survives: if a future TLC stopped reporting 0:1 here,
 # the assertion above would keep passing for a different reason and the
@@ -365,7 +365,7 @@ echo "== (bead tla-hf39, seedlib V46)                                 =="
 # the probe as strong as it is today, and no stronger.
 assert_vacuity "a DELETED action is missed when no names are expected" \
   "NON_VACUOUS" 0 \
-  "$FIXTURES/DeletedAction.tla"
+  --min-states 4 "$FIXTURES/DeletedAction.tla"
 
 # Pinned so the reason survives, the way the PlusCal 0:1 row above is. If a
 # future TLC started emitting a zero row for an action that is not in Next,
@@ -392,14 +392,14 @@ fi
 # never reaches the coverage block is reported as an action that never fired.
 assert_vacuity "a DELETED action is caught when its name is expected" \
   "VACUOUS_DEAD_ACTION" 5 \
-  --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
+  --min-states 4 --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
 
 # Error location is the only feedback form that measured as working (§3.7), and
 # an absent action has no location to quote -- so the name is all the report
 # has, and it has to carry it.
 assert_reports "absent-action remediation names the action" \
   "action Down" \
-  --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
+  --min-states 4 --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
 
 # The two shapes need different remediation. "Your guard is never true" is
 # wrong advice for an action that has no guard problem at all: Down reads word
@@ -407,21 +407,21 @@ assert_reports "absent-action remediation names the action" \
 # it. So the report has to say which of the two happened.
 assert_reports "absent-action remediation says the row is missing, not zero" \
   "no coverage row at all" \
-  --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
+  --min-states 4 --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
 
 # THE NEGATIVE CONTROL. A probe with no negative control cannot be shown to
 # bite -- one that flags every spec would satisfy every assertion above.
 # Healthy.tla has both Up and Down as disjuncts of Next and both fire.
 assert_vacuity "expected names that all fire are NOT flagged" \
   "NON_VACUOUS" 0 \
-  --expect-actions Up,Down "$FIXTURES/Healthy.tla"
+  --min-states 4 --expect-actions Up,Down "$FIXTURES/Healthy.tla"
 
 # AND THE NAMES MUST NOT REPLACE THE OLD PREDICATE. `total == 0` over a row
 # that exists is the case the probe already caught, and passing expected names
 # must add the absent case rather than swap one blind spot for another.
 assert_vacuity "a RESTRICTED action is still caught when names are given" \
   "VACUOUS_DEAD_ACTION" 5 \
-  --expect-actions Up,Overflow "$FIXTURES/DeadGuard.tla"
+  --min-states 4 --expect-actions Up,Overflow "$FIXTURES/DeadGuard.tla"
 
 echo
 echo "== RED 3: vector 4 — a fairness conjunct no behaviour can meet =="
@@ -437,24 +437,24 @@ assert_verdict "control: bare TLC on the unsatisfiable spec reports success" \
 # THE CONTRACT.
 assert_vacuity "an unsatisfiable Spec is caught" \
   "VACUOUS_UNSATISFIABLE" 7 \
-  "$FIXTURES/UnsatFairness.tla"
+  --min-states 4 "$FIXTURES/UnsatFairness.tla"
 
 # THE NEGATIVE CONTROL, and it is the same module with one disjunct restored.
 # Both fairness conjuncts are still there, so a probe that fires here is firing
 # on the presence of fairness rather than on fairness the spec cannot meet.
 assert_vacuity "the satisfiable twin is NOT flagged" \
   "NON_VACUOUS" 0 \
-  "$FIXTURES/LiveFairness.tla"
+  --min-states 4 "$FIXTURES/LiveFairness.tla"
 
 assert_reports "vector 4 remediation names the empty behaviour set" \
   "no behaviour satisfies your Spec" \
-  "$FIXTURES/UnsatFairness.tla"
+  --min-states 4 "$FIXTURES/UnsatFairness.tla"
 
 # Not Init and not Next alone: both are fine here, and a learner sent to look
 # at either will find nothing wrong. The mismatch BETWEEN them is the fault.
 assert_reports "vector 4 remediation points at the fairness conjunct" \
   "fairness conjunct" \
-  "$FIXTURES/UnsatFairness.tla"
+  --min-states 4 "$FIXTURES/UnsatFairness.tla"
 
 echo
 echo "== differential: all three existing probes are blind to vector 4 =="
@@ -536,9 +536,14 @@ assert_verdict "the same formula over a STATE PREDICATE goes to the invariant ch
 echo
 echo "== the positive control and the per-problem threshold =="
 
-assert_vacuity "a healthy spec with a real invariant passes" \
-  "NON_VACUOUS" 0 \
-  "$FIXTURES/Healthy.tla"
+# The positive control and the missing-module row both used to sit here, both
+# run with no floor at all. Bead tla-dk7w made the floor mandatory, so both
+# grew a `--min-states 4` and became byte-identical to two rows the RED 5
+# section already carries: "an EXPLICIT floor of 4 is legal and behaves as
+# before" and "with a floor supplied, a missing module is still inconclusive".
+# Dropped here rather than kept in both places. A duplicate pair can only fail
+# together, so it buys no discriminating power, and this is the slowest suite
+# in the gate at 47.7 s.
 
 # The threshold is per-problem. Gate.tla is centrally owned and hard-codes
 # >= 4, so any other value is served by a module vacuity.sh generates.
@@ -549,11 +554,6 @@ assert_vacuity "--min-states above what the spec reaches is caught" \
 assert_vacuity "--min-states at what the spec reaches passes" \
   "NON_VACUOUS" 0 \
   --min-states 5 "$FIXTURES/Healthy.tla"
-
-# A spec that will not run is not a vacuity verdict.
-assert_vacuity "a missing module is inconclusive, not vacuous" \
-  "PROBE_INCONCLUSIVE" 6 \
-  "$FIXTURES/NoSuchModule.tla"
 
 echo
 echo "== RED 5: the floor is MANDATORY, not a default =="
