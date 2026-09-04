@@ -12,6 +12,31 @@
 #          operand, WHEN vacuity.sh runs, THEN it ALSO returns VACUOUS -- and
 #          with a DIFFERENT token from RED 1, because the remediation differs.
 #
+# Two more vectors follow, from bead tla-hf39 / seedlib step-2 variants V47 and
+# V46. Both were recorded UNCAUGHT at rc=0 in
+# authoring/seedlib/reports/step2-variants.md.
+#
+#   RED 3  GIVEN a spec that ships a liveness obligation and a fairness
+#          conjunct NO BEHAVIOUR CAN MEET, WHEN vacuity.sh runs, THEN it
+#          reports the spec UNSATISFIABLE -- rather than letting every
+#          temporal obligation pass over the empty set of behaviours.
+#
+#          The three existing probes are all blind to it BY CONSTRUCTION.
+#          Invariants are checked over the state graph and fairness never
+#          touches the state graph, so the state space is healthy, NonVacuous
+#          passes, InvariantConfigured passes, and no action reads total == 0.
+#          Only the liveness half goes blind, and it goes blind silently.
+#
+#   RED 4  GIVEN an action DELETED from Next rather than restricted to
+#          nothing, WHEN vacuity.sh runs with that action's NAME expected,
+#          THEN the dead-action probe reports it -- rather than keying only on
+#          a coverage row that reads zero.
+#
+#          Deletion evades the current probe and restriction does not. The
+#          predicate matches `total == 0` in TLC's -coverage 1 block; a
+#          restricted action leaves a row reading zero, and a deleted action
+#          leaves NO ROW AT ALL, so there is nothing to match.
+#
 # Three kinds of assertion:
 #
 #   Behavioural  — drive vacuity.sh against a fixture and require both the
@@ -266,6 +291,190 @@ if grep -qE '>: 0:[1-9]' <<<"$pcal_cov"; then
 else
   nope "PlusCal Terminating coverage — wanted 0:<non-zero>, got '${pcal_cov}'"
 fi
+
+echo
+echo "== RED 4: vector 3's second shape — an action DELETED from Next =="
+echo "== (bead tla-hf39, seedlib V46)                                 =="
+
+# THE EVASION, pinned from the MISS side first, because that is the finding.
+# DeadGuard.tla's Overflow IS a disjunct of Next and merely carries a guard
+# that is never true, so it leaves a coverage row reading 0:0 and the
+# `total == 0` predicate matches it -- asserted above, and still passing.
+# DeletedAction.tla's Down is not a disjunct at all. There is no row for that
+# predicate to match, so vacuity.sh runs to the end and reports "Every action
+# fired at least once", which is false. Restriction is caught. Deletion is not.
+#
+# This row must keep passing after the fix: supplying no expected names leaves
+# the probe as strong as it is today, and no stronger.
+assert_vacuity "a DELETED action is missed when no names are expected" \
+  "NON_VACUOUS" 0 \
+  "$FIXTURES/DeletedAction.tla"
+
+# Pinned so the reason survives, the way the PlusCal 0:1 row above is. If a
+# future TLC started emitting a zero row for an action that is not in Next,
+# every assertion below would keep passing for a DIFFERENT reason and the
+# deletion-versus-restriction lesson would quietly stop being tested.
+#
+# `| grep -E` and not `| grep -q`: -E reads to EOF, so nothing closes the pipe
+# early and verdict.sh is never SIGPIPEd. The -q matches that follow are
+# here-strings for the same reason. Bead tla-kr9.
+del_cov=$(
+  cd harness || exit 1
+  bash verdict.sh -q --log /dev/stdout fixtures/vacuity/DeletedAction.tla 2>/dev/null \
+    | grep -E '^<(Up|Down) line'
+)
+del_up=$(grep -cE '^<Up line' <<<"$del_cov")
+del_down=$(grep -cE '^<Down' <<<"$del_cov")
+if [ "$del_up" != "0" ] && [ "$del_down" = "0" ]; then
+  ok "the deleted action has NO coverage row at all — Up rows: $del_up, Down rows: $del_down"
+else
+  nope "deleted-action coverage — wanted a Up row and no Down row, got Up: $del_up, Down: $del_down"
+fi
+
+# THE CONTRACT. The probe takes the expected action NAMES, so an action that
+# never reaches the coverage block is reported as an action that never fired.
+assert_vacuity "a DELETED action is caught when its name is expected" \
+  "VACUOUS_DEAD_ACTION" 5 \
+  --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
+
+# Error location is the only feedback form that measured as working (§3.7), and
+# an absent action has no location to quote -- so the name is all the report
+# has, and it has to carry it.
+assert_reports "absent-action remediation names the action" \
+  "action Down" \
+  --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
+
+# The two shapes need different remediation. "Your guard is never true" is
+# wrong advice for an action that has no guard problem at all: Down reads word
+# for word as it does in Healthy.tla, and the fault is that Next never mentions
+# it. So the report has to say which of the two happened.
+assert_reports "absent-action remediation says the row is missing, not zero" \
+  "no coverage row at all" \
+  --expect-actions Up,Down "$FIXTURES/DeletedAction.tla"
+
+# THE NEGATIVE CONTROL. A probe with no negative control cannot be shown to
+# bite -- one that flags every spec would satisfy every assertion above.
+# Healthy.tla has both Up and Down as disjuncts of Next and both fire.
+assert_vacuity "expected names that all fire are NOT flagged" \
+  "NON_VACUOUS" 0 \
+  --expect-actions Up,Down "$FIXTURES/Healthy.tla"
+
+# AND THE NAMES MUST NOT REPLACE THE OLD PREDICATE. `total == 0` over a row
+# that exists is the case the probe already caught, and passing expected names
+# must add the absent case rather than swap one blind spot for another.
+assert_vacuity "a RESTRICTED action is still caught when names are given" \
+  "VACUOUS_DEAD_ACTION" 5 \
+  --expect-actions Up,Overflow "$FIXTURES/DeadGuard.tla"
+
+echo
+echo "== RED 3: vector 4 — a fairness conjunct no behaviour can meet =="
+echo "== (bead tla-hf39, seedlib V47)                                =="
+
+# The control FIRST, as with vector 1. UnsatFairness.cfg ships a real
+# INVARIANT and a real liveness PROPERTY, and this is what the harness's own
+# verdict channel says about a spec NO BEHAVIOUR SATISFIES: success.
+assert_verdict "control: bare TLC on the unsatisfiable spec reports success" \
+  "OK" 0 \
+  "$FIXTURES/UnsatFairness.tla"
+
+# THE CONTRACT.
+assert_vacuity "an unsatisfiable Spec is caught" \
+  "VACUOUS_UNSATISFIABLE" 7 \
+  "$FIXTURES/UnsatFairness.tla"
+
+# THE NEGATIVE CONTROL, and it is the same module with one disjunct restored.
+# Both fairness conjuncts are still there, so a probe that fires here is firing
+# on the presence of fairness rather than on fairness the spec cannot meet.
+assert_vacuity "the satisfiable twin is NOT flagged" \
+  "NON_VACUOUS" 0 \
+  "$FIXTURES/LiveFairness.tla"
+
+assert_reports "vector 4 remediation names the empty behaviour set" \
+  "no behaviour satisfies your Spec" \
+  "$FIXTURES/UnsatFairness.tla"
+
+# Not Init and not Next alone: both are fine here, and a learner sent to look
+# at either will find nothing wrong. The mismatch BETWEEN them is the fault.
+assert_reports "vector 4 remediation points at the fairness conjunct" \
+  "fairness conjunct" \
+  "$FIXTURES/UnsatFairness.tla"
+
+echo
+echo "== differential: all three existing probes are blind to vector 4 =="
+
+# NonVacuous sees a healthy state space, because fairness does not shrink the
+# state graph -- it shrinks the set of BEHAVIOURS over that graph.
+(
+  cd harness || exit 1
+  bash verdict.sh -q --postcondition "Gate!NonVacuous" \
+    fixtures/vacuity/UnsatFairness.tla >/dev/null 2>&1
+)
+nv_on_v4=$?
+if [ "$nv_on_v4" = "0" ]; then
+  ok "Gate!NonVacuous MISSES vector 4 (rc=0) — fairness does not shrink the state graph"
+else
+  nope "Gate!NonVacuous on vector 4 — wanted the MISS (rc=0), got rc=$nv_on_v4"
+fi
+
+# InvariantConfigured sees a real INVARIANT in the cfg, because there is one.
+(
+  cd harness || exit 1
+  bash verdict.sh -q --postcondition "Gate!InvariantConfigured" \
+    fixtures/vacuity/UnsatFairness.tla >/dev/null 2>&1
+)
+ic_on_v4=$?
+if [ "$ic_on_v4" = "0" ]; then
+  ok "Gate!InvariantConfigured MISSES vector 4 (rc=0) — the obligation IS configured"
+else
+  nope "Gate!InvariantConfigured on vector 4 — wanted the MISS (rc=0), got rc=$ic_on_v4"
+fi
+
+# And the dead-action probe is blind too, for RED 4's reason arriving one
+# vector over: Reset is not a disjunct of Next, so it has no coverage row, and
+# every row that DOES exist reports a non-zero total. `total == 0` has nothing
+# to match. Measured rather than asserted through vacuity.sh, so that the fix
+# for RED 3 cannot make this row pass for a new reason.
+v4_cov=$(
+  cd harness || exit 1
+  bash verdict.sh -q --log /dev/stdout fixtures/vacuity/UnsatFairness.tla 2>/dev/null \
+    | grep -E '^<[A-Za-z]+ line .*>: [0-9]+:[0-9]+$'
+)
+v4_reset=$(grep -cE '^<Reset' <<<"$v4_cov")
+v4_zero=$(grep -cE ':0$' <<<"$v4_cov")
+if [ "$v4_reset" = "0" ] && [ "$v4_zero" = "0" ]; then
+  ok "the dead-action predicate MISSES vector 4 — no Reset row, and no row reads total 0"
+else
+  nope "vector 4 coverage — wanted no Reset row and no zero total, got Reset: $v4_reset, zero: $v4_zero"
+fi
+
+echo
+echo "== the satisfiability probe itself, measured on both fixtures =="
+
+# THE MECHANISM, pinned rather than assumed. An always-false TEMPORAL formula
+# separates a spec that has behaviours from one that has none:
+#
+#   rc=13  the formula was refuted, so a behaviour exists to refute it.
+#   rc=0   nothing refuted it, because there is nothing to refute it WITH.
+#
+# Measured on both fixtures, because a probe that returned 0 on everything
+# would satisfy the unsatisfiable row alone.
+assert_verdict "always-false TEMPORAL formula vs the unsatisfiable Spec" \
+  "OK" 0 \
+  --config "$FIXTURES/UnsatFairnessProbe.cfg" "$FIXTURES/UnsatFairness.tla"
+
+assert_verdict "always-false TEMPORAL formula vs the satisfiable Spec" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$FIXTURES/LiveFairnessProbe.cfg" "$FIXTURES/LiveFairness.tla"
+
+# AND WHY IT HAS TO BE TEMPORAL. `[](counter # counter)` over a STATE
+# PREDICATE is not a weaker probe, it is a different channel: TLC lifts it into
+# an INVARIANT and refutes it against the state graph, which ignores fairness
+# by construction. So it reports a violation on a spec that has no behaviours
+# at all -- the exact opposite of the signal wanted, and unusable however false
+# the formula is.
+assert_verdict "the same formula over a STATE PREDICATE goes to the invariant channel" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$FIXTURES/UnsatFairnessStateProbe.cfg" "$FIXTURES/UnsatFairness.tla"
 
 echo
 echo "== the positive control and the per-problem threshold =="
