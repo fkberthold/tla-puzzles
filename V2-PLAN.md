@@ -284,7 +284,7 @@ the TLA+ chapter, then work PlusCal problems. That is right, with one correction
 
 1. **Read learntla core ch.1–11.** Do not skip ch.10 (More Operators) or ch.11 (Action
    Properties) — action properties are load-bearing for the grading harness.
-2. **Work batch 1** (§7.2) — PlusCal.
+2. **Work batch 1** (§7.0) — PlusCal-era, though the statements do not require PlusCal.
 3. **Read core ch.12 (TLA+) and ch.13 (Modules), then the refinement chapter (§4).**
 4. **Everything after that interleaves both notations**, with the pure-TLA+-only problems
    concentrated in the final third.
@@ -298,8 +298,9 @@ as a bridge from PlusCal* — the chapter is framed as "here's what the translat
 what it means." Arriving there with real PlusCal fluency means it lands as *"oh, that's what my
 code becomes,"* which is the best available entry point. Reading it cold would waste it.
 
-**Exercise track (added 2026-08-11, epic tla-jb7f).** Reading alone isn't making the chapters
-stick. Each core chapter from ch.2 through ch.11 gets 3-5 drills, 10-15 minutes each,
+**Exercise track (added 2026-08-11, epic tla-jb7f — CLOSED 2026-08-28 at 28/28).** Reading
+alone isn't making the chapters stick. Each core chapter from ch.2 through ch.13 gets 3-5
+drills, 10-15 minutes each,
 self-checkable through one TLC run, plus a per-chapter cheat sheet that is delivered as a
 lookup card once Frank is past that chapter. He works each set cold and re-reads a chapter
 only when he starts struggling. Nothing above changes. Design drawer:
