@@ -37,6 +37,26 @@
 #          restricted action leaves a row reading zero, and a deleted action
 #          leaves NO ROW AT ALL, so there is nothing to match.
 #
+# A fifth follows, from bead tla-dk7w / custody step 4, and it is about the
+# harness rather than about a submission.
+#
+#   RED 5  GIVEN a problem that does not state its own state-count floor,
+#          WHEN vacuity.sh runs, THEN it REFUSES -- rather than falling back
+#          on Gate.tla's placeholder of 4.
+#
+#          Custody step 4 measured a 24-state deterministic script that
+#          transcribes the published satisfying trace and passes all 13
+#          obligations at rc=0. The witness probes cannot save it: 3.9 obliges
+#          every property to ship a satisfying trace, and any trace rich
+#          enough to teach also threads the finite witness set. So every
+#          shape-A problem honouring 3.9 has this hole.
+#
+#          The floor is the instrument that sees it, and the mechanism has
+#          been there since tla-kl5.6 -- per-problem by design, and opt-in
+#          with a permissive default. Opt-in is the defect. A problem that
+#          never mentions the floor gets 4, and 4 is a number the
+#          transcription clears three times over.
+#
 # Three kinds of assertion:
 #
 #   Behavioural  — drive vacuity.sh against a fixture and require both the
@@ -99,6 +119,43 @@ assert_verdict() {
   else
     nope "$label — wanted $want_token/rc=$want_rc, got '${got_token}'/rc=${got_rc}"
   fi
+}
+
+# assert_refuses <label> <want-rc> <want-stderr-substring> [vacuity.sh args...]
+#
+# For an ARGUMENT fault rather than a submission verdict, which needs a
+# different shape from assert_vacuity. vacuity.sh's rc=2 USAGE path writes to
+# stderr and prints NO verdict token at all -- the code is listed in the table
+# at vacuity.sh:32, but the exits that use it print only a message. So the
+# three things worth checking here are the rc, the message naming the flag,
+# and stdout staying EMPTY: a refusal that printed a token would be indexed by
+# every caller that slices line 1 as a verdict.
+#
+# stderr goes to a file rather than through a pipe, and the substring match is
+# a here-string. Bead tla-kr9: any pipe into an early-exiting consumer can come
+# back 141 and report a present message as absent.
+assert_refuses() {
+  local label="$1" want_rc="$2" want_err="$3"
+  shift 3
+  local errfile got_out got_rc got_err
+  errfile=$(mktemp -t tla_refuses.XXXXXX)
+  got_out=$(bash "$VACUITY" "$@" 2>"$errfile")
+  got_rc=$?
+  got_err=$(cat "$errfile")
+  rm -f "$errfile"
+  if [ "$got_rc" != "$want_rc" ]; then
+    nope "$label — wanted rc=$want_rc, got rc=$got_rc (stdout: '${got_out%%$'\n'*}')"
+    return
+  fi
+  if ! grep -qF -- "$want_err" <<<"$got_err"; then
+    nope "$label — refused at rc=$want_rc, but stderr never named: $want_err"
+    return
+  fi
+  if [ -n "$got_out" ]; then
+    nope "$label — refused at rc=$want_rc, but stdout was not empty: '${got_out%%$'\n'*}'"
+    return
+  fi
+  ok "$label — refused (rc=$want_rc), stderr names $want_err, stdout empty"
 }
 
 # assert_reports <label> <fixed-string> [vacuity.sh args...]
@@ -499,6 +556,115 @@ assert_vacuity "a missing module is inconclusive, not vacuous" \
   "$FIXTURES/NoSuchModule.tla"
 
 echo
+echo "== RED 5: the floor is MANDATORY, not a default =="
+echo "== (bead tla-dk7w, custody step 4)               =="
+
+# THE HOLE, pinned from the MISS side first, because that is the finding.
+#
+# Custody step 4 measured a 24-state deterministic script that replays the
+# published satisfying trace and passes all 13 obligations at rc=0
+# (authoring/custody/reports/step4-screens.md:125-142). The witness probes
+# cannot save it: 3.9 obliges every property to ship a satisfying trace, and
+# any trace rich enough to teach also threads the finite witness set. So the
+# hole is structural in every shape-A problem, and the floor is the only
+# instrument that can see it.
+#
+# TranscriptFloor.tla is that submission in miniature. It clears the
+# placeholder floor THREE TIMES OVER -- 12 distinct states against >= 4 -- so
+# nothing about the miss looks marginal, and every other probe passes it: the
+# space is healthy, the INVARIANT is configured, Spec admits behaviours, and
+# both actions fire. A problem that leaves the floor at the placeholder
+# therefore grades a transcription as a model.
+#
+# This row must keep passing after the fix. The placeholder is not being made
+# stricter; it is being made IMPOSSIBLE TO REACH BY OMISSION.
+assert_vacuity "a 12-state transcription clears the placeholder floor of 4" \
+  "NON_VACUOUS" 0 \
+  --min-states 4 "$FIXTURES/TranscriptFloor.tla"
+
+# THE CONTRACT. Omitting the floor is refused. The problem author has to state
+# what their problem's state space is worth; the script will not pick a number
+# on their behalf, because the number it used to pick is the one that lets the
+# transcription through.
+#
+# rc=2 USAGE, the code vacuity.sh already exits with when its arguments are
+# wrong (vacuity.sh:32). Deliberately NOT a new vacuity code: 3/4/5/6/7 are
+# all statements about the SUBMISSION, and a missing flag is a statement about
+# the CALLER. Putting an authoring fault in the learner-verdict namespace is
+# the confusion the disjoint-codes note at vacuity.sh:38 exists to prevent.
+assert_refuses "omitting --min-states is refused, not defaulted" \
+  2 "--min-states" \
+  "$FIXTURES/Healthy.tla"
+
+# AND THE REFUSAL IS ABOUT OMISSION, NOT ABOUT THE VALUE 4. A problem whose
+# state space really is worth four states says so and is served. Without this
+# row the assertion above could be satisfied by banning the number.
+assert_vacuity "an EXPLICIT floor of 4 is legal and behaves as before" \
+  "NON_VACUOUS" 0 \
+  --min-states 4 "$FIXTURES/Healthy.tla"
+
+# The refusal is an argument fault, so it lands BEFORE any probe runs. Cheap
+# to check and worth pinning: a floor validated after probing would let a
+# whole TLC run happen on the strength of a number nobody supplied, and would
+# report whatever that run found instead of the fault.
+#
+# NoSuchModule.tla cannot run at all, so today it reaches PROBE_INCONCLUSIVE
+# and the answer comes from a probe. Under the contract the argument fault
+# wins and no probe is reached.
+assert_refuses "the refusal precedes any probe" \
+  2 "--min-states" \
+  "$FIXTURES/NoSuchModule.tla"
+
+# The negative control for that: supply the floor and the inconclusive path
+# is exactly as it was. The refusal must not swallow the other verdicts.
+assert_vacuity "with a floor supplied, a missing module is still inconclusive" \
+  "PROBE_INCONCLUSIVE" 6 \
+  --min-states 4 "$FIXTURES/NoSuchModule.tla"
+
+# THE FLOOR BITING, at a floor a real problem would set. 12 distinct states
+# against a floor of 24 is vector 1's "too few states" arm, reached by a
+# submission that no other probe can distinguish from a model.
+assert_vacuity "the transcription IS caught once the problem states its floor" \
+  "VACUOUS_EMPTY_SPACE" 3 \
+  --min-states 24 "$FIXTURES/TranscriptFloor.tla"
+
+# Error location is the only feedback form that measured as working (3.7), and
+# a floor has no location -- so the numbers are what the report has to carry.
+# A learner told only "too few states" cannot tell whether they are one state
+# short or twenty.
+assert_reports "the too-few-states report names the floor the problem set" \
+  "requires at least 24" \
+  --min-states 24 "$FIXTURES/TranscriptFloor.tla"
+
+# THE NEGATIVE CONTROL, and it is run at the SAME floor. A floor that flagged
+# everything would satisfy the row above on its own, so the discriminating
+# thing has to be shown to be the submission rather than the number.
+# ModelledFloor.tla is the same domain actually modelled: 40 distinct states.
+#
+# Note this is the OPPOSITE experiment from the two Healthy.tla rows above,
+# which run one fixture at two floors. Neither direction substitutes for the
+# other: theirs shows the number moves the verdict, this shows the submission
+# does.
+assert_vacuity "a modelled submission clears the SAME floor" \
+  "NON_VACUOUS" 0 \
+  --min-states 24 "$FIXTURES/ModelledFloor.tla"
+
+# The usage text is the other surface the placeholder lives on, and it is the
+# one a problem author reads before deciding whether to pass the flag. A text
+# that still promises a number is an instruction to omit it.
+#
+# The pattern requires a DIGIT after "default" so that an honest "(REQUIRED;
+# no default)" does not trip it -- the thing being banned is advertising a
+# value, not the word.
+help_out=$(bash "$VACUITY" --help 2>&1)
+help_default=$(grep -nE -- 'min-states.*default[^0-9]{0,3}[0-9]' <<<"$help_out")
+if [ -z "$help_default" ]; then
+  ok "--help no longer advertises a numeric default for the floor"
+else
+  nope "--help still advertises a default floor — $(tr '\n' ' ' <<<"$help_default")"
+fi
+
+echo
 echo "== structural: the constraints no fixture can observe =="
 
 # The whole dead-action lesson in one assertion.
@@ -528,6 +694,15 @@ assert_absent "tlc is never invoked directly" \
 # never write to it -- the per-problem threshold goes into a generated module.
 assert_absent "Gate.tla is never written to" \
   '>[[:space:]]*"?\$?\{?[A-Za-z_]*\}?/?Gate\.tla'
+
+# THE PLACEHOLDER ITSELF, banned at the source (bead tla-dk7w). The
+# behavioural rows above can be satisfied by a check bolted on in front of a
+# default that is still sitting there, and a default that is still sitting
+# there is one edit away from being reachable again. A NUMBER is what is
+# banned, not the variable: an unset sentinel such as MIN_STATES="" is how the
+# script says it has no floor yet, and must stay available.
+assert_absent "no numeric state-count floor is built into the script" \
+  'MIN_STATES=[0-9]'
 
 # Verdicts come from exit codes; TLC's prose is not a verdict channel.
 assert_absent "no TLC stdout phrases used as verdicts" \
