@@ -10,6 +10,8 @@ both builds.
 
 `DeletedAction.tla`, `UnsatFairness.tla` and `LiveFairness.tla` arrived later, on
 2026-09-03 with bead `tla-hf39`, and were measured on v1.8.0 only.
+`TranscriptFloor.tla` and `ModelledFloor.tla` arrived on 2026-09-04 with bead
+`tla-dk7w`, and were measured on v1.8.0 only.
 
 ## The vectors are not variants of each other
 
@@ -24,9 +26,12 @@ fired tells a learner nothing they can act on, so each gets its own token.
 | `DeadGuard.tla` | 3 | `VACUOUS_DEAD_ACTION` | 5 | `Overflow`'s guard is never true |
 | `DeletedAction.tla` | 3 | `VACUOUS_DEAD_ACTION` | 5 | `Down` is not a disjunct of `Next`, so it has no coverage row |
 | `UnsatFairness.tla` | 4 | `VACUOUS_UNSATISFIABLE` | 7 | fairness demands a step `Next` forbids; no behaviour satisfies `Spec` |
+| `TranscriptFloor.tla` at `--min-states 24` | 1 | `VACUOUS_EMPTY_SPACE` | 3 | 12 distinct states, below the problem's floor |
 | `Healthy.tla` + `Healthy.cfg` | — | `NON_VACUOUS` | 0 | positive control; nothing is wrong |
 | `TerminatingPcal.tla` | — | `NON_VACUOUS` | 0 | false-positive control; see below |
 | `LiveFairness.tla` | — | `NON_VACUOUS` | 0 | negative control for vector 4; see below |
+| `TranscriptFloor.tla` at `--min-states 4` | — | `NON_VACUOUS` | 0 | **the hole**; the placeholder floor waves it through |
+| `ModelledFloor.tla` at `--min-states 24` | — | `NON_VACUOUS` | 0 | negative control for the floor; see below |
 
 The `DeletedAction.tla` and `UnsatFairness.tla` rows are the contract from bead
 `tla-hf39`, not a measurement. As this file is written `vacuity.sh` reports
@@ -155,6 +160,41 @@ don't hand `vacuity.sh` an operator: a learner's module won't define one, so
 the real probe has to inject its own. TLC has `-inv expr` and no `-prop`
 equivalent, so injecting a temporal formula means generating a `.cfg`.
 
+**`TranscriptFloor.tla`** is the fixture for a hole that is not in any single
+probe. Custody step 4 measured a 24-state deterministic script that replays the
+published satisfying trace and passes all 13 obligations at rc=0
+(`authoring/custody/reports/step4-screens.md:125-142`). The witness probes can't
+save it — §3.9 obliges every property to ship a satisfying trace, and any trace
+rich enough to teach also threads the finite witness set — so every shape-A
+problem honouring §3.9 has the hole.
+
+This fixture is that submission in miniature: a linear chain of scripted steps
+with exactly one successor per state. It chooses nothing and models nothing, and
+every probe `vacuity.sh` owns passes it. Measured:
+
+```
+12 states generated, 12 distinct states found, 0 states left on queue.
+<Climb line 35, col 1 to line 35, col 5 of module TranscriptFloor>: 6:6
+<Coast line 36, col 1 to line 36, col 5 of module TranscriptFloor>: 5:5
+```
+
+The space is healthy, the `INVARIANT` is configured, `Spec` admits behaviours,
+and both actions fire. Twelve distinct states clears `Gate!NonVacuous` (`>= 4`)
+**three times over**, which is the point: nothing about the miss looks marginal.
+Only a floor the problem sets for itself can see it, and that is why the floor
+cannot be optional.
+
+**`ModelledFloor.tla`** is its matched pair — the same domain actually modelled,
+40 distinct states, run against the **same** floor of 24. A floor that flagged
+every submission would satisfy the `TranscriptFloor` row on its own, so the
+discriminating thing has to be shown to be the submission rather than the
+number.
+
+That is the opposite experiment from the two `Healthy.tla` rows in
+`test-vacuity.sh`, which run one fixture at two floors (`--min-states 99` caught,
+`--min-states 5` passed). Neither direction substitutes for the other: theirs
+shows the number moves the verdict, this pair shows the submission does.
+
 ## Fixtures that are wrong on purpose
 
 `EmptyInit.tla` has an `Init` with no solution, `DanglingInvariant.cfg` has a
@@ -162,6 +202,13 @@ keyword with no operand, `DeadGuard.tla` has an action that can never fire,
 `DeletedAction.tla` has an action missing from `Next`, and `UnsatFairness.tla`
 has a fairness conjunct no behaviour can meet. Repairing any of them silently
 deletes a vector.
+
+`TranscriptFloor.tla` belongs here for a different reason: nothing about it is
+*wrong*. It is thin, and its thinness is load-bearing. Adding a branch, or
+widening the range past 23, deletes the only fixture that shows a submission
+passing every probe while modelling nothing. Its state count and
+`ModelledFloor.tla`'s straddle the floor of 24 that `test-vacuity.sh` runs them
+both at, so the two counts and that number move together or not at all.
 
 `NoSuchModule.tla` is a fixture by its **absence** — `test-vacuity.sh` uses it
 to check that a spec which will not run is reported as `PROBE_INCONCLUSIVE`

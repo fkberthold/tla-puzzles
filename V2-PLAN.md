@@ -714,6 +714,36 @@ NonVacuous == TLCGet("distinct") >= 4
   back, and I'd take it if the suite gets tight. For now I'd rather not have a source grep
   deciding whether a correctness probe runs.
 
+- **The state-count floor is MANDATORY (`tla-dk7w`, 2026-09-04).** `--min-states` used to fall
+  back on `Gate.tla`'s 4. Custody step 4 measured what that bought. Take the published satisfying
+  trace, hardcode its 24 states as a deterministic script with weak fairness on the one scripted
+  action, and submit that. It passes all 13 obligations at rc=0, and all three witness probes
+  report "reached" at rc=12 (`authoring/custody/reports/step4-screens.md:125-142`).
+
+  The witness probes can't save it. §3.9 obliges every property to ship a satisfying trace, and
+  any trace rich enough to teach also threads the finite witness set. So the hole sits in every
+  shape-A problem that honors §3.9, and the floor is the only instrument that sees it. The
+  statement tells the learner to expect about 100,000 distinct states. The transcription has 24.
+
+  The mechanism was already built, and per-problem by design. Opt-in was the defect. A problem
+  that never mentions the floor got 4, and 4 is a number the transcription clears six times over.
+  So `--min-states` now has no default, and `vacuity.sh` refuses without it at **rc=2 USAGE**
+  with nothing on stdout. rc=2 and not a new vacuity code, because 3/4/5/6/7 are statements about
+  the submission and a missing flag is a statement about the caller. A floor of exactly 4 stays
+  legal. What's banned is omission, not the number.
+
+  `harness/test-vacuity.sh` also bans `MIN_STATES=[0-9]` structurally, so the placeholder can't
+  come back as a default nobody asked for. An unset sentinel stays available, which is how the
+  script says it has no floor yet. Fixtures: `TranscriptFloor.tla` at 12 distinct states and
+  `ModelledFloor.tla` at 40, straddling a floor of 24.
+
+- **The second closure is authoring guidance, not mechanism.** Custody step 4 names two, and the
+  floor is only one of them. Pick the witness probes off the published thread. The published
+  traces never swap day 2, so "day 2 never differs from its schedule" is a must-fail probe that
+  passes the reference model and refuses the transcription. No harness change buys this. It's a
+  choice the problem author makes when writing the witness set, and I'd put it in the authoring
+  checklist rather than try to detect it.
+
 ### 5.4 Component: refinement checking
 
 Idiom: define `Refines == Abstract!Spec` in the module; `.cfg` gets `SPECIFICATION Spec`

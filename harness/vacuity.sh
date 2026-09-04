@@ -10,7 +10,7 @@
 #
 # OPTIONS
 #   -c, --config FILE     .cfg to use (default: <module>.cfg beside the module)
-#   -n, --min-states N    NonVacuous threshold (default 4, Gate.tla's built-in)
+#   -n, --min-states N    NonVacuous threshold (REQUIRED, no default)
 #   -t, --timeout SECS    per-probe wall-clock budget (default 60)
 #   -e, --expect KIND     which member of the configured-check guard family to
 #                         run: invariant (default) | refinement | none
@@ -179,12 +179,26 @@
 #   JAVA_TOOL_OPTIONS; the JVM's "Picked up JAVA_TOOL_OPTIONS" line lands in
 #   the log and is ignored by everything here.
 #
-# THE THRESHOLD IS PER-PROBLEM
+# THE THRESHOLD IS PER-PROBLEM, AND IT IS MANDATORY
 #
 #   Gate.tla is CENTRALLY OWNED and hard-codes `>= 4`. This script does not
 #   edit it. --min-states N other than 4 is served by generating a throwaway
 #   VacuityGate module in the scratch directory, which is why TLA-Library
 #   carries the scratch directory as well as harness/.
+#
+#   --min-states has NO DEFAULT (bead tla-dk7w). It used to fall back on
+#   Gate.tla's 4, and custody step 4 measured what that bought: a 24-state
+#   deterministic script that replays the published satisfying trace passes
+#   all 13 obligations at rc=0, and clears a floor of 4 six times over. The
+#   witness probes cannot see it either, because 3.9 obliges every property to
+#   ship a satisfying trace and any trace rich enough to teach also threads
+#   the finite witness set. So the hole sits in every shape-A problem that
+#   honours 3.9, and the floor is the one instrument that can see it.
+#
+#   The number is a fact about the problem, not about this script, so the
+#   script has no honest number to pick. A missing --min-states is refused at
+#   rc=2 USAGE. That is a statement about the CALLER, which is why it stays
+#   out of the 3/4/5/6/7 range reserved for statements about the submission.
 
 set -uo pipefail
 
@@ -194,7 +208,10 @@ GATE_DIR="$HERE"
 
 MODULE=""
 CONFIG=""
-MIN_STATES=4
+# Unset on purpose, and it must stay a sentinel rather than a number. See THE
+# THRESHOLD IS PER-PROBLEM above: a number here is a floor the caller never
+# stated, and the one this used to carry is the one a transcription clears.
+MIN_STATES=""
 TIMEOUT=60
 EXPECT="invariant"
 EXPECT_ACTIONS=""
@@ -207,7 +224,7 @@ usage() {
 usage: harness/vacuity.sh [OPTIONS] <module.tla>
 
   -c, --config FILE     .cfg to use (default: <module>.cfg)
-  -n, --min-states N    NonVacuous threshold (default 4)
+  -n, --min-states N    NonVacuous threshold (REQUIRED, no default)
   -t, --timeout SECS    per-probe wall-clock budget (default 60)
   -e, --expect KIND     invariant (default) | refinement | none
       --expect-actions NAME[,NAME...]
@@ -254,8 +271,22 @@ case "$EXPECT" in
   *) echo "vacuity.sh: --expect must be invariant, refinement or none" >&2; exit 2 ;;
 esac
 
+# An ARGUMENT fault, so it lands here rather than after a probe. A floor
+# checked later would let a whole TLC run happen on a number nobody supplied,
+# and would report whatever that run found instead of the fault.
+#
+# Nothing goes to stdout on either arm. stdout line 1 is the verdict channel,
+# and a refusal that printed a token would be indexed as a verdict by every
+# caller that slices it.
+if [ -z "$MIN_STATES" ]; then
+  echo "vacuity.sh: --min-states is required and has no default" >&2
+  echo "vacuity.sh: the state-count floor is per-problem, so pass the one this problem sets" >&2
+  usage >&2
+  exit 2
+fi
+
 case "$MIN_STATES" in
-  ''|*[!0-9]*) echo "vacuity.sh: --min-states must be a non-negative integer" >&2; exit 2 ;;
+  *[!0-9]*) echo "vacuity.sh: --min-states must be a non-negative integer" >&2; exit 2 ;;
 esac
 
 # The module goes to TLC as an ABSOLUTE path; see the MODULE RESOLUTION note.
@@ -288,8 +319,10 @@ trap cleanup EXIT
 MODULE_DIR=$(dirname -- "$MODULE_ABS")
 export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-DTLA-Library=$SCRATCH:$GATE_DIR:$MODULE_DIR"
 
-# The NonVacuous operator to use. Gate!NonVacuous is the default; any other
-# threshold gets a generated module, because Gate.tla is read-only here.
+# The NonVacuous operator to use. Gate!NonVacuous already says >= 4, so a
+# floor of exactly 4 reuses it. Any other threshold gets a generated module,
+# because Gate.tla is read-only here. A floor of 4 is still something the
+# caller had to ask for, so this is a shortcut and not a fallback.
 NONVACUOUS_OP="Gate!NonVacuous"
 if [ "$MIN_STATES" != "4" ]; then
   cat >"$SCRATCH/VacuityGate.tla" <<TLA
