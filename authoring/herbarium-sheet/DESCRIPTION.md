@@ -346,9 +346,14 @@ closes one is a regression rather than a tightening.
 - **The botanists**: one PlusCal process each with an `either`, or bare actions.
 - **Names and sheets**: model values, or numbers.
 
-The reading gate is ch11, so the reference ships as PlusCal in the c-syntax
-dialect, and the Airlock drill is the shape to write at
-(`exercises/ch11/references/Airlock.tla`).
+The reading gate is ch11, and the Airlock drill is the shape to write at
+(`exercises/ch11/references/Airlock.tla`). This paragraph asked for PlusCal
+in the c-syntax dialect until the reference was built, and that conflicted
+with the next paragraph: PlusCal generates a `pc`, which is a sixth variable
+and takes the rung's representation from 2 to 3. The author shipped raw TLA+
+with the five fields and no `pc`, which is what the vector needs. The
+correction is here rather than left for the next author to rediscover
+(`reports/step2-variants.md` finding 8).
 
 **The reference carries five variables and they are the five `Observe` fields.**
 No others. A sixth variable, a derived cache or a history the operator doesn't
