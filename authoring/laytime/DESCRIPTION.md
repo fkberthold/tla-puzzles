@@ -101,9 +101,11 @@ one-way. Nothing puts the ship back under laytime.
 
 ### Rule 9. The limit, and closing the statement
 
-The charterparty caps the owner's demurrage claim at `Limit` periods. Once the
-accrued demurrage reaches the cap, the agent logs nothing further. The only thing
-left for him to do is close the statement.
+The charterparty caps the owner's demurrage claim at `Limit` periods. That cap is a
+term of the charter, and what it caps is the claim. Once the accrued demurrage
+reaches it there's nothing further for the statement to record, so the agent logs no
+more periods. The only step still open to him is closing the statement, and he
+needn't take it.
 
 The agent closes the statement by recording that the discharge is complete. He
 does that once, only after he has tendered the notice, and never undoes it. After
@@ -158,9 +160,8 @@ allowance dropping from two to zero. Item 3 falls in a single state, one period 
 demurrage accrued with one period of the allowance still standing. None needs more
 than two states to break, and each is satisfied by an ordinary run.
 
-Three is the cap and not a target I stopped short of. The reference author's type
-invariant is the fourth cfg line, and four is the top of this rung's
-property-count band.
+Three is what this system needs and not a target I stopped short of. The reference
+author's type invariant is a fourth cfg line alongside them.
 
 ## 3. The observation operator
 
@@ -187,15 +188,17 @@ operator, so it gets said plainly. Whether the ship is on demurrage is a fact
 about the allowance being spent, and it's reportable from `laytimeLeft` alone. So
 it doesn't get a field. My read is that a fifth field carrying the mode would be
 the single most damaging thing this operator could do, because the whole abstraction
-question at this rung is whether the learner sees that the mode is already there.
+question here is whether the learner sees that the mode is already there.
 Give them a field for it and the question is answered on the page.
 
 **Why the period's kind isn't reportable.** The statement records what a period
 cost, not what the agent called it. While the allowance stands, an excepted period
 costs nothing and moves nothing, so it's a stutter at this interface. Once the
-allowance is spent, every period costs one whatever it's called, so the kind stops
-mattering. There's no state of this system in which the kind is both live and
-invisible, which is why it isn't a field.
+allowance is spent, every period costs one whatever it's called, so in a correct
+model the kind changes nothing the statement records. In a model that gets Rule 8's
+second half wrong it does change something, and this interface can't see it. So the
+kind stays out of the operator at the cost of leaving that half of Rule 8
+unenforced. The paragraph below the sufficiency walk says what that costs.
 
 **Sufficiency walk.** The test in each row is which property constrains the rule,
 never which field mentions it. A rule a field names and no property constrains is
@@ -218,29 +221,35 @@ Then each rule, against the properties that constrain it:
 | 5 Working and excepted | 2 and 3 between them, for what a period of either kind is allowed to do to the counters. The classification itself is invisible, for the reason two paragraphs up |
 | 6 The allowance falls | 2 for the direction and the step size, 3 for what a fall to zero lets happen next |
 | 7 Demurrage | 3 for when it may start, 2 for the direction, the step size, and the no-split clause |
-| 8 Once on demurrage, always | 2's no-rise clause, which is the half of the latch that lives in the counters. The other half isn't a cfg line, and the paragraph below says so |
+| 8 Once on demurrage, always | 2's no-rise clause, which is the half of the latch that lives in the counters. The other half is graded by nothing, and the paragraph below says so |
 | 9 The limit, and closing | The range of `demurrage` is the type invariant. The closing clauses are 1 |
 | 10 The opening | Not a cfg line. The model's `Init` carries it, and section 5 says what that costs |
 | 11 Nothing has to happen | Nothing, and that's how it's graded. It's the absence of an obligation, and what carries it is that no property here is a liveness one |
+
+The type invariant carries the ranges in rows 1 and 9, and it's the reference
+author's cfg line rather than a learner requirement. For the learner the carrier is
+§5.2's under-approximation, since a model whose demurrage runs past `Limit` reaches
+`Observe` states the reference can't.
 
 Three things above are ungraded and I'd rather name them than let a reader find
 them.
 
 Rule 2 first. `Observe` shows the statement and not the hands in it, so who took a
-step can't be a property of any model, whatever fields you add. Rung 1 hit the same
-wall and the reasoning carries over. Rule 11 is the same shape from the other end.
+step can't be a property of any model, whatever fields you add. Rule 11 is the same
+shape from the other end.
 An obligation would show up as a liveness property, and its absence is what says
 there's no obligation.
 
-Rule 8 is the interesting one. The half that says the allowance never comes back
-is must-be-true 2's no-rise clause. The half that says an excepted period on
-demurrage still costs one has no property over this interface, because the model
-that gets it wrong has a step that changes nothing, and a step that changes nothing
-is a stutter. My read is that this is caught downstream rather than by a cfg line:
-a model that lets excepted periods run free on demurrage admits a strict subset of
-the reference's behaviors, and §5.2's two-sided implication is where that lands. I
-want the reference author to know that's where the weight sits, because it's the
-one rule here worth building the seeded bugs on.
+Rule 8 is the interesting one, and it's the one place this operator gives something
+up. The half that says the allowance never comes back is must-be-true 2's no-rise
+clause. The half that says an excepted period on demurrage still costs one has no
+property over this interface, and nothing downstream sees it either. A model that
+lets excepted periods run free on demurrage takes a step that changes no `Observe`
+field. That's a stutter, and no formula over this interface can see one. So that
+model's `Observe` behaviors are the reference's exactly, and §5.2's implication
+holds both ways. The second half of Rule 8 is graded by nothing at all. The
+reference author should write it because it's the rule of the trade, and should know
+that nothing in the cfg is watching it.
 
 Everything else is constrained. Every field earns its place through at least one
 must-be-true, so nothing in the operator is decoration.
@@ -252,9 +261,11 @@ bound below is a term of the charterparty first and a finiteness device second.
 
 - **`Allowance`** (Rule 1): the laytime the charter gives, in whole periods. The
   config picks one value and the rules hold for any.
-- **`Limit`** (Rule 9): the charter's cap on the demurrage claim. Real charters cap
-  the owner's exposure, and here the cap is also what makes the statement a finite
-  document. Without it the demurrage counter has no ceiling the domain supplies.
+- **`Limit`** (Rule 9): the charter's cap on the owner's demurrage claim, and a real
+  clause rather than a finiteness device in a charter's clothes. The claim stops
+  growing at the cap, so the counter stops with it, and that's what makes the
+  statement a finite document. Without the clause the counter has no ceiling the
+  domain supplies.
 - **Whole periods** (Rule 4): the statement reckons in whole periods and never in
   fractions of one. That's what makes Rule 7's no-split clause true rather than an
   approximation.
@@ -275,10 +286,9 @@ the statement before he opens it. That leaves about 1 plus 5 times 2, so I make 
 reachable count around 11. Well under 1,000 and sub-second with room to spare.
 That's an estimate. Nobody has run it.
 
-The count is small even for this rung, and I think that's right rather than
-worrying. The rung's difficulty is the abstraction choice and not the search. If
-the reference author wants more room for the trace sets, raise `Allowance` first,
-then `Limit`.
+The count is small, and I think that's right rather than something to worry about.
+The difficulty here is the abstraction choice and not the search. If the reference
+author wants more room for the trace sets, raise `Allowance` first, then `Limit`.
 
 **Quiescence.** Once the agent has closed the statement, no action is enabled and
 the system stops. That's the intended end of the story and not a fault. A checker
@@ -305,8 +315,12 @@ the statement has to keep every one of them open.
 The latch is the one that decides this rung. The screen report's shortest route is
 a learner who carries the allowance and the mode as two loose variables and writes
 every property without noticing they're coupled
-(`authoring/laytime/reports/step0-screens.md:192-196`). Section 3 closes that at
-the interface rather than in the prose, which is where I want it closed.
+(`authoring/laytime/reports/step0-screens.md:192-196`). What closes that route is
+must-be-true 3. A loose latch that drifts out of step with the allowance puts
+demurrage on the board while some of it still stands. That's the state must-be-true
+3 forbids, so the defence is a cfg line and not a paragraph. It's also where the
+weight sits for the seeded bugs, and Rule 8's second half isn't, for the reason
+section 3 gives.
 
 **A constraint on the reference author, not a fork.** Representation 2 pins the
 reference to four variables, one per `Observe` field, and no fifth. So the author's
@@ -372,6 +386,19 @@ rather than a permissive one, and for the trace sets to start from it.
     obligation is liveness, and this rung's property kind stops at action
     properties.
 
+**§3.10, and which half of this domain is new.** The domain splits in two and only
+one half is unfamiliar. Frank holds no working model of laytime reckoning, and
+nothing in refrigeration, alarms or control has an allowance that cancels its own
+exceptions once it's spent. That half is the shipping vocabulary plus Rule 8. Strip
+the shipping words and what's underneath is a metered allowance with a latch. A
+quota draws down, a point is passed, and after it every unit bills at a second rate
+whatever you call it. That's close to Frank's commercial surface rather than far
+from it. Under the Rule 8 finding in section 3, the gradeable residue is exactly
+that quota shape, so what the learner is graded on is the familiar half. My read is
+it's still worth running, because the modeling question is the abstraction and not
+the vocabulary. But the novelty claim is thinner than the domain looks at first, and
+that's Frank's call rather than mine.
+
 **Where I departed from the screen report.** One place, and it's the shape of
 section 2. The report proposed four cfg lines as the type invariant plus three
 rules, with the allowance never rising and the demurrage never falling as two
@@ -385,11 +412,11 @@ clauses into must-be-true 2, added the step-size and no-split clauses that Rules
 and 7 need, and spent the freed slot on must-be-true 1. The count is unchanged at
 four cfg lines.
 
-**One thing I'd flag for the reviewer.** Rule 9's demurrage cap is the piece of
-this description I'm least sure of. I've written it as a term of the charterparty
-because that's what it has to be for the bounds in section 4 to be facts of the
-system, and real charters do cap the owner's exposure. But I don't hold a working
-model of how common the clause is, and if it reads as invented then section 4 is
-resting on a device wearing a charter's clothes. The alternative I'd take is to
-bound the statement itself rather than the claim, which is worse, because a
-statement that runs for a fixed number of periods is a calendar in all but name.
+**The demurrage cap, and the flag I raised on it.** Rule 9's cap was the piece of
+this description I was least sure of, and the review closed it. The cap is a term of
+the charterparty and real charters do cap the owner's exposure. What made it read as
+invented was that Rule 9 ran the cap and the agent's logging together in one
+sentence. Split them and the charter carries the bound on its own, which is what
+section 4 needs. The alternative I'd have taken is to bound the statement itself
+rather than the claim, and that's worse, because a statement that runs for a fixed
+number of periods is a calendar in all but name.
