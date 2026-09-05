@@ -248,7 +248,8 @@ Run TLC with deadlock checking off. The flag is `-deadlock`, and despite
 its name it turns the check off. Once the agent has closed the statement he
 has no step left, and that's the end of the story rather than a fault.
 
-Whatever else you declare, the run should find 11 distinct states. TLC
-counts over every variable you declare, so that number checks your whole
-model and not only the four facts. A different count means your model and
-the system above have come apart, and the rules are where to look first.
+A model built from the four facts and nothing else finds 11 distinct
+states on this instance. TLC counts over every variable you declare, so a
+model carrying more state than the rules need will count higher without
+being wrong. The pairs and the three requirements are the check, and a
+count far above 11 is worth another look at what state the rules need.
