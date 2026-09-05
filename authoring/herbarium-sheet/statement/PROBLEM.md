@@ -207,11 +207,8 @@ watches. One subscript is left to you, and it's marked.
    sheet takes a stamp only at a step where that sheet's count rises to that
    stamp.
 
-   `PROPERTY`. An action property. **The subscript is yours to choose.** A
-   step rule is only tested at steps that change what its subscript watches.
-   Subscript it over too little, and every step that leaves that part of the
-   record alone satisfies the rule for free. TLC won't warn you. Work out
-   what this rule has to watch.
+   `PROPERTY`. An action property. **The subscript is yours to choose**, and
+   it's worth choosing with care.
 
 4. **A slip comes from a consultation, and never from a later one.** At a
    step where a slip appears on a sheet, one slip appears, some botanist's
@@ -260,17 +257,12 @@ A formula saying every open consultation eventually closes is false over a
 system that lets a botanist sit on one forever. It should be false there.
 Rule 7 says they can't, so your `Spec` has to say it too, with fairness.
 
-The fairness goes on the filing step and on nothing else. Name it per
-botanist and per sheet: weak fairness on that botanist filing on that sheet.
-A botanist who marks a sheet doubtful still holds an open consultation of it,
-so their filing step is enabled from that moment and stays enabled until they
-take it. That one conjunct closes the consultation, and closing it is what
-takes the mark off, so it delivers both clauses of requirement 6.
+Which step carries the fairness is yours to work out. Start from the
+obligation and find the step that meets it.
 
-Weak fairness on your whole next-state relation is not what rule 7 means.
-Consulting and doubting carry no obligation, and blanket fairness obliges
-them too. Fairness over a disjunction of a botanist's actions is no better,
-because it obliges none of them in particular. Name the filing step.
+Weak fairness on your whole next-state relation isn't what rule 7 means.
+Rule 7 names one thing that must happen and then says nothing else is
+obliged. Blanket fairness obliges the lot.
 
 ## The traces
 
