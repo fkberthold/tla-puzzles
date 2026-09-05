@@ -46,7 +46,7 @@ system never asks how much. A claim is one creditor's assertion that the estate
 owes him. He makes it once or not at all. There's no second claim, no amendment,
 and no withdrawal. At any moment a creditor stands in one place and one only:
 nothing lodged, lodged and undecided, admitted, admitted and paid, rejected, or
-out of time.
+out of time. Every creditor starts with nothing lodged.
 
 ### Rule 2. The notice
 
@@ -88,7 +88,8 @@ of time. What's paid stays paid.
 The executor hands what's left to the beneficiaries. She can do that only when
 the notice is closed and every claim lodged with her is either rejected or paid.
 Distributing happens once. There's no partial distribution, no interim payment,
-and no way to call it back.
+and no way to call it back. At the start the residue is still in her hands and
+nothing has been distributed.
 
 ### Rule 8. After the distribution
 
@@ -136,8 +137,14 @@ her steps carry a conjunct each: closing the notice, deciding a named creditor's
 lodged claim, paying a named creditor's admitted claim, and distributing. Naming
 them one at a time matters, because fairness written over a disjunction of her
 actions obliges none of them in particular. Item 7 is false if any one of the
-four is dropped, and working out which four they are is the substance of this
-problem.
+four is dropped.
+
+Blanket fairness on the whole next-state relation would make item 7 true without
+naming any of the four. Every action here permanently disables itself and
+`Creditors` is finite, so the transition graph is a finite DAG. No terminal state
+holds the residue, since if nothing else is enabled then distributing is. The
+reference ships the four named conjuncts rather than the blanket form, which
+would carry a lesson this system can't defend.
 
 Every step rule is checked over the whole of `Observe`, never over one field.
 Items 2 through 6 each name one field or two, and the subscript is still the
@@ -184,7 +191,10 @@ merely forbidden. A model that carried lodged, admitted, rejected and paid as
 four sets could show a creditor in two of them at once, and then the one-place
 rule needs a property of its own. I closed that here, at the cost of one degree
 of the author's freedom. My read is that it's worth it, because the property it
-would have bought grades the bookkeeping instead of the system.
+would have bought grades the bookkeeping instead of the system. None of that bans
+set-shaped state. A partition of `Creditors` into named sets is disjoint by
+definition and computes `standing` fine. What's ruled out is four independent
+sets that can overlap.
 
 **Sufficiency walk.** The test in each row is which property constrains the rule,
 never which field mentions it. A rule a field names and no property constrains is
@@ -208,17 +218,24 @@ Then each rule, against the properties that constrain it:
 | 2 The notice | 5 for the one-way door, and 1 ties the close to the distribution. Who closes it is invisible at this interface, and the paragraph below says why |
 | 3 Lodging | 2, both halves. The open window is 2's first clause, and 2's last clause is what stops a creditor appearing as lodged, admitted, rejected or paid without lodging first |
 | 4 Out of time | 2 for the way in, which is closed-notice-only, and 4 for the finality. The debt moving to the beneficiaries has no observable at all, which is the point of putting them outside |
-| 5 Admitting and rejecting | 3 for the only two outcomes, 4 for the finality. One at a time rides the fact that a step changes one creditor's standing |
+| 5 Admitting and rejecting | 3 for the only two outcomes, 4 for the finality. One claim at a time is ungraded, and the paragraph below says why |
 | 6 Paying | 4, which makes admitted the only standing that turns into paid, with 2 and 3 shutting the other routes in |
 | 7 Distributing | 1 for the guard, 6 for the one-way door |
 | 8 After the distribution | 1 and 2 together, and it's a consequence rather than a line of its own. At the distribution no claim is lodged, and 2 keeps the closed notice against a new one, so nothing she can do is enabled |
 | 9 What must happen | 7, and the absence of any other liveness property is what says the rest is hers to time. The creditors' freedom is the absence of fairness on their steps |
 
-One rule is ungraded above and I'd rather name the reason than let a reader find
-it. `Observe` shows the file, not the hand that wrote in it. Who took a step is
-invisible at this interface, so "the executor closes the notice" can't be a
-property of any model, whatever fields you add. What the interface does carry is
-that the close happened and that nothing lodged after it, which is items 5 and 2.
+Two things are ungraded above, and I'd rather name them than let a reader find
+them. The first is who acts. `Observe` shows the file, not the hand that wrote in
+it. Who took a step is invisible at this interface, so "the executor closes the
+notice" can't be a property of any model, whatever fields you add. What the
+interface does carry is that the close happened and that nothing lodged after it,
+which is items 5 and 2.
+
+The second is one claim at a time in Rule 5. Nothing above stops a step deciding
+two creditors together, since items 2, 3 and 4 hold for both of them. An action
+property saying at most one creditor's standing changes at a step would catch a
+batch model. It fits inside the band as a ninth line. I'd leave it for the
+variant pass to ask for.
 
 Everything else is constrained. Every field earns its place through at least one
 must-be-true, so nothing in the operator is decoration.
@@ -260,15 +277,15 @@ inventing a stuttering action this system doesn't have.
 The learner writes the state here, so the forks are the problem rather than a
 footnote to it. Each line below is a choice the rules don't make.
 
-- **Standing**: one value per creditor, or a partition of `Creditors` into named
-  sets, or a set of claim records the executor holds.
+- **Standing**: one value per creditor, a partition of `Creditors` into named
+  sets, or a set of claim records that carries the late creditor as a record too.
 - **Payment**: a standing a claim reaches, or a separate ledger of who's been
   paid.
 - **The notice**: a yes-or-no flag, a two-value stage, or the set of creditors
   still in time.
 - **The residue**: a flag, or a stage the whole winding-up is in.
-- **Out of time**: a standing the creditor reaches, or a fact derived from a
-  closed notice and an empty file.
+- **Out of time**: a standing the creditor reaches, or a separate came-forward
+  marker read against a closed notice.
 - **Creditor names**: model values, or numbers.
 
 One narrowing for the reference author, and it's the rung rather than my choice.
@@ -306,7 +323,9 @@ still in hand doesn't exist, because if nothing else is enabled then distributin
 is. So `WF_vars(Next)` alone makes item 7 true, and a learner who writes it hands
 in a passing spec. The fairness question is real, and the statement is where it
 has to be made to bite. Under form left open 1 the subscript is withheld, which
-helps, and my read is that the variant pass is where this actually gets caught.
+helps. The property it's withheld on is item 7, so the learner has to decide for
+himself what its fairness sits on. My read is that the variant pass is where this
+actually gets caught.
 
 **A correction to the screener's reasoning, same page.** It says fairness on the
 close is needed because creditors can keep lodging while the notice is open
