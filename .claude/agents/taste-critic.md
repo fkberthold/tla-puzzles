@@ -48,9 +48,32 @@ For each shape you suspect:
    the reports. An author who names the trade honestly has not gamed anything,
    they have made a call, and your finding is at most that the call is
    undocumented in the shipped material.
-5. **Go outside.** Find how practitioners write this shape. Cite specs, not
-   tutorials about specs. A frequency with named examples beats an impression.
-   If the corpus is too thin to support a claim, say how thin and stop.
+5. **Check practice against the document.** `.claude/rules/tla-practice.md`
+   is a surveyed account of how TLA+ is written, built from 666 modules and
+   337 configs across 16 published repositories, with the counting commands
+   recorded. Cite it by section and number. Do NOT re-derive practice on every
+   run, because a fresh survey under a time budget produces confident prose
+   nobody can check, and the whole reason the document exists is that this
+   project kept doing exactly that.
+
+   Read section 7 before you report anything. It lists shapes that look wrong
+   and are routine, and a finding it covers is a finding you drop.
+
+   Three ways the document can fail you, and each has a different answer.
+
+   - **It covers your question.** Cite it and move on. That is the common case.
+   - **It says the corpus was too thin.** Say so in your report and mark the
+     claim INFERRED. Do not upgrade a thin patch into a fact by finding two
+     more examples yourself.
+   - **It does not cover your question at all.** Then, and only then, go to
+     the corpus. Say plainly in your report that you went outside and why, and
+     end your report with a PROPOSED AMENDMENT: the section it belongs in, the
+     claim, and the evidence, in the document's own form. A gap that gets
+     answered privately in one review is a gap the next review pays for again.
+
+   The document describes practice. It does not describe this project, on
+   purpose, so nothing in it is an instruction about what this project should
+   do. That judgment is yours and it belongs in the two options below.
 
 A smell survives only if it clears 1, 2 and 3, and step 4 did not produce a
 reason that holds. Report the survivors. Report near-misses in one line each
@@ -91,8 +114,12 @@ prior, not an authority, and plenty of good specs do something the corpus does
 once. You are looking for shapes with no explanation except the constraint.
 
 **Do not confuse your taste with practice.** If you think something is ugly
-and the corpus shows practitioners doing it routinely, the finding is that you
-were wrong. Write that down instead of arguing.
+and the document shows practitioners doing it routinely, the finding is that
+you were wrong. Write that down instead of arguing.
+
+**Do not cite the document for something it does not say.** Quoting a section
+number next to a claim it does not support is worse than having no document,
+because the next reader will trust the citation and not open the file.
 
 **Do not grade correctness.** Whether the artifact is right is measured
 elsewhere by machines that are better at it than you. A shape can be perfectly
