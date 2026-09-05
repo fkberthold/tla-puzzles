@@ -5,7 +5,7 @@ Never ships to a learner or a blind agent. It maps each pair under
 it witnesses, with the provenance of both halves. Bead `tla-h2cg.10`.
 
 The learner-visible artifact set is exactly `statement/PROBLEM.md`,
-`statement/AssayOffice.tla`, and the three files under `statement/traces/`.
+`statement/AssayOffice.tla`, and the six files under `statement/traces/`.
 Nothing in this file or in `reports/` is reachable from those.
 
 ## The map
@@ -15,6 +15,12 @@ Nothing in this file or in `reports/` is reachable from those.
 | 1 | `MarksFollowTheFinding` | S12, every ware struck with no finding | 12 | initial state | T1, 3 states, rc=12 |
 | 2 | `TheRecordOnlyGrows` | S04, a finding rewritten | 13 | 3 states | T2, 3 states, rc=12 |
 | 3 | `SubstandardIsDefaced` | P03, the fairness conjunct dropped | 13 | 6 states then stuttering | T3, 4 states, rc=12 |
+| 4 | `MarksFollowTheFinding` | S02, an at-standard ware defaced | 12 | 3 states | T4, 3 states, rc=12 |
+| 5 | `TheRecordOnlyGrows` | S06, a struck ware unmarked | 13 | 4 states | T5, 4 states, rc=12 |
+| 6 | `TheRecordOnlyGrows` | S07, a defaced ware made whole | 13 | 4 states | T6, 4 states, rc=12 |
+
+Pairs 4 to 6 came later than the first three. The section below says where
+from.
 
 `TypeOK` has no pair on purpose. Step 2 finding 3 records that nothing in the
 22-variant matrix reached it, so it has no violating half to ship. The
@@ -41,6 +47,29 @@ office testing and striking the other two wares, which is the point: the
 office is working the whole time and never gets round to w1. A lasso would
 read as a different fault, and this rung's liveness is the halt.
 
+## The three added pairs
+
+Step 5's leakage check found three clauses with no forbidden run behind them.
+It filed requirement 1's `defaced` clause as D1 and requirement 2's two
+monotonicity clauses as N1. Central took both. A learner could write half of
+requirement 1, or a third of requirement 2, and every signal the statement
+gives would say they were done.
+
+| pair | clause it closes | what the variant does |
+|---|---|---|
+| 4 | requirement 1, `defaced` | defaces a ware found at standard |
+| 5 | requirement 2, `marked` | clears a struck ware's mark |
+| 6 | requirement 2, `defaced` | makes a defaced ware whole again |
+
+The picks are the leakage report's own. S03 was the other candidate for pair
+4 and I left it, because it strikes a substandard ware and that's the `marked`
+clause pair 1 already covers. S02 is the only committed variant whose
+counterexample reaches the untested half.
+
+The mapping stops being one to one here, so `PROBLEM.md` now says so in its
+trace section. Without that line I suspect a learner who found two pairs
+answering to requirement 1 would read it as their own mistake.
+
 ## Provenance, violating halves
 
 The step 2 variant modules are committed under `reports/step2-variants/`, so
@@ -50,6 +79,16 @@ through `harness/verdict.sh -t 300` with its own committed `.cfg` and
 `-workers 1`. All three returned the rc, the obligation and the trace length
 the step 2 results table records (`reports/step2-variants.md:253,261` for S04
 and S12, `:287` for P03).
+
+Pairs 4 to 6 went the same way, with one change. Each ran under a cfg carrying
+only the obligation it breaks, so the reported violation names the clause the
+pair is for. S02 came back rc=12 on `MarksFollowTheFinding` at 3 states. S06
+and S07 both came back rc=13 on `TheRecordOnlyGrows` at 4 states. Those match
+`reports/step2-variants.md:251,255,256`.
+
+Each of the three then ran again with its broken obligation dropped and the
+other two left in. All three came back `OK` at rc=0, so no forbidden run in
+the three new pairs breaks a requirement it wasn't picked for.
 
 Traces render over the `Observe` fields only, states only. Action names,
 formulas and obligation names were stripped by hand. The three findings print
@@ -75,6 +114,18 @@ each pair prints. A deliberately illegal control (a ware struck in one step
 from the opening, with no finding written) came back rc=0, so the validator
 can fail and the three passes mean something.
 
+T4, T5 and T6 went through a rebuilt copy of the same validator, at 3, 4 and 4
+states, all rc=12. The control was rebuilt with them and came back rc=0 again.
+Each of the three mirrors its twin by keeping the twin's illegal move and
+making it legal. T4 defaces a ware the office found substandard. T5 leaves a
+mark standing while the office tests another ware. T6 does the same for a
+defacing.
+
+None of the three ends with a substandard finding still undischarged. That
+isn't required, since a finite run with no tail note says nothing about
+requirement 3, but the first three allowed runs all avoid it and I kept the
+habit.
+
 ## Notes for step 5 and the grader
 
 - Pair 1's forbidden run breaks requirement 1 alone. Every ware starts struck
@@ -87,6 +138,16 @@ can fail and the three passes mean something.
   happens after state 6. A learner who reads the six states as a finite run
   and stops will find nothing wrong with them, which is why the trace file
   spells the tail out under the block.
+- Pair 4's forbidden run breaks requirement 1's `defaced` clause alone. w1 is
+  defaced while its finding reads at standard, and no ware is ever struck.
+- Pair 5's forbidden run breaks requirement 2's `marked` clause alone. w1
+  loses a mark it was entitled to, so requirement 1 holds at every state.
+- Pair 6's forbidden run breaks requirement 2's `defaced` clause alone. w1's
+  defacing is undone at the last state, and a finite prefix says nothing
+  about requirement 3.
+- The `marked`-clause-only weakening of requirement 1, which step 5 filed as
+  D1, now fails its hand-check against pair 4. Nothing is struck in that
+  forbidden run, so the half property accepts a run the learner has to reject.
 - The wrong-subscript warning in requirement 2 is the interface fix for step 2
   finding 5, where P01 and P02 subscript on one `Observe` field and both go
   blind on the system variant their correct form catches. Step 2 records that

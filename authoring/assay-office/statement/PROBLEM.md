@@ -168,8 +168,10 @@ the model. That failure is real. It isn't a fault in your formula.
 
 ## The traces
 
-The runs under `traces/` witness the requirements. One pair per requirement,
-three in all. Each state shows the three `Observe` fields. Four notes:
+The runs under `traces/` witness the requirements. Six pairs, and the mapping
+isn't one to one. Requirement 1 gets two, requirement 2 gets three, and
+requirement 3 gets one. Each state shows the three `Observe` fields. Four
+notes:
 
 - A forbidden run can break more than one requirement. If your set rejects it
   for any requirement it breaks, your set is right about that run.
