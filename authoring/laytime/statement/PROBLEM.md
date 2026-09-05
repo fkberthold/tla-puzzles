@@ -119,8 +119,10 @@ switch is one-way. Nothing puts the ship back under laytime.
 The charterparty caps the owner's demurrage claim at `Limit` periods. That
 cap is a term of the charter, and what it caps is the claim. Once the
 accrued demurrage reaches it there's nothing further for the statement to
-record, so the agent logs no more periods. The only step still open to him
-is closing the statement, and he needn't take it.
+record, so the agent logs no more periods. The cap stops the logging
+itself, and an agent whose demurrage stands at the limit logs nothing at
+all, not even a period under laytime. The only step still open to him is
+closing the statement, and he needn't take it.
 
 The agent closes the statement by recording that the discharge is complete.
 He does that once, only after he has tendered the notice, and never undoes
