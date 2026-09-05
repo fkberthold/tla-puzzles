@@ -14,9 +14,9 @@ withholds it on requirement 4 instead, and
 | representation | 2 | `authoring/estate-notice/statement/PROBLEM.md:30; authoring/estate-notice/reference/EstateNotice.tla:4,14` |
 | property kind | 3 | `authoring/estate-notice/reference/EstateNotice.tla:70-73,112; authoring/estate-notice/reference/EstateNotice.cfg:14` |
 | property count | 2 | `authoring/estate-notice/reference/EstateNotice.cfg:5-15` |
-| step sources | 2 | `authoring/estate-notice/statement/PROBLEM.md:50-60; authoring/estate-notice/reference/EstateNotice.tla:70-73` |
-| state space | 0 | `authoring/estate-notice/reports/step2-variants.md:111,150-151; authoring/estate-notice/statement/PROBLEM.md:276-277` |
-| form left open | 1 | `authoring/estate-notice/statement/PROBLEM.md:178,185,190,196,204,209,213,218` |
+| step sources | 2 | `authoring/estate-notice/statement/PROBLEM.md:50-60; authoring/estate-notice/reference/EstateNotice.tla:59-65,70-73` |
+| state space | 0 | `authoring/estate-notice/reports/step2-variants.md:111,150-151; authoring/estate-notice/statement/PROBLEM.md:274-275` |
+| form left open | 1 | `authoring/estate-notice/statement/PROBLEM.md:172-175,199` |
 
 situation: S4
 task shape: A
