@@ -31,9 +31,9 @@ No spec ships. The model is yours to write.
    them in a `.cfg` under the keywords named with them, and run TLC on the
    checking instance until they all hold.
 4. Add the formula from the last section, declare it too, and run again.
-5. Hold your model against the traces. Every forbidden run must break at
-   least one requirement. Every allowed run must be a run your model can
-   produce.
+5. Hold your model against the traces. Every allowed run must be a run your
+   model can produce. For each forbidden run, work out which of your
+   requirements breaks on it, and say so if none does.
 6. Then answer the last section's two questions in writing.
 
 ## The system
@@ -237,7 +237,9 @@ watches. One subscript is left to you, and it's marked.
    botanist holds an open consultation of anything.
 
    `PROPERTY`. A state predicate, declared as a property rather than as an
-   invariant, so TLC reads it at the opening state alone.
+   invariant, so TLC reads it at the opening state alone. TLC prints a
+   paragraph recommending `INVARIANT` when it reads one under `PROPERTIES`,
+   and that's expected here rather than a fault of yours.
 
 Seven is the whole list. Don't add an eighth. Your model's own typing is
 yours and doesn't count against that, so declare a type invariant as well if
@@ -317,8 +319,11 @@ A model whose state is exactly the five facts `Observe` reports finds 259
 distinct states here, from 1,103 generated, at a search depth of 7. It runs
 in well under a second. Keep state beyond those five facts and your counts
 come out larger, which isn't wrong by itself. If your state is just the five
-facts and your count isn't 259, your rules differ from the rules above. That
-difference is worth finding before you go on.
+facts and your count isn't 259, your rules differ from the rules above, and
+that difference is worth finding before you go on. The check runs one way
+only. More than one wrong rule set lands on 259 exactly, so a match doesn't
+tell you your rules agree with these. Check the 1,103 too. That's the sharper
+of the two.
 
 ## The rule that came written for you
 

@@ -165,3 +165,13 @@ than D01 is pair 5's violating half.
 - S23, the tightening that requires an accepted name before a sheet can be
   doubted, is uncatchable by any property over `Observe`. A learner who reads
   rule 6 that way passes everything. Step 2's finding 7 has the argument.
+- A replay convention that closes a finite run by stuttering on its last state
+  fires requirement 6 on pair 5's forbidden run and on the allowed runs of pairs
+  1, 3 and 7. Requirement 6 is pure liveness, so no finite prefix violates it. A
+  learner using such a player reports rejections that belong to the tail rather
+  than to the run, and the grader should read the convention before reading the
+  rejection. Step 6's spread report has the runs.
+- Pair 4 grades requirement 4's way-out clause, and there's a live proof of it
+  now. One panel seat's whole declared seven came back rc=0 against pair 4's
+  forbidden run, and the same set with the way-out clause added came back rc=13.
+  Step 6's spread report has both.
