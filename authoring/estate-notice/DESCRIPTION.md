@@ -127,10 +127,12 @@ observables of section 3. The author renders them as properties of their model.
 6. **The distribution is never undone.** At a step, a distributed estate stays
    distributed.
 7. **The estate is eventually distributed.**
+8. **She takes one claim at a time.** At a step where one creditor's standing
+   changes, every other creditor's standing stays where it was.
 
 Item 1 is a claim about a single state, so it's an invariant. Items 2 through 6
-each compare the record at two consecutive moments, so they constrain steps and
-land as action properties. Item 7 is the one liveness obligation here, and it's
+and item 8 each compare the record at two consecutive moments, so they constrain
+steps and land as action properties. Item 7 is the one liveness obligation here, and it's
 the only item needing "eventually". Its fairness sits on the executor's steps and
 on none of the creditors', which is Rule 9 stated as a fairness decision. Four of
 her steps carry a conjunct each: closing the notice, deciding a named creditor's
@@ -147,8 +149,8 @@ reference ships the four named conjuncts rather than the blanket form, which
 would carry a lesson this system can't defend.
 
 Every step rule is checked over the whole of `Observe`, never over one field.
-Items 2 through 6 each name one field or two, and the subscript is still the
-whole record.
+Items 2 through 6 and item 8 each name one field or two, and the subscript is
+still the whole record.
 
 The type invariant is the reference author's, declared in the cfg. It isn't one
 of the seven above and it's never a learner requirement.
@@ -161,12 +163,15 @@ claim going back to nothing lodged. Item 4 falls on one step, an admitted claim
 turning rejected. Items 5 and 6 each fall on one step, a closed notice reopening
 and a distributed estate coming undone. Item 7 is liveness, so its violating
 trace is a finite prefix and then nothing more: the notice open, no claim lodged,
-and the executor never closing, with the behavior stuttering there forever. Each
-of the seven is satisfied by an ordinary run of the system.
+and the executor never closing, with the behavior stuttering there forever. Item
+8 falls on one step, two lodged claims decided together. Each of the eight is
+satisfied by an ordinary run of the system.
 
-Seven items plus the type invariant is eight cfg lines, and that's the whole of
-what this system asks for. A ninth would be redundant against these seven rather
-than new, so the author should hold the count where it is.
+Eight items plus the type invariant is nine cfg lines, the top of the band and
+the whole of what this system asks for. Item 8 is the last of them, and it earns
+the line. A step that decides two creditors together passes items 1 through 7,
+and nothing else catches it. A tenth would be redundant against these eight
+rather than new, so the author should hold the count where it is.
 
 ## 3. The observation operator
 
@@ -209,6 +214,7 @@ loose. First, what each must-be-true reads:
 | 5 The notice never reopens | notice |
 | 6 The distribution is never undone | distributed |
 | 7 The estate is eventually distributed | distributed |
+| 8 She takes one claim at a time | standing |
 
 Then each rule, against the properties that constrain it:
 
@@ -218,24 +224,24 @@ Then each rule, against the properties that constrain it:
 | 2 The notice | 5 for the one-way door, and 1 ties the close to the distribution. Who closes it is invisible at this interface, and the paragraph below says why |
 | 3 Lodging | 2, both halves. The open window is 2's first clause, and 2's last clause is what stops a creditor appearing as lodged, admitted, rejected or paid without lodging first |
 | 4 Out of time | 2 for the way in, which is closed-notice-only, and 4 for the finality. The debt moving to the beneficiaries has no observable at all, which is the point of putting them outside |
-| 5 Admitting and rejecting | 3 for the only two outcomes, 4 for the finality. One claim at a time is ungraded, and the paragraph below says why |
+| 5 Admitting and rejecting | 3 for the only two outcomes, 4 for the finality, and 8 for one claim at a time |
 | 6 Paying | 4, which makes admitted the only standing that turns into paid, with 2 and 3 shutting the other routes in |
 | 7 Distributing | 1 for the guard, 6 for the one-way door |
 | 8 After the distribution | 1 and 2 together, and it's a consequence rather than a line of its own. At the distribution no claim is lodged, and 2 keeps the closed notice against a new one, so nothing she can do is enabled |
 | 9 What must happen | 7, and the absence of any other liveness property is what says the rest is hers to time. The creditors' freedom is the absence of fairness on their steps |
 
-Two things are ungraded above, and I'd rather name them than let a reader find
-them. The first is who acts. `Observe` shows the file, not the hand that wrote in
-it. Who took a step is invisible at this interface, so "the executor closes the
-notice" can't be a property of any model, whatever fields you add. What the
-interface does carry is that the close happened and that nothing lodged after it,
-which is items 5 and 2.
+One thing is ungraded above, and I'd rather name it than let a reader find it.
+It's who acts. `Observe` shows the file, not the hand that wrote in it. Who took
+a step is invisible at this interface, so "the executor closes the notice" can't
+be a property of any model, whatever fields you add. What the interface does
+carry is that the close happened and that nothing lodged after it, which is items
+5 and 2.
 
-The second is one claim at a time in Rule 5. Nothing above stops a step deciding
-two creditors together, since items 2, 3 and 4 hold for both of them. An action
-property saying at most one creditor's standing changes at a step would catch a
-batch model. It fits inside the band as a ninth line. I'd leave it for the
-variant pass to ask for.
+One claim at a time in Rule 5 used to sit here beside it. Nothing in items 1
+through 7 stops a step deciding two creditors together, since items 2, 3 and 4
+hold for both of them. The variant pass built that batch model and it passed all
+seven, so item 8 is what grades the rule now. It reads standing alone, and it's
+subscripted on the whole of `Observe` like every other step rule here.
 
 Everything else is constrained. Every field earns its place through at least one
 must-be-true, so nothing in the operator is decoration.

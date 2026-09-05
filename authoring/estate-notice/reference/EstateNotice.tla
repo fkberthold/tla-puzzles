@@ -111,4 +111,11 @@ TheDistributionIsNeverUndone ==
 
 TheEstateIsEventuallyDistributed == <>Observe.distributed
 
+SheTakesOneClaimAtATime ==
+    [][\A a \in Creditors :
+          \A b \in Creditors :
+              (/\ a # b
+               /\ Observe.standing[a] # Observe'.standing[a])
+                  => Observe.standing[b] = Observe'.standing[b]]_Observe
+
 =============================================================================
