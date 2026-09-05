@@ -53,8 +53,9 @@ Nobody else touches it and nobody asks first.
 
 ### Rule 4. The stream can't give what it hasn't got
 
-The settings never total more than the flow. Water that isn't going down a ditch
-stays in the stream.
+The settings never total more than the flow. A setting and the water actually
+running are the same thing here, because an owner checks what the others are taking
+before they open. Water that isn't going down a ditch stays in the stream.
 
 ### Rule 5. Short
 
@@ -75,8 +76,9 @@ short or not.
 
 While a call stands, no owner junior to the caller opens their gate any wider than
 it already is. That's the whole of it. A call reaches what a junior may newly
-take, and it doesn't reach a gate that's already open. Nobody senior to the caller
-is touched, and neither is the caller.
+take, and it doesn't reach a gate that's already open. It reaches a junior's rise
+if it was standing when the rise began, whatever happens to the call in the same
+act. Nobody senior to the caller is touched, and neither is the caller.
 
 ### Rule 8. Nobody enforces anything
 
@@ -145,11 +147,9 @@ Take three owners, senior to junior, each decreed 2 units, on a flow of 3.
   the middle owner has one free unit against a decree of 2, and their call goes
   out.
 
-Three is the cap here, not a target I stopped short of. The reference author adds
-the type invariant, and four cfg lines is the top of this rung's property-count
-band. I considered a fourth item pinning the opening (every gate shut, no call
-standing) and left it out. The shipped spec's opening state fixes it, and a fifth
-line would push the count to the next level and break the rung.
+Three is the cap here, not a target I stopped short of. Don't add a fourth. I
+considered one pinning the opening (every gate shut, no call standing) and left it
+out, because the shipped spec's opening state already fixes it.
 
 ## 3. The observation operator
 
@@ -245,9 +245,9 @@ senior to one and junior to another, which is where must-be-true 2's two
 quantifiers earn their place.
 
 A flow of 3 against decrees totalling 6 puts the stream under the paper right, so
-shortage is reachable. It also sits above any single decree, so no owner can go
-short on their own. Shortage takes two owners drawing at once, and that's the
-contention this cell is for.
+shortage is reachable. It also sits above any single decree, so no owner can make
+themselves short by their own draw. One owner at their full decree already leaves a
+second short, and that's the contention this cell is for.
 
 A decree of 2 rather than 1 matters. At 1 a gate is open or shut, and "rises"
 collapses into "opens". At 2 an owner can rise twice, and a junior can hold a
@@ -308,13 +308,26 @@ standing state. My read is that's the honest answer for a stretch with no
 watermaster, and it's what Rule 8's second sentence is doing there.
 
 The sketch also had shortness gating diversions directly, with no call in the
-system. That has a senior's shut gate blocking every junior, because the senior's
-unused decree still counts against the free water. Work it: the senior sits at 0,
-the junior wants 2, and the moment they take it the senior is short and the rise
-was illegal. So a gate nobody has touched locks the river. The call fixes it,
-since a short owner has to actually be short to put one out, and a senior with
-their gate shut on a full stream isn't. It's also the domain's own mechanism and
-the reason the spec is named for it.
+system. That needs the guard read on the post-state, and it's worth naming which
+reading I'm refuting, because every other rule here reads its guard on the
+pre-state. Under the pre-state reading the junior's rise from all shut is legal and
+there's nothing to argue about. Under the post-state one a senior's shut gate caps
+every junior at whatever it leaves spare, because the senior's unused decree still
+counts against the free water. Work it on the three owners of section 4. The senior
+sits at 0 and the junior takes 2. The free water drops to 1, the senior is short
+against a decree of 2, and the rise was illegal. So the junior caps at 1.
+
+The call earns its place under either reading, and what it buys is worth saying
+straight. It puts a second piece of decidable state in the learner's hands, which
+is the work this rung is for. It's also the domain's own mechanism and the reason
+the spec is named for it. A short owner has to actually be short to put a call out,
+and a senior with their gate shut on a full stream isn't.
+
+**Why the count stops at three.** The reference author adds the type invariant, so
+three requirements make four cfg lines, and four is the top of this rung's
+property-count band. A fifth line would push the count to the next level and break
+the rung. That's why section 2 turns down a fourth item pinning the opening, and
+it's pipeline reasoning rather than anything the reference author needs.
 
 ## 6. Ambiguities resolved, and how they could have gone
 
@@ -362,6 +375,12 @@ the reason the spec is named for it.
     close. An obligation to curtail is the tempting one, and it's liveness.
 13. **Whole units.** The alternative is cubic feet per second at whatever
     precision, which is either a much larger state space or a continuous one.
+14. **A setting is the water going down the ditch.** Rule 4 makes the two the same
+    fact, because an owner checks what the others are taking before they open. The
+    alternative is a physical cap, where the stream just doesn't deliver what a
+    gate is set to. Then `diverted` can never total above the flow whatever the
+    owners set, so must-be-true 1 can't be falsified and §3.9 has nothing to break
+    it on.
 
 ## 7. The diagnose object, central only
 
@@ -376,10 +395,16 @@ The spec is otherwise the reference, and TLC returns green on all four lines.
 state passing the type invariant. Every setting is at or under its own decree, so
 the water nobody is taking is at least the shortfall summed over everybody, which
 is at least any one owner's own shortfall. So Rule 5 never fires. No call can go
-out, `calling` never leaves its opening value, and both step rules pass because
-their antecedents are never met. The flow rule is implied by the type invariant on
-that instance, so it never binds either. Only the type invariant does any work,
-and the priority logic the spec exists to state is untouched by the run.
+out, and `calling` never leaves its opening value.
+
+The two step rules then pass for different reasons, and the difference decides what
+a probe reports. Must-be-true 2's antecedent is a setting rising, which fires on
+nearly every step of this run. It passes because its consequent holds everywhere,
+nobody being able to call. Must-be-true 3 is the one that's vacuous, and it's
+vacuous at the antecedent, since no call ever goes out. The flow rule is implied by
+the type invariant on that instance, so it never binds either. Only the type
+invariant does any work, and the priority logic the spec exists to state is
+untouched by the run.
 
 **Why a learner who modelled the system right catches it.** Shortage is the engine.
 Anybody who built this system knows a call needs a short owner behind it, and that
@@ -389,10 +414,21 @@ against the sum of the decrees. A learner who never worked out Rule 5's arithmet
 has no reason to look at that constant at all, since the spec reads correct on its
 own terms and no trace points anywhere.
 
-**Two corroborating signals**, available without writing a line of TLA+. The
-`calling` field holds its opening value in every state of the run. And the distinct
-state count is a fraction of what the same spec gives on a lower flow, which is
-visible on the console and is the kind of thing §5.1 lets a verdict read.
+**Three corroborating signals**, in order of what they cost to get. The distinct
+state count is a fraction of what the same spec gives on a lower flow. That's right
+there on the console, and it's the kind of thing §5.1 lets a verdict read. Running
+with `-coverage 1` gives the call action a row reading 0 total, which is
+console-visible too and is the strongest of the three. That one holds for any
+reference that guards its call-out on shortness, and I don't think a faithful one
+can do otherwise. The `calling` field holding its opening value in every state is
+the weakest, since reading it takes a probe the learner has to write, while the
+count and the coverage row don't.
+
+**Our own machinery answers this one.** `harness/vacuity.sh` returns
+`VACUOUS_DEAD_ACTION` at rc=5 on this seed, off the `total == 0` predicate at
+V2-PLAN.md:873-889. That makes the seed better rather than worse, since the defect
+is the kind this project already knows how to name. Step 4 has to keep the harness
+out of the learner's hands, or the puzzle answers itself in one command.
 
 **The alternative the statement could seed instead** is a failing trace, and the
 screener called it the weaker of the two here. The last state doesn't break the
