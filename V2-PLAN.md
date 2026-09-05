@@ -1619,21 +1619,29 @@ order, and `--check` verifies it against the §2.5 rule.
 
 | # | domain | S | shape | repr | kind | count | src | space | form | new high |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | apprenticeship hour logging | S9 | B | 1 | 2 | 1 | 0 | 0 | 0 | representation 1 |
-| 2 | escape room booking with reset time | S4 | A | 2 | 2 | 1 | 0 | 0 | 0 | representation 2 |
-| 3 | community garden plot allocation | S2 | D | 2 | 2 | 1 | 1 | 0 | 0 | several actors of one kind |
-| 4 | tournament brackets with byes and forfeits | S5 | B | 1 | 3 | 1 | 1 | 0 | 0 | liveness with fairness |
-| 5 | blood bank inventory | S4 | A | 2 | 3 | 2 | 1 | 0 | 0 | five to nine properties |
-| 6 | clinical trial cohort assignment | S6 | D | 2 | 3 | 2 | 1 | 0 | 1 | keyword given, subscript open |
-| 7 | ski pass validation with blackout dates | S4 | A | 2 | 3 | 2 | 2 | 0 | 1 | two kinds of actor |
+| 1 | bonded excise store | S9 | B | 1 | 2 | 1 | 0 | 0 | 0 | representation 1 |
+| 2 | laytime and demurrage | S4 | A | 2 | 2 | 1 | 0 | 0 | 0 | representation 2 |
+| 3 | prior-appropriation water rights | S2 | D | 2 | 2 | 1 | 1 | 0 | 0 | several actors of one kind |
+| 4 | the assay office | S5 | B | 1 | 3 | 1 | 1 | 0 | 0 | liveness with fairness |
+| 5 | floor malting | S4 | A | 2 | 3 | 2 | 1 | 0 | 0 | five to nine properties |
+| 6 | herbarium determination slips | S6 | D | 2 | 3 | 2 | 1 | 0 | 1 | keyword given, subscript open |
+| 7 | the executor's notice to creditors | S4 | A | 2 | 3 | 2 | 2 | 0 | 1 | two kinds of actor |
 
-Four things the table doesn't say on its own. Rung 4 drops representation back to 1 on purpose,
-since drops are free and it keeps liveness from arriving on top of a from-scratch model. State
-space stays at 0 through the whole batch. After rung 7 consign's vector is one new high away, so
-the reserve becomes a per-rung question from rung 8. And rung 3's domain carries a §2.2
-suspicion (the allocator in different dress). Every domain runs both screens at step 0, and if
-one fails, the domain changes and the rung doesn't. A rung's vector says what weight to write
-at, never what the problem is for.
+**The domain column above is the second draft (2026-09-05).** Every one of the seven domains
+this batch was planned with was withdrawn at step 0 and replaced, and the table now carries what
+was actually built. Three collided with the sealed holdout set, so authoring them would have
+shown Frank a holdout problem early. The other four had been drafted in the open during
+planning, which burns a domain for a set whose whole point is that the solver meets it cold.
+The rungs did not move. Every delivered `VECTOR.md` matches its planned row here on the
+situation, the shape and all six dimensions, so the ramp survived a complete change of subject
+matter. That is the strongest evidence the batch produced that a vector says what weight to
+write at and not what the problem is about.
+
+Four more things the table doesn't say on its own. Rung 4 drops representation back to 1 on
+purpose, since drops are free and it keeps liveness from arriving on top of a from-scratch
+model. State space stays at 0 through the whole batch. After rung 7 consign's vector is one new
+high away, so the reserve becomes a per-rung question from rung 8. And the domain a rung ends up
+with runs both screens at step 0, and if one fails, the domain changes and the rung doesn't.
 
 The A share here is 3 of 7. It rises across the set (§2.1, amended). Batch 3 is designed after
 Frank has worked these seven, per the barrier above, and that is where the reading checkpoint
