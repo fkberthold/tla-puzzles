@@ -79,7 +79,8 @@ worth the fuel.
 Kilning and throwing out are the only ways a piece leaves the floor. Once a piece
 is off, it stays off. It never comes back to the floor, its place never changes
 again, and a loss never turns into good malt. There's no re-steeping and no
-second try.
+second try. A piece off the floor has no modification either. The count belongs
+to the bed lying on the stones, and it goes when the bed does.
 
 ### Rule 7. The floor gets cleared
 
@@ -120,9 +121,12 @@ The fairness conjunct sits on one step, and that step is the removal of a named
 piece from the floor. Read it per piece: for each piece, weak fairness on any
 maltster's act of taking that piece off, whether the act is a kilning or a
 throwing out. Both acts have the same effect on the piece, so the disjunction
-across them still obliges something. Don't put fairness on "a maltster acts".
-Turning is something a maltster does, so that form obliges no removal at all, and
-it's the shape to check for first when item 7 passes and shouldn't.
+across them still obliges something.
+
+Fairness on "a maltster acts" would clear the floor here too. Rule 3 caps the
+turnings a piece can take, so only finitely many of a maltster's acts can be
+turnings, and the rest are removals. But that form names no step, and it gets
+there by an argument the reader has to reconstruct. Take the per-piece form.
 
 Every step rule above is checked over the whole of `Observe`, so the subscript is
 `Observe` itself and never one of its fields. Subscript a rule on the place field
@@ -220,9 +224,7 @@ Then each rule, against the properties that constrain it:
 the floor. So the only way a piece could arrive on the floor is by coming back
 from off it, and must-be-true 6 forbids exactly that. With `Pieces` fixed and
 `stage` total over it, there's no fourth place for a piece to arrive from either.
-My read is that the way in, the ways out and the ways between are all graded, and
-I'd still put a reviewer's eye on it, because a way in nobody grades is the
-easiest thing in this form to leave open.
+My read is that the way in, the ways out and the ways between are all graded.
 
 Two things are ungraded above and I'd rather name them than let a reader find
 them. `Observe` can't tell a kilning from a throwing out. Both take a piece off
@@ -264,11 +266,10 @@ that's the count rather than a ceiling on it. It's still arithmetic. Nobody has
 run it, and 216 counts what `Observe` shows and not whatever else the reference's
 own state carries.
 
-The maltsters add nothing to that if each maltster's body is one atomic step,
-since they carry no state of their own. A body with several labels multiplies the
-count by the labels each maltster can sit at. Two labels each takes it to 864,
-under a thousand but close, and I think a single-label body is the right shape
-here anyway. If the count runs high, drop to 2 pieces, which takes it to 36.
+The maltsters add nothing to that, since they carry no state of their own. Write
+the system half as plain TLA+ rather than PlusCal, and there's no program counter
+in the state to multiply the count either. If the count runs high, drop to 2
+pieces, which takes it to 36.
 
 **Quiescence.** When every piece is off the floor, no act is enabled and the
 system stops. That's the intended end of the story, not a fault. A checker
@@ -286,8 +287,9 @@ keep it that way.
   them. The rules need a count reportable per floor piece and nothing more.
 - **Where a piece stands**: a status per piece, or a partition of `Pieces` into
   three named sets.
-- **The loss**: one exit act whose outcome falls out of the modification, or two
-  acts, a kilning guarded to ready pieces and a throwing out.
+- **The loss**: one exit act whose outcome falls out of the modification, two
+  acts, a kilning guarded to ready pieces and a throwing out, or a stored
+  gone-over flag the step rules read.
 - **The marks**: two constants compared against the count, a set of ready counts,
   or a pair of predicates.
 - **The maltsters**: a process set with one atomic body, or bare actions
@@ -297,16 +299,16 @@ keep it that way.
 
 The loss fork is the one that matters. A learner who carries "gone over" as a
 fact he stores and a learner who reads it off the count write different step
-rules, and neither of them is wrong. That's where representation 2 earns its
-level, so nothing in sections 1 to 4 should be tightened in a way that picks one.
+rules, and neither of them is wrong. The stored flag is the learner's choice and
+not the reference's, which carries the two `Observe` fields and nothing else.
+That's where representation 2 earns its level, so nothing in sections 1 to 4
+should be tightened in a way that picks one.
 
 **One thing that isn't a fork.** At representation 2 the reference's variables
 are the `Observe` fields and no others. So the reference carries a place and a
-count, and no third variable and no history variable. If it ships as PlusCal,
-`pc` is the translator's bookkeeping rather than a modeling choice, and my read
-is that it doesn't push the row to representation 3. That's central's call on the
-vector record rather than mine, and it's worth settling before the record is
-written.
+count, and no third variable, no history variable and no `pc`. Central has
+settled that. The system half is plain TLA+ rather than a PlusCal process set,
+which would carry a program counter of its own.
 
 **What I took from the domain sketch, and what I changed.** The sketch offered
 seven rules. Five came through close to their wording. Two didn't.
@@ -367,9 +369,14 @@ nothing catches it.
 13. **The word for the failure.** A neglected bed heats as well as mats. I've
     written the failure as matting alone and left the heat out, for the reason in
     item 12.
-14. **The word "expiry".** `harness/screen.sh:112` carries a map row whose bare
+14. **The word "expiry".** `harness/screen.sh:115` carries a map row whose bare
     `expiry` alternative fires on any S4 phrasing and returns BURNED. The screen
     report for this rung has the one-word probe that shows it and a follow-up to
     split the row. A statement author who writes "expiry" here gets a burned
     verdict on a domain with no blood bank anywhere in it. Use the word if the
     statement needs it, and let this record carry the reason.
+15. **The count goes with the bed.** A piece off the floor carries no
+    modification at all. The live alternative keeps the count after the kiln.
+    That costs must-be-true 2 its second clause, and leaves must-be-true 6 to
+    freeze the count instead. I'd take the drop, because it's the reading that
+    makes must-be-true 2 one rule rather than two.
