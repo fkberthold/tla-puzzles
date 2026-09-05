@@ -13,6 +13,19 @@
 # prove each flag can be raised ALONE, so `both-at-once` raising both is not
 # just a grader that always raises both.
 #
+# A SECOND RED LINE, from bead tla-nyrb, and it has two halves of its own:
+#
+#   INVARIANT: grading a submission that omits a reference obligation must
+#   not return PASS at an instance where that obligation has no
+#   discriminating witness, and a candidate strictly weaker than a reference
+#   obligation must grade FAIL under-constrained through the supported entry
+#   point.
+#
+# The `empty-at-instance` and `strength-order` blocks near the bottom of this
+# file are those two halves. The first says a full score on an obligation
+# that asked for nothing is not a grade. The second says an answer and a
+# weakening of it cannot come back the same.
+#
 # Four kinds of assertion:
 #
 #   Behavioural — run grade.sh over a fixture submission and require the exit
@@ -782,6 +795,154 @@ assert_present "grade.sh names the action-property guard" \
   'Gate!ActionPropertyConfigured'
 assert_present "and asks for it as the PROPERTY form's postcondition" \
   '(--postcondition|-p)[[:space:]]+"?Gate!ActionPropertyConfigured'
+
+echo
+# ===========================================================================
+echo "== an obligation the instance cannot falsify is not a graded obligation =="
+# ===========================================================================
+
+# Bead tla-nyrb, clause C1, and the first half of its RED line.
+#
+# `empty-at-instance` is one package under two constants fragments. The two
+# reference directories hold the same two modules byte for byte and only the
+# roster moves, so anything that separates the two results is a fact about
+# the instance and about nothing else.
+#
+# At the collapsed instance the unanimity obligation quantifies over an empty
+# roster, which makes it true of every observation there is. No submission
+# can fail it. The submission beside it is the deficient spec, the one that
+# omits the rule the obligation states, and measured against today's
+# grade.sh it comes back PASS, Adequacy 2 of 2, exit 0. A full score on an
+# obligation that asked for nothing.
+#
+# WHY A REFUSAL RATHER THAN A VERDICT. The author picked the constants, so
+# the defect is theirs, and this file already answers that shape twice: the
+# chaos probe and the landmark gate both refuse the PACKAGE at exit 2 and
+# print no verdict about a submission. Refusing is also the strongest form of
+# "do not count it toward a met total", since nothing gets counted at all.
+#
+# READ THE `lockbox` MATRIX BEFORE REACHING FOR A DOMAIN-WIDE RULE.
+# LockboxRefObl!Req_capacity is true of every record in its own ObsDomain,
+# and `lockbox` grades anyway on purpose. Bead tla-x8s repaired that package
+# by ADDING an obligation rather than by dropping that one, and `too-weak`
+# still catches its cap of 5 because a submission's observation is not
+# confined to the declared domain. So "true of chaos" cannot be the whole
+# test, and a per-obligation version of the chaos probe turns most of this
+# file red. What is new here is that the obligation reads a CONSTANT, so what
+# it asks for moves with the instance the author configured.
+EMPTY="harness/fixtures/grade/empty-at-instance"
+EMPTY_SUB="$EMPTY/submissions/omits-unanimity"
+
+assert_package_refused "an obligation with no discriminating witness is refused" \
+  "$EMPTY/reference" "$EMPTY_SUB" empty-at-instance
+
+# And it says WHICH obligation. Two are stated here and one of them is doing
+# its job, so a refusal that names neither sends the author reading both.
+if grep -qE -- 'Req_unanimity' "$PKG_ERR"; then
+  ok "the refusal names the obligation that cannot be falsified"
+else
+  nope "the refusal does not name the obligation: $(tr '\n' ' ' <"$PKG_ERR" | cut -c1-200)"
+fi
+
+# Direction two, on the SAME submission and the same two modules. With three
+# signers named the obligation picks this submission up, because it issues on
+# one approval and the reference asks for all three. This half is green today
+# and has to stay that way. A gate that refuses the package at every instance
+# has stopped being a gate.
+run_empty() {
+  GOT_ERR=$(mktemp)
+  GOT_JSON=$(bash "$GRADE" --reference "$EMPTY/$1" --submission "$EMPTY_SUB" \
+                           --problem-id empty-at-instance 2>"$GOT_ERR")
+  GOT_RC=$?
+}
+
+run_empty reference-three-signers
+assert_rc   "the same package grades at an instance that can falsify it" 1
+assert_json "and the submission that omits the rule is under-constrained" \
+  '.under_constrained' 'true'
+assert_json "one reference obligation met and one unmet" \
+  '[.suites.Adequacy.met, .suites.Adequacy.total] | join("/")' '1/2'
+assert_json "with a witness in the submission's own spec" \
+  '.witnesses.under_constraint.location.module' 'Quorum'
+assert_no_leak_at "the empty-at-instance verdict object is leak-free" \
+  "$EMPTY/reference-three-signers" "$EMPTY_SUB"
+
+echo
+# ===========================================================================
+echo "== an answer and a weakening of it must not grade the same =="
+# ===========================================================================
+
+# Bead tla-nyrb, clause C2, and the second half of its RED line.
+#
+# `strength-order` holds two submissions whose spec files are byte for byte
+# identical. Only the stated requirement moves, and it moves down one rung:
+# all three approvals in one, at least two in the other. The reference asks
+# for all three, so the two sit in a strict order and one of them is the
+# answer.
+#
+# MEASURED ON TODAY'S grade.sh: the two verdict objects are identical apart
+# from the `submission` label. Both FAIL under-constrained, both Adequacy 1
+# of 2 against the same opaque id, both Relational 2 of 2, both carrying the
+# same witness at the same line of the same module.
+#
+# The cause is structural rather than a comparison getting the answer wrong.
+# The Relational suite is the only run that reads a submission's own
+# requirement, and what it asks is whether the REFERENCE satisfies it. A
+# reference that issues only on three approvals satisfies "at least two" as
+# comfortably as it satisfies "all three", so both requirements pass and
+# neither is ever weighed against the obligation it was written to answer.
+# No run site in grade.sh EXTENDS both obligations modules.
+#
+# THE ASYMMETRY AT grade.sh:460 AND :461 IS A DIFFERENT BEAD (tla-bioj) and
+# nothing here tests it. This block is about strength, not about which
+# prefixes each side is read for.
+LADDER="harness/fixtures/grade/strength-order"
+
+run_ladder() {
+  GOT_ERR=$(mktemp)
+  GOT_JSON=$(bash "$GRADE" --reference "$LADDER/reference" \
+                           --submission "$LADDER/submissions/$1" \
+                           --problem-id strength-order 2>"$GOT_ERR")
+  GOT_RC=$?
+}
+
+# The answer key. Read as a constraint on the spec the learner was handed, it
+# cuts that spec down to the reference behaviour, and then neither suite has
+# anything left to hold against it.
+run_ladder states-unanimity
+assert_rc   "the answer key passes" 0
+assert_json "the answer key's verdict"                '.verdict'           'PASS'
+assert_json "the answer key is not under-constrained" '.under_constrained' 'false'
+assert_json "the answer key is not over-constrained"  '.over_constrained'  'false'
+assert_json "and it draws no witnesses" '.witnesses | length' '0'
+ladder_answer=$(printf '%s' "$GOT_JSON" \
+  | jq -Sc '{verdict, under_constrained, over_constrained, suites}' 2>/dev/null)
+assert_no_leak_at "the answer key's verdict object is leak-free" \
+  "$LADDER/reference" "$LADDER/submissions/states-unanimity"
+
+# The weakening, and this half is already green. It is here so the block
+# above is evidence of something: a grader that failed everything would pass
+# these four assertions and fail those five.
+run_ladder states-at-least-two
+assert_rc   "the weakening fails" 1
+assert_json "the weakening's verdict"            '.verdict'           'FAIL'
+assert_json "the weakening is under-constrained" '.under_constrained' 'true'
+assert_json "and a witness is emitted for it" \
+  '.witnesses.under_constraint | type' 'object'
+ladder_weaker=$(printf '%s' "$GOT_JSON" \
+  | jq -Sc '{verdict, under_constrained, over_constrained, suites}' 2>/dev/null)
+assert_no_leak_at "the weakening's verdict object is leak-free" \
+  "$LADDER/reference" "$LADDER/submissions/states-at-least-two"
+
+# The clause itself, stated over the two objects rather than over either one.
+# The `submission` label is left out of both, because two runs of the same
+# grader always differ there and a comparison that counted it would pass
+# without ever reading a suite.
+if [ "$ladder_answer" != "$ladder_weaker" ]; then
+  ok "an answer and a weakening of it do not land on the same verdict"
+else
+  nope "an answer and a weakening of it land on the same verdict: $ladder_answer"
+fi
 
 echo
 # ===========================================================================
