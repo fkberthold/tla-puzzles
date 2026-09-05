@@ -67,6 +67,10 @@ An officer defaces a ware the office found substandard. Only such a ware. A ware
 found at standard is never defaced, and neither is an untested one. Defacing is
 permanent, the same way the mark is.
 
+Writing the finding down and acting on it are two motions. A ware can sit with a
+substandard finding against it and its body still whole, and the office can leave
+it there a while.
+
 This is the one thing in the system that must happen. The office isn't allowed
 to write down a substandard finding and then sit on the ware. Handing back a
 substandard ware whole and unmarked is the thing the whole institution exists to
@@ -116,7 +120,8 @@ defacing is permanent and the set of wares is finite, so each step shrinks what'
 pending. I'd not spend the argument. Write the conjunct per officer and per ware.
 
 Item 2's subscript is the whole of `Observe`, never one of its fields. Any other
-step rule the author reaches for takes the same subscript.
+step rule the author reaches for takes the same subscript. Item 3 carries no
+subscript at all, because it's a temporal formula and not an action property.
 
 The type invariant is the reference author's. It's declared in the cfg, it's the
 fourth of the four lines there, and it's never a requirement the learner is asked
@@ -203,6 +208,11 @@ in-between state simply never exists. A model that fuses the two produces the
 same `Observe` traces as one that separates them, minus a state, so the fusion is
 close to observationally vacuous.
 
+That licence covers the test and the strike, and nothing else. Rule 4 keeps the
+finding and the act apart, so a step that tests a ware and defaces it in the same
+motion isn't a fusion this system allows. It makes item 3 true with the fairness
+conjunct dropped, which turns the rung's one new high into decoration.
+
 Every field earns its place through at least one must-be-true, so nothing in the
 operator is decoration.
 
@@ -221,17 +231,24 @@ liveness on.
 **Suggested instance**: 3 wares, 2 officers. Three wares is the least that puts a
 ware in each of three outcomes at once, one untested, one struck, one defaced.
 That's the observation where item 1 bites in both of its directions at the same
-time. Two officers is the least that makes the fairness question real, and the
-least that lets one officer sit on a substandard ware while a colleague works.
+time. Two officers is what the rung asks for. Step sources 1 is several actors of
+one kind, read off the statement's parties list. No `Observe` field names an
+officer, so a one-officer run and a two-officer run produce the same observations,
+and the second officer is here for the load vector rather than for anything the
+interface can see.
 
 The arithmetic. A ware's record is a finding from three values, a mark from two,
 and a defacing from two, so 12 records in the type space and 1,728 at three
 wares. Item 1 cuts each ware to five live records: untested, at standard and
 unstruck, at standard and struck, substandard and undefaced, substandard and
-defaced. That's 125 combinations. The officers carry whatever the author's
-process shape needs, and at a `while TRUE` loop with one label each I'd expect a
-factor of about four. So I make the reachable count around 500. Under 1,000 and
-sub-second with room. That's an estimate. Nobody has run it.
+defaced. That's 125 combinations, and at bare actions 125 is the whole
+reachable count. A `while TRUE` loop with one label each holds `pc` constant, so
+a process set costs nothing on top of it. A per-officer local holding a chosen
+ware does cost: it multiplies by four an officer, which is 2,000 at three wares
+and two officers, over the 1,000 that state space 0 allows. So keep each officer
+process to one label with no per-officer local, or record the measured count and
+re-place the dimension. Under 1,000 and sub-second with room. That's an estimate.
+Nobody has run it.
 
 **Quiescence.** When every ware has been tested and dealt with, no action is
 enabled and the system stops. That's the intended end of the story, not a fault.
@@ -287,11 +304,14 @@ I moved it into item 1. A type invariant says what shape a value has. A stated
 relation between two facts is a predicate, and a predicate is a property or it's
 nothing.
 
-**A note for the variant pass.** Section 3's second ungraded item is a mutant
+**A note for the variant pass.** Both of section 3's ungraded items are mutants
 nobody can catch. A spec that writes the finding and strikes the mark in one step
 produces the same `Observe` traces as one that separates them, minus a state, so
-no property over this interface tells them apart. That's the same situation qsl's
-re-credit guard sits in, and this is the record naming the cause in advance
+no property over this interface tells them apart. An `Init` that starts a ware
+already tested is green under all three items and the type invariant. Item 1 is
+vacuous on an unmarked undefaced ware, item 2 holds from that state on, and item
+3 has no obligation without a substandard finding. That's the same situation
+qsl's re-credit guard sits in, and this is the record naming the cause in advance
 rather than after a variant comes back green.
 
 **The rule I left out.** "Every lodged ware is eventually tested" is the obvious
@@ -310,9 +330,11 @@ works on what's in front of it and owes nobody a deadline, and Rule 5 says so.
    defacing step is enabled, so weak fairness obliges nothing and item 3 is false
    in a reachable state. Fixing that needs a guard on the putting-down, which is
    machinery this rung has no room for.
-2. **No give-back.** Nothing leaves the office. The alternative adds a return
-   step and a maker to hand the ware to, and the maker is a second kind of actor,
-   which takes step sources to 2 and breaks the rung.
+2. **No give-back.** Nothing leaves the office. A give-back needs no maker, since
+   an officer can put a finished ware in an outward tray and step sources stays at
+   1. What an exit costs is a property. Once wares can leave, "only a struck or
+   defaced ware leaves" has to be graded, and that's a fifth cfg line at a rung
+   capped at four.
 3. **The finding is the office's word.** There's no true fineness sitting behind
    it that the test could get wrong. The alternative gives each ware a real
    fineness and lets the assay err. That's fallibility, and fallibility is a
@@ -338,7 +360,7 @@ works on what's in front of it and owes nobody a deadline, and Rule 5 says so.
    about arithmetic.
 10. **Officers are interchangeable.** No seniority, no assignment, no supervisor.
     The alternative distinguishes one officer, and a named party under `WF` places
-    step sources at 2 (V2-PLAN.md:335).
+    step sources at 2 (V2-PLAN.md:321).
 11. **Defacing, not destruction.** The office damages the ware so it can't pass
     as standard. Whether the pieces go back to the maker or into the melt sits
     outside this system, and modeling it needs Rule 6 to grow an exit.
