@@ -140,11 +140,13 @@ and `Spec` carries no fairness conjunct for you to add.
 
 ## The traces
 
-The runs under `traces/` witness the requirements. Each state shows the two
-`Observe` fields. Three notes:
+Five pairs under `traces/` witness the requirements. Each state shows the
+two `Observe` fields. Four notes:
 
 - A forbidden run can break more than one requirement. If your set rejects
   it for any requirement it breaks, your set is right about that run.
+- Requirement 1 reads in two directions, so it gets two pairs. One
+  forbidden run breaks each direction.
 - Requirement 2 has two arms, so it gets two pairs. One forbidden run
   breaks each arm.
 - The allowed runs are behaviors of `BondedStore.tla`. The forbidden runs

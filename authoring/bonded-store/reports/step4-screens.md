@@ -164,7 +164,7 @@ the store moves" into a guarded comparison across a primed `Observe` is the
 rung's real rendering step, and nothing in the artifact shows it.
 
 Third, I withheld the four strings from the statement on purpose
-(`statement/PROBLEM.md:100-101`), and the trace pairs print the positions in the
+(`statement/PROBLEM.md:91-92`), and the trace pairs print the positions in the
 rules' English rather than in the module's own strings. That keeps the one
 lookup a lookup the learner has to make rather than one already made for them.
 It's a small thing and I won't claim it's more.
