@@ -181,10 +181,10 @@ SUITES=(
   # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and
   # starts one JVM on it, which costs about another 0.2 s on this box.
   "fast|0.4|toolchain pin|./harness/test-toolchain-pin.sh"
-  # Budget measured on the red tree, where no VECTOR.md exists yet, so part 1
-  # stops at "missing file" for all six packages. The records are small and the
-  # controls are shell only, so a green tree costs about the same.
-  "fast|0.3|vector records|./harness/test-vector.sh"
+  # Re-measured on the green tree 2026-09-05: 0.42 / 0.43 / 0.44 s over three
+  # serial runs, up from 0.26 on the red tree where part 1 stopped at "missing
+  # file" for every package. Reading and parsing seven records is the gap.
+  "fast|0.5|vector records|./harness/test-vector.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"

@@ -316,6 +316,35 @@ which rewrites `JUDGMENTS.md` and the `J01`–`J07` puzzles by design.
 
 ---
 
+## Hazard — the edit-after-failure guard does not know this project's tests
+
+`~/.claude/hooks/edit-after-failure-guard.sh` blocks every Edit and Write after
+a Bash result carries test-failure markers, until a test file is edited. Its
+idea of a test file is `*_test.sh`, `*.test.sh`, `test_*.sh` or a `tests/`
+directory. Every suite here is `harness/test-*.sh`, and none of them match.
+
+So the guard fires in the inverse of its purpose. A test-author whose RED gate
+is red by design loses Edit and Write for the rest of the session, and the
+guard's own first remedy (edit the test) is unreachable, since it does not
+believe the test exists. Its second remedy is an environment variable exported
+before `claude` starts, which no agent can set from inside a session. On
+2026-09-05 the `tla-h2cg.2` test-author, its implementer, and central all hit
+this within two hours.
+
+The route that works is the marker the hook documents:
+
+```bash
+touch .claude/no-edit-after-failure-guard
+```
+
+The marker is **not gitignored**. Remove it before your footprint check, never
+stage it, and confirm with `git status --short` that it is gone. Every brief
+that expects a red run should carry this instruction until the hook learns the
+pattern. The gap is filed as a bead in this repo, and the fix is one pattern
+in loom's hook.
+
+---
+
 ## On the way out — verify your own footprint
 
 ```bash
@@ -324,7 +353,16 @@ git diff --stat main HEAD
 
 Never a `git -C <main-path>` redirect — the isolation harness refuses it. Compare
 the result against your bead's declared `Files:` line and **report any deviation**,
-including additions you think are obviously fine. `isolation: "worktree"` sets your
+including additions you think are obviously fine.
+
+**If `main` moved after you branched, this command lies.** It lists every file
+the intervening commits touched as though you had touched them, and the
+deletion counts read backwards. The `tla-h2cg.2` test-author saw a 219-line
+"deletion" of `V2-PLAN.md` it had never opened, because a sibling bead landed on
+`main` mid-session. The check that answers the question is against the base
+you actually branched from. Run `git merge-base main HEAD` as its own call,
+read the SHA, then `git diff --stat <that-sha> HEAD`. Report both if they
+differ, and say why. `isolation: "worktree"` sets your
 cwd; it does **not** sandbox the filesystem, so Edit/Write accept any absolute path
 and an absolute path leaks into the shared checkout. Relative paths only.
 
