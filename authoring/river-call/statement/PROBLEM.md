@@ -215,10 +215,9 @@ owner 1 is the most senior and owner 3 the most junior.
 Three owners is the least that does any work. Two give a chain with one
 senior and one junior, and each of them sits at an end of it. Three give a
 middle owner who's senior to one and junior to another, which is where
-requirement 3's two quantifiers earn their place. A flow of 3 against
-decrees totalling 6 puts the stream under the paper right, so shortage is
-reachable. A decree of 2 rather than 1 matters too. At 1 a gate is open or
-shut, and a rise collapses into an opening.
+requirement 3's two quantifiers earn their place. A flow of 3 against three
+decrees of 2 makes shortage reachable. A decree of 2 rather than 1 matters
+too. At 1 a gate is open or shut, and a rise collapses into an opening.
 
 TLC's config format won't take a function written out, so `Decree` needs an
 operator in your module to point at. Define one called `Decrees` that gives
@@ -233,9 +232,8 @@ off a move the rules allow.
 A model that carries these two facts and nothing else finds 136 distinct
 states here, and the search runs in well under a second. Carry extra
 bookkeeping and your own count can come out higher, so treat 136 as the
-number to compare against rather than one to hit. A run that finds fewer
-than 100 distinct states isn't exploring this system, whatever verdict it
-reports.
+number to compare against rather than one to hit. A count well under 136 is
+worth a look back at what state the rules need.
 
 ## The run somebody else made
 
