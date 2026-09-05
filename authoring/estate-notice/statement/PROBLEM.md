@@ -167,9 +167,12 @@ Behind the operator the state is your own. Keep whatever you like, and let
 
 Eight requirements. Each is a claim about every run of this system, and a
 correct model satisfies all eight. Each one names the TLC keyword it goes
-under and what kind of formula it is. Where a requirement constrains steps, it
-also says what its subscript watches. One subscript is left to you, and it's
-marked.
+under and what kind of formula it is. None names a subscript.
+
+Where a requirement constrains steps, the subscript is yours to choose. A step
+rule is only tested at steps that change what its subscript watches. Watch one
+field, and every step that changes only the other fields satisfies the rule for
+free. TLC won't warn you. Work out what each rule has to watch.
 
 1. **She distributes only when she's clear.** Whenever the residue has been
    distributed, the notice is closed and every claim lodged with her is either
@@ -182,31 +185,27 @@ marked.
    notice was open before that step. He moves to `"outOfTime"` if the notice
    was closed before it. He moves nowhere else.
 
-   `PROPERTY`. An action property, subscripted over the whole of `Observe`.
+   `PROPERTY`. An action property.
 
 3. **A lodged claim ends only in her decision.** At a step where a creditor's
    standing moves off `"lodged"`, it becomes `"admitted"` or `"rejected"`.
 
-   `PROPERTY`. An action property, subscripted over the whole of `Observe`.
+   `PROPERTY`. An action property.
 
 4. **A decision stands.** At a step, a creditor standing at `"admitted"` stays
    admitted or becomes `"paid"`. A creditor standing at `"rejected"`, `"paid"`
    or `"outOfTime"` never changes again.
 
-   `PROPERTY`. An action property. **The subscript is yours to choose.** A step
-   rule is only tested at steps that change what its subscript watches.
-   Subscript it over too little, and every step that leaves that part of the
-   record alone satisfies the rule for free. TLC won't warn you. Work out what
-   this rule has to watch.
+   `PROPERTY`. An action property.
 
 5. **The notice never reopens.** At a step, a closed notice stays closed.
 
-   `PROPERTY`. An action property, subscripted over the whole of `Observe`.
+   `PROPERTY`. An action property.
 
 6. **The distribution is never undone.** At a step, a residue that has gone
    stays gone.
 
-   `PROPERTY`. An action property, subscripted over the whole of `Observe`.
+   `PROPERTY`. An action property.
 
 7. **The estate is eventually distributed.**
 
@@ -215,7 +214,7 @@ marked.
 8. **She takes one claim at a time.** At a step where one creditor's standing
    changes, every other creditor's standing stays where it was.
 
-   `PROPERTY`. An action property, subscripted over the whole of `Observe`.
+   `PROPERTY`. An action property.
 
 ### Requirement 7 needs fairness, and fairness needs a target
 
@@ -225,17 +224,16 @@ stall, so your `Spec` has to say it too, with fairness.
 
 The fairness goes on her steps and on none of the creditors'. Rule 9 leaves
 them free, and fairness on a creditor's lodging would oblige a party the rules
-say owes nothing. Name her steps one at a time. Weak fairness on her closing
-the notice, on her deciding a named creditor's lodged claim, on her paying a
-named creditor's admitted claim, and on her distributing the residue. That's
-four conjuncts, and requirement 7 is false if you drop any one of them.
+say owes nothing. What she owes is the winding up itself. She has to close the
+notice, decide each claim lodged with her, pay each claim she admits, and hand
+over the residue. Your `Spec` has to say so, over those steps and no others.
 
 Weak fairness on your whole next-state relation is not what Rule 9 means. It
 also won't fail here, which is worse. Every act in this system disables itself
 for good, and `Creditors` is finite. So no run goes on forever, and no run can
 stop with the residue still in her hands. Blanket fairness makes requirement 7
 come out true without your ever deciding whose stalling the rule is about.
-Write the four.
+Make that call, and write the fairness over her steps.
 
 ## The traces
 
@@ -274,11 +272,10 @@ lodged claim settled, and every other creditor out of time. Nothing is enabled
 there and the system stops. That stall is the design working, not an error.
 
 A model whose state is exactly the three facts `Observe` reports finds 77
-distinct states here, from 138 generated, at a search depth of 9. It runs in
-well under a second. Keep state beyond those three facts and your counts come
-out larger, which isn't wrong by itself. If your state is just the three facts
-and your count isn't 77, your rules differ from the rules above. That difference
-is worth finding before you go on.
+distinct states here. It runs in well under a second. Keep state beyond those
+three facts and your count comes out larger, which isn't wrong by itself. If
+your state is just the three facts and your count isn't 77, your rules differ
+from the rules above. That difference is worth finding before you go on.
 
 ## What to deliver
 
