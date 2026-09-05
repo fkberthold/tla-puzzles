@@ -465,3 +465,167 @@ so pick on which stall reads best rather than on the count.
 S27 is the shortest violation in the whole matrix and it's reported against the
 initial state with no trace at all, so it's a poor trace pair even though it's
 the cheapest catch. S02 at 2 states is the one to use if the length matters.
+
+## 2b, the repair
+
+Written under V2-PLAN §9.5b against the same reference, at the same bead. The
+matrix above didn't move and nothing under `step2-variants/` was edited. Finding
+1 named the one uncaught catchable variant and specified the property that closes
+it. I applied that property and re-ran the whole checklist, and the re-run below
+is the gate rather than the intent.
+
+### What changed
+
+`EstateNotice.tla` gains one operator and `EstateNotice.cfg` gains one
+`PROPERTIES` line. Nothing else in either file moved.
+
+```tla
+SheTakesOneClaimAtATime ==
+    [][\A a \in Creditors :
+          \A b \in Creditors :
+              (/\ a # b
+               /\ Observe.standing[a] # Observe'.standing[a])
+                  => Observe.standing[b] = Observe'.standing[b]]_Observe
+```
+
+That's finding 1's text character for character, which is the point of splitting
+the two passes. The cfg is now 2 `INVARIANTS` lines and 7 `PROPERTIES` lines, so
+nine in all. The band runs five to nine, so property count stays at 2 and the
+vector doesn't move.
+
+### How the variants were re-run
+
+The frozen modules don't define `SheTakesOneClaimAtATime`, so the repaired cfg
+names an operator they haven't got and TLC answers with a config error rather
+than a verdict. Copying is the way round that, and it's what the R01 probes
+already did for one variant.
+
+Each of the 36 frozen modules was copied to a scratch tree with the operator
+spliced in above the module's closing line, and the repaired reference cfg was
+copied in beside it. The originals were read and never written. The scratch tree
+is deleted.
+
+### The six gate checks, re-run
+
+```
+harness/verdict.sh -t 120 --config $REF/EstateNotice.cfg $REF/EstateNotice.tla
+    OK                   rc=0
+harness/verdict.sh -t 120 --config $REF/EstateNotice.cfg $REF/EstateNotice.tla -- -inv FALSE
+    SAFETY_VIOLATION     rc=12
+harness/verdict.sh -t 120 --config $REF/EstateNotice.cfg -p Gate!NonVacuous $REF/EstateNotice.tla
+    OK                   rc=0
+harness/vacuity.sh -c $REF/EstateNotice.cfg -n 4 -t 120 \
+    --expect-actions Lodge,ComeForward,Close,Decide,Pay,Distribute \
+    --observe Observe $REF/EstateNotice.tla
+    NON_VACUOUS          rc=0
+```
+
+All five vacuity probes pass, the same five section 3 lists.
+
+Action coverage from the plain run. The check is `total == 0`.
+
+| action | distinct : total |
+|---|---|
+| `Init` | 1 : 1 |
+| `Lodge` | 3 : 10 |
+| `ComeForward` | 8 : 20 |
+| `Close` | 4 : 25 |
+| `Decide` | 28 : 44 |
+| `Pay` | 20 : 22 |
+| `Distribute` | 13 : 16 |
+
+No action sits at zero, and every pair is the pair section 3 recorded.
+
+Counts: 138 states generated, 77 distinct, complete graph depth 9. All three are
+section 3's numbers unchanged, so the ninth obligation costs nothing in the state
+space. R01REF said it wouldn't and it didn't.
+
+### Every variant against the repaired cfg
+
+The command is the one section 4 used, with the scratch paths in place of the
+frozen ones.
+
+```
+harness/verdict.sh -t 120 --config $SCRATCH/<id>.cfg $SCRATCH/<id>.tla
+```
+
+| id | rc | obligation reported | against section 4 |
+|---|---|---|---|
+| S01 | 12 | `SheDistributesOnlyWhenClear` | same |
+| S02 | 12 | `SheDistributesOnlyWhenClear` | same |
+| S03 | 13 | `ClaimsStartWithTheCreditor` | same |
+| S04 | 13 | `ClaimsStartWithTheCreditor` | same |
+| S05 | 13 | `ALodgedClaimEndsInHerDecision` | same |
+| S06 | 13 | `ADecisionStands` | same |
+| S07 | 13 | `TheNoticeNeverReopens` | same |
+| S08 | 13 | `TheDistributionIsNeverUndone` | same |
+| S09 | 0 | none, `vacuity.sh` at rc=7 | same |
+| S10 | 13 | `TheEstateIsEventuallyDistributed` | same |
+| S11 | 13 | `TheEstateIsEventuallyDistributed` | same |
+| S12 | 13 | `TheEstateIsEventuallyDistributed` | same |
+| S13 | 13 | `TheEstateIsEventuallyDistributed` | same |
+| S14 | 12 | `TypeOK` | same |
+| S15 | 13 | `ADecisionStands` | same |
+| S16 | 13 | `ClaimsStartWithTheCreditor` | same |
+| S17 | 13 | `ALodgedClaimEndsInHerDecision` | same |
+| S18 | 0 | none, `vacuity.sh` at rc=0 | same |
+| S19 | 13 | `SheTakesOneClaimAtATime`, 4 states | **moved from rc=0** |
+| S20 | 0 | none, `vacuity.sh` at rc=0 | same |
+| S21 | 0 | none, `vacuity.sh` at rc=0 | same |
+| S22 | 0 | none, `vacuity.sh` at rc=0 | same |
+| S23 | 13 | `ALodgedClaimEndsInHerDecision` | same |
+| S24 | 13 | `ClaimsStartWithTheCreditor` | same |
+| S25 | 0 | none, `vacuity.sh` at rc=5 | same |
+| S26 | 0 | none, `vacuity.sh` at rc=5 | same |
+| S27 | 12 | `SheDistributesOnlyWhenClear`, initial state | same |
+| S28 | 0 | none, `vacuity.sh` at rc=0 | same |
+| P01 | 0 | none | same |
+| P01S03 | 12 | `SheDistributesOnlyWhenClear` | same |
+| P02 | 0 | none | same |
+| P02S07 | 12 | `SheDistributesOnlyWhenClear` | same |
+| P03 | 13 | `TheEstateIsEventuallyDistributed` | same |
+| P04 | 0 | none | same |
+| P05 | 0 | none | same |
+| P05S06 | 0 | none | same |
+
+### What moved
+
+One row out of 36. S19 went from rc=0 to rc=13 on `SheTakesOneClaimAtATime`, at a
+four-state trace: both creditors lodge, then `DecideTwo(c1, c2)` settles both in
+one step. That's the length and the shape R01S19 measured, so the isolated probe
+and the full cfg agree.
+
+Nothing else moved. Every previously caught variant came back on the same
+obligation, and the three vacuity codes are unchanged at S09 rc=7, S25 rc=5 and
+S26 rc=5. Family P is identical row for row.
+
+Family S is now 20 of 28 caught by an obligation. Eight stay uncaught by the cfg,
+and three of those are caught a layer up by `vacuity.sh`. That leaves five
+uncaught outright, each with a cause section 5 already names: S18, S21 and S22
+are restrictions, S20 is a stutter, and S28 is interface blindness. P04 is the
+sixth, and finding 5 is the argument that no property change catches it.
+
+I'd read that as the gate closing. The one variant that was catchable is caught,
+and every variant still standing has a structural reason rather than a gap.
+
+### A count in section 4 that doesn't add up
+
+Section 4 says "21 of 28 caught by an obligation, and 3 more by `vacuity.sh`".
+Its own family S table carries 19 rows at rc=12 or rc=13 and 9 rows at rc=0. I
+get 19 whichever way I count it, so I think the 21 is an arithmetic slip rather
+than a disagreement about what counts as caught. The vacuity clause is right at
+3. After the repair the caught count is 20 and the uncaught count is 8.
+
+### One row for section 6
+
+The trace table gains one line. Section 6 above stands as written otherwise.
+
+| obligation | pick | trace | shortest available |
+|---|---|---|---|
+| `SheTakesOneClaimAtATime` | S19 | 4 states | S19 |
+
+S19 is the only variant in the matrix that breaks this obligation, so the pick
+and the shortest are the same module and there's no choice to make. The break
+reads as a person would tell it: two creditors have lodged, and she settles both
+of them in one act. That's the batch model a learner writes when they reach for a
+set, which is why the obligation is worth its line under shape A.
