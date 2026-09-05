@@ -118,11 +118,16 @@ Traces render the three `Observe` fields and nothing else. No action name, no
 formula, no obligation name, and the variants' own action names (`Withdraw`,
 `Reopen`, `Clawback`, `DecideTwo`) never appear.
 
-## The withheld subscript, and why requirement 4 carries it
+## The graded subscript, and why it's requirement 4
 
 Form left open 1 wants one action property's subscript in the learner's hands.
-Five of the six get their subscript named in the statement. Requirement 4 is the
-one left open.
+This section was written when the statement named five subscripts and withheld
+requirement 4's. Step 5 then found that naming five handed the sixth over by
+pattern, so the leakage repair withdrew all of them, and the shipped statement
+now says none names a subscript. The level didn't move, and the reasoning below
+is why: requirement 4's is the only subscript the cfg actually grades, so it's
+the only one whose withholding costs the learner a decision. `VECTOR.md` cites
+the blanket paragraph rather than a targeted withholding.
 
 The pick comes from step 2's finding 4, which measured the wrong-subscript
 escape three ways and found that two of the three don't actually escape.

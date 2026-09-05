@@ -190,10 +190,14 @@ all three requirements.
 | pair | forbidden run breaks | and nothing else |
 |---|---|---|
 | 1 | requirement 1, the `marked` clause, at the opening state | 2 has no step to judge. 3 has no substandard finding |
-| 2 | requirement 2, the finding-stability clause | 1 holds at every state, nothing is marked or defaced. 3 never leaves a substandard finding standing |
+| 2 | requirement 2, the finding-stability clause | 1 holds at every state, nothing is marked or defaced. 3 also fires, see below |
 | 3 | requirement 3, through the tail alone | 1 holds, both marks follow their findings. 2 holds, every change is a legal growth |
 
-That matches what the trace map claims at `author-notes/step4-trace-map.md:80-89`. All
+The "and nothing else" column overstated pair 2 and pair 6 until step 6 measured them.
+Both forbidden runs leave a substandard finding standing at their last state, so
+requirement 3 fires on each as well as the requirement the pair is filed under. A
+checker that names requirement 3 first on either run has not got it wrong. The trace
+map carries the same correction. All
 three allowed runs are legal step sequences from `Init`. The author machine-validated
 those against the stripped spec at rc=12 three of three with an rc=0 control
 (`step4-trace-map.md:73-76`). [INFERRED for my own pass. I walked the six runs by hand
