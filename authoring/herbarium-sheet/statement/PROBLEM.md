@@ -273,8 +273,8 @@ file carries two runs, rendered over the five `Observe` fields at the
 checking instance.
 
 - **A run the herbarium can produce.** Your model must be able to produce it.
-- **A run the rules forbid.** Your model must rule it out, and your
-  requirement set must break on it.
+- **A run the rules forbid.** Your model must rule it out. Work out which
+  of your requirements breaks on it, and say so if none does.
 
 Each row of a trace is one moment, the value of `Observe`. Consecutive rows
 are one step apart. Slips are written `n1 at 1`, meaning the name `n1`
