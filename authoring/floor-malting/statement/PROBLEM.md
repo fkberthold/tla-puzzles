@@ -140,9 +140,9 @@ property failing.
 
 Don't type the count to the marks. A modification is a count of turnings, and
 counting has no ceiling. What holds the count down is rule 3, which is a fact
-about the floor and not a fact about numbers. Type the field as a range ending
-at `UpperMark` and requirement 2 holds by construction, whatever your step
-rules do.
+about the floor and not a fact about numbers. A field typed as a range ending
+at `UpperMark` makes requirement 2 hold by construction and catch nothing,
+whatever your step rules do.
 
 ## The requirements
 

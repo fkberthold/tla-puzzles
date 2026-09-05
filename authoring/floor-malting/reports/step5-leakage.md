@@ -291,16 +291,18 @@ without carrying it. Step 6's spread rule consumes this pair.
 | # | Carries it | Passes without carrying it |
 |---|---|---|
 | 1 | Both halves, every piece on the floor and every count 0, under `PROPERTY` | The stage half alone, which accepts pair 1's forbidden run |
-| 2 | Both directions, floor implies a count at or under `UpperMark`, off-floor implies the marker | The ceiling clause alone, which accepts pair 2's forbidden run |
+| 2 | Both directions, floor implies a count at or under `UpperMark`, off-floor implies the marker | The ceiling clause alone, which accepts pair 2's forbidden run. Also the marker clause with a bare ceiling comparison, which stops the run at rc=75 instead of failing it (step6-spread.md finding 1) |
 | 3 | Any piece's record changing forces every other piece's record unchanged | The same formula subscripted over `Observe.stage`, which every turning slips past |
 | 4 | Floor before and after implies the count keeps or gains exactly one | A monotone `>=` clause, which accepts pair 4's forbidden run |
 | 5 | Becoming malt implies floor before, at or above the lower mark and below the upper | The lower half alone, which still rejects pair 5's forbidden run |
 | 6 | Off the floor implies both fields unchanged | The stage half alone, which requirement 2 then has to catch |
-| 7 | For each piece, on the floor leads to off it, over `Observe`, under `PROPERTY` | Covered below, the free pass is on the `Spec` side |
+| 7 | For each piece, on the floor leads to off it, over `Observe`, under `PROPERTY`. A plain eventually carries it here too, and the two agree because of the opening state, not because of the requirement (step6-spread.md finding 3) | Covered below, the free pass is on the `Spec` side |
 
 Row 5 is the one where the shipped pair doesn't separate the two columns. A
 learner writing the lower half alone gets a green run and a clean pair sweep.
-Grading has to read the property rather than the verdict there.
+Grading has to read the property rather than the verdict there. Row 2 joins it
+on step 6's evidence, and grading has to read the property there too
+(step6-spread.md finding 1).
 
 Row 6's free pass is sound in combination. An off-floor piece whose count
 moves breaks requirement 2, so a stage-only requirement 6 plus a full
