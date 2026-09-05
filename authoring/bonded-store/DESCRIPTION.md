@@ -35,9 +35,9 @@ starts not yet entered.
 
 ### Rule 2. Entry
 
-The keeper enters a lot into the store. Goods don't arrive on their own, and no
-lot enters unless the keeper enters it. On entry the lot is under bond and the
-duty on it is unpaid.
+The keeper enters a lot into the store. Entry applies to a lot not yet entered,
+and to no other. Goods don't arrive on their own, and no lot enters unless the
+keeper enters it. On entry the lot is under bond and the duty on it is unpaid.
 
 ### Rule 3. Release for home consumption
 
@@ -75,28 +75,38 @@ observables of section 3. The author renders them as properties of their model.
 1. **Duty and place agree.** A lot's duty is paid exactly when that lot has been
    released for home consumption. A lot not yet entered, a lot in the store, and
    a lot moved on under bond all have their duty unpaid.
-2. **The only two exits.** When a lot that's in the store changes place, its new
-   place is released for home consumption, or moved on under bond.
-3. **Leaving is final.** Once a lot is out of the store, released or moved on,
+2. **The way in.** When a lot not yet entered changes place, its new place is in
+   the store under bond.
+3. **The two ways out.** When a lot in the store changes place, its new place is
+   released for home consumption, or moved on under bond.
+4. **Leaving is final.** Once a lot is out of the store, released or moved on,
    its place never changes again and its duty never changes again.
 
-Item 1 is a claim about a single state, so it's an invariant. Items 2 and 3 each
-compare a lot's record at two consecutive moments, so they constrain steps and
-land as action properties. Nothing here needs "eventually", so there's no
-liveness and no fairness conjunct to decide.
+Item 1 is a claim about a single state, so it's an invariant. Items 2, 3 and 4
+each compare a lot's record at two consecutive moments, so they constrain steps
+and land as action properties. Items 2 and 3 are the two arms of one movement
+rule, so I'd expect them in one property rather than two. Both action properties
+are subscripted over the whole of `Observe`, never over one of its fields.
+Nothing here needs "eventually", so there's no liveness and no fairness conjunct
+to decide.
 
 Each item breaks on a short finite trace, which is what §3.9 needs downstream.
 Item 1 falls in a single state, a lot sitting in the store with its duty paid.
-Item 2 falls on one step, a lot going from the store back to not yet entered.
-Item 3 falls on one step, a released lot turning into a moved-on lot with its
-duty going unpaid in the same motion. None of the three needs more than two
-states to break, and each one is satisfied by an ordinary run of the system.
+Item 2 falls on one step, a lot going from not yet entered straight to released,
+paying its duty in the same motion. Item 3 falls on one step, a lot going from
+the store back to not yet entered. Item 4 falls on one step, a released lot
+turning into a moved-on lot with its duty going unpaid in the same motion. None
+of the four needs more than two states to break, none of the four traces trips
+another item, and each one is satisfied by an ordinary run of the system.
 
-Three is the cap, not a target I stopped short of. The reference author adds a
-type invariant, and four cfg lines is the top of the rung's property-count band.
-I considered a fourth item pinning the opening state (every lot not yet entered,
-every duty unpaid) and left it out. The shipped spec's `Init` fixes the opening,
-and a fifth line would push the count to the next level and break the rung.
+Four is the cap, not a target I stopped short of. Items 2 and 3 share a property,
+so the four items reach the author as three requirements. The type invariant on
+top of them is the reference author's own, declared in the cfg, and it isn't a
+requirement handed to the learner. That's four cfg lines, the top of the rung's
+property-count band. I considered a further item pinning the opening state (every
+lot not yet entered, every duty unpaid) and left it out. The shipped spec's
+`Init` fixes the opening, and a fifth line would push the count to the next level
+and break the rung.
 
 ## 3. The observation operator
 
@@ -106,11 +116,11 @@ as named facts, not as syntax. The author renders them over whatever state they
 chose, one field per line.
 
 **place**: for each lot, where it stands now. Not yet entered, in the store
-under bond, released for home consumption, or moved on under bond. All three
+under bond, released for home consumption, or moved on under bond. All four
 must-be-trues read it, and without it none of them can be stated at all.
 
 **dutyPaid**: for each lot, whether the duty on it has been paid. Needed for
-must-be-true 1, and for the second clause of 3.
+must-be-true 1, and for the second clause of 4.
 
 **Why duty is its own field.** This is the one real decision in the operator, so
 it gets said plainly. Duty has to be reportable as a fact in its own right, and
@@ -118,8 +128,7 @@ never as a reading of `place`. Derive it and must-be-true 1 is true by
 construction, the learner writes `TRUE` in a costume, and TLC passes it. So the
 shipped spec carries duty as state the keeper's actions set, which means a step
 could in principle set duty and place out of step with each other. Must-be-true
-1 is what forbids that. The screener flagged this and I'm taking it
-(`authoring/bonded-store/reports/step0-screens.md:372-375`).
+1 is what forbids that.
 
 **Sufficiency walk.** The test in each row is which property constrains the
 rule, never which field mentions it. A rule a field names and no property
@@ -128,18 +137,19 @@ constrains is ungraded. First, what each must-be-true reads:
 | Must-be-true | Reads |
 |---|---|
 | 1 Duty and place agree | place, dutyPaid |
-| 2 The only two exits | place |
-| 3 Leaving is final | place, dutyPaid |
+| 2 The way in | place |
+| 3 The two ways out | place |
+| 4 Leaving is final | place, dutyPaid |
 
 Then each rule, against the properties that constrain it:
 
 | Rule | Constrained by |
 |---|---|
 | 1 Lots | The four-places clause is the type invariant, which is a real cfg line and not a shape argument. The one-place-at-a-time clause rides `place`'s shape: a lot has one place value and there's nowhere to record a second, so no observation can show a lot in two places at once. Whole lots ride the same shape, since `Lots` is fixed and `place` is total over it |
-| 2 Entry | 1. A lot the keeper has just entered is in the store, so 1 forces its duty unpaid. The half about who acts is ungraded on purpose, and the next paragraph says why |
+| 2 Entry | 1 and 2. A lot the keeper has just entered is in the store, so 1 forces its duty unpaid, and 2 forces a lot leaving not-yet-entered into the store and nowhere else. The half about who acts is ungraded on purpose, and the next paragraph says why |
 | 3 Release | 1, in both directions. Released forces paid, and paid forces released, so neither a free release nor a payment on a stored lot can be observed |
 | 4 Movement under bond | 1. Moved on forces the duty unpaid. The receiving store has no observable at all, which is the point of putting it outside |
-| 5 Two ways out, no way back | 2 for the exits, 3 for the finality. Duty-once-paid is 3's second clause |
+| 5 Two ways out, no way back | 3 for the exits, 4 for the finality. Duty-once-paid is 4's second clause |
 | 6 Nothing has to happen | Nothing, and that's how it's graded. It's the absence of an obligation, and what carries it is that no property here is a liveness one |
 
 Two rules are ungraded above and I'd rather name the reason than let a reader
@@ -163,10 +173,10 @@ TLC must check the suggested instance exhaustively in well under a second.
 - **Duty as a yes or no** (Rule 3): the system asks whether the duty is paid,
   never how much.
 
-**Suggested instance**: 3 lots. Three is the least that puts a lot in each of
+**Suggested instance**: 3 lots. Three is the least that holds one lot in each of
 the store's three outcomes at once, one still in the store, one released, one
-moved on. That's the state where must-be-true 1 bites in both directions in the
-same observation.
+moved on. Two lots already bite must-be-true 1 in both directions, so that isn't
+what the third lot buys.
 
 The arithmetic. Four places and a duty flag gives 8 records per lot, so 512 in
 the type space at three lots. Must-be-true 1 ties the flag to the place, which
@@ -199,20 +209,28 @@ own state and is never derived from place. That's a real narrowing of the
 author's freedom, and I think it's worth the cost, because the alternative
 hands the learner a rule that can't be got wrong.
 
+One more narrowing, and it lands on the shipped spec rather than on the rules.
+The spec's own variables must not carry the `Observe` field names. `Observe` has
+to read as a definition over the state, not as a rename of it. Otherwise the
+learner pattern-matches the rules off the field names instead of reading the
+spec, and representation 1 is the only rendering defence this rung has.
+
 **The dropped candidates.** The screen report offered four candidate rules
 (`authoring/bonded-store/reports/step0-screens.md:361-366`). I kept two and cut
 two. "Every lot held in the store is under bond" is strictly weaker than
 must-be-true 1, which already forces an in-store lot's duty unpaid, so it grades
 nothing the kept rule doesn't. "The set of duty-paid lots never shrinks" falls
-out of must-be-trues 1 and 3 together: a paid lot is released, a released lot's
+out of must-be-trues 1 and 4 together: a paid lot is released, a released lot's
 record is frozen, so the paid set can't shrink. A redundant cfg line spends one
 of four slots and teaches nothing, so both went.
 
-Must-be-true 2 is mine rather than the screener's, and it's there because the
-other two leave a hole. A step taking a lot from the store back to not yet
-entered satisfies 1 (unpaid on both sides) and never triggers 3 (the lot was
-never out). Without 2 the store's account can be quietly erased, which is the
-one thing a bonded regime exists to stop.
+Must-be-trues 2 and 3 are mine rather than the screener's, and they're there
+because the other two leave a hole. A step taking a lot from the store back to
+not yet entered satisfies 1, unpaid on both sides. It never triggers 4, since the
+lot was never out. A step taking a lot from not yet entered straight to released,
+paying in the same motion, gets past 1 and 4 too. Without 3 the store's account
+can be quietly erased. Without 2 a lot skips the store altogether, and stopping
+both of those is what a bonded regime is for.
 
 ## 6. Ambiguities resolved, and how they could have gone
 
@@ -232,12 +250,13 @@ one thing a bonded regime exists to stop.
    `place` into a vector and bring arithmetic to a rung that isn't about
    arithmetic.
 5. **Re-entry.** A lot that has left never comes back. Returned-goods relief is
-   a real thing in customs, and modeling it kills must-be-true 3 and most of the
+   a real thing in customs, and modeling it kills must-be-true 4 and most of the
    system's shape with it.
 6. **Deficiency.** No loss, no breakage, no write-off. Real stores account for
    deficiency, and duty usually falls due on it. It's the most tempting addition
-   here, and it's a third exit with its own duty rule, which is a fourth
-   must-be-true this rung can't carry.
+   here, and it's a third exit with its own duty rule. That's a third arm on
+   must-be-true 3 plus a restatement of must-be-true 1, and the count is already
+   at the top of the band.
 7. **Nothing must happen.** The keeper is under no obligation. An obligation to
    clear the store is liveness, and the rung's property kind stops at action
    properties.
@@ -253,7 +272,7 @@ one thing a bonded regime exists to stop.
 11. **Three overlapping sets.** A model could carry in-store, released and
     moved-on as three sets that overlap. I closed that by making `place` one
     fact per lot instead of three memberships, so the overlap has nowhere to
-    live at the interface. The alternative is a fourth must-be-true saying a lot
+    live at the interface. The alternative is a further must-be-true saying a lot
     is in one place, which spends a slot on something the operator's shape
     already settles.
 12. **The word "warehouse".** The real term of art is bonded warehouse. This
@@ -264,3 +283,7 @@ one thing a bonded regime exists to stop.
     line 112 and `grep -n warehouse harness/screen.sh` puts it at 110, so I've
     used 110 here. Where a downstream author needs the real term, they should
     use it and let the record carry the reason.
+13. **Capacity.** The store holds any number of lots. A real store has a floor
+    and a licence limit, and capping it here needs a guard on entry and an
+    invariant to grade the cap. That invariant is a fifth cfg line, which this
+    rung can't carry.
