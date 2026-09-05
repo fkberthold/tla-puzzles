@@ -460,6 +460,27 @@ mapfile -t REF_LANDMARKS < <(ops_named "$REF_OBL" "Landmark_")
 mapfile -t REF_STEPS     < <(ops_named "$REF_OBL" "Step_")
 mapfile -t SUB_CONJUNCTS < <(ops_named "$SUB_OBL" "Req_")
 
+# The CONSTANTS the obligations module declares. An obligation that reads one
+# asks for whatever the constants fragment makes it ask for, so the package has
+# an INSTANCE and not just a text, and the instance probe below is the gate on
+# it. A module that declares none has one reading and needs no probe.
+mapfile -t REF_CONSTANTS < <(
+  grep -E '^CONSTANTS?[[:space:]]' "$REF_OBL" \
+    | sed -E 's/^CONSTANTS?[[:space:]]+//' \
+    | grep -oE '[A-Za-z][A-Za-z0-9_]*' | sort -u)
+
+# The text of one column-1 operator definition, from its own line down to the
+# next line that starts in column 1. Continuation lines are indented, and the
+# next definition or the comment block above it ends the body. Matched with
+# `index` rather than a regex, so an operator name is a literal here and never
+# a pattern.
+op_body() {  # $1 = file, $2 = operator name
+  awk -v op="$2" '
+    index($0, op "(") == 1 { inbody = 1; print; next }
+    inbody && /^[^[:space:]]/ { inbody = 0 }
+    inbody { print }' "$1"
+}
+
 [ "${#REF_CONJUNCTS[@]}" -gt 0 ] || \
   die_usage "the reference obligations module declares no Req_* conjunct: $REF_OBL"
 
@@ -836,6 +857,73 @@ to break."
 fi
 
 # ===========================================================================
+# THE INSTANCE PROBE. AN OBLIGATION THE INSTANCE CANNOT FALSIFY IS NOT A
+# GRADED OBLIGATION, SO THE PACKAGE IS REFUSED. Bead tla-nyrb, clause C1.
+#
+# The chaos probe above asks whether the obligation SET says anything. This
+# asks the same question of one obligation at a time, and it asks it only of
+# the obligations that read a CONSTANT. A constant is what the author picks
+# when they shrink a problem to keep the state space small, and an empty
+# quantifier is the bottom of that slope: `\A s \in Signers : ...` under
+# `Signers = {}` is true of every observation there is. No submission can miss
+# it, every submission scores it, and the Adequacy denominator counts it. A
+# full mark on a question that was never put.
+#
+# WHY THE CONSTANT IS THE SCOPE AND `true of chaos` IS NOT. Being true over the
+# declared domain is not the same defect and must not be refused here.
+# `lockbox` states a capacity requirement true of every record in its own
+# ObsDomain, and it grades on purpose: a submission's observation is not
+# confined to the declared domain, so the `too-weak` fixture still fails it at
+# a level of 5. Bead tla-x8s repaired that package by ADDING an obligation
+# rather than by dropping that one. What is different about a constant is that
+# it moves what the obligation asks for, so a domain-true reading is one the
+# author chose rather than one the domain forced.
+#
+# THE PACKAGE IS REFUSED RATHER THAN GRADED, at exit 2 and with no verdict
+# object, because the author picked the constants and the defect is theirs.
+# The landmark gate and the chaos probe both answer this shape the same way.
+# Refusing is also the strongest form of "do not count it toward a met total",
+# since nothing is counted at all.
+# ===========================================================================
+EMPTY_AT_INSTANCE=()
+if [ "${#REF_CONSTANTS[@]}" -gt 0 ]; then
+  y=0
+  for conj in "${REF_CONJUNCTS[@]}"; do
+    reads_constant=0
+    conj_body=$(op_body "$REF_OBL" "$conj")
+    for c in ${REF_CONSTANTS[@]+"${REF_CONSTANTS[@]}"}; do
+      # A here-string, never a pipe. `grep -q` exits on its first match, and
+      # under `pipefail` that SIGPIPEs the producer and the pipeline reports
+      # 141 -- which would read here as "the obligation reads no constant",
+      # switching the gate off on the packages it exists for. Bead tla-kr9.
+      if grep -qE "(^|[^A-Za-z0-9_])$c([^A-Za-z0-9_]|\$)" <<<"$conj_body"; then
+        reads_constant=1
+      fi
+    done
+    [ "$reads_constant" = "1" ] || continue
+    y=$((y + 1))
+    run_judge "E$y" "$CHAOS_MOD" "$conj(Observe)"
+    classify 0 reference "instance probe, reference obligation $y"
+    [ "$CLASS" = "MET" ] && EMPTY_AT_INSTANCE+=("$conj")
+  done
+fi
+
+if [ "${#EMPTY_AT_INSTANCE[@]}" -gt 0 ]; then
+  die_package "$REF_OBL states an obligation that nothing can falsify at the
+instance this package is configured at: ${EMPTY_AT_INSTANCE[*]}
+
+It reads a CONSTANT, so what it asks for is whatever the constants fragment
+beside the reference modules makes it ask for, and here it asks for nothing.
+Every record in this module's own ObsDomain satisfies it. No submission can
+miss it, every submission meets it, and it still counts toward a full Adequacy
+score. A full mark on a question that was never put.
+
+The defect is the problem author's, so no verdict about a submission is
+printed for it. Two ways out: pick constants the obligation can tell apart, or
+drop an obligation this instance has nothing to say about."
+fi
+
+# ===========================================================================
 # Obligation 3 first among the submission-driven runs: non-vacuity, and the
 # parse gate. Every run above is reference-only -- the landmark-disjointness
 # run and the chaos probe both extend nothing the submission wrote -- so
@@ -871,7 +959,56 @@ fi
 
 # ===========================================================================
 # Obligation 1: the Adequacy suite. PSI => phi_i, per reference conjunct.
+#
+# PSI IS THE SPEC AS THE SUBMISSION'S OWN REQUIREMENTS LEAVE IT, and that is
+# what makes the suite able to tell an answer from a weakening of it. Bead
+# tla-nyrb, clause C2.
+#
+# The pilot's answer form hands the learner a deficient spec and asks for a
+# conjunct, so the two submissions of `strength-order` carry the SAME spec
+# file byte for byte and differ only in the requirement they state. Graded
+# against the bare spec they cannot differ: the spec issues on one approval
+# either way, so the reference obligation is refuted either way, and the two
+# verdict objects came back identical down to the witness line. Measured
+# before this guard landed.
+#
+# So the run asks whether the reference obligation holds WHERE THE
+# SUBMISSION'S OWN REQUIREMENTS HOLD. Read the answer as a constraint on the
+# spec the learner was handed, which is how the learner meant it, and an
+# answer that cuts the spec down to the reference behaviour meets the
+# obligation while a weaker one leaves states behind that refute it.
+#
+# THE GUARD CANNOT BE GAMED BY STRENGTHENING, and that is the whole reason it
+# is safe to weaken this suite. A requirement strong enough to excuse anything
+# is a requirement the reference itself does not satisfy, and the Relational
+# suite below checks exactly that and reports over-constraint. The two suites
+# are duals, so the answer is pinned between them: strong enough to deliver
+# the obligation here, weak enough for the reference to keep there.
+#
+# WHAT IT DOES NOT COVER. The step obligations below run unguarded. The guard
+# is a one-state predicate and it restricts STATES, which is the right
+# restriction for a one-state obligation and the wrong shape for one over a
+# pair of successive observations. No fixture states both a Step_* and a
+# submission requirement, so the guarded form for a pair is unwritten rather
+# than written and untested.
 # ===========================================================================
+ADEQ_EXT="$M_SUB_SPEC, $M_REF_OBL"
+ADEQ_GUARD=""
+if [ -n "$M_SUB_OBL" ] && [ "${#SUB_CONJUNCTS[@]}" -gt 0 ]; then
+  answer=""
+  for conj in ${SUB_CONJUNCTS[@]+"${SUB_CONJUNCTS[@]}"}; do
+    [ -z "$conj" ] && continue
+    # Joined infix. A leading `/\` would open a junction list, whose members
+    # are delimited by COLUMN, and the whole expression goes on one line.
+    [ -n "$answer" ] && answer="$answer /\\ "
+    answer="$answer$conj(Observe)"
+  done
+  if [ -n "$answer" ]; then
+    ADEQ_EXT="$ADEQ_EXT, $M_SUB_OBL"
+    ADEQ_GUARD="($answer) => "
+  fi
+fi
+
 ADEQ_MET=0
 ADEQ_UNMET=()
 UNDER_WITNESS=""
@@ -879,7 +1016,7 @@ UNDER_WITNESS=""
 i=0
 for conj in "${REF_CONJUNCTS[@]}"; do
   i=$((i + 1))
-  run_judge "A$i" "$M_SUB_SPEC, $M_REF_OBL" "$conj(Observe)"
+  run_judge "A$i" "$ADEQ_EXT" "$ADEQ_GUARD$conj(Observe)"
   classify 0 submission "reference obligation $i"
   if [ "$CLASS" = "INVALID" ]; then emit_invalid; exit 3; fi
   if [ "$CLASS" = "MET" ]; then
