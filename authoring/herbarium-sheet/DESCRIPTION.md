@@ -124,7 +124,8 @@ observables of section 3. The author renders them as properties of their model.
    next, no slip leaves a sheet, no slip on a sheet changes, and no sheet's
    consultation count falls. At a step where a sheet's consultation count rises,
    it rises by exactly one, and one botanist's open consultation of that sheet
-   becomes that new number.
+   becomes that new number. A botanist's open consultation of a sheet takes a
+   stamp only at a step where that sheet's count rises to that stamp.
 4. **A slip comes from a consultation, and never from a later one.** At a step
    where a slip appears on a sheet, one slip appears, some botanist's open
    consultation of that sheet closes in the same step, and the new slip's stamp
@@ -143,7 +144,8 @@ observables of section 3. The author renders them as properties of their model.
 Items 1 and 2 are claims about a single state, so they're invariants. Items 3, 4
 and 5 each compare the record at two consecutive moments, so they constrain steps
 and land as action properties. Item 6 is the one that needs "eventually", and it's
-the only liveness obligation here. Item 7 is a condition on the opening state,
+the only liveness obligation here. Its two clauses conjoin into one property, so
+they ship on one cfg line between them. Item 7 is a condition on the opening state,
 before any step runs. It ships under `PROPERTY` rather than `INVARIANT`, since a
 state predicate named as a property is read at the opening state alone.
 
@@ -166,7 +168,9 @@ and it counts as one of the cfg lines. It's never a requirement the learner is
 asked to produce, and nothing above stands in for it.
 
 Each item breaks on a short finite trace over `Observe`. Item 1 falls in a single
-state, two slips on one sheet both stamped 2. Item 2 falls in a single state, a
+state, two slips on one sheet carrying different names and both stamped 2. Under
+the set-of-pairs shape two slips at one stamp have to differ in the name, or
+they're one slip. Item 2 falls in a single state, a
 sheet whose top slip carries one name and whose accepted name is another. Item 3
 falls on one step, a slip vanishing off a sheet. Item 4 falls on one step, a slip
 stamped 2 appearing where the only consultation that closed carried stamp 1.
@@ -213,6 +217,9 @@ mark may come off (5) and for the obligation to answer it (6).
 way for every author. `slips` answers with the empty set for a sheet nobody has
 determined. `reading` and `accepted` answer with one none marker, a single value
 that sits outside `Names` and outside the stamps, and it's the same value in both.
+The marker is a declared constant taken as a model value in the reference, so a
+comparison against a stamp or against a name answers false rather than aborting
+the run.
 
 **Why the accepted name is its own field.** This is the one real decision in the
 operator, so it gets said plainly. The accepted name has to be reportable as a
@@ -266,12 +273,20 @@ Then each rule, against the properties that constrain it:
 | 6 Doubt | 5 for the way out and 6 for the obligation. The precondition on raising a mark is graded by 6: a mark raised by a botanist holding no open consultation is one no fairness can answer, and 6's second half catches it |
 | 7 What must happen | 6, and it's the first half that does it, since a botanist who has consulted a sheet holds an open consultation of it until they file. What says nothing else must happen is that no other property here needs "eventually" |
 
-One clause is ungraded and I'd rather name it than let a reader find it.
-`Observe` shows the record, not the hands in it. "Every step is a botanist's"
-can't be a property of any model, whatever fields you add, because the interface
-has no place to report that a step had no author. Which botanist filed is
-visible, since it's whose open consultation closed, and must-be-true 4 uses it.
-Whether some step happened by itself is not.
+Two clauses are ungraded and I'd rather name them than let a reader find them.
+The first is "every step is a botanist's". `Observe` shows the record, not the
+hands in it, so that can't be a property of any model, whatever fields you add,
+because the interface has no place to report that a step had no author. Which
+botanist filed is visible, since it's whose open consultation closed, and
+must-be-true 4 uses it. Whether some step happened by itself is not.
+
+The second is rule 3's equality. A slip carries the stamp of the consultation it
+came from, and must-be-true 4 grades only that the slip's stamp is at most the one
+that consultation carried. A botanist who files below the stamp they hold passes
+the cap. That cap stays a cap on purpose. Tighten it to equality on top of item
+3's new provenance clause and a state with two slips at stamp 2 breaks items 3 and
+4 as well, so item 1's distinctness clause loses the trace that isolates it. I'd
+rather keep the looser cap and the isolating trace than close a gap that costs one.
 
 Everything else is constrained. Every field earns its place through at least one
 must-be-true, so nothing in the operator is decoration.
@@ -348,7 +363,7 @@ the learner a rule that can't be got wrong.
 
 **Where I departed from the screener's sketch** (`reports/step0-screens.md`).
 
-The sketch listed seven rules and I've shipped seven. Four changes, and one of
+The sketch listed seven rules and I've shipped seven. Five changes, and one of
 them is a hole I think the sketch left open.
 
 I folded "no two slips carry the same stamp" into must-be-true 1 rather than
@@ -363,9 +378,17 @@ grades nothing is worse than no line, because it reads as coverage. That leaves
 seven must-be-trues and the type invariant, eight cfg lines against the ceiling
 of nine.
 
-I added "a doubt clears only on a filing". Without it the liveness grades almost
-nothing, because a model that lets a mark come off on any step satisfies "a
-doubted sheet is eventually re-determined" for free. That's the hole.
+I added "a doubt clears only on a filing". Without it the doubt half of the
+liveness grades almost nothing, because a model that lets a mark come off on any
+step satisfies "a doubted sheet is eventually re-determined" for free. That's the
+hole.
+
+I widened the liveness. The sketch obliged a doubted sheet to be re-determined and
+nothing more. Item 6 now obliges every open consultation to close, and keeps the
+doubt clause under it as the second half. The wider clause doesn't stand in for the
+narrower one, which is why both are there. A model where filing leaves the mark on
+satisfies the first clause and must-be-true 5 both, and the mark never comes off.
+The second clause is what grades that.
 
 I added the opening. A slip present at the opening is a way a slip gets onto a
 sheet that nothing else grades, since item 4 only sees slips that appear in a
@@ -452,8 +475,9 @@ step that clears a mark. Reading off which of those steps the shipped subscript
 lets through is then mechanical. A learner who modelled it wrong has no way in.
 One who let a mark come off on any step has a model this rule can't fault, and
 for them the subscript never mattered, because the hole in the model and the hole
-in the property are the same hole. It takes the liveness with it, which is the cost
-section 5 already names as the reason this rule is on the list at all.
+in the property are the same hole. It takes the doubt half of the liveness with it,
+which is the cost section 5 already names as the reason this rule is on the list at
+all.
 
 **The live alternative, and where it wins.** Ship a failing trace instead. Have
 the filing step write the accepted name without keeping it in step with the
