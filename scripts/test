@@ -185,12 +185,11 @@ SUITES=(
   # serial runs, up from 0.26 on the red tree where part 1 stopped at "missing
   # file" for every package. Reading and parsing seven records is the gap.
   "fast|0.5|vector records|./harness/test-vector.sh"
-  # Measured on the red tree 2026-09-05, where harness/sequence.sh does not
-  # exist and all 29 runs of it die at once: 0.100 / 0.096 / 0.099 s over three
-  # serial runs, so 0.1 is the slowest. This budget is honest about what was
-  # measured and stale the day the script lands. Re-measure then. The green run
-  # reads eleven records and searches over ten of them, so it will cost more.
-  "fast|0.1|ramp sequence|./harness/test-sequence.sh"
+  # Re-measured on the green tree 2026-09-05: 1.492 / 1.495 / 1.493 s over three
+  # serial runs, and 1.4 s in the full gate. The red tree measured 0.1 s, since
+  # all 29 runs of a missing script die at once. The green run reads eleven
+  # records and searches over ten of them, which is where the time goes.
+  "fast|1.5|ramp sequence|./harness/test-sequence.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
