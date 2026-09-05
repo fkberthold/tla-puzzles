@@ -248,10 +248,11 @@ creditors `c1` and `c2`.
 Each row of a trace is one moment, the value of `Observe`. Consecutive rows are
 one step apart.
 
-Two notes on reading them. A forbidden run can break more than one requirement,
+Three notes on reading them. A forbidden run can break more than one requirement,
 and if your set rejects it for any requirement it breaks, your set is right
-about that run. And where a forbidden run's fault is that nothing more ever
-happens, the trace says so under its last state.
+about that run. Every run here is a prefix, so a run that ends with the residue
+still in her hands isn't forbidden for that alone. And where a forbidden run's
+fault is that nothing more ever happens, the trace says so under its last state.
 
 ## Checking
 

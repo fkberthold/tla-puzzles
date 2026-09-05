@@ -16,7 +16,7 @@ numbering, which is `DESCRIPTION.md` section 2's numbering unchanged.
 
 | pair | obligation | variant | rc | violating trace | satisfying half |
 |---|---|---|---|---|---|
-| 1 | `SheDistributesOnlyWhenClear` | S01 | 12 | 4 states | W1, rc=12, 5 states |
+| 1 | `SheDistributesOnlyWhenClear` | S01 | 12 | 5 states | W1, rc=12, 5 states |
 | 2 | `ClaimsStartWithTheCreditor` | S03 | 13 | 3 states | W2, rc=12, 4 states |
 | 3 | `ALodgedClaimEndsInHerDecision` | S05 | 13 | 3 states | W3, rc=12, 3 states |
 | 4 | `ADecisionStands` | S06 | 13 | 4 states | W4, rc=12, 4 states |
@@ -49,6 +49,51 @@ Step 2 records S10 at 7 states. My run prints six states and then `State 7:
 Stuttering`, so the seventh is the stutter and not a sixth step. The pair-7 file
 renders the six states and says under the last one that nothing more ever
 happens, which is the honest reading of either count.
+
+## Pair 1's violating half, rebuilt after step 6
+
+Step 6's finding 1 caught the old one. It left c1 at `"lodged"` when the residue
+went, and rule 7's word "lodged" reads two ways. Take it as the standing rather
+than as brought-to-her, and the guard comes out as everything but `"lodged"`,
+which permits distributing over an admitted claim. The bent model blocks the old
+run and the bent property rejects it, so the learner is told they passed.
+
+The half now distributes with c1 at `"admitted"` and unpaid. She lodges, closes,
+admits, and hands over the residue with the claim still owing. A guard on
+`"lodged"` alone lets that through. So the bent model produces a run the
+statement tells them to rule out, and requirement 1's wording no longer decides
+whether they catch it.
+
+The satisfying half is untouched. It now differs from its twin in one cell, c1's
+standing at states 4 and 5, `"rejected"` against `"admitted"`. The old pair
+differed in length as well, four states against five. Now only the one cell
+moves, and I think the pair teaches more that way. A claim she never decided is
+a cruder error than one she admits and pays nobody for.
+
+Provenance is still S01, the reference with the settled-claims guard dropped from
+`Distribute`. Step 2 recorded S01's shortest counterexample at 4 states. This run
+is the same variant one decision further along, and I re-validated it rather than
+assume it carried.
+
+Eight runs behind that, all `tlc -workers 1` over scratch modules in a tree
+that's now deleted.
+
+| run | rc | what it says |
+|---|---|---|
+| the forced sequence, `SheDistributesOnlyWhenClear` alone in the cfg | 12 | requirement 1 breaks at state 5, where the residue goes |
+| the same harness over a run that admits and pays first | 0 | the harness isn't red on its own |
+| the forced sequence over the frozen reference's `Init` and `Next` | 0 | the reference rules the run out, stalling at state 4 |
+| the first four states over the same `Init` and `Next` | 12 | the fault is the last step alone |
+| the forced sequence over S01's `Init` and `Next` | 12 | the run is a real behaviour of S01 |
+| a creditor sent from `"none"` to `"paid"` in one step | 0 | the walker can still fail |
+| the forced sequence under the other seven obligations | 0 | requirement 1 is the only one it breaks |
+| the same seven over a lodged claim sent back to `"none"` | 13 | that harness can still fail |
+
+The forcing module pins each state by index and opens at the reference's own
+`Init`. The walkers conjoin `Next` on every step and carry an invariant that's
+false only once the sequence has been walked, which is the W1 to W8 shape
+unchanged. `sha256sum -c` against `reference/FREEZE.sha256` came back OK on both
+files after every run.
 
 ## Provenance, satisfying halves
 

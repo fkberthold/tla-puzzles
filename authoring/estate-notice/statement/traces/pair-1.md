@@ -51,7 +51,12 @@ State 3
   distributed: FALSE
 
 State 4
-  standing:    c1 lodged | c2 none
+  standing:    c1 admitted | c2 none
+  notice:      closed
+  distributed: FALSE
+
+State 5
+  standing:    c1 admitted | c2 none
   notice:      closed
   distributed: TRUE
 ```
