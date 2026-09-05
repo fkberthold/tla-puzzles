@@ -131,9 +131,11 @@ habit.
 - Pair 1's forbidden run breaks requirement 1 alone. Every ware starts struck
   with no finding, so nothing has moved yet and neither the growth rule nor
   the discharge rule has anything to say about it.
-- Pair 2's forbidden run breaks requirement 2 alone. w1's finding goes from at
-  standard to substandard, which requirement 1 is happy with at every state,
-  and w1 is never marked or defaced.
+- Pair 2's forbidden run trips requirements 2 and 3. The pair is filed under
+  requirement 2, for w1's finding going from at standard to substandard.
+  Requirement 3 goes too, because the run ends with w1 substandard and whole,
+  and a replay stutters there forever. Requirement 1 holds at every state,
+  since nothing is ever marked or defaced.
 - Pair 3's forbidden run breaks requirement 3 alone, and only through what
   happens after state 6. A learner who reads the six states as a finite run
   and stops will find nothing wrong with them, which is why the trace file
@@ -142,9 +144,20 @@ habit.
   defaced while its finding reads at standard, and no ware is ever struck.
 - Pair 5's forbidden run breaks requirement 2's `marked` clause alone. w1
   loses a mark it was entitled to, so requirement 1 holds at every state.
-- Pair 6's forbidden run breaks requirement 2's `defaced` clause alone. w1's
-  defacing is undone at the last state, and a finite prefix says nothing
-  about requirement 3.
+- Pair 6's forbidden run trips requirements 2 and 3. The pair is filed under
+  requirement 2's `defaced` clause, for w1's defacing being undone at the last
+  state. That state leaves w1 substandard and whole, so a replay that stalls
+  there trips the discharge rule as well. Requirement 1 holds throughout.
+- A checker naming requirement 3 first on either run isn't wrong, since
+  `PROBLEM.md:176-177` grades a forbidden run on rejection, not on which rule
+  catches it.
+- Pair 3 covers requirement 3 only for a formula that binds at every state.
+  Its forbidden run opens with every finding unwritten, so a formula with no
+  leading always binds at the opening state alone and accepts the run. The
+  grader reads any formula that accepts that run as wrong, even one that
+  accepts all six allowed runs. No seventh pair. A forbidden run opening with
+  a finding already written reads as a legal state of the office, and I
+  suspect it would cost more confusion than it buys.
 - The `marked`-clause-only weakening of requirement 1, which step 5 filed as
   D1, now fails its hand-check against pair 4. Nothing is struck in that
   forbidden run, so the half property accepts a run the learner has to reject.

@@ -176,7 +176,9 @@ notes:
 - A forbidden run can break more than one requirement. If your set rejects it
   for any requirement it breaks, your set is right about that run.
 - Every run shown is finite. Requirement 3's forbidden run breaks its rule by
-  what never happens after the last state, and the trace says so under it.
+  what never happens after the last state, and the trace says so under it. The
+  other five forbidden runs carry no such note, so a run that stops with a ware
+  untested or unmarked isn't forbidden for that alone.
 - The findings print in the rules' English, not in the module's own names.
 - The allowed runs are behaviors of `AssayOffice.tla`. The forbidden runs are
   not. They exist to pin down what your properties must reject.
@@ -199,6 +201,7 @@ Once every ware has been tested, every at-standard ware struck and every
 substandard ware defaced, no action is enabled and the run stops. That's the
 story ending, not a fault.
 
-Whatever properties you declare, the run should find 125 distinct states. A
+Whatever properties you declare, the run should find 125 distinct states on
+TLC's closing summary line, not on an earlier line carrying a larger number. A
 different count means the system half of the module changed, and that half
 isn't yours to change.
