@@ -228,6 +228,210 @@ tla-puzzles/
 separation is a leak defense, not a preference — see §6b.1 — so it does not get "simplified" into
 two directories of this repo later.
 
+### 2.5 The load vector and the ramp rule (SETTLED 2026-09-04)
+
+§2.1's grid has two axes, situation and task shape, and neither of them is difficulty. §7.5
+calibrates one problem at a time and orders nothing. Nothing in this plan asked whether problem
+N is reachable from problem N-1. This section closes that gap. Design cycle
+`drawer_tla_puzzles_decisions_4cd7acae35ef634cf4ebbabb`, opened from bead `tla-r6jm`, epic
+`tla-h2cg`.
+
+**The finding.** Two read-only rating passes placed the six delivered problems and the hardest
+ch.11 drill on the candidate dimensions. Every delivered problem sits at property kind 2 or 3
+and property count 2 or 3. Custody tops five of the six load columns. From the floor, every
+column rises, four of them by three levels. So no order over the six is a ramp, and the rungs
+below them don't exist.
+
+Learner-safe levels. This table carries no spoilers.
+
+| row | repr | kind | count | sources | space | form | gate |
+|---|---|---|---|---|---|---|---|
+| floor, ch11 Ex5 Airlock | 0 | 2 | 1 | 0 | 0 | 0 | ch11 |
+| pilot, permit review | 1 | 2 | 2 | 2 | 0 | 3 | ch11 |
+| custody | 3 | 3 | 3 | 3 | 3 | 2 | ch11 |
+| qsl | 1 | 3 | 3 | 2 | 2 | 3 | ch13 |
+| buyclub | 2 | 3 | 2 | 2 | 1 | 2 | ch11 |
+| seedlib | 1 | 3 | 3 | 3 | 0 | 3 | ch13 |
+| consign | 2 | 2 | 2 | 2 | 0 | 2 | ch11 |
+
+**The ramp is an ordering constraint over the sequence, not a third grid axis.** §3.1 stands
+untouched. The grid keeps its two axes, each problem carries its load vector as a label, and
+the ramp is a rule over the delivered sequence. A script checks that rule together with
+interleaving, and reports either an order or the hole. The vector is a label on a problem and a
+rule over the sequence, never a coverage target.
+
+A reader reaches for the third-axis reading first, so here is why it was rejected. A third axis
+makes level a coverage target, which is §3.1's forbidden generator with a new noun. And 54
+cells at three levels is over 160 problems, or else the axis is decoration.
+
+**The six dimensions.** In this order: representation, property kind, property count, step
+sources (with time folded in), state space, and form left open. The sixth is provisional.
+
+Two candidates were dropped. History failed countability. Three rubrics were tried, and the
+third was kept because it produced a spread, which is deciding and then counting. Notation is
+the same partition as "does the learner write the transition system", so it's task shape, and
+it survives as the reading gate below. History and step sources moved together on all seven
+rated rows, both of them from having a clock, so they're folded into one dimension.
+
+**The rubrics.** Each level is a count or a yes/no on the artifact. The reference spec means the
+frozen `reference/` module and its MC cfg. The shipped spec means whatever `.tla` the learner
+receives.
+
+**representation**
+
+- 0 The variables are named in the prompt.
+- 1 A complete spec ships, and the learner writes no state.
+- 2 State is the learner's, and the reference's variables are the `Observe` fields, no others.
+- 3 State is the learner's, and the reference carries a variable that isn't an `Observe` field.
+
+**property kind**
+
+- 0 Type invariant only.
+- 1 State invariants beyond type.
+- 2 At least one action property `[][A]_v`.
+- 3 At least one `<>` or `~>` formula, plus a fairness conjunct in `Spec`.
+
+**property count**
+
+- 0 One.
+- 1 Two to four.
+- 2 Five to nine.
+- 3 Ten or more.
+
+Pinned: the count is the `INVARIANT` plus `PROPERTY` lines in the reference cfg. Never what the
+statement says, and never what the learner hands in.
+
+**step sources**
+
+- 0 One actor.
+- 1 Several actors of one kind.
+- 2 Two or more kinds of actor, none of whose steps is unprompted.
+- 3 Two or more kinds, plus a step the statement assigns to no party.
+
+Read from the statement's parties list. Pinned: a named party under `WF` is level 2. A step the
+statement assigns to no party's choice, a clock or a calendar, is level 3.
+
+**state space**
+
+- 0 Under 1 s, under 1,000 distinct states.
+- 1 1 to 10 s.
+- 2 10 to 60 s.
+- 3 Over 60 s.
+
+Recorded wall time of the reference on the shipped instance, with the distinct-state count as a
+check.
+
+**form left open (PROVISIONAL)**
+
+- 0 Every required property's form is given by the statement.
+- 1 The keyword or kind is given, the subscript target is left open.
+- 2 The keyword or kind itself is left to the learner.
+- 3 Some rules have no property form over the interface, and the learner finds which.
+
+Form means which TLC keyword a property goes under, and what kind of formula it is. It also
+covers the subscript, and whether the rule can be stated over the observation interface at all.
+Counted over the properties the learner must produce, from the whole artifact including the
+answers side, not from the statement alone. Level 3 is set by the statement saying so, or by
+the answers side showing it.
+
+Two clarifications the rater pinned. "Kind" means state predicate, action property, or temporal
+formula, and "keyword" means `INVARIANT` or `PROPERTY`. A statement that says "safety" has
+narrowed the kind without fixing it, and counts as partly given. So a row with any property
+whose keyword is unfixed places at 2, not 1. A property is partly given only when the statement
+makes a remark about form, meaning a keyword, a kind word, safety or liveness, or a subscript.
+The requirement's own English doesn't count.
+
+**The fold condition.** Form left open is re-tested when the ramp has fifteen or more rows (bead
+`tla-h2cg.5`). If it tracks task shape at that point, it folds into task shape. Counted from
+the statement alone it placed three of seven rows by counting and four by decision. My read is
+that seven rows can't tell it apart from task shape. That's why the provisional mark stays
+until the re-test.
+
+**The sequence rule: K=1 against the high-water mark, with a reading gate.** A dimension may go
+at most one level above the highest the learner has already reached on it. At most one dimension
+sets a new high in any one problem. Drops and returns are free. No problem appears before its
+reading gate.
+
+```
+INVARIANT: over the delivered sequence P_1 .. P_n, with floor F and
+reading checkpoints C_ch13, C_ref at fixed positions,
+  (a) no two neighbours share a situation or a task shape,
+  (b) for every dimension d, level_d(P_i) <= 1 + max(level_d(F),
+      level_d(P_1) .. level_d(P_i-1)),
+  (b') at most one dimension d has level_d(P_i) strictly above that
+      running maximum,
+  (c) a problem gated ch13 sits after C_ch13, and one gated
+      refinement sits after C_ref.
+```
+
+The reading gate names the last chapter the learner must have read. ch11 for a problem readable
+and workable in PlusCal-era TLA+, ch13 for one that ships or needs pure TLA+ to read, and
+refinement for column F. This is §3b made enforceable. §3b put batch 1 before ch.12, two of the
+delivered six ship a pure TLA+ spec, and nothing enforced it.
+
+**Why K=1 and not the retired v1 rule.** QG rule 2 ("each puzzle teaches exactly one new
+concept") sat on the concept axis, and it made puzzles whose purpose was to exercise a
+construct. K=1 sits on the presentation axis. It tells an author what weight to write at, not
+what the problem is for.
+
+Two alternatives, and the world each one wins in. K=2 is what we take if 60 problems prove too
+few for the climb. The climb takes about 15 rising steps across six dimensions. K=1 leaves the
+other 45 problems at or under the high-water mark, which is where interleaving does its work.
+Neighbour comparison was rejected, because it miscounts under interleaving.
+
+**The floor, and problem 1.** The floor is the hardest ch.11 drill's vector (Ex5 Airlock:
+representation 0, kind 2, count 1, sources 0, space 0, form 0, gate ch11). The v2 minimum on
+representation is 1, since §3.2 never names the variables. So problem 1 is a shape B or D
+problem over a shipped single-actor spec: two to four properties with their forms told, up to
+action properties, sub-second, in PlusCal-era TLA+. Representation 1 is its single new high. The
+first thing you do with a real system is read one.
+
+From the floor, consign's vector needs seven new highs and custody's needs fourteen. Batch 2 is
+at least seven problems.
+
+**Verification is a structural gate on the artifact.** Each dimension is placed by counting from
+the artifact, which is the statement, the reference and the reports together. The ordering rule
+is checked mechanically. Felt difficulty is never a verification input.
+
+The one human check is the door test. The learner reads a statement until they either start
+modelling or bounce, and a bounce is a complaint against the previous rung. Frank's point is
+that the door is built in, because if problem 16 were twice as hard as 17 he'd come and say so.
+§7.1 already says "this was hard" is a non-event. This is §7.1 as a gate.
+
+Rejected: logging first contact. It measures after the learner is consumed. Frank: *"It's like a
+fire alarm that measures the depth of the ashes."*
+
+**Batch 1 is withdrawn, and the ramp is authored from the floor up.** The six delivered problems
+left the practice tree and the delivered sequence on 2026-09-04. Frank: *"in a real sense they
+are broken. They don't work at the level they need to be meaningful. Replace is the way to go,
+start fresh."*
+
+Every problem is written to a rung. Order never lives in a directory name again. The sequence
+script writes an ORDER file and problems are delivered by name, so re-placing one never touches
+its directory.
+
+The four unread problems (qsl, buyclub, seedlib, consign) are a reserve with known vectors. A
+rung near the top may take one if it fits. That's a per-rung call with Frank, never a decision
+this plan makes. The holdout (§7.2) is built and sealed (`tla-kl5.17`, closed 2026-08-08) and
+isn't part of this reserve.
+
+**`VECTOR.md`, one per frozen problem.** It sits beside the problem's `reference/` directory:
+six rows (dimension, level 0 to 3, citation into the artifact), then a situation line, a
+task-shape line, and a reading-gate line. The floor's record is `authoring/VECTOR-FLOOR.md`.
+`harness/test-vector.sh` checks every record and is registered in `scripts/test`. Bead
+`tla-h2cg.2`. The records carry levels, citations and the gate, never a spoiler.
+
+**`harness/sequence.sh`.** Checks the four clauses over a proposed sequence, and either writes
+the ORDER file or names the hole. Bead `tla-h2cg.3`.
+
+**The ramp itself.** A table of rungs from the floor up. Bead `tla-h2cg.4`, attended, worked
+domain by domain with Frank.
+
+**The drawers.** Design: `drawer_tla_puzzles_decisions_4cd7acae35ef634cf4ebbabb`. Ratings:
+`drawer_tla_puzzles_findings_3a6212dad02ae5bad886e63e` and
+`drawer_tla_puzzles_findings_259421b9ddf83e26ecccea6f`. Both rating drawers carry spoilers for
+the six.
+
 ---
 
 ## 3. Invariants — do not relitigate
@@ -288,6 +492,10 @@ the TLA+ chapter, then work PlusCal problems. That is right, with one correction
 3. **Read core ch.12 (TLA+) and ch.13 (Modules), then the refinement chapter (§4).**
 4. **Everything after that interleaves both notations**, with the pure-TLA+-only problems
    concentrated in the final third.
+
+**Step 2 corrected (2026-09-04, §2.5).** Batch 1 is withdrawn, so step 2 no longer comes first.
+The rungs come first, authored from the floor up, and each problem carries a reading gate naming
+the chapter that must precede it. That makes this order enforceable instead of assumed.
 
 **Why not all PlusCal first, then all TLA+.** That is blocked practice at the coarsest grain
 (§3.4), and it means hitting ~25 consecutive problems in an unfamiliar notation months after
@@ -1458,6 +1666,9 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 - Learners quit around attempt 6 (32.6% gave up after a mean of 5.85 edits).
 - Target 20–40 minutes. If the blind solvers take materially longer, the problem is too big.
 
+Calibration here is per problem. The rule that orders problems against each other is the ramp,
+and it lives in §2.5.
+
 ---
 
 ## 8. Stage 6 — Assembly
@@ -1468,6 +1679,9 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
    near-neighbours: invariant vs inductive invariant; type invariant vs safety property;
    `WF` vs `SF`; `[]<>` vs `<>[]`; refinement mapping vs auxiliary variable; atomicity split at
    the read vs at the write.
+   `harness/sequence.sh` produces this order against the §2.5 rule, not a hand walk.
+   Interleaving is clause (a) and the ramp is clauses (b), (b') and (c), so they're checked
+   together.
 3. **Back-load pure TLA+.** ~25 of 60, concentrated in the final third so there is a real
    transition rather than a sprinkle. Include a few problems only natural in pure TLA+
    (refinement mappings, non-algorithmic system contracts).
@@ -1613,6 +1827,11 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
 >   what it must expose — but not how their state is shaped.
 > - State a property to establish or refute. Never ask for an algorithm to be implemented.
 > - Target 20–40 minutes for someone who has read learntla.com core.
+> - Write the problem's **vector record** too (`VECTOR.md`, §2.5), levels and citations only.
+>
+> Follow the format of the existing records (bead `tla-h2cg.2`). The record carries the six
+> levels, a citation into the artifact for each, and the reading gate. It never carries a
+> spoiler.
 >
 > **Then apply the §5.7b puzzle screen to your own statement before delivering:** if you have
 > handed the learner the complete set of legal moves, you have written a puzzle, and TLC will do
