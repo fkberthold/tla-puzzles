@@ -17,8 +17,9 @@ A herbarium is a collection of pressed, dried plants. Each specimen is glued to
 one sheet of card, and the sheet is the object of record. Naming the specimen is
 called determining it, and a botanist who determines a sheet says so on a small
 slip of paper attached to the sheet. The slip carries the name they believe it
-is, their own name, and where in the sheet's history they read it. Nothing below
-needs any botany that isn't stated here.
+is, and where in the sheet's history they read it. The filer's name is on the
+paper and isn't part of the record this system keeps. Nothing below needs any
+botany that isn't stated here.
 
 **The parties.** One kind. A fixed, finite set of **botanists**, named by
 `Botanists`. Every step in this system is some botanist's. Nothing else acts.
@@ -119,56 +120,61 @@ observables of section 3. The author renders them as properties of their model.
 2. **The accepted name is the top slip's name.** A sheet with slips on it has the
    name on its highest-stamped slip as its accepted name. A sheet with no slips
    has none.
-3. **The record only grows.** From one moment to the next, no slip leaves a
-   sheet, no slip on a sheet changes, and no sheet's consultation count falls.
+3. **The record only grows, one consultation at a time.** From one moment to the
+   next, no slip leaves a sheet, no slip on a sheet changes, and no sheet's
+   consultation count falls. At a step where a sheet's consultation count rises,
+   it rises by exactly one, and one botanist's open consultation of that sheet
+   becomes that new number.
 4. **A slip comes from a consultation, and never from a later one.** At a step
-   where a slip appears on a sheet, some botanist's open consultation of that
-   sheet closes in the same step, and the new slip's stamp is at most the stamp
-   that consultation carried.
-5. **The accepted name moves only on a filing.** At a step where a sheet's
-   accepted name changes, a slip appears on that sheet in the same step.
-6. **A doubt clears only on a filing.** At a step where a sheet stops being
+   where a slip appears on a sheet, one slip appears, some botanist's open
+   consultation of that sheet closes in the same step, and the new slip's stamp
+   is at most the stamp that consultation carried. At a step where a botanist's
+   open consultation of a sheet closes, a slip appears on that sheet in the same
+   step.
+5. **A doubt clears only on a filing.** At a step where a sheet stops being
    doubtful, a slip appears on that sheet in the same step.
-7. **A doubted sheet is eventually re-determined.** Whenever a sheet stands
-   doubtful, it eventually stops standing doubtful.
-8. **The opening.** At the opening every sheet has no slips, a consultation count
+6. **An open consultation is eventually answered.** Whenever a botanist holds an
+   open consultation of a sheet, that consultation eventually closes. Whenever a
+   sheet stands doubtful, it eventually stops standing doubtful.
+7. **The opening.** At the opening every sheet has no slips, a consultation count
    of zero, and no accepted name. No sheet stands doubtful, and no botanist holds
    an open consultation of anything.
 
-Items 1 and 2 are claims about a single state, so they're invariants. Items 3,
-4, 5 and 6 each compare the record at two consecutive moments, so they constrain
-steps and land as action properties. Item 7 is the one that needs "eventually",
-and it's the only liveness obligation here. Item 8 is a condition on the opening
-state, before any step runs.
+Items 1 and 2 are claims about a single state, so they're invariants. Items 3, 4
+and 5 each compare the record at two consecutive moments, so they constrain steps
+and land as action properties. Item 6 is the one that needs "eventually", and it's
+the only liveness obligation here. Item 7 is a condition on the opening state,
+before any step runs. It ships under `PROPERTY` rather than `INVARIANT`, since a
+state predicate named as a property is read at the opening state alone.
 
-The fairness that delivers item 7 sits on one botanist's filing step for one
+The fairness that delivers item 6 sits on one botanist's filing step for one
 sheet, and on no other action. A botanist who marks a sheet doubtful still holds
 an open consultation of it, so their filing step is enabled from that moment and
-stays enabled until they take it. Weak fairness on that one step is what forces
-the mark off. Fairness over a disjunction of a botanist's actions would oblige
+stays enabled until they take it. Weak fairness on that one step is what closes
+the consultation, and closing it is what takes the mark off, so the one fairness
+conjunct delivers both halves. Fairness over a disjunction of a botanist's actions
+would oblige
 none of them, so the reference names the filing step alone. Consulting and
 doubting carry no fairness, which is what leaves rule 7's second half true.
 
 Every step rule above is a claim about the whole record from one moment to the
-next, so items 3, 4, 5 and 6 are each subscripted over the whole of `Observe`
-and never over one of its fields.
+next, so items 3, 4 and 5 are each subscripted over the whole of `Observe` and
+never over one of its fields.
 
 The type invariant is the reference author's. It's declared in the reference cfg
 and it counts as one of the cfg lines. It's never a requirement the learner is
 asked to produce, and nothing above stands in for it.
 
-Each item breaks on a short finite trace over `Observe`, which is what §3.9
-needs downstream. Item 1 falls in a single state, two slips on one sheet both
-stamped 2. Item 2 falls in a single state, a sheet whose top slip carries one
-name and whose accepted name is another. Item 3 falls on one step, a slip
-vanishing off a sheet. Item 4 falls on one step, a slip stamped 2 appearing
-where the only consultation that closed carried stamp 1. Item 5 falls on one
-step, a consultation that moves the accepted name. Item 6 falls on one step, a
-doubtful mark coming off with no slip appearing. Item 8 falls at the opening, a
-sheet with a slip already on it. Item 7 is the one that needs a word about its
-shape: its violating trace is a finite prefix, a botanist consults a sheet and
-marks it doubtful, and then nothing more happens ever again. Each item is also
-satisfied by an ordinary run of the system.
+Each item breaks on a short finite trace over `Observe`. Item 1 falls in a single
+state, two slips on one sheet both stamped 2. Item 2 falls in a single state, a
+sheet whose top slip carries one name and whose accepted name is another. Item 3
+falls on one step, a slip vanishing off a sheet. Item 4 falls on one step, a slip
+stamped 2 appearing where the only consultation that closed carried stamp 1.
+Item 5 falls on one step, a doubtful mark coming off with no slip appearing.
+Item 7 falls at the opening, a sheet with a slip already on it. Item 6 is the one
+that needs a word about its shape: its violating trace is a finite prefix, a
+botanist consults a sheet, and then nothing more happens ever again. Each item is
+also satisfied by an ordinary run of the system.
 
 ## 3. The observation operator
 
@@ -178,25 +184,35 @@ consultation register. The fields are given here as named facts, not as syntax.
 The author renders them over whatever state they chose, one field per line, each
 field an expression over the state.
 
-**slips**: for each sheet, the slips filed on it, each slip a name and a stamp.
-Needed for the record's shape (1), for what the accepted name has to agree with
-(2), for permanence (3), for the way a slip gets onto a sheet (4), and as the
-thing rules 5 and 6 look for in a step.
+**slips**: for each sheet, the set of pairs of a name and a stamp, one pair per
+slip filed on it. The set is the shape of the field whatever the model stores
+underneath, so a sequence or a map from stamp computes it and answers with that.
+This one is pinned rather than left open, because a property ships over `Observe`
+on this rung and it has to read the same way for every author. Needed for the
+record's shape (1), for what the accepted name has to agree with (2), for
+permanence (3), for the way a slip gets onto a sheet (4), and as the thing
+must-be-true 5 looks for in a step.
 
 **consulted**: for each sheet, how many times it has been consulted so far.
 Needed because it's the range every stamp lives in (1), because it never falls
-(3), and because the opening starts it at zero (8).
+(3), and because the opening starts it at zero (7).
 
 **reading**: for each botanist and each sheet, the stamp of that botanist's open
 consultation of that sheet, or a none marker when they hold none. Needed for the
-stamp cap on a filing (4) and for the range clause (1).
+stamp cap on a filing (4), for the range clause (1), for the count landing in the
+consulting botanist's hand (3), and for the obligation (6).
 
 **accepted**: for each sheet, the name the herbarium currently accepts, or a none
-marker. Needed for the agreement rule (2) and for the rule about when it may move
-(5).
+marker. Needed for the agreement rule (2), which pins it to the top slip at every
+moment.
 
 **doubted**: for each sheet, whether it stands marked doubtful. Needed for when a
-mark may come off (6) and for the obligation to answer it (7).
+mark may come off (5) and for the obligation to answer it (6).
+
+**The none marker.** Three fields have an empty case, and they report it the same
+way for every author. `slips` answers with the empty set for a sheet nobody has
+determined. `reading` and `accepted` answer with one none marker, a single value
+that sits outside `Names` and outside the stamps, and it's the same value in both.
 
 **Why the accepted name is its own field.** This is the one real decision in the
 operator, so it gets said plainly. The accepted name has to be reportable as a
@@ -204,8 +220,9 @@ fact in its own right, and never as a reading of the slips. Derive it and
 must-be-true 2 is true by construction, the learner writes `TRUE` in a costume,
 and TLC passes it. So the accepted name is carried as a fact the filing step
 sets, which means a step could in principle move it out of step with the slips.
-Must-be-true 2 is what forbids that, and must-be-true 5 is what says which step
-may move it at all.
+Must-be-true 2 is what forbids that. It pins the accepted name to the top slip in
+every state, so the name can't move unless the slips do, and no separate rule
+about which step may move it earns a line.
 
 **Why the reading is its own field, and it's the hard one.** What a botanist read
 is a fact about the botanist, not about the sheet, and a model that skips it can
@@ -231,24 +248,23 @@ must-be-true reads:
 |---|---|
 | 1 The record is well formed | slips, consulted, reading |
 | 2 The accepted name is the top slip's | slips, accepted |
-| 3 The record only grows | slips, consulted |
+| 3 The record only grows, one consultation at a time | slips, consulted, reading |
 | 4 A slip comes from a consultation | slips, reading |
-| 5 The accepted name moves only on a filing | slips, accepted |
-| 6 A doubt clears only on a filing | slips, doubted |
-| 7 A doubted sheet is re-determined | doubted |
-| 8 The opening | all five |
+| 5 A doubt clears only on a filing | slips, doubted |
+| 6 An open consultation is eventually answered | reading, doubted |
+| 7 The opening | all five |
 
 Then each rule, against the properties that constrain it:
 
 | Rule | Constrained by |
 |---|---|
-| 1 The sheets | 8 for the opening. The fixed-set and one-specimen clauses ride the shape of every field, each of which is indexed by `Sheets`, so there's nowhere to record a sheet that isn't one |
-| 2 Consultation | 1 for the stamp range and the handling allowance, 3 for the count never falling, 8 for the start at zero. The one-open-consultation clause rides `reading`'s shape, which holds one stamp per botanist and sheet and has nowhere to put a second |
-| 3 Determination slips | 4 for the way in, in both halves. It forbids a slip appearing without a consultation closing, and it caps the stamp at what that consultation carried. 1's distinctness clause is what stops a second slip at a stamp already used |
+| 1 The sheets | 7 for the opening. The fixed-set and one-specimen clauses ride the shape of every field, each of which is indexed by `Sheets`, so there's nowhere to record a sheet that isn't one |
+| 2 Consultation | 1 for the stamp range and the handling allowance, 3 for the count never falling, for it rising one at a time, and for the new number landing in the consulting botanist's hand, 7 for the start at zero. The one-open-consultation clause rides `reading`'s shape, which holds one stamp per botanist and sheet and has nowhere to put a second |
+| 3 Determination slips | 4 for the way in and the way out. It forbids a slip appearing without a consultation closing, holds one filing to one slip, caps the stamp at what that consultation carried, and forbids a consultation closing with nothing filed. 1's distinctness clause is what stops a second slip at a stamp already used |
 | 4 The record is permanent | 3 |
-| 5 The accepted name | 2 for what it is at every moment, 5 for the only step that may move it |
-| 6 Doubt | 6 for the way out and 7 for the obligation. The precondition on raising a mark is graded by 7: a mark raised by a botanist holding no open consultation is one no fairness can answer, and 7 catches it |
-| 7 What must happen | 7. What says nothing else must happen is that no other property here needs "eventually" |
+| 5 The accepted name | 2 for what it is at every moment. It pins the name to the top slip in every state, so a step that moves the name has to move the slips, and no step rule of its own is needed |
+| 6 Doubt | 5 for the way out and 6 for the obligation. The precondition on raising a mark is graded by 6: a mark raised by a botanist holding no open consultation is one no fairness can answer, and 6's second half catches it |
+| 7 What must happen | 6, and it's the first half that does it, since a botanist who has consulted a sheet holds an open consultation of it until they file. What says nothing else must happen is that no other property here needs "eventually" |
 
 One clause is ungraded and I'd rather name it than let a reader find it.
 `Observe` shows the record, not the hands in it. "Every step is a botanist's"
@@ -286,14 +302,14 @@ and must not take the other's doubtful mark off. Its allowance of 1 keeps it
 cheap, and a fragile sheet with a short allowance is an ordinary thing in a
 collection.
 
-The arithmetic. On the first sheet the consultation count runs 0 to 2. At a count
-of 2 the reachable records are, as I count them, about 50, once you rule out the
-combinations no run reaches. Add the count-1 and count-0 cases and I make the
-first sheet about 60. The second sheet, capped at 1, is about 8. The two sheets
-move independently, so I make the reachable total about 500. Under 1,000 with
-room, and sub-second. That's an estimate. Nobody has run it. If it runs over,
-drop the second sheet first, which costs the per-sheet checks above and keeps
-everything else.
+The arithmetic. The accepted name isn't a free coordinate here, since must-be-true
+2 ties it to the top slip in every state. On the first sheet the consultation
+count runs 0 to 2. A count of 0 is one state, a count of 1 is six, and a count of
+2 is thirty, so I make the first sheet 37. The second sheet, capped at 1, is 7.
+Nothing couples the two sheets, so I make the reachable total 259. Under 1,000
+with room, and sub-second. That's an estimate. Nobody has run it. If it runs over,
+drop the second sheet first, which costs the per-sheet checks above, saves a
+factor of seven, and keeps everything else.
 
 **Quiescence.** When every consultation is closed and every sheet has reached its
 allowance, no action is enabled and the system stops. That's the intended end of
@@ -332,12 +348,20 @@ the learner a rule that can't be got wrong.
 
 **Where I departed from the screener's sketch** (`reports/step0-screens.md`).
 
-The sketch listed seven rules and I've shipped eight. Three changes, and one of
+The sketch listed seven rules and I've shipped seven. Four changes, and one of
 them is a hole I think the sketch left open.
 
 I folded "no two slips carry the same stamp" into must-be-true 1 rather than
 giving it its own line. It's a well-formedness fact about one sheet's record,
 like the rest of item 1, and the cfg count has a hard ceiling at nine lines.
+
+I dropped "the accepted name moves only on a filing". Must-be-true 2 pins the
+accepted name to the top slip in every state, so a step that moves the name has
+to move the slips, and the rule follows from 2 alone. No trace isolates it
+either, since anything that breaks it breaks 2 in the same state. A line that
+grades nothing is worse than no line, because it reads as coverage. That leaves
+seven must-be-trues and the type invariant, eight cfg lines against the ceiling
+of nine.
 
 I added "a doubt clears only on a filing". Without it the liveness grades almost
 nothing, because a model that lets a mark come off on any step satisfies "a
@@ -349,10 +373,11 @@ step. Rung 1's review was blocked on exactly that shape of gap.
 
 Two smaller ones. The sketch's rule 5 was "a botanist never files a stamp above
 the one they read", and I've made it the fuller way-in rule, so it also forbids a
-slip appearing with no consultation behind it. And the sketch suggested three
-botanists and two sheets with a uniform cap. I make that a few thousand reachable
-states, which is over this rung's ceiling, so I've taken two botanists and a
-per-sheet allowance instead. The allowance is domain-true either way.
+slip appearing with no consultation behind it and a consultation closing with
+nothing filed. And the sketch suggested three botanists and two sheets with a
+uniform cap. I make that a few thousand reachable states, which is over this
+rung's ceiling, so I've taken two botanists and a per-sheet allowance instead.
+The allowance is domain-true either way.
 
 ## 6. Ambiguities resolved, and how they could have gone
 
@@ -397,30 +422,38 @@ per-sheet allowance instead. The allowance is domain-true either way.
 Shape D at representation 2. The learner models the system from the statement,
 then is handed a green TLC run and has to say why the green is worth nothing.
 
-**The seeded defect.** Must-be-true 5, the accepted-name rule, ships subscripted
-over the doubtful marks instead of over the whole of `Observe`.
+**What ships, and what the learner writes.** The learner writes must-be-trues 1 to
+4, 6 and 7 over their own state, and picks every subscript themselves. That's what
+form 1 means on this rung. Must-be-true 5 is the one exception. It arrives
+rendered, with its subscript already chosen, and it's the only thing the green run
+is about. The object handed over is a formula over `Observe`, not a spec and not a
+trace, so it names no variable of anybody's model and gives no state away. That's
+how representation 2 and shape D hold together here.
 
-**Why it passes.** A consultation never touches a doubtful mark, so every
-consultation is a stutter for that formula and the rule is true on it without
-being looked at. The consultation is the step that moves the accepted name in a
-wrong model, which makes it the step the rule was written for. A filing on a
-sheet nobody has marked stutters past as well. What's left is the marking steps
-and the filings that take a mark off, and none of that is where the rule bites.
-TLC returns green and reports no violation, because there was nothing to violate.
+**The seeded defect.** Must-be-true 5, the doubt rule, ships subscripted over
+`Observe.slips` instead of over the whole of `Observe`.
 
-**Why the wrong subscript looks right.** Must-be-true 6 sits next to it and is a
-rule about the doubtful marks, where subscripting over the marks is sound. The
-defect is the neighbour's subscript copied one rule up. I think that's what makes
-it a fair thing to seed rather than a trick. It's the mistake the layout invites.
+**Why it passes.** A doubt clearing with no slip filed leaves `slips` untouched,
+so that step is a stutter for the formula and the rule is true on it without being
+looked at. Those steps are the whole of what the rule was written to catch. Every
+other step either touches `slips`, in which case a slip has appeared and the
+consequent holds anyway, or leaves the marks alone and has nothing to say. TLC
+returns green and reports no violation, because there was nothing to violate.
 
-**Why a learner who modelled the system right catches it.** They know the accepted
-name moves on a filing and on nothing else, so they know which steps rule 5 has
-to see. Reading off which steps the shipped subscript lets through is then
-mechanical. A learner who modelled it wrong has no way in. In particular, one who
-derived the accepted name from the slips has a rule that's true by construction,
-and for them the subscript never mattered in the first place. That's the same
-decision section 3 closed, arriving a second time as the thing that decides
-whether the diagnosis is reachable.
+**Why the wrong subscript looks right.** Must-be-true 4 sits one line up, and it
+opens on a step where a slip appears, so watching `Observe.slips` reads as the
+natural thing to do there. The defect is that subscript copied one line down onto
+a rule whose subject is the marks. I think that's what makes it a fair thing to
+seed rather than a trick. It's the mistake the layout invites.
+
+**Why a learner who modelled the system right catches it.** They know a mark comes
+off on a filing and on nothing else, so they know must-be-true 5 has to see every
+step that clears a mark. Reading off which of those steps the shipped subscript
+lets through is then mechanical. A learner who modelled it wrong has no way in.
+One who let a mark come off on any step has a model this rule can't fault, and
+for them the subscript never mattered, because the hole in the model and the hole
+in the property are the same hole. It takes the liveness with it, which is the cost
+section 5 already names as the reason this rule is on the list at all.
 
 **The live alternative, and where it wins.** Ship a failing trace instead. Have
 the filing step write the accepted name without keeping it in step with the
