@@ -316,7 +316,7 @@ which rewrites `JUDGMENTS.md` and the `J01`–`J07` puzzles by design.
 
 ---
 
-## Hazard — the edit-after-failure guard does not know this project's tests
+## Hazard: the edit-after-failure guard does not know this project's tests
 
 `~/.claude/hooks/edit-after-failure-guard.sh` blocks every Edit and Write after
 a Bash result carries test-failure markers, until a test file is edited. Its
