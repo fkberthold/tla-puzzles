@@ -129,8 +129,18 @@ tier structure by accident, which is what v1 did.
   §3.3, every column-A problem *is* an abstraction-choice problem. The highest-value gap is
   served by the bulk of the set rather than by a few specials.
 
-**Allocation, 60 total:** A 18 (two per situation) · B 8 · C 8 · D 8 · E 6 · F 8 · **+4 reserved
-for the closing coverage audit (§8)**.
+**Allocation, 60 total, AMENDED 2026-09-05:** A 22 · B 8 · C 4 · D 8 · E 6 · F 8 · **+4 reserved
+for the closing coverage audit (§8)**. Until 2026-09-05 this read A 18 and C 8. Frank's reflex
+was that half or more of the set should be A, and the research (bead `tla-h2cg.6`, drawer
+`drawer_tla_puzzles_findings_c374c9b3a8be73d145f527eb`) came back with a curve rather than a
+number. A is the only shape that can carry representation 2 or 3, since B and D ship a spec, so
+A has to grow as the ramp climbs. And assistance should fade as the learner's schemas fill in,
+which for Frank means on the representation dimension and not on systems. So A's share rises
+with position: about 6 of the first 20 problems, 6 of the middle 20, and 10 or more of the
+final 20. The four moved from C, which `tla-y8tb` bounds out on a structural finding. B stays at
+8 because writing a property from prose is the harder direction of the two (Greenman et al.
+2023, 47% error against 23%), and D stays at 8 because reading a trace is a skill nothing else
+here trains. The batch tables under §7.0 carry the share as it's delivered.
 
 **Pure TLA+ ~25:** column F is inherently pure TLA+ (8); back-load ~17 more across A/B/D in the
 final third, concentrated rather than sprinkled.
@@ -424,8 +434,8 @@ task-shape line, and a reading-gate line. The floor's record is `authoring/VECTO
 **`harness/sequence.sh`.** Checks the four clauses over a proposed sequence, and either writes
 the ORDER file or names the hole. Bead `tla-h2cg.3`.
 
-**The ramp itself.** A table of rungs from the floor up. Bead `tla-h2cg.4`, attended, worked
-domain by domain with Frank.
+**The ramp itself.** A table of rungs from the floor up, one batch at a time under §7.0. Bead
+`tla-h2cg.4`, attended, worked domain by domain with Frank. Batch 2's seven rungs are there.
 
 **The drawers.** Design: `drawer_tla_puzzles_decisions_4cd7acae35ef634cf4ebbabb`. Ratings:
 `drawer_tla_puzzles_findings_3a6212dad02ae5bad886e63e` and
@@ -1594,6 +1604,40 @@ human works them.
 **Batch 1 = the DIAGONAL of the §2.1 grid**, ~12 problems. Walking the diagonal maximizes
 situation × task-shape variety in the smallest possible set, so the first telemetry is broad
 rather than deep. Batch 1 is PlusCal (§3b step 2).
+
+**Batch 1 was withdrawn on 2026-09-04 (§2.5).** The six delivered problems all sat in the upper
+half of every load column, and `harness/sequence.sh --search` over their records reports the
+hole at position 1: every one of them breaks clause (b) against the floor. They're a reserve
+now, and a rung near the top may take one if it fits.
+
+**Batch 2 = the first seven rungs from the floor (SETTLED 2026-09-05, bead `tla-h2cg.4`).** One
+new high per rung, shapes rotating B, A, D, every rung gated ch11, so the ch.12 and ch.13
+checkpoint sits after this batch at the earliest. Domains are from §2.2. Each rung runs the full
+§6 pipeline as its own bead under epic `tla-h2cg` (`tla-h2cg.7` to `tla-h2cg.13`, in table
+order), and the statement author writes the rung's `VECTOR.md` at step 4 (§9.6). `harness/sequence.sh --search` over these seven records finds this
+order, and `--check` verifies it against the §2.5 rule.
+
+| # | domain | S | shape | repr | kind | count | src | space | form | new high |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | apprenticeship hour logging | S9 | B | 1 | 2 | 1 | 0 | 0 | 0 | representation 1 |
+| 2 | escape room booking with reset time | S4 | A | 2 | 2 | 1 | 0 | 0 | 0 | representation 2 |
+| 3 | community garden plot allocation | S2 | D | 2 | 2 | 1 | 1 | 0 | 0 | several actors of one kind |
+| 4 | tournament brackets with byes and forfeits | S5 | B | 1 | 3 | 1 | 1 | 0 | 0 | liveness with fairness |
+| 5 | blood bank inventory | S4 | A | 2 | 3 | 2 | 1 | 0 | 0 | five to nine properties |
+| 6 | clinical trial cohort assignment | S6 | D | 2 | 3 | 2 | 1 | 0 | 1 | keyword given, subscript open |
+| 7 | ski pass validation with blackout dates | S4 | A | 2 | 3 | 2 | 2 | 0 | 1 | two kinds of actor |
+
+Four things the table doesn't say on its own. Rung 4 drops representation back to 1 on purpose,
+since drops are free and it keeps liveness from arriving on top of a from-scratch model. State
+space stays at 0 through the whole batch. After rung 7 consign's vector is one new high away, so
+the reserve becomes a per-rung question from rung 8. And rung 3's domain carries a §2.2
+suspicion (the allocator in different dress). Every domain runs both screens at step 0, and if
+one fails, the domain changes and the rung doesn't. A rung's vector says what weight to write
+at, never what the problem is for.
+
+The A share here is 3 of 7. It rises across the set (§2.1, amended). Batch 3 is designed after
+Frank has worked these seven, per the barrier above, and that is where the reading checkpoint
+and shape E first appear.
 
 Budget ~8 agent invocations per problem (1 author + 1 verifier + 1 statement + 1 leakage +
 3 solvers + 1 commenter). At 60 problems that is ~480 invocations. This is the intended scale.
