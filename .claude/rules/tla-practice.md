@@ -378,6 +378,23 @@ In practice it's two lines. `M == INSTANCE Abstract WITH x <- expr` defines
 `M!Spec`. Then either `THEOREM Spec => M!Spec` for a proof, or a definition
 `Refinement == M!Spec` named in the config's `PROPERTY` for TLC to check.
 
+**AMENDED 2026-09-05.** Counted over `tlaplus/Examples` at `ceeaa904`: 23
+configs name a refinement property across 21 distinct pairs. 19 use the plain
+form above. Three use a Toolbox-generated name for the same shape, where the
+module defines `prop_156180051387248000 == C!Spec` and the config names that.
+
+The one shape the plain form misses is an abstract spec that HIDES VARIABLES.
+`MCWriteThroughCache.cfg` reads `PROPERTY LM_Inner_ISpec`, and that operator is
+an inlined hand-copy rather than `LM!Spec`. The module says why at
+`MCWriteThroughCache.tla:45`, "Had we used the actual INSTANCE". When the
+abstract side quantifies its state away with `\EE` there is no `M!Spec` to
+name, so you inline it.
+
+Proof and model-checking overlap and neither contains the other: 15 uncommented
+`THEOREM ... => M!Spec` statements against 21 checked pairs. `TwoPhase`,
+`PConProof` and `BPConProof` are proved and never checked, and their configs
+carry no `PROPERTY` line at all.
+
 Other keyword counts, for calibration: `SYMMETRY` 49 configs, `CONSTRAINT` 49,
 `CHECK_DEADLOCK` 82, `ACTION_CONSTRAINT` 5, `POSTCONDITION` 5.
 
