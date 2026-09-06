@@ -93,7 +93,31 @@ depth="$(awk '/depth of the complete state graph search/ {d=$NF; gsub(/[^0-9]/,"
 [ -n "${distinct:-}"  ] || distinct="-"
 [ -n "${depth:-}"     ] || depth="-"
 
-SRC="$(cat "$DIR/$MODULE.tla")"
+# Close over EXTENDS inside DIR before measuring anything. The isolation spike
+# checked a six-variable model and this reported one, because five of the six
+# were declared in an extended scaffolding module and only the named module was
+# read. A model is what TLC checks, not what one file says.
+#
+# Standard modules are skipped by the -f test, since Naturals and Sequences are
+# not files in the directory. A multi-line EXTENDS is not handled; single-line
+# is the attested form and a missed continuation undercounts rather than
+# inventing a number.
+SEEN=""
+collect() {
+  local mod="$1" f ext e
+  case " $SEEN " in *" $mod "*) return 0 ;; esac
+  SEEN="$SEEN $mod"
+  f="$DIR/$mod.tla"
+  [ -f "$f" ] || return 0
+  cat "$f"
+  ext="$(sed -n 's/^[[:space:]]*EXTENDS[[:space:]]*//p' "$f" | tr ',' ' ')"
+  for e in $ext; do collect "$e"; done
+}
+SRC="$(collect "$MODULE")"
+# collect runs inside a command substitution, so its SEEN never escapes the
+# subshell. Count the module headers in the collected text, which is the same
+# number by construction and does not depend on a variable surviving a fork.
+NMODULES="$(grep -cE '^-{4,}[[:space:]]*MODULE[[:space:]]' <<<"$SRC" || true)"
 # sed rather than ${var//search/replace}, which shellcheck suggests and which
 # is wrong here. This strips a \* comment to end of LINE, and bash pattern
 # replacement has no line concept: * matches newlines too, so the parameter
@@ -128,7 +152,7 @@ ndefs="$(grep -cE '^[A-Za-z_][A-Za-z0-9_]*(\([^)]*\))?[[:space:]]*==' <<<"$CLEAN
 fairness="no";  grep -qE '(WF_|SF_)' <<<"$CLEAN" && fairness="yes"
 temporal="no";  grep -qE '(~>|<>\[\]|\[\]<>|<>)' <<<"$CLEAN" && temporal="yes"
 instance="no";  grep -qE '(^|[^A-Za-z])INSTANCE\b' <<<"$CLEAN" && instance="yes"
-lines="$(wc -l <"$DIR/$MODULE.tla" | tr -d ' ')"
+lines="$(printf '%s\n' "$SRC" | wc -l | tr -d ' ')"
 
 case "$RC" in
   0)              verdict="checked, no violation" ;;
@@ -142,8 +166,8 @@ case "$RC" in
   *)              verdict="unclassified" ;;
 esac
 
-printf 'label\tmodule\trc\tverdict\tsecs\tgenerated\tdistinct\tdepth\tvars\tdefs\tfairness\ttemporal\tinstance\tlines\n'
-printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+printf 'label\tmodule\trc\tverdict\tsecs\tgenerated\tdistinct\tdepth\tvars\tdefs\tfairness\ttemporal\tinstance\tmodules\tlines\n'
+printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
   "${LABEL:--}" "$MODULE" "$RC" "$verdict" "$SECS" \
   "$generated" "$distinct" "$depth" "$nvars" "$ndefs" \
-  "$fairness" "$temporal" "$instance" "$lines"
+  "$fairness" "$temporal" "$instance" "$NMODULES" "$lines"

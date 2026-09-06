@@ -38,7 +38,7 @@ row_for() {
 
 field() {
   local row="$1" name="$2"
-  local hdr='label module rc verdict secs generated distinct depth vars defs fairness temporal instance lines'
+  local hdr='label module rc verdict secs generated distinct depth vars defs fairness temporal instance modules lines'
   local idx
   idx="$(awk -v want="$name" '{for(i=1;i<=NF;i++) if($i==want) print i}' <<<"$hdr")"
   awk -F'\t' -v i="$idx" '{print $i}' <<<"$row"
@@ -81,7 +81,26 @@ expect "Broken vars"      "$(field "$BROKEN" vars)"      "2"
 expect "Broken fairness"  "$(field "$BROKEN" fairness)"  "yes"
 expect "Broken temporal"  "$(field "$BROKEN" temporal)"  "yes"
 
-# 3. Controls. A tool that printed one answer regardless would satisfy several
+# 3. The multi-module fixture. Extender EXTENDS Scaffold, which declares two
+#    variables, and adds a third of its own. This is the shape the isolation
+#    spike used, where the scaffolding carries most of the state, and reading
+#    only the named module reported one variable for a six-variable model.
+EXTENDER="$(row_for Extender)"
+expect "Extender rc"      "$(field "$EXTENDER" rc)"      "0"
+expect "Extender vars"    "$(field "$EXTENDER" vars)"    "3"
+expect "Extender modules" "$(field "$EXTENDER" modules)" "2"
+expect "Tiny modules"     "$(field "$TINY" modules)"     "1"
+
+# The control that names the defect. Extender.tla declares one VARIABLE line of
+# its own, so a tool that read the file alone would report fewer than 3.
+own_decl="$(grep -cE '^[[:space:]]*VARIABLES?' "$FIX/Extender.tla" || true)"
+if [ "$(field "$EXTENDER" vars)" -gt "$own_decl" ]; then
+  ok "control: variables are counted across EXTENDS, not from one file"
+else
+  bad "control: variable count did not follow EXTENDS, which is the isolation-spike defect"
+fi
+
+# 4. Controls. A tool that printed one answer regardless would satisfy several
 #    assertions above by accident, so watch that the two fixtures differ where
 #    they should.
 if [ "$(field "$TINY" rc)" != "$(field "$BROKEN" rc)" ]; then
@@ -102,7 +121,7 @@ else
   bad "control: both fixtures report the same distinct count"
 fi
 
-# 4. The tool refuses what it cannot measure, rather than inventing a row.
+# 5. The tool refuses what it cannot measure, rather than inventing a row.
 set +e
 bash "$TOOL" --dir "$FIX" --module NoSuchModule --budget 5 >/dev/null 2>&1
 rc_missing_module=$?
