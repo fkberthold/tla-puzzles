@@ -190,6 +190,12 @@ SUITES=(
   # all 29 runs of a missing script die at once. The green run reads eleven
   # records and searches over ten of them, which is where the time goes.
   "fast|1.5|ramp sequence|./harness/test-sequence.sh"
+  # Measured 2026-09-05 on the green tree: 0.695 s. It reads 143 rows and
+  # builds six control files. One check inside it does NOT run here: path
+  # resolution needs a 54 MB clone of the corpus and is skipped unless
+  # TLA_CORPUS names one, so the gate reports 7 passed and 1 skipped offline.
+  # CI can set TLA_CORPUS to turn the eighth on.
+  "fast|0.7|corpus manifest|./harness/test-corpus-manifest.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
