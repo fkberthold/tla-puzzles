@@ -1,0 +1,27 @@
+label	module	rc	verdict	secs	generated	distinct	depth	vars	defs	fairness	temporal	instance	lines
+broken-clock-2c-t3	Broken	12	invariant violated	0.4	91	62	7	8	14	no	no	no	115
+fenced-clock-2c-t3	Fenced	0	checked, no violation	0.4	110	74	8	8	17	yes	yes	no	115
+broken-minimal-2c-t1	MCBrokenMinimal	12	invariant violated	0.5	30	22	6	0	0	no	no	no	10
+broken-notick-2c-t0	MCBrokenNoTick	0	checked, no violation	0.5	7	5	3	0	0	no	no	no	9
+fenced-vacuity-witness	MCFencedWitness	12	invariant violated	0.5	87	60	7	0	0	no	no	no	16
+broken-action-property	MCBrokenAction	13	property violated	0.5	46	34	5	0	0	no	no	no	20
+fenced-action-property	MCFencedAction	13	property violated	0.4	46	34	5	0	0	no	no	no	15
+fenced-liveness-fairspec	MCFencedLiveness	13	property violated	0.5	110	74	8	0	0	no	no	no	12
+broken-abstract-2c	BrokenAbstract	12	invariant violated	0.4	27	21	6	5	11	no	no	no	84
+fenced-abstract-2c	FencedAbstract	0	checked, no violation	0.5	41	29	7	6	12	no	no	no	76
+broken-clock-3c-t5	MCBroken3	12	invariant violated	0.5	247	171	7	0	0	no	no	no	7
+fenced-clock-3c-t5	MCFenced3	0	checked, no violation	0.5	1179	684	12	0	0	no	no	no	7
+broken-abstract-3c	MCBrokenAbstract3	12	invariant violated	0.5	55	44	6	0	0	no	no	no	7
+fenced-abstract-3c	MCFencedAbstract3	0	checked, no violation	0.5	400	241	10	0	0	no	no	no	7
+fenced-abstract-4c	MCFencedAbstract4	0	checked, no violation	0.5	5385	2777	13	0	0	no	no	no	7
+fenced-abstract-5c	MCFencedAbstract5	0	checked, no violation	0.9	92066	41021	16	0	0	no	no	no	7
+fenced-ge-offbyone-2c-t3	FencedGE	0	checked, no violation	0.4	110	74	8	8	13	no	no	no	91
+restart-strict-gt-2c	FencedRestart	0	checked, no violation	0.5	511	284	9	11	17	no	no	no	146
+restart-offbyone-ge-2c	MCFencedRestartGE	12	invariant violated	0.4	212	126	6	0	0	no	no	no	7
+restart-strict-lockout	MCFencedRestartLockout	12	invariant violated	0.4	207	123	6	0	0	no	no	no	9
+fenced-clock-2c-t6	MCFencedT6	0	checked, no violation	0.5	455	269	11	0	0	no	no	no	7
+fenced-clock-2c-t12	MCFencedT12	0	checked, no violation	0.5	1901	1037	17	0	0	no	no	no	7
+fenced-clock-2c-t24	MCFencedT24	0	checked, no violation	0.5	7817	4085	29	0	0	no	no	no	7
+fenced-clock-2c-t48	MCFencedT48	0	checked, no violation	0.7	31745	16229	53	0	0	no	no	no	7
+broken-clock-unbounded-2c	BrokenUnbounded	12	invariant violated	0.5	143	100	7	7	10	no	no	no	67
+fenced-clock-unbounded-2c	FencedUnbounded	124	hit the 120s budget	120.1	-	24,676,165	-	8	12	no	no	no	87
