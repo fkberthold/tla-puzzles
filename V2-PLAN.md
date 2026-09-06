@@ -1,3 +1,10 @@
+> **SUPERSEDED 2026-09-05 by `PRACTICE-PLAN.md`.** This file is the record of
+> how the project got here and nothing in it has been deleted. It is no longer
+> the live plan. The grading engine, the vacuity and seeded-bug harnesses, the
+> screens, the observation interface, the load vector and the shape taxonomy
+> described below are all retired. Read `PRACTICE-PLAN.md` first, and read this
+> when you need to know why something was tried.
+
 # V2 Rebuild — Execution Plan
 
 **Status:** handoff document, written 2026-08-06. Tracked by bead **`tla-qpm`**.
