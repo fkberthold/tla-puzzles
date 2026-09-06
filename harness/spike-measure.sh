@@ -23,6 +23,16 @@
 # is deliberate: the `rc` column is authoritative and every other column is
 # descriptive.
 #
+# WHAT `fairness` AND `temporal` ACTUALLY SAY
+#
+# They report what the module TEXT declares, not what the configuration checks.
+# A module can carry a WF_ conjunct that no .cfg ever names, and this prints yes
+# for it. That is the useful reading rather than an oversight: a declared
+# fairness conjunct nobody consumes is a real and recurring shape, found
+# independently in the corpus survey and in an RFC candidate, and a column that
+# hid it would hide a finding. Read them as "the model needed this", never as
+# "the check used this".
+#
 # Lineage: bead tla-frpu.
 
 set -euo pipefail
@@ -128,20 +138,37 @@ CLEAN="$(strip "$SRC")"
 
 # No \b here. mawk does not implement it, and with it this counted zero
 # variables on a module that plainly declares four.
+# A declaration block runs from the VARIABLES keyword until a definition, a
+# blank line, or a module rule. Two bugs lived here and both printed a
+# confident wrong number:
+#
+#   - anchoring on \b counted zero, since this awk does not implement it
+#   - falling back to re-reading the keyword line when nothing followed the
+#     keyword counted the word VARIABLES itself, so a 7-variable model read 8
+#
+# The second is why the block below tracks whether it has already consumed the
+# keyword line rather than testing whether a variable is empty. An empty
+# remainder is a real answer, not a signal to look again.
 nvars="$(awk '
+  function tally(s,   n, a, i) {
+    n = split(s, a, /[ ,\t]+/)
+    for (i = 1; i <= n; i++)
+      if (a[i] ~ /^[A-Za-z_][A-Za-z0-9_]*$/) c++
+  }
   /^[[:space:]]*VARIABLES?([ \t]|$)/ {
-    grab=1
-    line=$0
-    sub(/^[[:space:]]*VARIABLES?/,"",line)
+    if (!grab) {
+      grab = 1
+      rest = $0
+      sub(/^[[:space:]]*VARIABLES?/, "", rest)
+      tally(rest)
+      next
+    }
   }
   grab {
-    if (!line) line=$0
-    if (line ~ /==/ || line ~ /^[[:space:]]*$/ || line ~ /^-{4}/) { grab=0; line=""; next }
-    n=split(line, a, /[ ,\t]+/)
-    for(i=1;i<=n;i++) if (a[i] ~ /^[A-Za-z_][A-Za-z0-9_]*$/) c++
-    line=""
+    if ($0 ~ /==/ || $0 ~ /^[[:space:]]*$/ || $0 ~ /^-{4}/) { grab = 0; next }
+    tally($0)
   }
-  END{print c+0}' <<<"$CLEAN")"
+  END { print c+0 }' <<<"$CLEAN")"
 
 # Top-level definitions, not actions. An earlier version tried to count
 # actions and read 0 on two specs that plainly have them, because it only
