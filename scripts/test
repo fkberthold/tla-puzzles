@@ -196,6 +196,12 @@ SUITES=(
   # TLA_CORPUS names one, so the gate reports 7 passed and 1 skipped offline.
   # CI can set TLA_CORPUS to turn the eighth on.
   "fast|0.7|corpus manifest|./harness/test-corpus-manifest.sh"
+  # Measured 2026-09-06 on the green tree: 1.37 and 1.30 s over two serial
+  # runs. Two real TLC runs against tiny fixtures plus three argument-refusal
+  # checks. It is here rather than in the slow tier because both fixtures are
+  # a 3 by 3 grid, and it needs to stay that way: the point of the suite is
+  # the parsers, not the model checker.
+  "fast|1.4|spike measurement|./harness/test-spike-measure.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
