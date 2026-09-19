@@ -176,13 +176,13 @@ SUITES=(
   "fast|1.1|printed commands|./harness/test-printed-commands.sh"
   "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
-  # Measured 2026-09-18 on the red tree, where all 20 invocations die at "No
-  # such file or directory": 0.152 / 0.176 / 0.170 s over three serial runs,
-  # so 0.2 is the slowest of the three rounded up. It builds eight fixture roots
+  # Measured 2026-09-18 on the red tree, where all 23 invocations die at "No
+  # such file or directory": 0.225 / 0.225 / 0.224 s over three serial runs, so
+  # 0.3 is the slowest of the three rounded up. It builds eleven fixture roots
   # out of mkdir and printf and runs no TLC at all, so I expect the green tree
-  # to land in the same tenth of a second. Re-measure once
+  # to land in the same quarter-second. Re-measure once
   # scripts/number-problems.sh exists rather than trusting that.
-  "fast|0.2|problem numbering|./harness/test-number-problems.sh"
+  "fast|0.3|problem numbering|./harness/test-number-problems.sh"
   # Budget measured on the red tree, where the digest check does not exist yet
   # and part 1 stops at the first fetch: 0.2 s over two runs. Once the check
   # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and

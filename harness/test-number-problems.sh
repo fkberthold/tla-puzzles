@@ -41,6 +41,34 @@
 #   a usage error, a missing root, or a missing ORDER.
 #
 # ---------------------------------------------------------------------------
+# TWO AMENDMENTS, 2026-09-18
+#
+# The first draft of this suite left two cases open because the contract didn't
+# settle them. Central settled both, and they're pinned below.
+#
+# A. --check catches a FOURTH shape. An ORDER entry whose directory sits under
+#    its bare name has no number, and that's a disagreement. --check exits 1
+#    and names it. Without this the gate goes green on exactly the tree a bare
+#    run would rewrite, which is the drift the gate exists to catch.
+#
+#    So --check exits 1 on four shapes. A numbered directory ORDER doesn't
+#    name. A number that disagrees with its position. An entry with no
+#    directory under either spelling. An entry whose directory is still bare.
+#
+# B. The bare run FAILS CLOSED. A numbered stranger, or an ORDER entry with no
+#    directory under either spelling, stops the whole run. It renames nothing,
+#    reports, and exits 1.
+#
+#    The reason is the tree it works on. ~/tla-practice is not a git repo and
+#    holds live attempt state, so a rename the script can't account for is a
+#    guess that doesn't come back. A partial application is worse than a
+#    refusal, because it leaves a tree nobody can reason about. One name it
+#    can't account for stops everything and tells the human.
+#
+#    An unnumbered stranger triggers none of this. scratch-pad in the happy
+#    path stays exactly where it is.
+#
+# ---------------------------------------------------------------------------
 # WHY EVERY RUN IS SANDBOXED TWICE
 #
 # The real tree at ~/tla-practice is not a git repo, so a bad rename doesn't
@@ -68,28 +96,18 @@
 # tree exactly as it found it, so "nothing moved" only means something once the
 # run it survived exited the code the contract promised.
 #
-# Each of the three disagreement fixtures carries exactly one defect. Three
-# roots that each exit 1 for a different reason is what tells the shapes apart.
-# A single root holding all three would go green on a script that caught one.
+# Each of the four --check fixtures carries exactly one defect. Four roots that
+# each exit 1 for a different reason is what tells the shapes apart. A single
+# root holding all four would go green on a script that caught one.
+#
+# The two fail-closed fixtures are built the other way round on purpose. Each
+# holds a name the script can't account for AND two entries it could have
+# renamed, because "it renamed nothing" only says something when there was
+# something to rename.
 #
 # Message text is not pinned. The contract says --check reports and doesn't say
 # what it prints, so the reports assertions require the offending name to
 # appear somewhere across stdout and stderr, and nothing more.
-#
-# ---------------------------------------------------------------------------
-# WHAT THIS SUITE DELIBERATELY LEAVES OPEN
-#
-# Two cases the contract doesn't settle, so nothing here asserts either way.
-#
-#   A numbered stranger in a run with no flag. The contract calls it an error
-#   and lists exit 1 for "a disagreement under --check, or a rename that could
-#   not complete", which is neither of those. --check catching it is pinned
-#   below. The bare run isn't.
-#
-#   A bare directory that wants a number, under --check. It's what the bare run
-#   renames, so I'd expect --check to call it a disagreement, but it isn't one
-#   of the three shapes the contract enumerates. Every --check fixture below is
-#   pre-numbered so the question never arises.
 
 set -uo pipefail
 
@@ -124,9 +142,14 @@ ROOT_CLEAN="$TMPROOT/clean"       # already numbered and correct
 ROOT_STRANGE="$TMPROOT/stranger"  # shape 1: a numbered directory ORDER doesn't name
 ROOT_MISNUM="$TMPROOT/misnum"     # shape 2: a number that disagrees with its position
 ROOT_MISSING="$TMPROOT/missing"   # shape 3: an entry with no directory behind it
+ROOT_UNNUM="$TMPROOT/unnumbered"  # shape 4: an entry still under its bare name
 ROOT_RENUM="$TMPROOT/renum"       # the rename side of shape 2
 ROOT_NOORDER="$TMPROOT/noorder"   # a root with no ORDER file
 ROOT_ABSENT="$TMPROOT/absent"     # never created, on purpose
+
+# Amendment B, the two trees a bare run has to refuse outright.
+ROOT_SHUT_STRANGE="$TMPROOT/shut-stranger"
+ROOT_SHUT_MISSING="$TMPROOT/shut-missing"
 
 DEFAULT_ROOT="$SANDBOX_HOME/tla-practice/problems"
 
@@ -200,6 +223,33 @@ mkdir -p "$ROOT_MISSING"
 printf 'alpha\nbeta\ngamma\n' >"$ROOT_MISSING/ORDER"
 make_problem "$ROOT_MISSING" 01_alpha "alpha"
 make_problem "$ROOT_MISSING" 02_beta  "beta"
+
+# --- shape 4: an entry still sitting under its bare name ---------------------
+#
+# alpha is already correct, so beta carrying no number is the only defect in
+# the root. This is the one --check fixture that isn't fully pre-numbered, and
+# it has to be, because being bare is the shape under test.
+mkdir -p "$ROOT_UNNUM"
+printf 'alpha\nbeta\n' >"$ROOT_UNNUM/ORDER"
+make_problem "$ROOT_UNNUM" 01_alpha "alpha"
+make_problem "$ROOT_UNNUM" beta     "beta"
+
+# --- amendment B: two trees the bare run has to refuse ----------------------
+#
+# Both hold two bare entries the script could number, plus one name it can't
+# account for. The bare entries are the whole point. A run that numbers what it
+# understands and then stops has left a half-applied tree, and that tree has no
+# git history to come back from.
+mkdir -p "$ROOT_SHUT_STRANGE"
+printf 'alpha\nbeta\n' >"$ROOT_SHUT_STRANGE/ORDER"
+make_problem "$ROOT_SHUT_STRANGE" alpha           "alpha"
+make_problem "$ROOT_SHUT_STRANGE" beta            "beta"
+make_problem "$ROOT_SHUT_STRANGE" 07_ghost-tender "a numbered stranger, an error"
+
+mkdir -p "$ROOT_SHUT_MISSING"
+printf 'alpha\nbeta\ngamma\n' >"$ROOT_SHUT_MISSING/ORDER"
+make_problem "$ROOT_SHUT_MISSING" alpha "alpha"
+make_problem "$ROOT_SHUT_MISSING" beta  "beta"
 
 # --- the rename side of shape 2 ---------------------------------------------
 mkdir -p "$ROOT_RENUM"
@@ -508,6 +558,26 @@ assert_unchanged "--check invents no directory for the missing entry" \
 
 # ---------------------------------------------------------------------------
 echo
+echo "== shape 4: an ORDER entry still sitting under its bare name =="
+# ---------------------------------------------------------------------------
+
+# Amendment A. This is the shape that makes --check worth running at all. A
+# gate that passes here passes on precisely the tree a bare run would rewrite,
+# so it would report "in step" about a tree that is out of step.
+UNNUM_BEFORE=$(snapshot "$ROOT_UNNUM")
+
+run_np --check "$ROOT_UNNUM"
+
+assert_rc "--check exits 1 when beta still sits under its bare name" 1
+
+assert_says "--check names the entry carrying no number" \
+  'beta' "$RUN_ALL"
+
+assert_unchanged "--check numbers nothing itself" \
+  "$ROOT_UNNUM" "$UNNUM_BEFORE" 1
+
+# ---------------------------------------------------------------------------
+echo
 echo "== a bare run renumbers a directory it numbered before =="
 # ---------------------------------------------------------------------------
 
@@ -529,6 +599,68 @@ assert_marker "03_gamma is left where it already was" \
 run_np --check "$ROOT_RENUM"
 
 assert_rc "--check is green once the bare run has fixed the tree" 0
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the bare run fails closed, and renames nothing on the way out =="
+# ---------------------------------------------------------------------------
+
+# Amendment B, and the closed half of the section above. That one proves a bare
+# run renames when every name is accountable. These two prove it renames
+# nothing when one name isn't.
+#
+# The rows that carry the weight are the ones saying alpha stayed bare. Exit 1
+# alone is satisfied by a script that numbered alpha and beta, hit the name it
+# couldn't place, and gave up holding a half-applied tree. That tree is the
+# outcome the refusal exists to prevent.
+#
+# Fresh roots rather than the --check ones above, so a script that mutates
+# under --check fails that section instead of quietly poisoning this one.
+
+SHUT_STRANGE_BEFORE=$(snapshot "$ROOT_SHUT_STRANGE")
+
+run_np "$ROOT_SHUT_STRANGE"
+
+assert_rc "a bare run exits 1 on a numbered stranger" 1
+
+assert_says "the bare run names the numbered stranger" \
+  'ghost-tender' "$RUN_ALL"
+
+assert_unchanged "the bare run leaves the whole tree alone" \
+  "$ROOT_SHUT_STRANGE" "$SHUT_STRANGE_BEFORE" 1
+
+assert_marker "alpha is still bare, not numbered ahead of the refusal" \
+  "$ROOT_SHUT_STRANGE/alpha/MARK" "alpha" 1
+
+assert_gone "no 01_alpha was created before the run gave up" \
+  "$ROOT_SHUT_STRANGE" 01_alpha 1
+
+assert_gone "no 02_beta was created before the run gave up" \
+  "$ROOT_SHUT_STRANGE" 02_beta 1
+
+SHUT_MISSING_BEFORE=$(snapshot "$ROOT_SHUT_MISSING")
+
+run_np "$ROOT_SHUT_MISSING"
+
+assert_rc "a bare run exits 1 when gamma has no directory" 1
+
+assert_says "the bare run names the entry with nothing behind it" \
+  'gamma' "$RUN_ALL"
+
+assert_unchanged "the bare run leaves the whole tree alone when an entry is missing" \
+  "$ROOT_SHUT_MISSING" "$SHUT_MISSING_BEFORE" 1
+
+# alpha and beta sit at positions 1 and 2 and are both accountable. Only gamma,
+# at position 3, has nothing behind it. A script that works down the list
+# renames these two before it ever reaches the problem.
+assert_marker "alpha is still bare when a later entry is missing" \
+  "$ROOT_SHUT_MISSING/alpha/MARK" "alpha" 1
+
+assert_gone "no 01_alpha was created before the missing entry was found" \
+  "$ROOT_SHUT_MISSING" 01_alpha 1
+
+assert_gone "no 02_beta was created before the missing entry was found" \
+  "$ROOT_SHUT_MISSING" 02_beta 1
 
 # ---------------------------------------------------------------------------
 echo
