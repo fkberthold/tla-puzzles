@@ -69,6 +69,31 @@
 #    path stays exactly where it is.
 #
 # ---------------------------------------------------------------------------
+# THREE RULINGS ON PHASE 3, AND ONE ON THE MATCH (bead tla-rgpe)
+#
+# Phase 3 applied its renames through two loops of bare mv with nothing reading
+# a return code, so a rename that failed was skipped and the run still exited
+# 0. That is the "a rename that could not complete" clause of the contract,
+# unimplemented. Central settled how it should behave, and the three rulings
+# are pinned in the two sections above the structural one.
+#
+# 1. Every mv is checked. A failure names the rename and exits 1.
+#
+# 2. No rollback. The renames already applied stay applied. Undoing them means
+#    more code running on a tree that is already wrong, and this tree has no
+#    history to fall back on. The run reports the exact state and stops, and it
+#    names the temp suffix so a human can find what is parked.
+#
+# 3. A directory whose name carries .number-problems-tmp. is the residue of a
+#    run that died between the two passes. --check names it and exits 1, and a
+#    bare run refuses rather than renaming around it.
+#
+# The fourth change is smaller and has no ruling behind it. The ORDER entry was
+# interpolated straight into an extended regex, so an entry carrying a dot or a
+# plus matched more than itself. Nothing in the ramp does today, which is why
+# the fixture for it has to be built rather than borrowed.
+#
+# ---------------------------------------------------------------------------
 # WHY EVERY RUN IS SANDBOXED TWICE
 #
 # The real tree at ~/tla-practice is not a git repo, so a bad rename doesn't
@@ -119,9 +144,18 @@ TEST_RUNNER="scripts/test"
 
 pass_count=0
 fail_count=0
+skip_count=0
 
 ok()   { printf "  PASS  %s\n" "$1"; pass_count=$((pass_count + 1)); }
 nope() { printf "  FAIL  %s\n" "$1"; fail_count=$((fail_count + 1)); }
+
+# skip <label> <reason>
+#
+# A row this box cannot run, printed rather than passed. Its one caller is the
+# read-only-root section, which needs a permission bit root ignores. Counting a
+# row like that as a pass would report coverage the run never had, and the
+# suite would go green on a box that tested three fewer things.
+skip() { printf "  SKIP  %s. %s\n" "$1" "$2"; skip_count=$((skip_count + 1)); }
 
 SCRIPT_PRESENT=0
 [ -f "$SCRIPT" ] && SCRIPT_PRESENT=1
@@ -146,6 +180,19 @@ ROOT_UNNUM="$TMPROOT/unnumbered"  # shape 4: an entry still under its bare name
 ROOT_RENUM="$TMPROOT/renum"       # the rename side of shape 2
 ROOT_NOORDER="$TMPROOT/noorder"   # a root with no ORDER file
 ROOT_ABSENT="$TMPROOT/absent"     # never created, on purpose
+
+# The phase-3 roots, added by bead tla-rgpe.
+ROOT_REGEX="$TMPROOT/regex"             # an ORDER entry carrying a regex metacharacter
+ROOT_MVFAIL="$TMPROOT/mvfail"           # a rename blocked by an occupied final name
+ROOT_MVPERM="$TMPROOT/mvperm"           # a rename blocked by a read-only root
+ROOT_STRAND="$TMPROOT/strand"           # the residue of a run that died mid-rename
+ROOT_STRAND_BARE="$TMPROOT/strand-bare" # the same residue, under a bare run
+
+# The suffix phase 3 parks a directory under between its two rename passes.
+# The script appends its own PID. 31337 is a PID no run of this suite will
+# carry, so a fixture built with it reads as residue left by an earlier run and
+# never as something the run under test just made.
+STRAND_SUFFIX=".number-problems-tmp.31337"
 
 # Amendment B, the two trees a bare run has to refuse outright.
 ROOT_SHUT_STRANGE="$TMPROOT/shut-stranger"
@@ -257,6 +304,65 @@ printf 'alpha\nbeta\ngamma\n' >"$ROOT_RENUM/ORDER"
 make_problem "$ROOT_RENUM" 01_alpha "alpha"
 make_problem "$ROOT_RENUM" 05_beta  "beta"
 make_problem "$ROOT_RENUM" 03_gamma "gamma"
+
+# --- an ORDER entry carrying a regex metacharacter --------------------------
+#
+# ORDER names two.phase and the tree holds twoxphase and nothing else. The two
+# names differ, so the entry has no directory behind it and the run has to
+# refuse. A script that builds ^([0-9]+_)?two.phase$ and matches on it reads
+# the dot as "any character", finds twoxphase, and numbers a directory ORDER
+# never named.
+#
+# Every name in the ramp today is lowercase letters and hyphens, so nothing in
+# the real tree turns on this. That is the reason to pin it now rather than
+# after a name with a dot in it lands.
+mkdir -p "$ROOT_REGEX"
+printf 'two.phase\n' >"$ROOT_REGEX/ORDER"
+make_problem "$ROOT_REGEX" twoxphase "a name ORDER does not name"
+
+# --- a rename blocked by an occupied final name -----------------------------
+#
+# 02_beta here is a plain file, not a directory, so both sweeps walk past it:
+# they glob "$root"/*/ and a file does not match. The tree validates clean, the
+# plan carries one rename, and phase 3 parks 05_beta under its temp suffix and
+# then cannot move it onto the name a file already holds.
+#
+# The occupied name is what makes this fixture work as any user. The sibling
+# below blocks the same rename with a permission bit, which root ignores.
+mkdir -p "$ROOT_MVFAIL"
+printf 'alpha\nbeta\n' >"$ROOT_MVFAIL/ORDER"
+make_problem "$ROOT_MVFAIL" 01_alpha "alpha"
+make_problem "$ROOT_MVFAIL" 05_beta  "beta"
+printf 'a plain file wearing the name 05_beta has to take\n' >"$ROOT_MVFAIL/02_beta"
+
+# --- a rename blocked by a read-only root -----------------------------------
+#
+# Both entries are bare and both need renaming, so the first mv of phase 3 is
+# the one that fails and nothing gets as far as the temp suffix. The chmod
+# lands in the section itself rather than here, so the root spends as little
+# time unwritable as it can and the EXIT trap can always clean up.
+mkdir -p "$ROOT_MVPERM"
+printf 'alpha\nbeta\n' >"$ROOT_MVPERM/ORDER"
+make_problem "$ROOT_MVPERM" alpha "alpha"
+make_problem "$ROOT_MVPERM" beta  "beta"
+
+# --- the residue of a run that died mid-rename ------------------------------
+#
+# Both roots are in step apart from the parked directory, so that name is the
+# only thing either run has to object to. ROOT_STRAND_BARE carries one bare
+# entry on top, because "it renamed nothing" says nothing unless there was
+# something there to rename.
+mkdir -p "$ROOT_STRAND"
+printf 'alpha\nbeta\n' >"$ROOT_STRAND/ORDER"
+make_problem "$ROOT_STRAND" 01_alpha "alpha"
+make_problem "$ROOT_STRAND" 02_beta  "beta"
+make_problem "$ROOT_STRAND" "02_beta$STRAND_SUFFIX" "beta, parked by a run that died"
+
+mkdir -p "$ROOT_STRAND_BARE"
+printf 'alpha\nbeta\n' >"$ROOT_STRAND_BARE/ORDER"
+make_problem "$ROOT_STRAND_BARE" alpha   "alpha"
+make_problem "$ROOT_STRAND_BARE" 02_beta "beta"
+make_problem "$ROOT_STRAND_BARE" "02_beta$STRAND_SUFFIX" "beta, parked by a run that died"
 
 # --- a root with no ORDER ---------------------------------------------------
 mkdir -p "$ROOT_NOORDER"
@@ -752,6 +858,161 @@ fi
 
 # ---------------------------------------------------------------------------
 echo
+echo "== an ORDER entry is matched literally, not as a regex =="
+# ---------------------------------------------------------------------------
+
+# The bare run rather than --check, because the bare run is where the damage
+# is. Under --check a loose match and a missing entry both exit 1, so --check
+# cannot tell the two apart. The bare run renames on one and refuses on the
+# other, and the tree afterwards says which one happened.
+REGEX_BEFORE=$(snapshot "$ROOT_REGEX")
+
+run_np "$ROOT_REGEX"
+
+assert_rc "a bare run exits 1 when two.phase has no directory of its own" 1
+
+assert_says "the report names the entry nothing matched" \
+  'two\.phase' "$RUN_ALL"
+
+assert_unchanged "twoxphase is not renamed into the entry's place" \
+  "$ROOT_REGEX" "$REGEX_BEFORE" 1
+
+assert_marker "twoxphase keeps its name and its contents" \
+  "$ROOT_REGEX/twoxphase/MARK" "a name ORDER does not name" 1
+
+assert_gone "no 01_two.phase is invented out of a loose match" \
+  "$ROOT_REGEX" "01_two.phase" 1
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a rename that cannot complete stops the run =="
+# ---------------------------------------------------------------------------
+
+# Phase 3 ran two loops of bare mv with nothing reading a return code, so a
+# rename that failed was skipped and the run still exited 0. The contract has
+# said exit 1 on a rename that could not complete since the first draft, and
+# these rows are that clause.
+#
+# None of them asks for a rollback, and that is the ruling rather than an
+# omission. Undoing a half-applied rename means more code running on a tree
+# that is already wrong, and this tree has no history to fall back on. The run
+# says where it stopped and stops.
+
+run_np "$ROOT_MVFAIL"
+
+assert_rc "a bare run exits 1 when a rename cannot complete" 1
+
+# mv prints its own complaint, and that complaint carries the final name and
+# the parked name. It does not carry 05_beta. So a row that matches 05_beta in
+# the script's own voice stays red against a run that lets mv do all the
+# talking, which is what the two bare loops did.
+assert_says "the report names the directory whose rename could not complete" \
+  'number-problems\.sh:.*05_beta' "$RUN_ALL"
+
+assert_says "the report names the temp suffix the directory is parked under" \
+  'number-problems\.sh:.*\.number-problems-tmp\.' "$RUN_ALL"
+
+# The no-rollback ruling, read off the tree rather than off the report. The
+# parked directory is still parked and still holds beta's attempt state.
+#
+# Globbed rather than piped into head. `find ... | head -1` returns 141 under
+# pipefail (bead tla-kr9) and harness/test-pipefail.sh bans the form.
+MVFAIL_PARKED=""
+for d in "$ROOT_MVFAIL"/*.number-problems-tmp.*/; do
+  [ -d "$d" ] || continue
+  MVFAIL_PARKED="${d%/}"
+  break
+done
+
+if [ "$RUN_RC" -ne 1 ]; then
+  nope "the parked directory is left where it is. The run exited $RUN_RC, not 1, so the state of the tree proves nothing"
+elif [ -z "$MVFAIL_PARKED" ]; then
+  nope "the parked directory is left where it is. Nothing under the temp suffix survived the failure"
+else
+  assert_marker "the parked directory is left where it is, with its contents" \
+    "$MVFAIL_PARKED/MARK" "beta" 1
+fi
+
+# The same clause reached through a permission bit instead of an occupied
+# name. This one stops on the first rename, so nothing reaches the temp suffix
+# and the tree comes out untouched.
+#
+# root ignores the bit, the renames then succeed, and all three rows would
+# report a defect the script does not have. So they say so and do not run.
+if [ "$(id -u)" -eq 0 ]; then
+  skip "a bare run exits 1 when the root cannot be written" \
+    "running as root, which ignores the permission bit this row is built on"
+  skip "the report names the rename that could not start" \
+    "running as root, which ignores the permission bit this row is built on"
+  skip "a blocked first rename leaves the whole tree alone" \
+    "running as root, which ignores the permission bit this row is built on"
+else
+  MVPERM_BEFORE=$(snapshot "$ROOT_MVPERM")
+
+  chmod 555 "$ROOT_MVPERM"
+  run_np "$ROOT_MVPERM"
+  chmod 755 "$ROOT_MVPERM"
+
+  assert_rc "a bare run exits 1 when the root cannot be written" 1
+
+  assert_says "the report names the rename that could not start" \
+    'number-problems\.sh:.*alpha' "$RUN_ALL"
+
+  assert_unchanged "a blocked first rename leaves the whole tree alone" \
+    "$ROOT_MVPERM" "$MVPERM_BEFORE" 1
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the residue of a run that died mid-rename =="
+# ---------------------------------------------------------------------------
+
+# Phase 3 parks each directory under <final><suffix> and then moves it to
+# <final>. A run that dies between the two passes leaves the parked name in
+# the tree.
+#
+# Read the two exit codes here as regression pins rather than as new ground. A
+# parked name opens with digits and an underscore, so it already trips the
+# numbered-stranger sweep and both roots already exit 1. What the script gets
+# wrong is the diagnosis. It tells the reader ORDER does not name the
+# directory, which sends them to edit ORDER, when what happened is that a run
+# died and left its own working name behind.
+#
+# So one row below pins message text, and it is the only row in this suite
+# that does. Two diagnoses that both exit 1 cannot be told apart any other way,
+# and which of the two a human reads is the whole value of the ruling.
+STRAND_BEFORE=$(snapshot "$ROOT_STRAND")
+
+run_np --check "$ROOT_STRAND"
+
+assert_rc "--check exits 1 on a stranded temp directory" 1
+
+assert_says "--check names the stranded directory" \
+  '02_beta\.number-problems-tmp\.31337' "$RUN_ALL"
+
+assert_says "--check calls it stranded residue and not a numbered stranger" \
+  '[Ss]tranded temp director' "$RUN_ALL"
+
+assert_unchanged "--check clears none of it away itself" \
+  "$ROOT_STRAND" "$STRAND_BEFORE" 1
+
+STRAND_BARE_BEFORE=$(snapshot "$ROOT_STRAND_BARE")
+
+run_np "$ROOT_STRAND_BARE"
+
+assert_rc "a bare run exits 1 on a stranded temp directory" 1
+
+assert_says "the bare run names the stranded directory" \
+  '02_beta\.number-problems-tmp\.31337' "$RUN_ALL"
+
+assert_unchanged "the bare run renames nothing around the residue" \
+  "$ROOT_STRAND_BARE" "$STRAND_BARE_BEFORE" 1
+
+assert_marker "alpha is still bare, not numbered around the residue" \
+  "$ROOT_STRAND_BARE/alpha/MARK" "alpha" 1
+
+# ---------------------------------------------------------------------------
+echo
 echo "== structural: the suite registration =="
 # ---------------------------------------------------------------------------
 
@@ -769,6 +1030,9 @@ else
 fi
 
 echo
+if [ "$skip_count" -ne 0 ]; then
+  printf "SKIPPED: %d assertions this box cannot run\n" "$skip_count"
+fi
 if [ "$fail_count" -ne 0 ]; then
   printf "FAILED: %d passed, %d failed\n" "$pass_count" "$fail_count" >&2
   exit 1
