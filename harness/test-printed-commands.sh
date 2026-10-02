@@ -188,7 +188,8 @@ audit_non_chapters() {
   return 0
 }
 
-CHAPTERS=(02 03 04 05 06 07 08 09 10 11)
+derive_chapters "$EXERCISES_ROOT"
+CHAPTERS=("${DERIVED[@]}")
 
 pass_count=0
 fail_count=0
