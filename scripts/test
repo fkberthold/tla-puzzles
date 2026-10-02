@@ -170,7 +170,13 @@ fi
 # three serial runs on the box named in the header. The tier column is derived
 # from it. Keep the rows sorted by budget within each tier.
 SUITES=(
-  "fast|0.7|pipefail idiom ban|./harness/test-pipefail.sh"
+  # Re-measured 2026-10-02: 2.94 / 2.86 / 2.88 s over three serial runs, up from
+  # 0.7. This suite scans every shell file under harness/ by shebang, so its cost
+  # tracks the size of that tree rather than anything about itself. tla-i3zu and
+  # tla-rsjc added 663 lines there in one night. It already read 1.2 to 1.3 s
+  # against 0.7 before those landed, so part of this was stale and part is new.
+  # Neither part tripped the drift nudge, since 2.9 - 0.7 is under the 5 s clause.
+  "fast|3.0|pipefail idiom ban|./harness/test-pipefail.sh"
   "fast|1.0|puzzle screen|./harness/screen.sh --selftest"
   # Re-measured on the green tree 2026-10-01 after tla-i3zu: 1.123 / 1.112 /
   # 1.109 s standalone over three serial runs, and 1.2 s inside the full gate.
