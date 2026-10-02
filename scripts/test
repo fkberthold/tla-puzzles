@@ -210,7 +210,13 @@ SUITES=(
   # resolution needs a 54 MB clone of the corpus and is skipped unless
   # TLA_CORPUS names one, so the gate reports 7 passed and 1 skipped offline.
   # CI can set TLA_CORPUS to turn the eighth on.
-  "fast|0.7|corpus manifest|./harness/test-corpus-manifest.sh"
+  # Re-measured on the green merged tree 2026-10-01 after tla-rsjc: 2.73 / 2.71
+  # / 2.70 s over three serial runs, up from 0.7. The suite reads
+  # corpus/MANIFEST.md now and recomputes every count in it the TSV can answer,
+  # against 17 planted controls rather than 6. It reports 19 passed and 10
+  # skipped, and each skip names the count it could not derive, so the output
+  # says what went unchecked rather than going quiet about it.
+  "fast|2.8|corpus manifest|./harness/test-corpus-manifest.sh"
   # Re-measured 2026-09-06 after the EXTENDS-closure fixture landed: 1.80 and
   # 1.83 s over two serial runs, up from 1.37 and 1.30 with three TLC runs
   # instead of two. Three real TLC runs against tiny fixtures plus three
