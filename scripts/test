@@ -172,8 +172,14 @@ fi
 SUITES=(
   "fast|0.7|pipefail idiom ban|./harness/test-pipefail.sh"
   "fast|1.0|puzzle screen|./harness/screen.sh --selftest"
-  # Uncomment when the chapter repair wave merges. Red by design until then.
-  "fast|1.1|printed commands|./harness/test-printed-commands.sh"
+  # Re-measured on the green tree 2026-10-01 after tla-i3zu: 1.123 / 1.112 /
+  # 1.109 s standalone over three serial runs, and 1.2 s inside the full gate.
+  # The chapter list is derived from the tree now, so the suite covers twelve
+  # chapters rather than ten and runs 221 assertions rather than 188. The extra
+  # 0.23 s is the two new chapters plus the fixture tree the coverage section
+  # builds. The line that used to sit here said to uncomment this row when the
+  # chapter repair wave merged. That wave merged.
+  "fast|1.2|printed commands|./harness/test-printed-commands.sh"
   "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
   # Re-measured 2026-09-18 on the green tree, after tla-rgpe took the suite
