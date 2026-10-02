@@ -11,6 +11,21 @@ should have.
 
 Rebuilt 2026-09-05, bead `tla-e7q2`.
 
+**AMENDED 2026-10-01.** The curation direction was retired on 2026-09-06. Problems
+come from external prose now, and `sources/README.md` is the survey that settled
+which prose. So this file is no longer the list problems are curated from.
+
+It keeps two jobs. It's the record of how a real corpus was cut, rule by rule, and
+the only place that says where those numbers sit against the funnel in
+`PRACTICE-PLAN.md`, which they don't match. See "What moved against the recorded
+counts" below. And the 143 rows are still a candidate pool for anything that wants
+a published spec to read. `harness/test-corpus-manifest.sh` keeps gating it.
+
+Four beads sit on it and none has closed: `tla-16je`, five repositories ship no
+licence. `tla-t64z`, 24 systems at level 3 against the plan's 1. `tla-kp4l`, the
+prose column detects a README rather than a description of the system. `tla-6mms`,
+level 5 is the softest column and one reader scored it differently.
+
 ## The corpus
 
 Cloned with `git clone --depth 1`. Every SHA below matches the one
