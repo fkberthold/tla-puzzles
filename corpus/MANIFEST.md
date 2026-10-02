@@ -214,6 +214,25 @@ TLA_CORPUS=<that directory> bash harness/test-corpus-manifest.sh
 ```
 
 The gate checks the shape of every row and, when `TLA_CORPUS` is set, that every row
-names a directory that exists. It carries six planted controls that it must reject. One
-of them earned its place on the first run by catching that `IFS=$'\t' read` drops an
-empty field, because tab is IFS whitespace.
+names a directory that exists. It also reads this file and recomputes every count here
+that `manifest.tsv` can answer.
+
+- the level table and the licence table
+- the funnel's `systems` and `describable` stages
+- each repository's clone SHA and licence
+- the level-3 survival chain and the five survivors' seconds
+- the counts stated in prose rather than in a table
+
+A count it can't derive prints as a skip, so you can see what went unchecked. The
+funnel's `modules`, `specs` and `candidate groups` came off the clone rather than the
+TSV, and they're the main ones.
+
+Planted controls back both halves. Each perturbs one number in a copy of the real pair,
+and the gate has to reject it and name what moved. One of them earned its place on the
+first run by catching that `IFS=$'\t' read` drops an empty field, because tab is IFS
+whitespace.
+
+One gap is left. A number in a sentence carries no marker that tells a derived count
+from a date or a bead id. So a new one in prose stays uncovered until somebody adds a
+claim to the gate. I'd rather say that here than have the next reader take this file for
+fully gated.
