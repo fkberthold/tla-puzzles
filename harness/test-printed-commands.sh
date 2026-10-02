@@ -9,6 +9,32 @@
 #   delivered chapter directory. Every printed verdict.sh and pcal command
 #   names a harness that exists and files that resolve from there.
 #
+# WHICH CHAPTERS GET CHECKED
+#
+# Derived from the tree, not written down here (bead tla-i3zu). The list used
+# to be a literal CHAPTERS=(02 ... 11). Ch.12 and ch.13 landed outside it, so
+# the gate read green while two chapters went unchecked. A hand-kept list is
+# right until somebody adds a chapter and forgets, which is the same shape as
+# the rolling-tag pin in tla-yvky.
+#
+# The derivation takes every exercises/ch??/ carrying an EXERCISES.md. It does
+# not take every directory that carries one, because exercises/templates/
+# carries one and is not a chapter. Measured 2026-10-01, templates/ cannot
+# pass this gate for two separate reasons:
+#
+#   - scripts/deliver-exercises.sh wants an integer 2 to 13 and exits 1 on the
+#     word templates, so delivery fails before any content gets read.
+#   - Force-delivered as a chapter anyway, its three exercise sections each
+#     print `How to run: <command>` rather than a verdict.sh call, so the
+#     non-vacuity control below fails three times. That is the template doing
+#     its job. The field is a blank for a chapter author to fill in.
+#
+# So the shape filter is a decision rather than an oversight, and the next
+# reader should leave it alone. To keep it a decision rather than a quiet side
+# effect of the glob, a NEW non-chapter directory carrying an EXERCISES.md
+# fails the coverage section instead of being dropped. NON_CHAPTER_EXEMPT
+# names the one directory that is allowed through.
+#
 # WHY THIS NEEDS A SUITE
 #
 # The 2026-08-12 readability review found five chapters printing commands that
@@ -104,6 +130,64 @@ cd "$REPO_ROOT" || exit 1
 
 DELIVER="scripts/deliver-exercises.sh"
 TEST_RUNNER="scripts/test"
+
+# Honors DELIVER_SRC_ROOT so the coverage section can point the derivation at a
+# fixture tree. deliver-exercises.sh reads the same variable out of its own
+# environment, so both halves follow the same root without a second knob.
+EXERCISES_ROOT="${DELIVER_SRC_ROOT:-$REPO_ROOT/exercises}"
+
+# Non-chapter directories that may carry an EXERCISES.md. Read WHICH CHAPTERS
+# GET CHECKED above before adding to this.
+NON_CHAPTER_EXEMPT=(templates)
+
+DERIVED=()
+UNCLAIMED=()
+
+# derive_chapters <exercises-root>
+#
+# Sets DERIVED to the chapter numbers under the root that carry an
+# EXERCISES.md, ascending. Glob expansion sorts, so nothing needs sorting here.
+#
+# An unmatched glob stays literal rather than vanishing, and the -f test drops
+# it, so an empty or missing root gives an empty list rather than a bogus one.
+derive_chapters() {
+  local root="$1" dir n
+  DERIVED=()
+  for dir in "$root"/ch[0-9][0-9]/; do
+    [ -f "$dir/EXERCISES.md" ] || continue
+    n="${dir%/}"
+    n="${n##*/ch}"
+    DERIVED+=("$n")
+  done
+  return 0
+}
+
+# audit_non_chapters <exercises-root>
+#
+# Sets UNCLAIMED to the directories under the root that carry an EXERCISES.md
+# and are neither a chapter nor exempt. This is what keeps the ch?? narrowing
+# honest. A new exercises/appendix/EXERCISES.md gets a human looking at it
+# rather than getting dropped by the glob.
+audit_non_chapters() {
+  local root="$1" f dir base p exempt
+  UNCLAIMED=()
+  for f in "$root"/*/EXERCISES.md; do
+    [ -f "$f" ] || continue
+    dir="${f%/EXERCISES.md}"
+    base="${dir##*/}"
+    case "$base" in
+    ch[0-9][0-9]) continue ;;
+    esac
+    exempt=0
+    for p in "${NON_CHAPTER_EXEMPT[@]}"; do
+      [ "$base" = "$p" ] && exempt=1
+    done
+    [ "$exempt" -eq 1 ] && continue
+    UNCLAIMED+=("$base")
+  done
+  return 0
+}
+
 CHAPTERS=(02 03 04 05 06 07 08 09 10 11)
 
 pass_count=0
@@ -588,6 +672,84 @@ for n in "${READY[@]}"; do
     fi
   done
 done
+
+# ---------------------------------------------------------------------------
+echo
+echo "== coverage =="
+# ---------------------------------------------------------------------------
+#
+# The two halves of the bead tla-i3zu invariant. First, every chapter on disk
+# got delivered and scanned above. Second, the list that decided which ones is
+# derived from the tree, so a chapter added tomorrow is covered without anybody
+# touching this file.
+#
+# The second half needs a fixture, not a count. An assertion that the gate
+# covers twelve chapters goes stale the day ch.14 lands, and going stale
+# quietly is the failure this section exists to kill.
+
+derive_chapters "$EXERCISES_ROOT"
+cov_missing=()
+for cov_n in "${DERIVED[@]}"; do
+  cov_found=0
+  for cov_m in "${READY[@]}"; do
+    [ "$cov_n" = "$cov_m" ] && cov_found=1
+  done
+  [ "$cov_found" -eq 0 ] && cov_missing+=("ch$cov_n")
+done
+
+if [ "${#DERIVED[@]}" -eq 0 ]; then
+  nope "coverage. No chapter carrying an EXERCISES.md found under $EXERCISES_ROOT"
+elif [ "${#cov_missing[@]}" -eq 0 ]; then
+  ok "every chapter under exercises/ was delivered and scanned (${DERIVED[*]})"
+else
+  nope "the gate scanned ${READY[*]}, and ${cov_missing[*]} carry an EXERCISES.md that nothing read"
+fi
+
+audit_non_chapters "$EXERCISES_ROOT"
+if [ "${#UNCLAIMED[@]}" -eq 0 ]; then
+  ok "every EXERCISES.md under exercises/ is either a chapter or exempt"
+else
+  nope "${UNCLAIMED[*]} carries an EXERCISES.md and is neither a chapter nor exempt. Decide about it rather than letting the glob decide"
+fi
+
+# The fixture is built here rather than copied out of exercises/, so these
+# assertions say what the derivation does rather than what this repo holds
+# today. ch14 appears in no list anywhere, so finding it is the whole point.
+# ch09 carries no EXERCISES.md and templates/ is not a chapter, so the
+# derivation has to drop both.
+FIXTURE="$TMPROOT/fixture"
+mkdir -p "$FIXTURE/ch07" "$FIXTURE/ch09" "$FIXTURE/ch14"
+mkdir -p "$FIXTURE/templates" "$FIXTURE/reports" "$FIXTURE/appendix"
+: >"$FIXTURE/ch07/EXERCISES.md"
+: >"$FIXTURE/ch14/EXERCISES.md"
+: >"$FIXTURE/templates/EXERCISES.md"
+: >"$FIXTURE/appendix/EXERCISES.md"
+: >"$FIXTURE/reports/COVERAGE.md"
+
+derive_chapters "$FIXTURE"
+if [ "${DERIVED[*]}" = "07 14" ]; then
+  ok "the derivation reads the tree it is handed, and gives 07 14 over the fixture"
+else
+  nope "the derivation over the fixture gave '${DERIVED[*]}', wanted '07 14'"
+fi
+
+audit_non_chapters "$FIXTURE"
+if [ "${UNCLAIMED[*]}" = "appendix" ]; then
+  ok "the audit names a new non-chapter EXERCISES.md and lets the exempt one by"
+else
+  nope "the audit over the fixture gave '${UNCLAIMED[*]}', wanted 'appendix'"
+fi
+
+# The second half of the invariant, performed rather than asserted. Add a
+# chapter, touch nothing in this file, and coverage grows by that chapter.
+mkdir -p "$FIXTURE/ch15"
+: >"$FIXTURE/ch15/EXERCISES.md"
+derive_chapters "$FIXTURE"
+if [ "${DERIVED[*]}" = "07 14 15" ]; then
+  ok "a chapter added with this file untouched raises coverage to 07 14 15"
+else
+  nope "after adding ch15 the derivation gave '${DERIVED[*]}', wanted '07 14 15'"
+fi
 
 # ---------------------------------------------------------------------------
 echo
