@@ -95,12 +95,27 @@ Prose ships with 50 of the 67, and with 34 of the 40 at tier 5. So the corpus is
 top-heavy, tier 3 is close to empty, and the systems that come with an explanation
 are mostly the hard ones. I come back to that under what's open.
 
-**AMENDED 2026-10-01.** Those tier counts are disputed and `tla-t64z` holds the
-question. The rebuilt manifest finds 24 systems at level 3 against the 1 above.
-The two counts aren't over the same set. This table counts the 67 that survive
-describable, fast enough and licence, and the manifest counts every candidate
-before those filters. I wouldn't build on either number until that bead closes,
-since a fair amount here rests on tier 3 being close to empty.
+**AMENDED 2026-10-01, and the tier-3 row is wrong.** Measured from
+`corpus/manifest.tsv` on `tla-t64z`. Of the 24 systems the manifest puts at level
+3, 23 are describable and 21 of those carry a licence. Of the 21, five are
+confirmed fast enough to check and eleven were never attempted. So the filtered
+count is somewhere between 5 and 16. Even the floor is five times what this table
+says.
+
+It doesn't change the direction, and that's the part worth holding onto. The five
+that clear every filter are two consensus or replication specs, one atomic
+commitment protocol, one logic puzzle and one graph algorithm. Not one of them is
+ordinary application engineering. That is what the 09-06 change was about rather
+than the count, so raising tier 3 from 1 to 16 would not bring curation back.
+
+The band stays a band, and `corpus/MANIFEST.md` says why under "Checkability".
+`checkable` reads `unattempted` for 92 of the 143 rows, and that isn't a gap I can
+sweep away. Only 79 of 211 specs ship a `.cfg` for their own module, so for the
+rest there was nothing to run. Settling checkability for one of the eleven means
+writing a model for it first, which is most of the work of using it. So the band
+narrows one row at a time as rows get picked, which is what `tla-mjh5` already
+says to do. The funnel's "68 fast enough to check" isn't recomputable here for the
+same reason.
 
 ## The decisions
 
@@ -331,6 +346,16 @@ Tier 3 has one system in it. I suspect the tiers need building against what the
 corpus holds, not against a flat 1-to-5 shape, and that a tier-3 problem may have
 to be made by cutting a tier-4 system down. That's a different move from curation,
 and it deserves saying out loud before it happens by accident.
+
+**AMENDED 2026-10-01.** The premise is measured wrong. Tier 3 holds 5 to 16
+systems and not one, per the amendment under "What we have instead". So the hole
+isn't where I put it.
+
+The conclusion survives anyway, and I think it survives for a better reason than
+the count did. All five tier-3 systems that clear every filter are consensus,
+atomic commitment, a puzzle or a graph algorithm. So the tiers still want building
+against what the corpus holds, and cutting a tier-4 system down is still a
+different move from curation. That was true when I thought the count was one.
 
 Prose ships with 50 of 67 systems, so 17 come with nothing but the spec. A statement
 written for one of those 17 has no independent description to check against, and the

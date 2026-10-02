@@ -109,6 +109,41 @@ what the plan is built around. This pass does not reproduce it. Read that as a
 question to settle rather than a correction, since the plan's count was over the 67
 systems that survive every filter and this one is over every candidate.
 
+**SETTLED 2026-10-01, bead `tla-t64z`.** Apply the plan's own filters to these 24
+rows. 23 are describable, 21 of those carry a licence, and of the 21 five read
+`checkable=yes` while eleven read `unattempted`. So the plan's filtered count
+belongs between 5 and 16 rather than at 1. This bead's own caution was right that
+the two counts were not over the same set. Applying the filters makes them
+comparable, and the gap survives it.
+
+The band is not a gap one pass can close, and "Checkability" below says why.
+`checkable` is `unattempted` for 92 of the 143 rows. Only 79 of 211 specs ship a
+`.cfg` for their own module, so for the rest there was nothing to run. Settling
+checkability for one of the eleven licensed level-3 rows means writing a model for
+it. That is constants, a state constraint, and a decision about what to check,
+which is most of the work of using the row at all.
+
+So the band narrows one row at a time rather than in a sweep. `tla-mjh5` already
+prescribes that: fill the column per system at the moment it gets picked, and let
+the rest stay honestly blank. For the same reason the plan's "68 fast enough to
+check" stage is not reproducible here either. A full sweep would want the 54 MB
+clone this repo does not keep. `TLA_CORPUS` is the way in, and
+`harness/test-corpus-manifest.sh` already reads it.
+
+The five that clear every filter, for whoever picks that up.
+
+| system | repo | tlc_seconds |
+|---|---|---|
+| Ledger chaining into a single log | `Vanlightly/bookkeeper-tlaplus` | 12.6 |
+| Raft consensus with fsync durability | `Vanlightly/raft-tlaplus` | 11.4 |
+| Non-blocking atomic commitment with failure detectors | `tlaplus/Examples` | 5.0 |
+| Prisoners and a single switch | `tlaplus/Examples` | 0.6 |
+| Spanning-tree computation on a graph | `tlaplus/Examples` | 1.1 |
+
+Two of those are consensus or replication, one is atomic commitment, one is a logic
+puzzle and one is a graph algorithm. None is ordinary application engineering, which
+is the shape the 2026-09-06 direction change went looking for.
+
 One inconsistency to know about before trusting a level 5. Where a system merges a
 base module with a refinement variant, one reader scored the merged system 5 on the
 strength of the variant's `INSTANCE`, even where the base module alone reads lower.
