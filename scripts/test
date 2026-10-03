@@ -186,6 +186,12 @@ SUITES=(
   # builds. The line that used to sit here said to uncomment this row when the
   # chapter repair wave merged. That wave merged.
   "fast|1.2|printed commands|./harness/test-printed-commands.sh"
+  # Measured on the green tree 2026-10-02 after tla-jaob.1: 0.685 / 0.693 / 0.683 s
+  # over three serial runs. It builds a mini-repo of symlinks and runs the real
+  # generator against it twice, once over a fixture holding a ch14 this repo does
+  # not have and once again after creating a ch15 mid-run, so it proves the
+  # derivation rather than counting twelve.
+  "fast|0.7|docs exercises section|./harness/test-build-docs-exercises.sh"
   "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
   # Re-measured 2026-09-18 on the green tree, after tla-rgpe took the suite
