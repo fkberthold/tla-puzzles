@@ -114,6 +114,11 @@ SCRIPT="scripts/deliver-problems.sh"
 NUMBER_SCRIPT="scripts/number-problems.sh"
 TEST_RUNNER="scripts/test"
 
+# The real practice tree, captured before anything is sandboxed. Only used to
+# assert that no run ever names it. Nothing in this suite reads or writes under
+# it, and no run is ever given it as a destination.
+REAL_PRACTICE="$HOME/tla-practice"
+
 pass_count=0
 fail_count=0
 
@@ -366,11 +371,14 @@ assert_says() {
   fi
 }
 
-# assert_silent_about <label> <extended-regex> <captured-text>
-assert_silent_about() {
-  local label="$1" pattern="$2" body="$3"
-  if grep -qE -- "$pattern" <<<"$body"; then
-    nope "$label. A line matched: $pattern"
+# assert_never_names <label> <literal-string> <captured-text>
+#
+# Fixed-string, because the thing being looked for is a filesystem path and a
+# path read as a regex matches more than itself.
+assert_never_names() {
+  local label="$1" needle="$2" body="$3"
+  if grep -qF -- "$needle" <<<"$body"; then
+    nope "$label. The output named it: $needle"
   else
     ok "$label"
   fi
@@ -1020,8 +1028,12 @@ assert_says "--check with no dest-root reads the sandboxed default root" \
 assert_unchanged "--check with no dest-root writes nothing" \
   "$DEFAULT_ROOT" "$DEFAULT_BEFORE" 0
 
-assert_silent_about "--check with no dest-root never names the real practice tree" \
-  'tla-practice/problems/0[0-9]_' "$RUN_OUT$RUN_ERR"
+# The sandbox root ends in tla-practice/problems too, so the check has to name
+# the REAL path rather than the shape of it. An earlier draft matched
+# 'tla-practice/problems/0[0-9]_' and fired on the sandbox's own
+# 01_alpha-fixture, which is a true report of the wrong thing.
+assert_never_names "--check with no dest-root never names the real practice tree" \
+  "$REAL_PRACTICE" "$RUN_OUT$RUN_ERR"
 
 # ---------------------------------------------------------------------------
 echo
