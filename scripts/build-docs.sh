@@ -417,6 +417,272 @@ for tier_slug in tier-0 tier-1 tier-2 tier-3 tier-4 tier-5 tier-6 tier-7 apalach
   done
 done
 
+# ===========================================================================
+# THE EXERCISE SETS: ONE PAGE PER CHAPTER, DERIVED FROM THE TREE
+#
+# Bead tla-jaob.1. The ch02 through ch13 sets are the best-tested content in
+# this repo, 221 assertions in harness/test-printed-commands.sh, and until now
+# the site showed none of them. This section publishes the statements. It
+# publishes no references/ and it changes nothing under curriculum/.
+#
+# THE CHAPTER LIST IS DERIVED, NEVER WRITTEN. A hand-kept list is right until
+# somebody adds a chapter and forgets. Bead tla-i3zu found exactly that in
+# harness/test-printed-commands.sh, which had stopped at ch.11 while ch.12 and
+# ch.13 were live, so the gate was green because it was not looking.
+#
+# WHY THE GLOB IS DUPLICATED RATHER THAN SHARED. derive_exercise_chapters
+# below is the same glob as derive_chapters in harness/test-printed-commands.sh
+# :148-165, and harness/test-build-docs-exercises.sh carries a third copy.
+# Nothing here is sourceable, and the bead that wrote this could not touch the
+# other two files. The third copy is deliberate: a test that imported this
+# function could not catch a narrowed glob, which is the mutation tla-i3zu
+# planted. These two are duplication, and whoever gets to extract a shared
+# derivation should take all three.
+#
+# THE NON-CHAPTER AUDIT IS NOT DUPLICATED. exercises/templates/ carries an
+# EXERCISES.md and is not a chapter. The ch[0-9][0-9] shape drops it here, and
+# the LOUD check for a new exercises/appendix/EXERCISES.md stays in
+# audit_non_chapters in harness/test-printed-commands.sh, which fails the gate
+# on one. Copying its exempt list into this file would give it somewhere to
+# drift to, and the gate it needs already exists.
+#
+# THE LINK REWRITE IS THE PART THAT WILL BITE. An EXERCISES.md is written to
+# be read in a DELIVERED tree, where starters/ and LOG.md sit beside it, so
+# its relative links mean nothing on a website. The rewrite below resolves
+# each one against the real chapter directory and sends it to GitHub, so a
+# target that does not exist stays relative and
+# harness/test-build-docs-exercises.sh fails on it. Nothing is guessed.
+#
+# WHAT IS DELIBERATELY LEFT ALONE. The printed shell commands stay byte for
+# byte. They are correct for a delivered tree, harness/test-printed-commands.sh
+# gates every one of them, and rewriting them here would put the site and that
+# gate in disagreement. The banner at the top of each page says so instead.
+# ===========================================================================
+
+GH_REPO="https://github.com/fkberthold/tla-puzzles"
+GH_BLOB="$GH_REPO/blob/main"
+GH_TREE="$GH_REPO/tree/main"
+
+# ---- helper: derive the exercise chapter list from the tree ----
+# Sets EXERCISE_CHAPTERS to the chapter numbers under exercises/ that carry an
+# EXERCISES.md, ascending. Glob expansion sorts, so nothing needs sorting.
+#
+# An unmatched glob stays literal rather than vanishing, and the -f test drops
+# it, so a missing exercises/ gives an empty list rather than a bogus one.
+EXERCISE_CHAPTERS=()
+derive_exercise_chapters() {
+  local dir n
+  EXERCISE_CHAPTERS=()
+  for dir in exercises/ch[0-9][0-9]/; do
+    [ -f "$dir/EXERCISES.md" ] || continue
+    n="${dir%/}"
+    n="${n##*/ch}"
+    EXERCISE_CHAPTERS+=("$n")
+  done
+  return 0
+}
+
+# ---- helper: short nav label from a chapter's own H1 ----
+# The twelve H1s do not agree on a shape. Four read "Chapter NN exercises:
+# Topic" and the rest read "Exercises: learntla core ch.N, Topic". Both end in
+# the topic after a comma or a colon, so the longest-match strip gives it. An
+# H1 with neither separator falls through unchanged, which is a readable label
+# rather than an empty one.
+exercise_topic() {
+  local ch="$1" h1
+  h1=$(grep -m1 '^# ' "exercises/ch$ch/EXERCISES.md" || true)
+  h1="${h1#\# }"
+  if [ -z "$h1" ]; then
+    echo "Chapter $ch"
+    return 0
+  fi
+  echo "${h1##*[,:] }"
+}
+
+# ---- helper: everything after a markdown file's first H1 ----
+# Prints the whole file when there is no H1, so a chapter missing one loses its
+# heading rather than its content.
+body_after_h1() {
+  awk '!seen && /^# / { seen=1; next } { print }' "$1"
+}
+
+# ---- helper: escape a string for use as an ERE pattern ----
+# Done character by character in bash rather than through sed, because the sed
+# form needs a bracket expression holding the same metacharacters it is
+# escaping, which is both hard to read and the one thing a reviewer cannot
+# check by eye.
+ere_escape() {
+  local s="$1" c out=""
+  while [ -n "$s" ]; do
+    c="${s:0:1}"
+    s="${s:1}"
+    case "$c" in
+    \\|'.'|'['|']'|'*'|'^'|'$'|'('|')'|'{'|'}'|'?'|'+'|'|') out="$out\\$c" ;;
+    *) out="$out$c" ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+# ---- helper: build the per-chapter link-rewrite sed program ----
+# Writes one `s@...@...@g` line per relative link that actually appears in the
+# chapter's own markdown. The set is usually empty, which is why this resolves
+# the links it finds rather than pattern-matching shapes it imagines.
+#
+# A target that resolves to nothing in the source tree gets a warning and no
+# rewrite. It stays relative, and the suite fails on it. That is the right
+# direction for the error to run: a dead link in the content is a content bug,
+# and this generator inventing a plausible destination for it would hide one.
+#
+# Two guards keep TLA+ out of the scan. A candidate needs non-empty link text
+# and a whitespace-free target, so `RungUp == [](rung' = rung + 1)` and
+# `<>[](ENABLED <<A>>_v)` are both out on both counts. The guards are not a
+# markdown parser: a genuine link shape inside backticks would be rewritten.
+build_link_program() {
+  local ch="$1" prog="$2"
+  local src="exercises/ch$ch"
+  local raw targets t path anchor repl pat
+
+  # This chapter's own two files are pages, not downloads, so they get named
+  # destinations before any path lookup runs.
+  {
+    printf 's@\\]\\(EXERCISES\\.md@](ch%s.md@g\n' "$ch"
+    printf 's@\\]\\(CHEATSHEET\\.md(#[^)]*)?\\)@](#cheat-sheet)@g\n'
+    printf 's@\\]\\(\\.\\./ch([0-9][0-9])/EXERCISES\\.md@](ch\\1.md@g\n'
+    printf 's@\\]\\(\\.\\./ch([0-9][0-9])/CHEATSHEET\\.md(#[^)]*)?\\)@](ch\\1.md#cheat-sheet)@g\n'
+  } > "$prog"
+
+  raw=$(grep -ohE '\[[^]]+\]\([^) 	]+\)' "$src/EXERCISES.md" "$src/CHEATSHEET.md" 2>/dev/null || true)
+  [ -n "$raw" ] || return 0
+  targets=$(sed -E 's/^.*\]\(//; s/\)$//' <<<"$raw" | LC_ALL=C sort -u)
+
+  while IFS= read -r t; do
+    [ -n "$t" ] || continue
+    case "$t" in
+    http://*|https://*|mailto:*|'#'*|/*) continue ;;
+    EXERCISES.md|EXERCISES.md'#'*|CHEATSHEET.md|CHEATSHEET.md'#'*) continue ;;
+    ../ch[0-9][0-9]/EXERCISES.md*|../ch[0-9][0-9]/CHEATSHEET.md*) continue ;;
+    esac
+    path="${t%%#*}"
+    anchor=""
+    case "$t" in
+    *'#'*) anchor="#${t#*#}" ;;
+    esac
+    if [ -d "$src/$path" ]; then
+      repl="$GH_TREE/exercises/ch$ch/$path$anchor"
+    elif [ -f "$src/$path" ]; then
+      repl="$GH_BLOB/exercises/ch$ch/$path$anchor"
+    else
+      echo "build-docs.sh: exercises/ch$ch links to [$t], which is not in the chapter directory." >&2
+      echo "  Left as written. harness/test-build-docs-exercises.sh fails on it." >&2
+      continue
+    fi
+    # The parentheses have to be escaped. sed -E reads a bare ( as the start
+    # of a capture group, so an unescaped form matches `]starters/Ex1.tla`
+    # rather than `](starters/Ex1.tla)` and silently rewrites nothing.
+    pat=$(ere_escape "$t")
+    printf 's@\\]\\(%s\\)@](%s)@g\n' "$pat" "$repl" >> "$prog"
+  done <<<"$targets"
+  return 0
+}
+
+derive_exercise_chapters
+
+if [ "${#EXERCISE_CHAPTERS[@]}" -gt 0 ]; then
+  mkdir -p "$DOCS/exercises"
+
+  for ch in "${EXERCISE_CHAPTERS[@]}"; do
+    src="exercises/ch$ch"
+    out="$DOCS/exercises/ch$ch.md"
+    link_prog=$(mktemp)
+    build_link_program "$ch" "$link_prog"
+
+    {
+      h1=$(grep -m1 '^# ' "$src/EXERCISES.md" || true)
+      if [ -n "$h1" ]; then
+        echo "$h1"
+      else
+        echo "# Chapter $ch exercises"
+      fi
+      echo ""
+      echo "!!! info \"Reading this on the web\""
+      echo ""
+      echo "    Every command below is printed for a delivered practice tree, where"
+      echo "    \`starters/\` and \`LOG.md\` sit beside this page. Clone the repo and run"
+      echo "    \`scripts/deliver-exercises.sh $((10#$ch))\` to get that tree."
+      if [ -d "$src/starters" ]; then
+        echo "    The starters are also readable on GitHub under"
+        echo "    [\`exercises/ch$ch/starters/\`]($GH_TREE/exercises/ch$ch/starters)."
+      fi
+      echo ""
+      body_after_h1 "$src/EXERCISES.md"
+
+      # The cheat sheet goes behind a click. scripts/deliver-exercises.sh
+      # withholds a chapter's own sheet on purpose, because it names the
+      # constructs the exercises are asking you to reach for. A collapsed
+      # block keeps the bead's "carry the CHEATSHEET.md" and keeps that
+      # reason, since the reader chooses to open it.
+      if [ -f "$src/CHEATSHEET.md" ]; then
+        echo ""
+        echo "---"
+        echo ""
+        echo "## Cheat sheet"
+        echo ""
+        echo "??? note \"The chapter $ch cheat sheet names the constructs. Open it when you want it.\""
+        echo ""
+        # The sheets use # and ## only. Demote ## to #### so it nests under
+        # this page's "## Cheat sheet" instead of competing with the exercise
+        # headings in the sidebar.
+        body_after_h1 "$src/CHEATSHEET.md" | sed -e 's/^##/####/' -e 's/^/    /'
+      fi
+    } | sed -E -f "$link_prog" > "$out"
+
+    rm -f "$link_prog"
+  done
+
+  # ---- exercises index page ----
+  {
+    echo "# Exercises"
+    echo ""
+    echo "These sets track the chapters of learntla. Each one takes the constructs"
+    echo "its chapter introduces and asks you to write three to six specs against"
+    echo "them. You get a starter file to edit and one command that prints a"
+    echo "verdict."
+    echo ""
+    echo "They assume you've read the chapter. They don't replace it."
+    echo ""
+    echo "Nothing here runs in a browser, so working a set means getting the files"
+    echo "onto disk:"
+    echo ""
+    echo '```bash'
+    echo "git clone $GH_REPO"
+    echo "cd tla-puzzles"
+    echo "scripts/deliver-exercises.sh 2"
+    echo '```'
+    echo ""
+    echo "That drops chapter 2's statement, its starters and a log scaffold into"
+    echo "\`~/tla-practice/exercises/ch02/\`. Pass another chapter number for"
+    echo "another set."
+    echo ""
+    echo "## The sets"
+    echo ""
+    for ch in "${EXERCISE_CHAPTERS[@]}"; do
+      echo "- [Chapter $ch: $(exercise_topic "$ch")](ch$ch.md)"
+    done
+  } > "$DOCS/exercises/index.md"
+
+  # ---- exercises dir nav order (awesome-pages) ----
+  # Titles are quoted so a topic carrying a colon stays one YAML key.
+  {
+    echo "title: Exercises"
+    echo "nav:"
+    echo "  - index.md"
+    for ch in "${EXERCISE_CHAPTERS[@]}"; do
+      echo "  - \"Chapter $ch: $(exercise_topic "$ch")\": ch$ch.md"
+    done
+  } > "$DOCS/exercises/.pages"
+fi
+
 # ---- getting-started ----
 cat > "$DOCS/getting-started.md" <<'EOF'
 # Getting Started
@@ -594,15 +860,27 @@ h1, h2 {
 EOF
 
 # ---- awesome-pages config (.pages files for nav order) ----
-# Top-level docs/.pages — section ordering
-cat > "$DOCS/.pages" <<'EOF'
-nav:
-  - index.md
-  - getting-started.md
-  - curriculum
-  - reference
-  - about
-EOF
+# Top-level docs/.pages, section ordering.
+#
+# The exercises entry is conditional because awesome-pages resolves every nav
+# entry against a real directory, and naming one that was not built is an
+# error rather than a skipped line.
+#
+# It sits AFTER curriculum on purpose. Bead tla-jaob.1 is additive and answers
+# neither open question on tla-jaob, and where the best content sits in the nav
+# is one of them. Moving this line above curriculum is a one-line change and
+# Frank's call.
+{
+  echo "nav:"
+  echo "  - index.md"
+  echo "  - getting-started.md"
+  echo "  - curriculum"
+  if [ -d "$DOCS/exercises" ]; then
+    echo "  - exercises"
+  fi
+  echo "  - reference"
+  echo "  - about"
+} > "$DOCS/.pages"
 
 # Curriculum directory ordering (tier order)
 cat > "$DOCS/curriculum/.pages" <<'EOF'

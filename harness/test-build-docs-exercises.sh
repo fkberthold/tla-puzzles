@@ -254,30 +254,41 @@ for ch in "${REAL_SOURCES[@]}"; do
     nope "ch$ch: page H1 [$page_h1] is not the source H1 [$src_h1]"
   fi
 
-  # Every printed run command survives byte for byte. This is the assertion
-  # that protects harness/test-printed-commands.sh from this generator.
-  runlines=$(grep -c '^- How to run: ' "$src/EXERCISES.md")
+  # Every printed harness command survives byte for byte. This is the
+  # assertion that protects harness/test-printed-commands.sh from this
+  # generator.
+  #
+  # The line is selected by the harness it names rather than by the `How to
+  # run:` label. Four chapters put the label and the command on one line and
+  # three put the command on the next line, so a label match reads zero
+  # commands in ch07, ch12 and ch13 and reports a clean sweep over them.
+  runlines=$(grep -c 'verdict\.sh' "$src/EXERCISES.md")
   missing=0
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     if ! grep -qxF -- "$line" "$page"; then
       missing=$((missing + 1))
     fi
-  done < <(grep '^- How to run: ' "$src/EXERCISES.md")
+  done < <(grep 'verdict\.sh' "$src/EXERCISES.md")
   if [ "$runlines" -lt 3 ]; then
-    nope "ch$ch: only $runlines 'How to run:' lines in the source, too few to be checking anything"
+    nope "ch$ch: only $runlines lines naming verdict.sh in the source, too few to be checking anything"
   elif [ "$missing" -eq 0 ]; then
-    ok "ch$ch: all $runlines printed run commands survive into the page verbatim"
+    ok "ch$ch: all $runlines printed harness commands survive into the page verbatim"
   else
-    nope "ch$ch: $missing of $runlines printed run commands did not survive into the page"
+    nope "ch$ch: $missing of $runlines printed harness commands did not survive into the page"
   fi
 
   # The TLA+ guard. A box operator written inside backticks, `[](rung' = rung
   # + 1)`, is link-shaped to a line-based rewriter. Count the shapes whose
   # target holds whitespace in both files and require the count to be equal,
   # so a rewriter that mangled one is caught without naming how many there are.
-  src_tla=$(grep -coE '\]\([^)]*[[:space:]][^)]*\)' "$src/EXERCISES.md")
-  page_tla=$(grep -coE '\]\([^)]*[[:space:]][^)]*\)' "$page")
+  #
+  # The page carries the cheat sheet too, and two of ch12's four shapes live
+  # there, so both source files count.
+  # Count occurrences, not matching lines. `grep -c` counts lines even with
+  # -o, and ch12 puts two of these on one line.
+  src_tla=$(grep -hoE '\]\([^)]*[[:space:]][^)]*\)' "$src/EXERCISES.md" "$src/CHEATSHEET.md" 2>/dev/null | wc -l)
+  page_tla=$(grep -hoE '\]\([^)]*[[:space:]][^)]*\)' "$page" | wc -l)
   if [ "$src_tla" -eq "$page_tla" ]; then
     ok "ch$ch: $src_tla link-shaped TLA+ expressions preserved"
   else
@@ -358,7 +369,9 @@ cat > "$FIX_EX/ch07/EXERCISES.md" <<'FIXTURE'
 A fixture chapter. Edit [the starter](starters/Ex1Fixture.tla), the rest of
 them live in [starters](starters), and the [cheat sheet](CHEATSHEET.md) names
 the constructs. This page is [itself](EXERCISES.md) and chapter fourteen is
-[next door](../ch14/EXERCISES.md).
+[next door](../ch14/EXERCISES.md). One starter is
+[Ex2+Fix.tla](starters/Ex2+Fix.tla), whose name carries a regex
+metacharacter.
 
 A box operator is link-shaped and must survive: `RungUp == [](rung = 1)`.
 
@@ -387,6 +400,10 @@ cat > "$FIX_EX/ch07/CHEATSHEET.md" <<'FIXTURE'
 FIXTURE
 
 echo '---- MODULE Ex1Fixture ----' > "$FIX_EX/ch07/starters/Ex1Fixture.tla"
+# A filename carrying a regex metacharacter. The rewrite builds an ERE pattern
+# out of the target, so an unescaped + would make this link match nothing and
+# ship relative.
+echo '---- MODULE Ex2Fix ----' > "$FIX_EX/ch07/starters/Ex2+Fix.tla"
 
 # ch09 carries no EXERCISES.md, so it is not a chapter for this purpose.
 echo 'notes' > "$FIX_EX/ch09/NOTES.md"
@@ -484,13 +501,21 @@ FIXPAGE=$FIX_DOCS/ch07.md
 if [ -f "$FIXPAGE" ]; then
   ok "fixture ch07 page exists to check links on"
 
-  if grep -qF "$GH_BLOB/exercises/ch07/starters/Ex1Fixture.tla" "$FIXPAGE"; then
+  if grep -qF "[the starter]($GH_BLOB/exercises/ch07/starters/Ex1Fixture.tla)" "$FIXPAGE"; then
     ok "a starter file link points at the file on GitHub"
   else
     nope "a starter file link was not rewritten to $GH_BLOB/exercises/ch07/starters/Ex1Fixture.tla"
   fi
 
-  if grep -qF "$GH_TREE/exercises/ch07/starters)" "$FIXPAGE"; then
+  if grep -qF "[Ex2+Fix.tla]($GH_BLOB/exercises/ch07/starters/Ex2+Fix.tla)" "$FIXPAGE"; then
+    ok "a target carrying a regex metacharacter is escaped before it is matched"
+  else
+    nope "a target named Ex2+Fix.tla was not rewritten, so the ERE escape is wrong"
+  fi
+
+  # The whole link, text included. The page's own banner carries the same URL,
+  # so a bare URL match passes whether the rewrite ran or not.
+  if grep -qF "[starters]($GH_TREE/exercises/ch07/starters)" "$FIXPAGE"; then
     ok "a starters directory link points at the tree on GitHub"
   else
     nope "a starters directory link was not rewritten to $GH_TREE/exercises/ch07/starters"
@@ -571,7 +596,12 @@ fi
 # The generator must not carry a literal chapter list. A grep is a weak check
 # next to Part 2, and it is here for the error message rather than the
 # coverage: a reviewer who adds a list gets told which rule it breaks.
-if grep -qE 'ch(02|03)[^0-9].*ch(12|13)[^0-9]' "$GENERATOR"; then
+#
+# Comment lines are stripped first. The generator's own comment block explains
+# why the list is derived, and it names ch02 and ch13 to do that, so a scan
+# over the whole file fires on the explanation.
+CODE_ONLY=$(grep -vE '^[[:space:]]*#' "$GENERATOR")
+if grep -qE 'ch(02|03)[^0-9].*ch(12|13)[^0-9]' <<<"$CODE_ONLY"; then
   nope "$GENERATOR looks like it carries a literal chapter list"
 else
   ok "$GENERATOR carries no literal chapter list"
