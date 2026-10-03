@@ -56,6 +56,28 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
+## A claim of absence or completeness names its search
+
+Before writing that something doesn't exist, isn't used, or is the whole set, say
+which surfaces you looked at. Then ask which surface you'd expect it in that you
+didn't check.
+
+Two surfaces get missed here, and both have caused real damage:
+
+- `~/tla-practice/` is not a git repo. No `git ls-files` or `grep -r` reaches it.
+  It holds the delivered problems, the attempt logs, `REACTIONS.md` and the backups.
+  Search it with `find ~/tla-practice`.
+- A MemPalace drawer is an append-only claim about its own date. It never says it
+  was superseded, so its silence is not evidence. Check a decision against the live
+  plan file too, not only against the drawer that locked it.
+
+**Read before you write over.** `bd update --notes` replaces and warns afterwards,
+so use `--append-notes`. Same for `mempalace_update_drawer`, which takes the whole
+body.
+
+The worked examples and the full surface list are in `CLAUDE.md` under
+Conventions & Patterns.
+
 ## Session Completion
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

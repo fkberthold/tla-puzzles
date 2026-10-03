@@ -70,7 +70,51 @@ _Add a brief overview of your project architecture_
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+### A claim of absence or completeness names its search
+
+Before writing that something doesn't exist, isn't used, or is the whole set, say
+which surfaces you looked at. Then ask the question that actually catches it: which
+surface would I expect this in that I didn't check?
+
+This is a procedure, not a disposition. Four separate errors in one session on
+2026-10-02 had this shape. A general instruction to be careful with recalled facts
+was already in place and it didn't fire.
+
+- "The reaction log has no home." It's at `~/tla-practice/REACTIONS.md`, since 09-05.
+- "The load vector is locked and not reopened." `PRACTICE-PLAN.md:166` retires it.
+- A delivery manifest guessed rather than found. It deleted 39 delivered files, then
+  three shipped starters.
+- `bd update --notes` written over a note that said the opposite. Only bd's
+  after-the-fact warning caught it.
+
+The first two are claims about absence. The second two are claims about a complete
+set. All four came from searching a real surface and stopping there.
+
+**The surfaces this project has, and the two that get missed:**
+
+| surface | how to search it |
+|---|---|
+| the repo | `git ls-files`, `grep -r` |
+| the tracker | `bd search`, `bd list --limit 0` |
+| decision drawers | `mempalace_search` scoped to wing `tla_puzzles` |
+| tribal one-liners | `bd memories <keyword>` |
+| **the delivered practice tree** | `find ~/tla-practice` |
+| **the live plan against the drawer that locked a decision** | both, not either |
+
+`~/tla-practice/` is not a git repo and no repo-level search reaches it. It holds the
+delivered problems, the attempt logs, `REACTIONS.md` and the backups.
+
+A drawer is an append-only claim about its own date. It never says it was
+superseded, so its silence is not evidence. When a decision came from a drawer,
+check it against the live plan file before building on it.
+
+### Read before you write over
+
+`bd update --notes` replaces and warns afterwards. Use `--append-notes`. The same
+holds for `mempalace_update_drawer`, which takes the whole body, and for any file
+you're about to overwrite. Recovery for a bead note is
+`git show <sha>:.beads/issues.jsonl`, which is one reason that export stays
+committed and fresh.
 
 ## Loom's shipped conventions
 
