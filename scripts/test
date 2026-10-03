@@ -203,6 +203,12 @@ SUITES=(
   # before this line caught up. It builds fourteen fixture roots out of mkdir
   # and printf and runs no TLC.
   "fast|0.5|problem numbering|./harness/test-number-problems.sh"
+  # Measured on the green tree 2026-10-02 after tla-6mrz: 0.681 / 0.696 / 0.690 s
+  # over three serial runs. It delivers into temp roots only, and its own default
+  # root section runs --check and nothing mutating. One row of it delivers the real
+  # bonded-store into a temp dest and diffs it against authoring/bonded-store/
+  # statement, so the manifest is checked against the tree rather than a list.
+  "fast|0.7|problem delivery|./harness/test-deliver-problems.sh"
   # Budget measured on the red tree, where the digest check does not exist yet
   # and part 1 stops at the first fetch: 0.2 s over two runs. Once the check
   # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and
