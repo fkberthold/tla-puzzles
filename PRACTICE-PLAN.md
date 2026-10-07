@@ -37,7 +37,7 @@ here.
 | no grader | stands |
 | difficulty is one 1-to-5 scale, assigned after | stands |
 | directories are tier-prefixed | reversed on 09-18, they carry the order now |
-| the load vector and the ramp rule are retired | stands, and left two gates running |
+| the load vector and the ramp rule are retired | reversed on 10-02, both are live again |
 
 That last row is the one that cost something, and it has its own note under "What
 is retired".
@@ -279,7 +279,7 @@ the seven delivered problems are not reworked.
 - The seeded-bug matrix.
 - The domain and puzzle screens.
 - The `Observe` interface.
-- The load vector and the ramp rule.
+- The load vector and the ramp rule. **Un-retired 10-02**, see the note below.
 - The shape taxonomy, columns A through D.
 - The blind panel and its spread rule.
 - The batch-authoring stages.
@@ -303,6 +303,30 @@ line today. So the question is open and it's mine to settle. Either the load
 vector comes back, which reverses the 09-05 psychometric ruling, or its gates
 retire along with the rule. `tla-t8jz` carries both sides and a third shape that
 works either way.
+
+**AMENDED 2026-10-07.** Settled on 10-02, and both come back. My words were
+"Agreed, they matter."
+
+The reason is the audience change of the same day. A stranger who reads the set in
+order can't skip a badly placed problem the way I could. So the ordering rule does
+more work now than it did when I was the only reader. D4's K=1 rule was already
+written over the delivered sequence rather than over one person's history, so it
+transfers without a change.
+
+This doesn't reverse the measurement at the top of this file. The load vector set
+the shape of six problems out of six, and that finding stands. The vector comes
+back as a way to place problems that already exist. It stays dead as a target an
+author writes toward. The 09-05 ruling on the 1-to-5 scale draws the same line,
+which is why I think both can be true at once.
+
+So the two suites stay in the gate, budgeted at 0.5s and 1.5s against a full run
+of about 190s. Both check record shape rather than any level value, so neither
+enforces a rubric an author could aim at.
+
+Two corrections to the note above. Those suites sit at `scripts/test:220` and
+`:225` now, not 196 and 201. And `tla-ahxl` is still open: the audience change
+rescues these two and leaves the grader, the vacuity probes and the seeded-bug
+matrix wanting a call of their own. Those three are most of the gate's wall clock.
 
 `Observe` is worth calling out on its own, because it dies twice over. The corpus
 count above says it isn't a thing practitioners write. The statement rule says a
