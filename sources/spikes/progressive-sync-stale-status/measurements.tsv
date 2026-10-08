@@ -1,0 +1,17 @@
+label	module	rc	verdict	secs	generated	distinct	depth	vars	defs	fairness	temporal	instance	modules	lines
+broken-2cohort	MCBroken2	12	invariant violated	0.4	3	3	3	5	20	no	no	no	3	244
+fixed-2cohort	MCFixed2	0	checked, no violation	0.4	33	17	8	5	20	no	no	no	3	243
+broken-3cohort-all-four	MCBroken3	12	invariant violated	0.4	3	3	3	5	20	no	no	no	3	244
+broken-3cohort-inversion-only	MCBrokenInversion	12	invariant violated	0.3	12	9	4	5	20	no	no	no	3	245
+broken-3cohort-divergence-only	MCBrokenDivergence	12	invariant violated	0.3	42	21	5	5	20	no	no	no	3	245
+broken-3cohort-stranded-only	MCBrokenStranded	12	invariant violated	0.3	3	3	3	5	20	no	no	no	3	245
+fixed-3cohort	MCFixed3	0	checked, no violation	0.3	101	37	11	5	20	no	no	no	3	245
+fixed-4cohort	MCFixed4	0	checked, no violation	0.3	277	77	14	5	20	no	no	no	3	244
+fixed-5cohort	MCFixed5	0	checked, no violation	0.3	709	157	17	5	20	no	no	no	3	244
+fixed-6cohort	MCFixed6	0	checked, no violation	0.3	1733	317	20	5	20	no	no	no	3	244
+fixed-3cohort-2commits	MCFixed3Rev2	0	checked, no violation	0.3	1080	314	18	5	20	no	no	no	3	246
+norestart-fixed-1commit	MCNoRestartFixed1	12	invariant violated	0.3	11	8	3	5	19	no	no	no	2	101
+norestart-fixed-2commits	MCNoRestartFixed	12	invariant violated	0.4	12	9	3	5	19	no	no	no	2	101
+inflight-broken-3cohort	MCInflightBroken	12	invariant violated	0.3	3	3	3	7	21	no	no	no	2	126
+inflight-fixed-3cohort	MCInflightFixed	0	checked, no violation	0.3	204	65	14	7	21	no	no	no	2	126
+dead-action-control	DeadSyncProbe	0	checked, no violation	0.3	110	33	8	5	15	no	no	no	1	83

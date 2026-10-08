@@ -1,0 +1,6 @@
+# TLC scratch.  `-cleanup` removes the states directory on a clean exit and
+# `-noTE` suppresses the trace-exploration spec, but a run that is interrupted
+# or driven without those flags leaves both behind.
+states/
+*_TTrace_*.tla
+*_TTrace_*.bin
