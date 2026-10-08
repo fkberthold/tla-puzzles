@@ -1823,11 +1823,33 @@ the candidates below as explicitly unmodelled.
   RFC 6851 §3.3 (2013) reads "each individual message SHOULD either be moved or
   unaffected"; RFC 9051 §6.4.8 (2021) reads "each individual message MUST be
   either moved or unaffected". I verified this by diffing the two source texts:
-  `rfc6851.txt` line 177 against `rfc9051.txt` line 4687, with the rest of the
-  paragraph byte-identical. The working group looked at eight years of deployed
-  MOVE implementations and decided SHOULD was too weak for exactly this clause.
-  RFC 9051 Appendix E corroborates ("Tightened requirements about COPY/MOVE
-  commands"). Bug reports exist on the **duplicate** side only: Thunderbird bug
+  `rfc6851.txt` line 177 against `rfc9051.txt` line 4687. The working group
+  looked at eight years of deployed MOVE implementations and decided SHOULD was
+  too weak for exactly this clause.
+
+  **CORRECTED 2026-10-08, twice independently, after two readers re-measured
+  it.** Two claims above were wrong.
+
+  The paragraph is **not** byte-identical apart from that line. `diff -u` over
+  the nine-line blocks gives **two** changed lines and seven identical. The
+  second change is the lead-in: "Because a MOVE applies to a set of messages, it
+  might fail partway through the set" became "Unlike the COPY command, MOVE of a
+  set of messages might fail partway through the set". The adverb moved with the
+  modal too, from "SHOULD either be" to "MUST be either", so it is not a clean
+  one-word substitution.
+
+  **RFC 9051 Appendix E does not corroborate this and never could.** The item at
+  `rfc9051.txt:8039` is about target-mailbox creation and the TRYCREATE response
+  code, a neighbouring tightening, and the quotation above cut at the word that
+  changes the subject. More fundamentally, Appendix E is titled "Changes from
+  RFC 3501", and **RFC 3501 has no MOVE command**, so that appendix was never
+  the place this change could appear.
+
+  The real provenance is better than an erratum and the survey missed it. The
+  **draft series dates the edit exactly**: revision 24 reads SHOULD, revision 25
+  reads MUST, and the same revision rewrote the lead-in, which is why both lines
+  moved together. Posted 2021-01-20, the day Last Call closed. For completeness,
+  RFC 9051 carries 9 errata, none naming §6.4.8, and RFC 6851 carries none. Bug reports exist on the **duplicate** side only: Thunderbird bug
   610131, where bulk move was implemented as bulk-copy-then-bulk-delete and
   interrupting it left messages in both folders — precisely the non-atomic
   sequence RFC 6851 exists to replace (relayed). No published server-side bug
@@ -2149,8 +2171,23 @@ Three seams I opened and did not exhaust, in descending order of promise:
 
 A fourth, cheaper than any of those: **diff a superseding standard against the
 one it obsoletes and grep for SHOULD becoming MUST.** RFC 6851 to RFC 9051 gave
-candidate 11.8 that way, and every "Changes from RFC NNNN" appendix in this
-survey is a list of places to look.
+candidate 11.8 that way.
+
+**AMENDED 2026-10-08.** This paragraph used to end "and every 'Changes from
+RFC NNNN' appendix in this survey is a list of places to look." That half is
+wrong, and it is wrong in a way worth keeping written down, because it
+generalised a method from an example that did not work the way the survey
+thought.
+
+A "Changes from" appendix names **one** predecessor. RFC 9051's names RFC 3501,
+which has no MOVE command, so it does not and cannot list the RFC 6851 change
+that produced candidate 11.8. The appendix was a false lead and the diff is what
+actually found it.
+
+So the method is **diff the texts**, and the document to diff against is the one
+that last specified the clause, which is often not the one the appendix names.
+A standard that obsoletes several predecessors has a clause history per clause,
+not per document. Read the appendix for orientation and never as the index.
 
 ---
 

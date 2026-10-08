@@ -67,8 +67,14 @@ against precisely the desynchronisation a model finds. A CVE serves the same job
 for HTTP/2 Rapid Reset. Three whole RFCs *are* the counterexample to a current
 standard, each printing the race as a trace.
 
-**Issue trackers are the only source of `workflow`.** Postmortems returned zero
-and Jepsen about one. The mechanism is that an issue is written to convince a
+**Issue trackers are the densest source of `workflow`, and this line used to say
+they were the only one.** Postmortems returned zero and Jepsen about one.
+
+**CORRECTED 2026-10-08.** "Only" is false. `rfcs.md:2092` tags 5 candidates
+`workflow` and `semantics.md:682,803` tag 2 more, so the shape has about 12
+instances across three families rather than 5 from one. The error mattered: a
+step-2 candidate table built from this file was briefed to call `workflow` thin
+on the strength of it, and the brief's premise failed. The mechanism is that an issue is written to convince a
 maintainer a rule is wrong, which is nearly a specification argument, where a
 postmortem is written to reassure a customer. Per item opened the two families are
 indistinguishable, 79 against 81 percent. The case for trackers rests on supply
