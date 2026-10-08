@@ -14,4 +14,4 @@ delivered statement, per V2-PLAN.md section 2.5.
 
 situation: S2
 task shape: D
-reading gate: ch11
+uses constructs from: 12, `EXCEPT`, and `]_Observe` subscripting a record, `authoring/river-call/reference/RiverCall.tla:36-37,75`

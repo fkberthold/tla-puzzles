@@ -8,11 +8,36 @@
 #   a VECTOR.md one level up. That record carries exactly six dimension rows,
 #   in a fixed order, each with a level in 0..3 and a citation. After the table
 #   it carries three key lines: a situation in S1..S9, a task shape in A..F,
-#   and a reading gate reading ch11, ch13 or refinement.
+#   and a `uses constructs from:` line reading a learntla chapter number, a
+#   comma, and a citation. No record carries a `reading gate:` line.
 #
 #   authoring/VECTOR-FLOOR.md passes the same check with one relaxation. Its
 #   situation and its task shape may read `floor`. The floor has no FREEZE
 #   file, so the scan never reaches it, and this suite names it directly.
+#
+# THE THIRD KEY LINE IS A REVISION POINTER, NOT AN ORDERING GATE (D6)
+#
+# It used to read `reading gate: ch11 | ch13 | refinement`, and clause (c) of
+# the sequence invariant ordered problems on it. D6 took the rule out and kept
+# the field, restated as "this problem uses constructs from learntla chapter
+# N". The value is a chapter number in 2..13, because the project's own
+# exercise sets run exercises/ch02 through exercises/ch13 and 13 is the last
+# chapter of learntla core. It is a bare number rather than a `ch12` label:
+# the old vocabulary was a closed set of three labels and the new one is a
+# number, so a record written in the old form has to fail rather than pass by
+# looking familiar.
+#
+# The number is the HIGHEST chapter any construct in the problem's frozen
+# reference comes from, which is why it carries a citation like every other
+# claim in the record. Two sheets settle most of the judgements:
+# exercises/ch12/EXERCISES.md says `EXCEPT` and `@` are chapter 12's, and
+# exercises/ch11/EXERCISES.md:5-8 says a subscript naming anything but a
+# single variable is chapter 12's too.
+#
+# A leftover `reading gate:` line is refused by name. Dropping the clause from
+# harness/sequence.sh left nothing reading that line, so a record that kept it
+# would carry a second, stale answer to the same question and nothing would
+# say so.
 #
 # WHY IT IS WORTH A GATE
 #
@@ -42,7 +67,9 @@
 # A citation cell is non-empty after trimming and is not TODO, tbd, n/r, ? or
 # a bare dash. Those five are how a record rots: the row survives, the shape
 # still parses, and the claim behind it is gone. Checking only for a non-empty
-# cell would pass every one of them.
+# cell would pass every one of them. The citation half of the
+# `uses constructs from:` line goes through the same five names, and also has
+# to carry a path:line, so a sentence of prose with no pointer in it fails.
 #
 # HOW THE CHECK IS KEPT HONEST
 #
@@ -50,7 +77,9 @@
 # formed", which is also what a checker that stopped reading files reports. So
 # the controls below plant records in a temp tree and require the checker to
 # get each one wrong in the right way: five rows, a level of 4, an empty
-# citation, a TODO citation, a reading gate of ch12, a missing situation line,
+# citation, a TODO citation, a chapter of 14, a chapter written `ch12` in the
+# retired vocabulary, a chapter with no citation after it, a citation with no
+# path:line in it, a leftover `reading gate:` line, a missing situation line,
 # two situation lines, a situation line above the table, a dimension out of
 # order, and a floor value used where it does not belong.
 # Each control asserts on WHICH clause failed, not just that something did, so
@@ -169,7 +198,19 @@ HEADING_RE='^#[[:space:]]+[^[:space:]]'
 
 SITUATION_RE='^[[:space:]]*situation[[:space:]]*:[[:space:]]*(.*)$'
 TASK_RE='^[[:space:]]*task[[:space:]]+shape[[:space:]]*:[[:space:]]*(.*)$'
-GATE_RE='^[[:space:]]*reading[[:space:]]+gate[[:space:]]*:[[:space:]]*(.*)$'
+USES_RE='^[[:space:]]*uses[[:space:]]+constructs[[:space:]]+from[[:space:]]*:[[:space:]]*(.*)$'
+
+# The retired field. Kept here to be refused, not to be read.
+OLD_GATE_RE='^[[:space:]]*reading[[:space:]]+gate[[:space:]]*:[[:space:]]*(.*)$'
+
+# A chapter number. 2 is the first chapter with an exercise set and 13 is the
+# last chapter of learntla core, so the range is the set of chapters a problem
+# can draw on rather than an arbitrary bound.
+CHAPTER_RE='^(1[0-3]|[2-9])$'
+
+# A citation has to point somewhere. One path:line is enough, and a line range
+# counts, so `Bureau.tla:28-30` passes and a sentence with no pointer does not.
+CITE_POINTER_RE='[^[:space:]]:[0-9]'
 
 KEY_COUNT=0
 KEY_VALUE=""
@@ -374,28 +415,60 @@ validate_record() {
     return 1
   fi
 
-  find_key "$GATE_RE"
+  find_key "$USES_RE"
   if [ "$KEY_COUNT" -eq 0 ]; then
-    RECORD_WHY="no 'reading gate:' line"
+    RECORD_WHY="no 'uses constructs from:' line"
     return 1
   fi
   if [ "$KEY_COUNT" -gt 1 ]; then
-    RECORD_WHY="'reading gate:' appears $KEY_COUNT times, wanted exactly once"
+    RECORD_WHY="'uses constructs from:' appears $KEY_COUNT times, wanted exactly once"
     return 1
   fi
   if [ "$KEY_INDEX" -le "$last_row" ]; then
-    RECORD_WHY="the 'reading gate:' line sits inside or above the table, wanted it after"
+    RECORD_WHY="the 'uses constructs from:' line sits inside or above the table, wanted it after"
     return 1
   fi
   trim "$KEY_VALUE"
   v="$TRIMMED"
-  case "$v" in
-  ch11 | ch13 | refinement) ;;
-  *)
-    RECORD_WHY="reading gate is '$v', wanted ch11, ch13 or refinement"
+
+  local chapter cite ccite
+  if ! grep -qE -- '^[^,]+,' <<<"$v"; then
+    RECORD_WHY="uses constructs from is '$v', wanted a chapter number, a comma, then a citation"
+    return 1
+  fi
+  chapter="${v%%,*}"
+  cite="${v#*,}"
+
+  trim "$chapter"
+  chapter="$TRIMMED"
+  if ! grep -qE -- "$CHAPTER_RE" <<<"$chapter"; then
+    RECORD_WHY="uses constructs from names chapter '$chapter', wanted a bare learntla chapter number 2 through 13"
+    return 1
+  fi
+
+  trim "$cite"
+  ccite="$TRIMMED"
+  if [ -z "$ccite" ]; then
+    RECORD_WHY="uses constructs from has an empty citation"
+    return 1
+  fi
+  case "${ccite,,}" in
+  todo | tbd | n/r | "?" | "-")
+    RECORD_WHY="uses constructs from has the placeholder citation '$ccite'"
     return 1
     ;;
   esac
+  if ! grep -qE -- "$CITE_POINTER_RE" <<<"$ccite"; then
+    RECORD_WHY="uses constructs from cites '$ccite', which carries no path:line"
+    return 1
+  fi
+
+  # The retired field, refused rather than read. See the header.
+  find_key "$OLD_GATE_RE"
+  if [ "$KEY_COUNT" -gt 0 ]; then
+    RECORD_WHY="the record still carries a 'reading gate:' line, which D6 retired"
+    return 1
+  fi
 
   return 0
 }
@@ -430,7 +503,7 @@ assert_record_bad() {
 # Fixture writers.
 # ---------------------------------------------------------------------------
 
-# write_record <path> <level> <citation> <situation-line> <task-line> <gate-line>
+# write_record <path> <level> <citation> <situation-line> <task-line> <uses-line>
 #
 # Writes a record that is valid apart from whatever the caller varies. The
 # level and the citation land on row 3, because one bad row has to fail the
@@ -458,6 +531,12 @@ write_record() {
   } >"$path"
 }
 
+# The `uses constructs from:` line a control fixture carries when that line is
+# not the thing the control varies. Built with double quotes on purpose: the
+# backticks inside it are literal Markdown, and in single quotes shellcheck
+# reads them as a command substitution that will not expand (SC2016).
+FIXTURE_USES="uses constructs from: 13, \`INSTANCE\` at \`starters/Beacon.tla:12\`"
+
 # write_five_row_record <path>
 write_five_row_record() {
   {
@@ -473,7 +552,7 @@ write_five_row_record() {
     printf '\n'
     printf 'situation: S4\n'
     printf 'task shape: C\n'
-    printf 'reading gate: ch13\n'
+    printf '%s\n' "$FIXTURE_USES"
   } >"$1"
 }
 
@@ -496,7 +575,7 @@ write_shuffled_record() {
     printf '\n'
     printf 'situation: S4\n'
     printf 'task shape: C\n'
-    printf 'reading gate: ch13\n'
+    printf '%s\n' "$FIXTURE_USES"
   } >"$1"
 }
 
@@ -519,7 +598,7 @@ write_duplicate_situation_record() {
     printf '\n'
     printf 'situation: S4\n'
     printf 'task shape: C\n'
-    printf 'reading gate: ch13\n'
+    printf '%s\n' "$FIXTURE_USES"
     printf 'situation: S5\n'
   } >"$1"
 }
@@ -544,7 +623,7 @@ write_early_situation_record() {
     printf '| form left open | 0 | ch05 p.51 |\n'
     printf '\n'
     printf 'task shape: C\n'
-    printf 'reading gate: ch13\n'
+    printf '%s\n' "$FIXTURE_USES"
   } >"$1"
 }
 
@@ -609,11 +688,14 @@ write_freeze "$GOOD/authoring/orphan/reference/FREEZE.sha256"
 write_freeze "$GOOD/pilot/reference/FREEZE.sha256"
 
 write_record "$GOOD/authoring/newcomer/VECTOR.md" \
-  3 "ch09 p.117" "situation: S4" "task shape: C" "reading gate: ch13"
+  3 "ch09 p.117" "situation: S4" "task shape: C" \
+  "uses constructs from: 13, \`INSTANCE\` at \`starters/Beacon.tla:12\`"
 write_record "$GOOD/pilot/VECTOR.md" \
-  0 "ch03 p.24" "situation: S1" "task shape: A" "reading gate: refinement"
+  0 "ch03 p.24" "situation: S1" "task shape: A" \
+  "uses constructs from: 9, \`~>\` at \`starters/Beacon.tla:30\`"
 write_record "$GOOD/$FLOOR_REL" \
-  0 "ch02 p.14" "situation: floor" "task shape: floor" "reading gate: ch11"
+  0 "ch02 p.14" "situation: floor" "task shape: floor" \
+  "uses constructs from: 11, \`[A]_x\` at \`starters/Airlock.tla:22\`"
 
 printf 'a package with no frozen reference yet\n' >"$BARE/authoring/museum/DESCRIPTION.md"
 printf 'a report, not a freeze\n' >"$BARE/pilot/reports/2026-01-01.md"
@@ -668,25 +750,65 @@ write_shuffled_record "$BAD/shuffled.md"
 assert_record_bad "control: the six dimensions out of order fails on the order" \
   "$BAD/shuffled.md" freeze "names dimension 'property kind'"
 
-write_record "$BAD/level-4.md" 4 "ch09 p.117" "situation: S4" "task shape: C" "reading gate: ch13"
+# The controls below reuse FIXTURE_USES wherever the chapter line is not what
+# the control varies.
+
+write_record "$BAD/level-4.md" 4 "ch09 p.117" "situation: S4" "task shape: C" "$FIXTURE_USES"
 assert_record_bad "control: a level of 4 fails, so 0..3 is a range and not a suggestion" \
   "$BAD/level-4.md" freeze "has level '4'"
 
-write_record "$BAD/empty-cite.md" 3 "" "situation: S4" "task shape: C" "reading gate: ch13"
+write_record "$BAD/empty-cite.md" 3 "" "situation: S4" "task shape: C" "$FIXTURE_USES"
 assert_record_bad "control: an empty citation cell fails" \
   "$BAD/empty-cite.md" freeze 'has an empty citation$'
 
-write_record "$BAD/todo-cite.md" 3 "TODO" "situation: S4" "task shape: C" "reading gate: ch13"
+write_record "$BAD/todo-cite.md" 3 "TODO" "situation: S4" "task shape: C" "$FIXTURE_USES"
 assert_record_bad "control: a TODO citation fails, so a placeholder cannot stand in for a reference" \
   "$BAD/todo-cite.md" freeze "placeholder citation 'TODO'"
 
 # --- the three key lines -------------------------------------------------
 
-write_record "$BAD/gate-ch12.md" 3 "ch09 p.117" "situation: S4" "task shape: C" "reading gate: ch12"
-assert_record_bad "control: a reading gate of ch12 fails, so the three gates are a closed set" \
-  "$BAD/gate-ch12.md" freeze "^reading gate is 'ch12'"
+# The chapter half. 14 is out of range in the direction a typo goes, and
+# `ch12` is the retired vocabulary, which is the one wrong value most likely
+# to be written by somebody working from an old record.
+write_record "$BAD/chapter-14.md" 3 "ch09 p.117" "situation: S4" "task shape: C" \
+  "uses constructs from: 14, \`INSTANCE\` at \`starters/Beacon.tla:12\`"
+assert_record_bad "control: a chapter of 14 fails, so 2..13 is a range and not a suggestion" \
+  "$BAD/chapter-14.md" freeze "names chapter '14'"
 
-write_record "$BAD/no-situation.md" 3 "ch09 p.117" "" "task shape: C" "reading gate: ch13"
+write_record "$BAD/chapter-label.md" 3 "ch09 p.117" "situation: S4" "task shape: C" \
+  "uses constructs from: ch12, \`EXCEPT\` at \`starters/Apiary.tla:18\`"
+assert_record_bad "control: a chapter written 'ch12' fails, so the value is a number and not the retired label" \
+  "$BAD/chapter-label.md" freeze "names chapter 'ch12'"
+
+# The citation half. A chapter number on its own is the shape the retired
+# field had, so a record that simply dropped the `ch` prefix has to fail.
+write_record "$BAD/uses-no-cite.md" 3 "ch09 p.117" "situation: S4" "task shape: C" \
+  "uses constructs from: 12"
+assert_record_bad "control: a chapter with no citation after it fails" \
+  "$BAD/uses-no-cite.md" freeze "wanted a chapter number, a comma, then a citation"
+
+write_record "$BAD/uses-no-pointer.md" 3 "ch09 p.117" "situation: S4" "task shape: C" \
+  "uses constructs from: 12, it uses EXCEPT somewhere in the reference"
+assert_record_bad "control: a citation with no path:line fails, so prose cannot stand in for a pointer" \
+  "$BAD/uses-no-pointer.md" freeze "carries no path:line"
+
+write_record "$BAD/uses-todo.md" 3 "ch09 p.117" "situation: S4" "task shape: C" \
+  "uses constructs from: 12, TODO"
+assert_record_bad "control: a TODO citation on the chapter line fails" \
+  "$BAD/uses-todo.md" freeze "placeholder citation 'TODO'"
+
+# The retired field. A record that gained the new line and kept the old one
+# would pass every clause above, so this is the only control that catches it.
+write_record "$BAD/leftover-gate.md" 3 "ch09 p.117" "situation: S4" "task shape: C" "$FIXTURE_USES"
+printf 'reading gate: ch11\n' >>"$BAD/leftover-gate.md"
+assert_record_bad "control: a leftover 'reading gate:' line fails, so D6 removed the field rather than shadowing it" \
+  "$BAD/leftover-gate.md" freeze "still carries a 'reading gate:' line"
+
+write_record "$BAD/no-uses.md" 3 "ch09 p.117" "situation: S4" "task shape: C" ""
+assert_record_bad "control: a record with no 'uses constructs from:' line fails" \
+  "$BAD/no-uses.md" freeze "^no 'uses constructs from:' line$"
+
+write_record "$BAD/no-situation.md" 3 "ch09 p.117" "" "task shape: C" "$FIXTURE_USES"
 assert_record_bad "control: a record with no situation line fails" \
   "$BAD/no-situation.md" freeze "^no 'situation:' line$"
 

@@ -15,4 +15,4 @@ Situation placed by central from HANDOFF.md against V2-PLAN.md 2.1 on 2026-09-05
 
 situation: S6
 task shape: B
-reading gate: ch13
+uses constructs from: 12, two keys in one `EXCEPT` with `@`, `authoring/qsl/reference/Bureau.tla:28-30`. The package has no `INSTANCE` and no user-module `EXTENDS`, so nothing in it reaches chapter 13

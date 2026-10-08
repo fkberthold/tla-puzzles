@@ -13,4 +13,4 @@ Withdrawn from the practice tree 2026-09-04. Levels counted 2026-09-04 per V2-PL
 
 situation: S5
 task shape: C
-reading gate: ch11
+uses constructs from: 12, `]_vars` is a tuple subscript, hand-written below the PlusCal translation, `pilot/reference/PermitReview.tla:128,137`

@@ -15,4 +15,4 @@ new high over the floor.
 
 situation: S9
 task shape: B
-reading gate: ch11
+uses constructs from: 12, `]_Observe` subscripts a record rather than a single variable, `authoring/bonded-store/reference/BondedStore.tla:29,35`, and the translation carries four `EXCEPT` at `authoring/bonded-store/reference/BondedStore.tla:97-103`

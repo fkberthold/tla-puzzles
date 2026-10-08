@@ -15,4 +15,4 @@ new high, and representation drops from rung 2 and rung 3's level 2 back to 1.
 
 situation: S5
 task shape: B
-reading gate: ch11
+uses constructs from: 12, `EXCEPT` and `WF_vars`, both hand-written below the PlusCal translation, `authoring/assay-office/reference/AssayOffice.tla:122,126`

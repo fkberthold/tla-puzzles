@@ -15,4 +15,4 @@ Situation placed by central from HANDOFF.md against V2-PLAN.md 2.1 on 2026-09-05
 
 situation: S4
 task shape: A
-reading gate: ch11
+uses constructs from: 13, `EXTENDS Custody` at `authoring/custody/reference/MCCustody.tla:2`, and a second hop, `EXTENDS MCCustody`, in each of the three probes at `authoring/custody/reference/probes/CapReachable.tla:3`

@@ -15,4 +15,4 @@ Situation placed by central from HANDOFF.md against V2-PLAN.md 2.1 on 2026-09-05
 
 situation: S1
 task shape: A
-reading gate: ch11
+uses constructs from: 13, `INSTANCE Consign WITH` and the `<-` substitutions, `authoring/consign/reference/MCConsign.tla:12-16`

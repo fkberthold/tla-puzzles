@@ -15,4 +15,4 @@ new high over the running maximum from rungs 1 to 4.
 
 situation: S4
 task shape: A
-reading gate: ch11
+uses constructs from: 12, `EXCEPT` with `@` as the old value, and `WF_vars`, `authoring/floor-malting/reference/Maltings.tla:27,50`

@@ -20,4 +20,4 @@ withholds it on requirement 4 instead, and
 
 situation: S4
 task shape: A
-reading gate: ch11
+uses constructs from: 12, `EXCEPT` and `WF_vars`, `authoring/estate-notice/reference/EstateNotice.tla:26,70`

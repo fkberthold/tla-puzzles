@@ -15,4 +15,4 @@ Situation placed by central from HANDOFF.md against V2-PLAN.md 2.1 on 2026-09-05
 
 situation: S4
 task shape: D
-reading gate: ch13
+uses constructs from: 13, `EXTENDS SeedLib`, a user module rather than a standard one, `authoring/seedlib/reference/MCSeedLib.tla:2`

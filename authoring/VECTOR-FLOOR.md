@@ -13,4 +13,4 @@ The hardest drill in the ch11 set, taken as the ramp's floor. Every package abov
 
 situation: floor
 task shape: floor
-reading gate: ch11
+uses constructs from: 11, both action properties subscript a single variable name, `exercises/ch11/references/Airlock.tla:22-23`; the set declares its own ceiling at `exercises/ch11/EXERCISES.md:5-8`

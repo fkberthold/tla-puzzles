@@ -13,4 +13,4 @@ Rung 6 of batch 2, bead `tla-h2cg.12`. Levels counted 2026-09-05 per V2-PLAN.md 
 
 situation: S6
 task shape: D
-reading gate: ch11
+uses constructs from: 12, `EXCEPT` with `@` and with a nested `![b][s]` key, and `WF_vars`, `authoring/herbarium-sheet/reference/Herbarium.tla:37-38,66`

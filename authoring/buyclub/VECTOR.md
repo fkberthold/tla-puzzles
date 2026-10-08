@@ -15,4 +15,4 @@ Situation placed by central from HANDOFF.md against V2-PLAN.md 2.1 on 2026-09-05
 
 situation: S5
 task shape: A
-reading gate: ch11
+uses constructs from: 12, `EXCEPT` with a nested key and `WF_vars`, `authoring/buyclub/reference/BuyClub.tla:34,61`

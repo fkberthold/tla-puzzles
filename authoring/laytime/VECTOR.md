@@ -15,4 +15,4 @@ report. Citations only, no spoiler.
 
 situation: S4
 task shape: A
-reading gate: ch11
+uses constructs from: 12, `]_Observe` subscripts a record rather than a single variable, `authoring/laytime/reference/Laytime.tla:38,46`, which `exercises/ch11/EXERCISES.md:5-8` puts in chapter 12. No `EXCEPT`, so this is the rung `tla-h1ki` counted as correctly gated
