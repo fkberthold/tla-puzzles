@@ -81,8 +81,9 @@ The gang asks for a permit, because it chooses to. The desk raises one while the
 still open and no permit of the gang's stands open. That means from `"clear"`,
 `"completed"` or `"abandoned"`. The standing becomes `"open"` and nothing else moves.
 
-The desk doesn't read the gang's card when it raises a permit, and it doesn't count the
-leaves the book has left.
+The desk reads the gang's card and sets it against its own book. If the card doesn't say the
+leaf the desk holds, the desk refuses it as out of date and raises nothing. The desk doesn't
+count the leaves the book has left.
 
 ### Rule 5. Bringing a permit back
 
@@ -200,9 +201,8 @@ tested at steps that change what its subscript watches. Watch one field, and eve
 that changes only the other fields satisfies the rule for free. TLC won't warn you. Work
 out what each rule has to watch.
 
-1. **A withdrawal puts the gang out.** Once the desk has withdrawn a permit of this
-   gang's, no permit of the gang's stands open. Its way back is a fresh book, and a fresh
-   book comes with the next shift.
+1. **A card on the last leaf means a book taken back.** At every moment, if the leaf on the
+   gang's card is the last leaf, the standing is `"spent"`. The desk has taken the book back.
 
    `INVARIANT`. A claim about a single state.
 
