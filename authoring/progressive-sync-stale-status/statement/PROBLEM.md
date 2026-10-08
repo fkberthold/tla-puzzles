@@ -31,6 +31,8 @@ here.
 
 - This statement: the rules, the interface, and the seven requirements.
 - Two modeling choices the statement leaves open, in their own section.
+- A `traces/` directory: one run every model has to allow, and one run per
+  requirement that every model has to rule out.
 
 No model ships. You write it.
 
@@ -98,12 +100,18 @@ takes a hand from outside the region, and this system doesn't model that hand.
 
 The superintendent issues the amendment to a box of the district in hand. She
 takes one box at a time, in whatever order she likes, and only a box she
-hasn't got out already. A box she has issued that hasn't pasted in yet is
+hasn't got out already. A box she has issued and hasn't closed off is
 **under issue**.
 
-A box under issue pastes the amendment in and stops being under issue. That's
-a step of the box's, not of hers. She can't paste it in for him, and she
-can't call an issue back.
+A box under issue pastes the amendment in, and that's a step of the box's.
+She can't paste it in for him, and she doesn't see it happen. She can't call
+an issue back either, so a box she has got out keeps the amendment whatever
+she does next.
+
+A box leaves **under issue** one way only. She reads that box's line on the
+board, takes the line as good enough, and closes the issue off. That's a step
+of hers, and the board is the whole of what she goes on. What makes a line
+good enough is yours to settle, along with what the line carries.
 
 ### Rule 5. The cap on the last district
 
@@ -169,7 +177,7 @@ Observe == [amendment |-> ..., working |-> ..., inHand |-> ...,
 - **amendment**: the amendment now being circulated.
 - **working**: for each box, the amendment that box works to.
 - **inHand**: the district in hand.
-- **underIssue**: the boxes she has out that haven't pasted in yet.
+- **underIssue**: the boxes she has out and hasn't closed off.
 - **signedOff**: the districts she has signed off.
 
 The shapes are load-bearing, because the checker compares values. A renamed
@@ -189,9 +197,10 @@ in a requirement meets a string sitting beside a natural. A string there stops
 TLC dead instead of answering false.
 
 **The board isn't a field, and that's on purpose.** The board is yours. Keep
-it in whatever shape you settled on under rules 6 and 7, and nothing grades
-it. A model with no board can still report all five fields correctly. It
-can't state rule 7 at all, because its superintendent has nothing to read.
+it in whatever shape you settled on under rules 4, 6 and 7, and nothing
+grades its shape. Its use is graded, because closing an issue off is a step
+she takes on a board line. Take the board out of your model and that step has
+nothing to stand on.
 
 **`signedOff` is a fact her sign-off step sets, not a reading of `working`.**
 Derive it from `working` and requirement 1 comes out true by construction, so
@@ -291,14 +300,41 @@ red. Allow a step the rules forbid, and a requirement breaks with a trace to
 show for it. Forbid a step the rules allow, and every check stays green over a
 region nobody runs.
 
+## The traces
+
+The `traces/` directory beside this file holds a `README.md` and one file per
+requirement. Every table is written over the five fields and nothing else, so
+the board never appears in one.
+
+- **One run every model has to allow.** It's in `full-circulation.md`.
+- **One run per requirement that your model has to rule out.**
+
+Each row is one moment, the value of `Observe`. Consecutive rows are one step
+apart. Every violating run came out of a model somebody could write, and the
+file says where it breaks.
+
+Read them before you model. If TLC later hands you a counterexample shaped
+like one of them, you're standing in that trap. And if your model can't
+produce the run in `full-circulation.md`, it's over-constrained however green
+your seven checks are. That's the failure direction with no trace to show for
+it, which is what the warning above is about.
+
 ## Checking
 
-Check at three boxes and two districts:
+Check at three boxes and two districts. The constants go in your `.cfg`:
 
 ```
-Boxes = {b1, b2, b3}
-Districts = <<{b1}, {b2, b3}>>
-Cap = 1
+CONSTANTS
+  Boxes = {b1, b2, b3}
+  FirstDistrict = {b1}
+  LastDistrict = {b2, b3}
+  Cap = 1
+```
+
+and the sequence goes in your module:
+
+```tla
+Districts == << FirstDistrict, LastDistrict >>
 ```
 
 I think two districts is the least that has an order to get wrong. One box in
@@ -306,20 +342,47 @@ the first and two in the last is the least that makes the cap bite. It also
 leaves the box that can be passed over on its own, in the district that goes
 first. `Cap = 1` is as tight as the last district gets.
 
-`Districts` is a sequence of sets of boxes, and a district's number is its
-position in it. I think TLC takes that shape in a `.cfg` without complaint. If
-yours balks, declare the two sets as separate constants and build the sequence
-in your module.
+A district's number is its position in `Districts`. Don't try to write the
+sequence straight into the `.cfg`. TLC's config parser takes a set of model
+values and won't take a sequence of anything, and what you get back is
+`It was expecting = or <-, but did not find it` against the `Districts` line.
+That message doesn't say what's wrong, so it's worth knowing in advance.
 
 Run TLC with deadlock checking off. The flag is `-deadlock`, and despite its
 name it turns the check off. The end of the story is every district signed off
 and every box working to the amendment, and your model may well have nothing
 enabled there. That stall is the design working, not an error.
 
+### Watch requirement 1 fail first
+
+Before you fix anything, write the guard that reads the board's verdict and
+ignores which amendment that verdict was reached against. Then run it and
+watch requirement 1 go red with a trace. If it comes out green, your
+superintendent is learning a box's state by some route other than the board,
+and the problem has gone out of your model.
+
+### What to expect
+
 No state count is quoted here. The board is your own state, so no two models
 agree on a count and a number would only tell you whose model you'd written.
-Check two other things instead: all seven come out green, and your model can
-still produce a run where head office never issues anything.
+The order of magnitude does carry across models, and so does the depth of the
+first counterexample, because that's a count of acts by named parties.
+
+Expect tens to a few hundred distinct states, and seconds rather than
+minutes. Expect a wrong first attempt to break requirement 1 within three to
+six steps. A twenty-step counterexample, or tens of thousands of states,
+means your board is carrying more than a line per box.
+
+Three things to check beyond the seven:
+
+1. All seven come out green.
+2. Your model can produce a run where head office never issues anything.
+3. Your model can produce a run where the amendment is issued and the last
+   district is signed off.
+
+The third one is the one people skip, and it's the one that keeps the other
+seven honest. A model that can never open a circulation, or can never finish
+one, satisfies requirement 7 for free and most of the rest with it.
 
 ## What to deliver
 
