@@ -1206,48 +1206,62 @@ echo
 echo "== structural: D6, no script parses a checkpoint: line =="
 # ---------------------------------------------------------------------------
 
-# The structural half of the RED invariant on bead tla-5zgr.2. The behavioral
-# rows above prove the two ORDER-reading scripts refuse a marker; this one
-# proves no third parser grew back anywhere under scripts/.
+# The structural half of the RED invariant on bead tla-5zgr.2, widened to its
+# stated scope by bead tla-ec2o. The behavioral rows above prove the two
+# ORDER-reading scripts refuse a marker. This one proves no third parser grew
+# back anywhere under scripts/ or harness/.
 #
-# WHY THE SWEEP STOPS AT scripts/ AND THE INVARIANT DOES NOT.
+# WHY THE TWO BANS HAVE DIFFERENT SCOPES.
 #
-# D6's L3 spec reads "no file under scripts/ or harness/ parses one", and that
-# is wider than this bead can make true. harness/sequence.sh PLACES both
-# markers and clause (c) ENFORCES them, and harness/test-sequence.sh parses
-# them in its own verifier. Both files belong to bead tla-5zgr.1, which was
-# in flight alongside this one, so this bead must not touch them. Widening
-# this sweep to harness/ belongs to whichever of the two lands second.
-# Measured 2026-10-08: harness/sequence.sh and harness/test-sequence.sh are
-# the only two files under harness/ that parse the pattern.
+# D6's L3 spec reads "no file under scripts/ or harness/ parses one". The skip
+# ban covers both trees, which is what the spec asks for. The literal ban
+# stays at scripts/, because the refusal tests under harness/ have to write
+# `checkpoint: ch13` and `checkpoint: refinement` as fixture data to prove the
+# refusal happens. Measured 2026-10-08: 13 such lines across
+# test-number-problems.sh, test-deliver-problems.sh and test-sequence.sh.
+# Those are data rather than a parse, so banning the spelling under harness/
+# would redden the suite on its own fixtures.
 #
-# Scoped to scripts/, the sweep is a real gate over a whole directory rather
-# than a check with an exclusion list nobody retires. It greps the tree rather
-# than a list of filenames, so a script that does not exist yet is covered the
-# moment it lands.
+# tla-5zgr.2 wrote the skip ban at scripts/ only, because harness/sequence.sh
+# PLACED both markers and harness/test-sequence.sh parsed them in its own
+# verifier. Both files belonged to bead tla-5zgr.1, in flight alongside it.
+# tla-5zgr.1 then removed the parse from harness/sequence.sh and tla-ec2o
+# removed the dead skip arm from harness/test-sequence.sh, so the ban could
+# move out to cover both trees.
 #
-# WHAT IT BANS, AND WHY NOT THE WORD ITSELF.
+# Each ban greps its tree rather than a list of filenames, so a script that
+# does not exist yet is covered the moment it lands. Neither carries an
+# exclusion list nobody retires.
+#
+# WHAT THE SKIP BAN BANS, AND WHY NOT THE WORD ITSELF.
 #
 # "Parses one" and "is a parse error" are opposites, so a sweep that banned
-# every mention of checkpoint: would ban the refusal along with the skip. Both
-# scripts have to name the pattern in order to refuse it.
+# every mention of checkpoint: would ban the refusal along with the skip.
+# Every script that refuses the marker has to name the pattern to refuse it.
 #
 # So the sweep reads CODE and not prose, dropping comment lines first, and
 # then bans the two shapes that mean the line was accepted: a skip, which is
-# the `continue` the two retired case arms used to carry, and either retired
-# literal spelling, which nothing needs now that the refusal matches the whole
-# prefix. Comments are dropped rather than scanned because the history of the
-# two markers is worth keeping written down, and writing it down names them.
+# the `continue` the three retired case arms used to carry, and either retired
+# literal spelling, which nothing under scripts/ needs now that the refusal
+# matches the whole prefix. Comments are dropped rather than scanned because
+# the history of the two markers is worth keeping written down, and writing it
+# down names them.
 
 CP_CODE=$(grep -rnE -- 'checkpoint:' scripts/ 2>/dev/null \
   | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')
 
-CP_SKIPS=$(grep -E -- 'continue' <<<"$CP_CODE")
+CP_CODE_HARNESS=$(grep -rnE -- 'checkpoint:' harness/ 2>/dev/null \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')
+
+CP_CODE_WIDE=$(grep -rnE -- 'checkpoint:' scripts/ harness/ 2>/dev/null \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')
+
+CP_SKIPS=$(grep -E -- 'continue' <<<"$CP_CODE_WIDE")
 
 if [ -z "$CP_SKIPS" ]; then
-  ok "no script under scripts/ skips a checkpoint: line"
+  ok "no script under scripts/ or harness/ skips a checkpoint: line"
 else
-  nope "a script under scripts/ still skips a checkpoint: line:$(printf '\n')$CP_SKIPS"
+  nope "a script under scripts/ or harness/ still skips a checkpoint: line:$(printf '\n')$CP_SKIPS"
 fi
 
 CP_LITERALS=$(grep -E -- 'checkpoint:[[:space:]]*(ch13|refinement)' <<<"$CP_CODE")
@@ -1258,10 +1272,11 @@ else
   nope "a script under scripts/ still names a retired checkpoint spelling:$(printf '\n')$CP_LITERALS"
 fi
 
-# The non-vacuity control, and this sweep needs one more than most. Both rows
-# above are satisfied by a CP_CODE that is empty for the wrong reason: a typo
-# in the outer pattern, or a scripts/ directory the grep never read. So require
-# the outer grep to have found the refusal arms it is supposed to find.
+# The non-vacuity controls, and this sweep needs more of them than most. Every
+# row above is satisfied by a scan that came back empty for the wrong reason: a
+# typo in the outer pattern, or a directory the grep never read. So require
+# each half to have found the lines it is supposed to find, and require the
+# widened scan to be the two halves together and nothing less.
 CP_CODE_LINES=$(grep -c . <<<"$CP_CODE")
 [ -z "$CP_CODE" ] && CP_CODE_LINES=0
 
@@ -1269,6 +1284,25 @@ if [ "$CP_CODE_LINES" -ge 2 ]; then
   ok "the sweep read $CP_CODE_LINES checkpoint: code lines under scripts/, so a green sweep means something"
 else
   nope "the sweep read $CP_CODE_LINES checkpoint: code lines under scripts/, wanted the 2 refusal arms. An empty scan passes both rows above for free"
+fi
+
+CP_HARNESS_LINES=$(grep -c . <<<"$CP_CODE_HARNESS")
+[ -z "$CP_CODE_HARNESS" ] && CP_HARNESS_LINES=0
+
+if [ "$CP_HARNESS_LINES" -ge 2 ]; then
+  ok "the sweep read $CP_HARNESS_LINES checkpoint: code lines under harness/, so the widened skip ban means something"
+else
+  nope "the sweep read $CP_HARNESS_LINES checkpoint: code lines under harness/, wanted the refusal arm and its fixtures. An empty scan passes the skip row for free"
+fi
+
+CP_WIDE_LINES=$(grep -c . <<<"$CP_CODE_WIDE")
+[ -z "$CP_CODE_WIDE" ] && CP_WIDE_LINES=0
+CP_HALF_LINES=$((CP_CODE_LINES + CP_HARNESS_LINES))
+
+if [ "$CP_WIDE_LINES" -eq "$CP_HALF_LINES" ]; then
+  ok "the widened scan read $CP_WIDE_LINES lines, the two halves together, so the skip ban reads both trees"
+else
+  nope "the widened scan read $CP_WIDE_LINES lines against $CP_HALF_LINES in the two halves, so it is not reading both trees"
 fi
 
 echo

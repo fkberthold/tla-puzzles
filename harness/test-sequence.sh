@@ -633,13 +633,15 @@ verify_order() {
   return 0
 }
 
-# names_in_order -> newline-separated record names, checkpoints dropped
+# names_in_order -> newline-separated record names, one per entry.
+#
+# It used to drop a marker line on the way through. Under D6 an ORDER never
+# holds one, so the arm was unreachable, and it was the shape the structural
+# sweep in test-number-problems.sh bans. The verifier above still names the
+# pattern, because it refuses the line rather than skipping it.
 names_in_order() {
   local entry
   for entry in "${ORDER_LINES[@]}"; do
-    case "$entry" in
-    checkpoint:*) continue ;;
-    esac
     printf '%s\n' "$entry"
   done
 }
