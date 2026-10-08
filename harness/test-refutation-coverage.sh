@@ -216,6 +216,14 @@ fi
 # TO UPDATE A PIN: run harness/refutation-coverage.sh, read the line, and change
 # the verdict here only once you have read the package and agree with it. A pin
 # edited to make this suite green is the gate switched off.
+#
+# One pin has already moved, and it is worth recording how. imap-move-partial-
+# failure was pinned NO_TRACES against the tree this suite was written over.
+# Rule 3 was fixed on main the same day, to say the clerk doesn't leave a mark
+# standing rather than that she never makes one, and traces/requirement-01.md
+# landed with the part entry the old rule forbade. The suite failed on the stale
+# pin, the trace was read, and the pin became OK. That is the loop the pin is
+# for, so don't shortcut it.
 # ---------------------------------------------------------------------------
 
 echo
@@ -238,8 +246,7 @@ pin custody                       NO_STATED_COUNT \
 pin estate-notice                 OK        ""
 pin floor-malting                 OK        ""
 pin herbarium-sheet               OK        ""
-pin imap-move-partial-failure     NO_TRACES \
-  "bead tla-n8oq: requirement 1 at PROBLEM.md:177 is unfalsifiable, because PROBLEM.md:96 removes the action rather than forbidding the outcome. The refutation cannot be written until rule 3 is fixed, which is the point."
+pin imap-move-partial-failure     OK        ""
 pin laytime                       OK        ""
 pin progressive-sync-stale-status NO_TRACES \
   "bead tla-n8oq: all seven requirements hold at rc 0, 14 states, depth 11, over a model with no board and no clerk. No refutation was authored for any of them."
