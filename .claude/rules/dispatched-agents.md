@@ -132,8 +132,8 @@ It dies with the worktree.
 
 ## The canonical commands — and the two that still bite
 
-**Run `bash scripts/test`.** It is this project's real gate: 15 suites, ~257 s,
-all runnable offline. `--fast` trims to a ~7 s tier.
+**Run `bash scripts/test`.** It is this project's real gate: 20 suites, ~190 s,
+all runnable offline. `--fast` trims to a 13-suite, ~16 s tier.
 
 The suite count moves as beads land, so `bash scripts/test --list` is the
 authority and the number here is a description rather than a check. It read 10
@@ -155,7 +155,7 @@ in. An empty verb here has always meant "no honest command exists yet", never
 
 | verb | command | notes |
 |---|---|---|
-| `test` | `bash scripts/test` | 15 suites, ~257 s; `--list` is the authority |
+| `test` | `bash scripts/test` | 20 suites, ~190 s; `--list` is the authority |
 | `lint` | `bash scripts/lint` | shellcheck over `scripts/` + `harness/` — green since `tla-5r7` |
 | `dev` | `bash scripts/server` | regenerates `docs/`, then `mkdocs serve` |
 | `deploy` | `bash scripts/deploy` | **refuses without `--yes`** |
@@ -165,7 +165,7 @@ in. An empty verb here has always meant "no honest command exists yet", never
 Two of those will read as your bug if you do not know them going in.
 
 **`test` defaults to the FULL run, not the fast tier, and that is deliberate.**
-The fast tier is 6 of the 13 suites and about 4% of the wall time, so it skips
+The fast tier is 13 of the 20 suites and about 9% of the wall time, so it skips
 every TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
 refinement harness and the seeded-bug matrix. Recording it as the canonical
 command would be the same class of lie the empty verb was avoiding. Use `--fast`
@@ -269,15 +269,36 @@ Lineage: bead `tla-kr9`.
 
 ---
 
-## Hazard — the isolation harness refuses a command line containing `--alias`
+## Hazard — the isolation harness refuses a command line it cannot statically verify
 
-It reads the token as the shell `alias` builtin and declines to verify the command. This bites
-any worker driving `harness/seeded-bugs.sh`, whose `--alias NAME` flag is named after the `.cfg`
-keyword and so is not going to be renamed.
+The refusal is about **command complexity**, not about any one token. Command substitution
+(`$(...)`), brace grouping, and multi-statement `if … fi` blocks all come back as *"too complex
+to verify that it stays inside the worktree"*.
 
-Workaround: put the invocation in a small scratch script and run the script.
+**AMENDED 2026-10-08, and the earlier wording here was wrong.** This section used to say the
+harness refuses any command line containing `--alias`, reading it as the shell `alias` builtin.
+Two measurements on this build disagree:
 
-Lineage: bead `tla-kl5.8`, which hit it and had to drive every ad-hoc run that way.
+- `bash harness/seeded-bugs.sh --help --alias Obs` **ran and printed usage, rc=0**
+  (`tla-pmm2.3` spike author, re-run by central the same day).
+- `bash harness/vacuity.sh -c … -n … --expect-actions … <module>` **was refused** as too
+  complex, while `bash harness/spike-measure.sh --dir …` was fine (`tla-pmm2.1` spike author).
+
+So the discriminator is how many flags and clauses the line carries, not the `--alias` token.
+Bead `tla-kl5.8` hit a real refusal in 2026-08 and attributed it to the token it happened to
+contain. Whether the harness changed since or the attribution was wrong from the start is not
+settled here, and neither reading is worth assuming.
+
+**The workaround is unchanged and still the first thing to reach for**: put the invocation in a
+small scratch script and run the script. It costs one file and it sidesteps the whole question.
+The scratch-script route is also independently useful for `harness/seeded-bugs.sh`, whose drivers
+need to `cd` for sibling-module resolution.
+
+What IS confirmed refused on this build, and is not going away, is `/\` on a command line. See
+the next hazard.
+
+Lineage: bead `tla-kl5.8` for the original observation, `tla-pmm2.1` and `tla-pmm2.3` for the
+2026-10-08 measurements.
 
 ---
 
