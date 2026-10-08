@@ -192,6 +192,15 @@ SUITES=(
   # not have and once again after creating a ch15 mid-run, so it proves the
   # derivation rather than counting twelve.
   "fast|0.7|docs exercises section|./harness/test-build-docs-exercises.sh"
+  # Measured on the green tree 2026-10-08 after tla-jaob.5: 0.706 / 0.683 /
+  # 0.736 s over three serial runs, so 0.8 is the slowest rounded up. It runs
+  # the real generator four times — once over the real chapter/, twice over a
+  # fixture tree that carries pages this repo does not have, and once over a
+  # one-page tree whose only link is dead on purpose — each in a mini-repo of
+  # symlinks with no exercises/ and an empty puzzles/. No TLC, so it belongs in
+  # fast by the rule in this header: the boundary is the model checker. Its
+  # cost tracks the size of chapter/ rather than anything about itself.
+  "fast|0.8|docs chapter section|./harness/test-build-docs-chapter.sh"
   "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
   # Re-measured 2026-09-18 on the green tree, after tla-rgpe took the suite

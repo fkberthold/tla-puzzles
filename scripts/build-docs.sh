@@ -683,6 +683,261 @@ if [ "${#EXERCISE_CHAPTERS[@]}" -gt 0 ]; then
   } > "$DOCS/exercises/.pages"
 fi
 
+# ===========================================================================
+# THE ORIGINAL CHAPTERS: chapter/ AS ITS OWN SECTION
+#
+# Bead tla-jaob.5. chapter/refinement.md and chapter/worked-example.md were
+# written under tla-kl5.1 and verified under tla-kl5.2 — every snippet
+# executed, every quotation traced — and then sat dark for five weeks, because
+# this generator knew about exactly two source trees and chapter/ was neither.
+# Both URLs a reader would guess returned 404. These two pages are the part of
+# the site that is this project's own work rather than a learntla mirror, so a
+# dark chapter/ was the site advertising the wrong thing.
+#
+# THE PAGE LIST IS DERIVED, NEVER WRITTEN. Same rule the exercise sets follow
+# above, for the reason bead tla-i3zu measured: a hand-kept list is right
+# until somebody adds a chapter, and then it is silently wrong with every gate
+# still green.
+#
+# SO IS THE READING ORDER, and that one is less obvious. Alphabetical is right
+# today by luck — refinement sorts before worked-example — and wrong the first
+# time a chapter is named after its topic. A chapter already names the one
+# that follows it: refinement.md ends in a "## Next" section linking
+# worked-example.md. So the order is the chain those links describe, taken
+# with a page nothing else links to first. No links at all degrades to glob
+# order, and a cycle breaks deterministically rather than spinning.
+#
+# THE CONTENT IS PASSED THROUGH, NOT REBUILT. No banner, no H1 surgery, no
+# demoted headings. chapter/snippets/check-blocks.py traces every ```tla block
+# on these pages to the module it came from, and chapter/snippets/run-all.sh
+# runs that reconciliation as a suite in scripts/test, so a generator that
+# reflowed a block would publish something that gate never saw. The only thing
+# rewritten is a relative link, which cannot survive the move to a website.
+#
+# THE SNIPPETS ARE LISTED ON THE INDEX, one link per file. Both chapters link
+# `snippets/` as a directory and link no file inside it, so without the list a
+# reader reaches a module only by browsing GitHub — and a module that stopped
+# being referenced would go dark exactly the way these two chapters did. The
+# list is globbed from the tree, so it cannot fall behind it, and
+# harness/test-build-docs-chapter.sh fails on a file the list misses.
+# ===========================================================================
+
+# ---- helper: the chapter page list, derived from the tree ----
+# Sets CHAPTER_PAGES to the page names of the markdown files directly under
+# chapter/, in glob order. Sub-directories are not pages, so snippets/ and
+# anything like it is left alone.
+#
+# An unmatched glob stays literal rather than vanishing, and the -f test drops
+# it, so a missing chapter/ gives an empty list rather than a bogus one.
+CHAPTER_PAGES=()
+derive_chapter_pages() {
+  local f n
+  CHAPTER_PAGES=()
+  for f in chapter/*.md; do
+    [ -f "$f" ] || continue
+    n=$(basename "$f" .md)
+    # This section writes its own index, so a source file of that name is not
+    # a chapter. Say so rather than silently publishing one of the two over
+    # the other depending on which ran last.
+    if [ "$n" = "index" ]; then
+      echo "build-docs.sh: chapter/index.md is not published; this section writes its own index." >&2
+      continue
+    fi
+    CHAPTER_PAGES+=("$n")
+  done
+  return 0
+}
+
+# ---- helper: reading order for the chapter pages ----
+# Sets CHAPTER_ORDER. One step of Kahn's algorithm per page: take a page that
+# no still-unplaced page links to, place it, repeat. A page with no incoming
+# link is a start, so the result is glob order when nothing links to anything
+# and the chain when something does.
+CHAPTER_ORDER=()
+order_chapter_pages() {
+  local remaining head p q linked rest
+  remaining=("${CHAPTER_PAGES[@]}")
+  CHAPTER_ORDER=()
+  while [ "${#remaining[@]}" -gt 0 ]; do
+    head=""
+    for p in "${remaining[@]}"; do
+      linked=0
+      for q in "${remaining[@]}"; do
+        if [ "$q" != "$p" ] && grep -qF -- "]($p.md)" "chapter/$q.md"; then
+          linked=1
+          break
+        fi
+      done
+      if [ "$linked" -eq 0 ]; then
+        head="$p"
+        break
+      fi
+    done
+    # Every page in a cycle has an incoming link, so no head exists. Take the
+    # first still-unplaced page and keep going rather than looping forever.
+    if [ -z "$head" ]; then
+      head="${remaining[0]}"
+    fi
+    CHAPTER_ORDER+=("$head")
+    rest=()
+    for p in "${remaining[@]}"; do
+      if [ "$p" != "$head" ]; then
+        rest+=("$p")
+      fi
+    done
+    remaining=("${rest[@]}")
+  done
+  return 0
+}
+
+# ---- helper: build the chapter link-rewrite sed program ----
+# Writes one `s@...@...@g` line per relative link that actually appears in the
+# page, which is why this resolves the links it finds rather than
+# pattern-matching shapes it imagines.
+#
+# A link to a sibling chapter page is left alone: both land in the same built
+# directory, so it already resolves. Everything else is resolved against
+# chapter/ and sent to GitHub — a directory to the tree view, a file to the
+# blob view — because a reader on the website has no local copy of either.
+#
+# A target that resolves to nothing in chapter/ gets a warning and no rewrite.
+# It ships relative and harness/test-build-docs-chapter.sh fails on it. That
+# is the right direction for the error to run: a dead link in the content is a
+# content bug, and this generator inventing a plausible destination for it
+# would hide one.
+#
+# Two guards keep TLA+ out of the scan, the same two the exercise rewrite
+# uses. A candidate needs non-empty link text and a whitespace-free target, so
+# `RungUp == [](rung' = rung + 1)` is out on both counts. The guards are not a
+# markdown parser: a genuine link shape inside backticks would be rewritten.
+build_chapter_link_program() {
+  local page="$1" prog="$2"
+  local raw targets t path anchor repl pat sib sibling
+  : > "$prog"
+
+  raw=$(grep -ohE '\[[^]]+\]\([^)[:space:]]+\)' "chapter/$page.md" 2>/dev/null || true)
+  [ -n "$raw" ] || return 0
+  targets=$(sed -E 's/^.*\]\(//; s/\)$//' <<<"$raw" | LC_ALL=C sort -u)
+
+  while IFS= read -r t; do
+    [ -n "$t" ] || continue
+    case "$t" in
+    http://*|https://*|mailto:*|'#'*|/*) continue ;;
+    esac
+    path="${t%%#*}"
+    anchor=""
+    case "$t" in
+    *'#'*) anchor="#${t#*#}" ;;
+    esac
+    [ -n "$path" ] || continue
+
+    sibling=0
+    for sib in "${CHAPTER_PAGES[@]}"; do
+      if [ "$path" = "$sib.md" ]; then
+        sibling=1
+        break
+      fi
+    done
+    if [ "$sibling" -eq 1 ]; then
+      continue
+    fi
+
+    # A trailing slash is how a directory gets written in prose. GitHub's tree
+    # view takes it either way, and dropping it keeps every published URL in
+    # one shape.
+    path="${path%/}"
+    if [ -d "chapter/$path" ]; then
+      repl="$GH_TREE/chapter/$path$anchor"
+    elif [ -f "chapter/$path" ]; then
+      repl="$GH_BLOB/chapter/$path$anchor"
+    else
+      echo "build-docs.sh: chapter/$page.md links to [$t], which is not in chapter/." >&2
+      echo "  Left as written. harness/test-build-docs-chapter.sh fails on it." >&2
+      continue
+    fi
+    # The parentheses have to be escaped. sed -E reads a bare ( as the start
+    # of a capture group, so an unescaped form matches `]snippets/Fix.tla`
+    # rather than `](snippets/Fix.tla)` and silently rewrites nothing.
+    pat=$(ere_escape "$t")
+    printf 's@\\]\\(%s\\)@](%s)@g\n' "$pat" "$repl" >> "$prog"
+  done <<<"$targets"
+  return 0
+}
+
+derive_chapter_pages
+
+if [ "${#CHAPTER_PAGES[@]}" -gt 0 ]; then
+  mkdir -p "$DOCS/chapter"
+  order_chapter_pages
+
+  for page in "${CHAPTER_ORDER[@]}"; do
+    link_prog=$(mktemp)
+    build_chapter_link_program "$page" "$link_prog"
+    # An empty program is a no-op and sed copies the file, which is the right
+    # behaviour for a chapter that carries no relative links at all.
+    sed -E -f "$link_prog" "chapter/$page.md" > "$DOCS/chapter/$page.md"
+    rm -f "$link_prog"
+  done
+
+  # ---- chapter index page ----
+  # Written AFTER the pages, so a source chapter/index.md that slipped past
+  # derive_chapter_pages could still not end up as this section's index.
+  {
+    echo "# Chapters"
+    echo ""
+    echo "These two are this project's own, rather than exercises tracking"
+    echo "somebody else's chapter. They assume you can write a spec and pull"
+    echo "one module into another, and they go from there."
+    echo ""
+    for page in "${CHAPTER_ORDER[@]}"; do
+      h1=$(grep -m1 '^# ' "chapter/$page.md" || true)
+      h1="${h1#\# }"
+      if [ -z "$h1" ]; then
+        h1="$page"
+      fi
+      echo "- [$h1]($page.md)"
+    done
+    echo ""
+    echo "## The modules"
+    echo ""
+    echo "Every TLA+ block in these chapters comes out of a module in"
+    echo "[\`chapter/snippets/\`]($GH_TREE/chapter/snippets)."
+    echo "[\`run-all.sh\`]($GH_BLOB/chapter/snippets/run-all.sh) re-runs all of"
+    echo "them, asserts the exit code each one produces, and then reconciles"
+    echo "every block on these pages against the module it was taken from, so"
+    echo "a page cannot drift away from the code that ran."
+    echo ""
+    echo '```bash'
+    echo "git clone $GH_REPO"
+    echo "cd tla-puzzles/chapter/snippets"
+    echo "./run-all.sh"
+    echo '```'
+    echo ""
+    # One link per file. The chapters link the directory and nothing inside
+    # it, so this list is what makes a module reachable in one hop, and what
+    # goes red if a module stops being published.
+    echo "??? note \"Every module and config, one link each\""
+    echo ""
+    for f in chapter/snippets/*; do
+      [ -f "$f" ] || continue
+      base=$(basename "$f")
+      echo "    - [\`$base\`]($GH_BLOB/chapter/snippets/$base)"
+    done
+  } > "$DOCS/chapter/index.md"
+
+  # ---- chapter dir nav order (awesome-pages) ----
+  # Bare filenames rather than explicit titles: each page's nav label is then
+  # its own H1, which is what these H1s are already written to be.
+  {
+    echo "title: Chapters"
+    echo "nav:"
+    echo "  - index.md"
+    for page in "${CHAPTER_ORDER[@]}"; do
+      echo "  - $page.md"
+    done
+  } > "$DOCS/chapter/.pages"
+fi
+
 # ---- getting-started ----
 cat > "$DOCS/getting-started.md" <<'EOF'
 # Getting Started
@@ -862,19 +1117,28 @@ EOF
 # ---- awesome-pages config (.pages files for nav order) ----
 # Top-level docs/.pages, section ordering.
 #
-# The exercises entry is conditional because awesome-pages resolves every nav
-# entry against a real directory, and naming one that was not built is an
-# error rather than a skipped line.
+# The chapter and exercises entries are conditional because awesome-pages
+# resolves every nav entry against a real directory, and naming one that was
+# not built is an error rather than a skipped line.
 #
-# It sits AFTER curriculum on purpose. Bead tla-jaob.1 is additive and answers
-# neither open question on tla-jaob, and where the best content sits in the nav
-# is one of them. Moving this line above curriculum is a one-line change and
-# Frank's call.
+# Both sit AFTER curriculum on purpose, and neither position is settled. Beads
+# tla-jaob.1 and tla-jaob.5 are both additive: every pair of entries that was
+# in a given order before is still in it, and nothing existing moved. Where
+# the site's best content belongs in the nav is marker C4 on the cycle-5
+# amendment and is Frank's call, which bead tla-5zgr.5 carries. Moving either
+# line is a one-line change.
+#
+# chapter comes before exercises because that is the reading order: the
+# chapters teach refinement and the exercise sets ask you to use what a
+# chapter taught.
 {
   echo "nav:"
   echo "  - index.md"
   echo "  - getting-started.md"
   echo "  - curriculum"
+  if [ -d "$DOCS/chapter" ]; then
+    echo "  - chapter"
+  fi
   if [ -d "$DOCS/exercises" ]; then
     echo "  - exercises"
   fi
