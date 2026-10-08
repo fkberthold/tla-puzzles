@@ -7,12 +7,12 @@
 (* rules as written, and the instance its Checking section names, Leaves =  *)
 (* 3. The system is the one in sources/spikes/txn-epoch-fence-vs-retry/.    *)
 (*                                                                          *)
-(* RULE 4 IS RENDERED AS THE STATEMENT WRITES IT: the desk does not read    *)
-(* the gang's card when it raises a permit. The step 5 report calls that    *)
-(* clause blocking and recommends changing it, and the recommendation is    *)
-(* not taken here. This package grades a degenerate model against the       *)
-(* statement as shipped, so changing the clause would be measuring a        *)
-(* different artifact.                                                      *)
+(* RULE 4 IS RENDERED AS AMENDED, which is the statement as it stands on    *)
+(* main. Commit d1ba684 restored the fence the step 5 report called         *)
+(* blocking: the desk now reads the gang's card against its own book and    *)
+(* refuses a card that does not say the leaf it holds. Before that the      *)
+(* raise read nothing, and the whole retry apparatus of rule 2, rule 6 and  *)
+(* requirements 5 and 6 could be deleted with no verdict moving.            *)
 (*                                                                          *)
 (* ROW 4 OF RULE 5 IS THE MECHANISM. The desk recognises a second copy and  *)
 (* writes the leaf it now holds onto the card, so the card and the book     *)
@@ -47,11 +47,14 @@ Init ==
 Fills == leaf + 1 = Leaves
 
 (***************************************************************************)
-(* Rule 4. The desk raises a permit from clear, completed or abandoned, and *)
-(* reads neither the card nor the leaves the book has left.                 *)
+(* Rule 4 as amended. The desk raises a permit from clear, completed or     *)
+(* abandoned, and refuses a card that does not say the leaf it holds. It    *)
+(* still does not count the leaves the book has left, which is the gap the  *)
+(* problem runs through.                                                    *)
 (***************************************************************************)
 Raise ==
   /\ standing \in {"clear", "completed", "abandoned"}
+  /\ card = leaf
   /\ standing' = "open"
   /\ UNCHANGED <<leaf, card, withdrawn>>
 

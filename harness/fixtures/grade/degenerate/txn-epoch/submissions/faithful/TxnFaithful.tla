@@ -5,12 +5,9 @@
 (* it reaches the landmark and must grade PASS. A landmark nothing reaches  *)
 (* refuses every submission alike.                                          *)
 (*                                                                          *)
-(* RULE 4 IS RENDERED AS THE STATEMENT WRITES IT: the desk does not read    *)
-(* the gang's card when it raises a permit. The step 5 report calls that    *)
-(* clause blocking and recommends changing it, and the recommendation is    *)
-(* not taken here. This package grades a degenerate model against the       *)
-(* statement as shipped, so changing the clause would be measuring a        *)
-(* different artifact.                                                      *)
+(* RULE 4 IS RENDERED AS AMENDED, the same as TxnRef. Commit d1ba684        *)
+(* restored the fence, so the desk reads the gang's card against its own    *)
+(* book and refuses a card that does not say the leaf it holds.             *)
 (*                                                                          *)
 (* ROW 4 OF RULE 5 IS THE MECHANISM. The desk recognises a second copy and  *)
 (* writes the leaf it now holds onto the card, so the card and the book     *)
@@ -50,6 +47,7 @@ Fills == leaf + 1 = Leaves
 (***************************************************************************)
 Raise ==
   /\ standing \in {"clear", "completed", "abandoned"}
+  /\ card = leaf
   /\ standing' = "open"
   /\ UNCHANGED <<leaf, card, withdrawn>>
 

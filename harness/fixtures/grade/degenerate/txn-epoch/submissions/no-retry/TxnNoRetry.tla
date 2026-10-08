@@ -5,16 +5,25 @@
 (* office, byte for byte with TxnRef apart from the missing action and this *)
 (* header.                                                                  *)
 (*                                                                          *)
-(* The step 5 reader measured the consequence directly. Every one of the    *)
-(* statement's eight requirements comes back with the same verdict it gives *)
-(* against the faithful office, 12 for requirement 1, 13 for requirement 2  *)
-(* and 0 for the other six, over 16 distinct states at depth 5 against 22   *)
-(* at depth 6. So the deliverable the statement asks for, a vector of eight *)
-(* verdicts, cannot tell this office from the real one.                      *)
+(* The step 5 reader measured it against rule 4 AS IT STOOD THEN, where the *)
+(* raise read no card at all, and got the same vector of eight verdicts as  *)
+(* the faithful office: 12 for requirement 1, 13 for requirement 2 and 0    *)
+(* for the other six, over 16 distinct states at depth 5 against 22 at      *)
+(* depth 6. So the deliverable the statement asked for could not tell this  *)
+(* office from the real one. That is bead tla-n8oq's shape in this          *)
+(* problem's idiom: the answer is unchanged over a model with no mechanism.  *)
 (*                                                                          *)
-(* That is bead tla-n8oq's shape in this problem's idiom. The answer is      *)
-(* unchanged over a model with no mechanism, and the whole retry apparatus  *)
-(* of rule 2, rule 6 and requirements 5 and 6 carries no weight.            *)
+(* COMMIT d1ba684 MOVED THAT, and this module is rendered against the       *)
+(* statement as amended. The raise now refuses a card that disagrees with   *)
+(* the book, and requirement 1 was replaced by the formula the step 5       *)
+(* report recommended, which is false of the faithful office and true here. *)
+(* So the statement's own verdict vector can see this model now, and the    *)
+(* grader catches it twice over. Whether the problem still needs the        *)
+(* grader for this is a question for step 6, and I would say it does: the   *)
+(* second catch is the landmark, and nothing in the statement is one.        *)
+(*                                                                          *)
+(* The model is kept as the pre-amendment reading rather than retired,       *)
+(* because the deletion it makes is still a reading the rules permit.        *)
 (***************************************************************************)
 EXTENDS Naturals
 
@@ -34,6 +43,7 @@ Fills == leaf + 1 = Leaves
 
 Raise ==
   /\ standing \in {"clear", "completed", "abandoned"}
+  /\ card = leaf
   /\ standing' = "open"
   /\ UNCHANGED <<leaf, card, withdrawn>>
 

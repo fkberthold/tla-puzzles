@@ -964,7 +964,8 @@ echo "== a degenerate model of a real authored problem must be rejected =="
 #   progressive  the boardless model: underIssue drops on the paste step.
 #                All seven rc 0, 14 distinct, depth 11.
 #   txn          rule 5 row 4 deleted, so the retry row carries no weight.
-#                The same 12/13/0 verdict vector as the faithful office.
+#                The same 12/13/0 verdict vector as the faithful office,
+#                measured against rule 4 before commit d1ba684 amended it.
 #   imap         the set-atomic clerk, who never fails partway through the
 #                set. All three requirements rc 0 by construction.
 #
@@ -1018,20 +1019,27 @@ assert_degenerate() {
     "$DEGEN/$slug/reference" "$DEGEN/$slug/submissions/$sub"
 }
 
-# imap, progressive and txn all state requirements the faithful reference
-# satisfies, so obligation 2 passes on each and the landmark is the only
-# member left. Adequacy passes too, which is the step 5 rc 0 reproduced
-# inside the grader rather than taken on report.
+# imap and progressive state requirements the faithful reference satisfies,
+# so obligation 2 passes on each and the landmark is the only member left.
+# Adequacy passes too, which is the step 5 rc 0 reproduced inside the grader
+# rather than taken on report.
 assert_degenerate imap-move        set-atomic  3 'false'
 assert_degenerate progressive-sync boardless   3 'false'
-assert_degenerate txn-epoch        no-retry    3 'false'
 
-# acme is the one that is caught twice, and the second catch is a fact about
-# the statement rather than about the collapse. Its requirement 1 says an
-# entry on the defect list means refused, and the faithful office writes an
-# entry on a failed visit and leaves the man under inspection. So the
-# requirement is false of the system it describes, and any submission stating
-# it is over-constrained by obligation 2 proper as well as by the landmark.
+# These two are caught twice, and the second catch is a fact about the
+# statement rather than about the model. Each states a requirement its own
+# reference refutes, so obligation 2 proper fires as well as the landmark.
+#
+#   acme     requirement 1 says an entry on the defect list means refused,
+#            and the faithful office writes an entry on a failed visit and
+#            leaves the man under inspection.
+#   txn      requirement 1 says a card on the last leaf means a book taken
+#            back, and row 4 of rule 5 writes the last leaf onto a card with
+#            the standing still at abandoned.
+#
+# Both requirements are false of the system they were written over, so any
+# submission stating one draws a witness whatever else it got right.
+assert_degenerate txn-epoch        no-retry    3 'false'
 assert_degenerate acme-challenge   collapse    3 'false'
 
 # The witness kind is the claim this block rests on, so it is asserted rather
@@ -1044,9 +1052,17 @@ assert_json "imap-move: the landmark is what refuses it" \
 run_degenerate progressive-sync boardless
 assert_json "progressive-sync: the landmark is what refuses it" \
   '.witnesses.over_constraint.kind' 'reference-observation-unreachable'
+# txn-epoch is the second one caught twice, and it became so on 2026-10-08.
+# Commit d1ba684 restored the fence in rule 4 and replaced requirement 1
+# with the formula the step 5 report recommended, which is false of the
+# faithful office and true of this one. So the statement's own verdict
+# vector can see this model now, and a stated requirement is refuted here
+# as well as a landmark being unreachable.
 run_degenerate txn-epoch no-retry
-assert_json "txn-epoch: the landmark is what refuses it" \
-  '.witnesses.over_constraint.kind' 'reference-observation-unreachable'
+assert_json "txn-epoch: a stated requirement is refuted" \
+  '.witnesses.over_constraint.kind' 'stated-requirement-refuted'
+assert_json "txn-epoch: and the landmark is unreachable too" \
+  '.suites.Relational.unmet | length' '2'
 run_degenerate acme-challenge collapse
 assert_json "acme-challenge: a stated requirement is refuted as well" \
   '.witnesses.over_constraint.kind' 'stated-requirement-refuted'

@@ -193,7 +193,7 @@ requirement the statement declares.
 |---|---|---|
 | `acme-challenge/` | the collapse: one act writes the defect entry and gives up | all nine rc 0, 16 distinct, depth 5 |
 | `progressive-sync/` | the boardless region: `underIssue` drops on the paste step | all seven rc 0, 14 distinct, depth 11 |
-| `txn-epoch/` | rule 5 row 4 deleted, so the retry row carries no weight | the same 12/13/0 vector as the faithful office |
+| `txn-epoch/` | rule 5 row 4 deleted, so the retry row carries no weight | the same 12/13/0 vector as the faithful office, under rule 4 as it stood before commit `d1ba684` |
 | `imap-move/` | the set-atomic clerk, who never fails partway through the set | all three rc 0 by construction |
 
 | submission | Adequacy | Relational | under | over | exit |
@@ -202,7 +202,7 @@ requirement the statement declares.
 | `imap-move/faithful` | PASS 3/3 | PASS 4/4 | no | no | 0 |
 | `progressive-sync/boardless` | PASS 3/3 | FAIL 3/4 | no | **yes** | 1 |
 | `progressive-sync/faithful` | PASS 3/3 | PASS 4/4 | no | no | 0 |
-| `txn-epoch/no-retry` | PASS 3/3 | FAIL 2/3 | no | **yes** | 1 |
+| `txn-epoch/no-retry` | PASS 3/3 | FAIL 2/4 | no | **yes** | 1 |
 | `txn-epoch/faithful` | PASS 3/3 | PASS 3/3 | no | no | 0 |
 | `acme-challenge/collapse` | PASS 3/3 | FAIL 2/4 | no | **yes** | 1 |
 | `acme-challenge/faithful` | PASS 3/3 | PASS 3/3 | no | no | 0 |
@@ -212,21 +212,33 @@ measurement reproduced rather than taken on report.** A degenerate model meets
 every requirement its statement declares, so obligation 1 has nothing to say
 about it.
 
-**Three of the four are caught by the LANDMARK and by nothing else.** They are
+**Two of the four are caught by the LANDMARK and by nothing else.** They are
 over-constrained by omission: each leaves a step out rather than declaring a
 rule that is too tight, so the requirements they state are all true of the
 reference and obligation 2 proper passes on every one. `strict-and-silent` in
-the `lockbox` matrix pins the same shape on the invented system, and these
-four say it is the shape real problems take.
+the `lockbox` matrix pins the same shape on the invented system, and these two
+say it is a shape real problems take.
 
-**`acme-challenge` is caught twice, and the second catch is a finding about
-the statement.** Its requirement 1 says an entry on the defect list means
-refused, and the faithful office writes an entry on a failed visit and leaves
-the man under inspection. So the requirement is false of the system it was
-written over, and any submission stating it draws
-`stated-requirement-refuted`. The `faithful` control there states requirement
-2 and not requirement 1, which is the only way a submission that keeps the
-retry loop can pass.
+**`acme-challenge` and `txn-epoch` are caught twice, and the second catch is
+a finding about the statement rather than about the model.** Each states a
+requirement its own reference refutes.
+
+| problem | the requirement | what refutes it |
+|---|---|---|
+| `acme-challenge` | requirement 1, an entry on the defect list means refused | the faithful office writes an entry on a failed visit and leaves the man under inspection |
+| `txn-epoch` | requirement 1, a card on the last leaf means a book taken back | row 4 of rule 5 writes the last leaf onto a card with the standing still at `"abandoned"` |
+
+Both requirements are false of the system they were written over, so any
+submission stating one draws `stated-requirement-refuted` whatever else it got
+right. Each `faithful` control therefore omits its problem's requirement 1,
+which is the only way a submission that keeps the mechanism can pass.
+
+`txn-epoch` joined that pair on 2026-10-08. Commit `d1ba684` restored the
+fence in rule 4 and replaced requirement 1 with the formula the step 5 report
+recommended, and that formula is exactly the one the faithful office refutes.
+So the statement's own eight-verdict deliverable can now see this model, which
+it could not before. I would still keep the package, because the second catch
+is the landmark and nothing in the statement is one.
 
 **The `faithful` control in each package is what makes the other row
 evidence.** A landmark nothing reaches refuses every submission alike, and a
