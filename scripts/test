@@ -242,6 +242,15 @@ SUITES=(
   # a 3 by 3 grid, and it needs to stay that way: the point of the suite is
   # the parsers, not the model checker.
   "fast|1.9|spike measurement|./harness/test-spike-measure.sh"
+  # Measured 2026-10-08 on the green tree for bead tla-n8oq: 1.436 / 1.429 /
+  # 1.428 s over three serial runs, so 1.5 is the slowest rounded up. It builds
+  # ten fixture statement packages out of mkdir and printf, runs
+  # harness/refutation-coverage.sh twenty-odd times over them, and sweeps the
+  # sixteen real packages in authoring/ once. No TLC, so it belongs in fast by
+  # the rule in this header: the boundary is the model checker, not the JVM.
+  # Its cost tracks the number of fixtures plus the number of real packages, so
+  # it grows with authoring/ rather than with itself.
+  "fast|1.5|refutation coverage|./harness/test-refutation-coverage.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"

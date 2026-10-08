@@ -223,6 +223,58 @@ spike author work from the same external document and never see each other's
 output. So a disagreement between them is a finding rather than something to
 reconcile. Step 5 is the only reader that holds both.
 
+### Step 5 asks whether a requirement can fail
+
+Three of three step-5 checks on 2026-10-08 came back not sufficient, for the
+same reason. A statement's requirement set went green over a model that doesn't
+contain the mechanism the problem is about. The learner finishes, every check
+passes, and they never meet the defect.
+
+So step 5 carries one more question, and it runs over every requirement:
+
+> Does the rule set permit a model that violates this requirement?
+
+If it doesn't, either the requirement or the rules are wrong.
+
+The pattern has two faces, and the first one hides better than the second.
+
+**Satisfiable by doing less.** acme-challenge-retry-deadlock's nine requirements
+all hold at rc 0, 16 distinct states, depth 5, over a model whose retry loop
+never turns. progressive-sync-stale-status's seven hold at rc 0, 14 states,
+depth 11, over a model with no board and no clerk. Every requirement in both
+sets is a safety invariant or an action property, and a safety-only set is
+always satisfiable by doing less.
+
+**Unfalsifiable.** imap-move-partial-failure's requirement 1 at `PROBLEM.md:177`
+can't be broken by any model the rules permit. `PROBLEM.md:96` says the clerk
+never marks an entry for striking at all, so the rules remove the action instead
+of forbidding the outcome. The statement warns about that exact trap at
+`PROBLEM.md:44` and then sets it.
+
+A refutation deliverable catches the first face and not the second. Ask a
+learner to hand in a formula they expect TLC to refute and they can't produce
+one for the imap requirement. They'd be right to say so. RFC 9051 states the
+same content the other way round, as a prohibition on an action that exists:
+"the \Deleted flag MUST NOT be set for any message". That's the shape a
+checkable requirement has.
+
+**The gate is the violating trace.** Author one per requirement before the
+freeze, following the laytime and custody convention in `traces/README.md`.
+Writing the trace is what forces the defect out, because a requirement no
+permitted model can violate has no violating run to write down. The imap
+reviewer reached this from one side and the acme reviewer from the other. There
+the pairs can't be authored at all, because the allowed run needs a state the
+requirements forbid.
+
+`harness/test-refutation-coverage.sh` gates it, and the gate is narrower than
+the rule. It checks that the artifact exists and that it covers every
+requirement by count. It doesn't read the trace, and it can't tell a satisfying
+run from a violating one, so a green run there isn't a reading. I doubt a shell
+script gets much closer than that, which is why step 5 keeps the question and
+the suite only keeps the instrument. Every package in `authoring/` is pinned in
+that suite with the reason it reads the way it does, so a fourth instance fails
+the gate rather than joining a silent majority.
+
 Step 3 is where measurement replaces prediction. How hard a source will be to
 model can't be read off the source. Over 143 rows the variable-count medians run
 3, 2, 6, 7, 8, levels 1 and 2 are inverted, and level 1 spans 1 to 87 variables.
