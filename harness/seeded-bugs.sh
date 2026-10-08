@@ -12,12 +12,16 @@
 #
 #   The seeded-bug matrix asks the other question: DOES IT EVER SAY NO?
 #
-#       rc == 0  against the reference   AND   rc == 12 against the variant.
+#       rc == 0  against the reference   AND   a REFUTATION against the variant.
 #
-#   Both halves are load-bearing and neither is sufficient. Drop the rc==12
+#   Both halves are load-bearing and neither is sufficient. Drop the refutation
 #   half and `Inv == TRUE` passes. Drop the rc==0 half and `Inv == FALSE`
 #   passes, which is the same worthlessness with the sign flipped. This is the
 #   ONLY mechanical defense against either.
+#
+#   "A refutation" rather than "rc == 12" because the code depends on the
+#   obligation. See THE KEYWORD AND THE REFUTATION CODE below; it used to say
+#   12 everywhere and that was a bug, not a simplification.
 #
 # ============================================================================
 # CAVEAT — READ THIS BEFORE YOU TRUST A NUMBER THIS SCRIPT PRODUCES
@@ -84,7 +88,7 @@
 #   <Spec> that is.
 #
 #   The submitted property module EXTENDS the reference module and defines the
-#   invariant operator (default `Inv`). It cannot forge anything: TLA+ makes
+#   obligation operator (default `Inv`). It cannot forge anything: TLA+ makes
 #   redefining an EXTENDS-inherited name a SANY error rather than a shadowing,
 #   so a submission cannot substitute its own `Spec`, and the .cfg is
 #   generated here and never read from the problem directory.
@@ -95,7 +99,9 @@
 #       --oracle FILE      oracle property module, overriding <matrix>/oracle
 #       --variants DIR     directory of variant directories
 #       --spec NAME        the spec operator                 (default: Spec)
-#       --property NAME    the invariant operator, in BOTH the submission and
+#                          A LIVENESS matrix names a FAIR one here; see THE
+#                          KEYWORD AND THE REFUTATION CODE below.
+#       --property NAME    the obligation operator, in BOTH the submission and
 #                          the oracle                        (default: Inv)
 #       --alias NAME       normalising ALIAS operator, defined by the SPEC
 #       --strict-trace     make a divergent counterexample a failure
@@ -111,7 +117,7 @@
 #   exit:          the code beside that token below
 #
 # VERDICT TABLE
-#     0  BUGS_CAUGHT          rc==0 on the reference, rc==12 on every variant
+#     0  BUGS_CAUGHT          rc==0 on the reference, refuted on every variant
 #     2  USAGE                bad arguments
 #    40  PROPERTY_TOO_WEAK    a variant got through -- `Inv == TRUE` lands here
 #    41  PROPERTY_UNSOUND     the reference itself violates the submission
@@ -119,7 +125,9 @@
 #                             bug, not the submission's
 #    43  TRACE_DIVERGED       caught, but by a different behaviour than the
 #                             oracle's (--strict-trace only)
-#    44  MATRIX_MALFORMED     the matrix directory is not the shape above
+#    44  MATRIX_MALFORMED     the matrix directory is not the shape above --
+#                             INCLUDING a liveness obligation refuted against
+#                             a spec operator with no fairness conjunct
 #    45  ORACLE_UNSOUND       the reference violates the ORACLE; the matrix
 #                             cannot certify anything
 #    46  PROBE_INCONCLUSIVE   a run exited 12 and left no readable trace; a
@@ -141,17 +149,77 @@
 #   reason. (§5.3 does fold, and rightly -- its runs are harness-generated
 #   probes rather than runs of the submitted artifact.)
 #
+# THE KEYWORD AND THE REFUTATION CODE (bead tla-r2ih)
+#
+#   This file used to write `INVARIANT <name>` into every generated .cfg,
+#   unconditionally, and to read rc==12 as "refuted" everywhere. Both were
+#   wrong, and they were wrong together: a temporal obligation went into the
+#   .cfg under the keyword for state predicates, so TLC never checked the
+#   formula the learner was asked to write, and the code it would have exited
+#   had it checked one was not in the table anyway. The tla-pmm2.2 spike hit
+#   this on the first liveness problem this project attempted, wrote a
+#   state-predicate surrogate to get a number at all, and measured the
+#   surrogate firing exactly one `Begin` step later than the oracle. The
+#   matrix reported BUGS_CAUGHT either way, which is the part that makes it a
+#   P1: this is the FIRST-RANKED quality gate and it was grading the wrong
+#   formula silently.
+#
+#   THE KEYWORD IS CHOSEN BY THE SHAPE OF THE OBLIGATION, NEVER BY A FLAG.
+#   A flag defaulting to the old behaviour would reproduce the defect for
+#   every caller who did not know to pass it, which is every caller who has
+#   not read this paragraph. The obligation's definition is read out of the
+#   STAGED module -- so the oracle and the submission are classified
+#   independently, and a learner who answers a safety question with a temporal
+#   formula is graded on what they wrote rather than refused.
+#
+#   The classifier follows NAMES. `Live == Reaches2Again` has no temporal
+#   operator on its own line, and naming the requirement and then checking the
+#   name is ordinary practice -- the txn-epoch-fence oracle does it -- so the
+#   definition closure is walked rather than the one line. The operator named
+#   by --spec is the one name never followed: it is the behaviour formula by
+#   construction, it carries `[][Next]_vars` and usually a `WF_`, and
+#   following it would classify every obligation in every matrix as temporal.
+#
+#   AND THE CODE FOLLOWS FROM TLC, NOT FROM THE KEYWORD. verdict.sh's table
+#   is explicit that 12 and 13 split on the SHAPE OF THE FORMULA and not on
+#   the .cfg keyword that introduced it (bead tla-94n): `[](P => []P)` and
+#   `~<>P` are safety properties written with temporal operators and exit 12,
+#   while `[]<>P`, `<>[]P`, `P ~> Q` and `[][A]_vars` exit 13. So a PROPERTY
+#   obligation is refuted by 12 OR 13, and this script does not pretend to
+#   know which in advance -- deciding statically would be deciding safety from
+#   liveness by grep. An INVARIANT obligation is refuted by 12 alone.
+#
+#   A LIVENESS VERDICT IS MEANINGLESS WITHOUT FAIRNESS, AND THAT IS GATED
+#   RATHER THAN ADVISED. `Init /\ [][Next]_vars` admits the behaviour that
+#   stutters for ever, and that behaviour violates every liveness property
+#   anyone could write -- the correct one included. Measured on the relay
+#   fixture: against `Spec` the matrix's OWN oracle exits 13 on the reference,
+#   so the matrix would report ORACLE_UNSOUND and grade nothing; against
+#   `FairSpec == Spec /\ WF_vars(Next)` it exits 0. A refutation that is the
+#   trace's stuttering tail rather than the bug is therefore refused outright,
+#   as MATRIX_MALFORMED, attributed to the matrix because that is whose defect
+#   it is.
+#
+#   The refusal fires on the CONJUNCTION of three things: TLC exited 13, the
+#   obligation's closure carries `<>` or `~>`, and the spec operator's closure
+#   carries no `WF_` or `SF_`. All three, because each one alone over-refuses.
+#   rc==13 alone catches `[][A]_vars`, which needs no fairness. The `<>`/`~>`
+#   test alone catches `~<>P`, which is safety and exits 12. Conditioning on
+#   the observed 13 is what keeps the gate from standing in for a static
+#   safety/liveness decision it has no way to make.
+#
 # THE ORDER OF THE PHASES IS THE POINT
 #
 #   Each phase adds exactly one dependency, and the instrument is checked
 #   before the submission is:
 #
-#     1  oracle    vs reference   expect 0    -- is our instrument sound?
-#     2  submission vs reference  expect 0    -- is the submission sound?
-#                                                (reference + property only;
-#                                                 no variant is involved)
-#     3  oracle    vs each variant expect 12  -- is our variant SET sound?
-#     4  submission vs each variant expect 12 -- the grading
+#     1  oracle    vs reference   expect 0        -- is our instrument sound?
+#     2  submission vs reference  expect 0        -- is the submission sound?
+#                                                    (reference + property
+#                                                     only; no variant is
+#                                                     involved)
+#     3  oracle    vs each variant expect refuted -- is our variant SET sound?
+#     4  submission vs each variant expect refuted -- the grading
 #
 #   Phase 3 before phase 4 is what keeps an inert mutant from being billed to
 #   the learner. Reverse them and a submission graded against an inert variant
@@ -160,7 +228,7 @@
 #
 # WHAT THE TRACE COMPARISON COMPARES, AND WHAT IT REFUSES TO
 #
-#   A submission and the oracle can both exit 12 on the same variant and be
+#   A submission and the oracle can both be refuted on the same variant and be
 #   catching DIFFERENT bugs -- a variant broken twice over surfaces both
 #   defects, and each property finds its own. So the two counterexamples are
 #   compared.
@@ -215,8 +283,9 @@
 #   ONE ASSIGNMENT SERVES BOTH SIDES AND EVERY VARIANT, and that is a
 #   correctness property rather than a convenience. A variant is the reference
 #   module mutated, so it declares the same constants; if the oracle run and
-#   the submission run could be given different values, the rc==0 and rc==12
-#   obligations would be about different models and the comparison between
+#   the submission run could be given different values, the rc==0 and the
+#   refutation obligations would be about different models and the comparison
+#   between
 #   them would mean nothing.
 #
 #   IT CARRIES CONSTANT / CONSTANTS AND NOTHING ELSE. The fragment is the only
@@ -231,13 +300,14 @@
 #     SYMMETRY / VIEW are the SOUNDNESS pair. Symmetry reduction is sound only
 #     for a property that is itself symmetric, and the submitted property is
 #     not the author's to vouch for. A violation TLC misses on a variant comes
-#     back as rc=0 where 12 was required, and the matrix then reports
+#     back as rc=0 where a refutation was required, and the matrix then reports
 #     PROPERTY_TOO_WEAK -- billing the learner for the author's config, which
 #     is the same misattribution PHASE 3 exists to prevent.
 #
-#     INVARIANT is the OWNERSHIP one. This script generates the INVARIANT line
-#     itself; a second invariant checked alongside it would decide the verdict
-#     without appearing anywhere in the report.
+#     INVARIANT / PROPERTY are the OWNERSHIP pair. This script generates that
+#     line itself, under whichever keyword the obligation's shape calls for; a
+#     second obligation checked alongside it would decide the verdict without
+#     appearing anywhere in the report.
 #
 # VERDICTS COME FROM EXIT CODES. Every TLC run here goes through
 # harness/verdict.sh (§5.1). Nothing in this file reads, matches, or reasons
@@ -273,8 +343,9 @@ usage: harness/seeded-bugs.sh [OPTIONS] <property.tla>
       --reference FILE   reference module, overriding <matrix>/reference
       --oracle FILE      oracle property module, overriding <matrix>/oracle
       --variants DIR     directory of variant directories
-      --spec NAME        the spec operator                 (default: Spec)
-      --property NAME    the invariant operator            (default: Inv)
+      --spec NAME        the spec operator; a LIVENESS matrix names a FAIR
+                         one here                          (default: Spec)
+      --property NAME    the obligation operator           (default: Inv)
       --alias NAME       normalising ALIAS operator, defined by the SPEC
       --strict-trace     make a divergent counterexample a failure
   -t, --timeout SECS     wall-clock budget per TLC run     (default: 60)
@@ -357,6 +428,120 @@ if [ -n "$SIGNATURE_ONLY" ]; then
   trace_signature "$SIGNATURE_ONLY"
   exit 0
 fi
+
+# ---------------------------------------------------------------------------
+# THE DEFINITION CLOSURE.
+#
+#   tla_closure <op> <never-follow> <file>...
+#
+# Prints the bodies of every definition reachable from <op> by name across the
+# given modules, comments stripped. The caller then greps the result for the
+# operators it cares about: temporal ones to pick the .cfg keyword, `WF_`/`SF_`
+# to decide whether the spec is fair.
+#
+# WHY A CLOSURE AND NOT ONE LINE. `Live == Reaches2Again` carries no temporal
+# operator of its own. Naming the requirement and then checking the name is
+# ordinary practice, so a classifier that read only the line the operator is
+# defined on would call that a state predicate, write `INVARIANT` over a
+# temporal formula, and report a verdict about a formula TLC never checked --
+# which is the defect this whole section exists to remove, reintroduced one
+# level down.
+#
+# <never-follow> is the --spec operator. It is the behaviour formula by
+# construction: it carries `[][Next]_vars` and, in any liveness matrix, a
+# `WF_`. Following it would make every obligation in every matrix come back
+# temporal. Nothing else is excluded, because nothing else is guaranteed
+# temporal the way the behaviour formula is.
+#
+# THIS IS A TOKENISER, NOT A PARSER, and it is written to fail in the loud
+# direction. The worst it can do is misclassify, and a misclassified
+# obligation is a TLC evaluation failure (76 or 77) that passes straight
+# through with verdict.sh's own token -- never a silent verdict about a
+# formula that was not checked.
+# ---------------------------------------------------------------------------
+tla_closure() {
+  local op="$1" skip="$2"
+  shift 2
+  awk -v start="$op" -v skip="$skip" '
+    # A new file restarts the comment depth and the current definition. Both
+    # are per-module state, and carrying either across a file boundary would
+    # swallow the next module whole.
+    FNR == 1 { cdepth = 0; cur = "" }
+    {
+      line = $0
+      sub(/\\\*.*$/, "", line)       # \* runs to end of line
+      # (* *) nests in TLA+, so count rather than match. A depth counter gets
+      # nesting right for free; a regex cannot.
+      out = ""
+      i = 1
+      n = length(line)
+      while (i <= n) {
+        two = substr(line, i, 2)
+        if (two == "(*") { cdepth++; i += 2; continue }
+        if (two == "*)") { if (cdepth > 0) cdepth--; i += 2; continue }
+        if (cdepth == 0) out = out substr(line, i, 1)
+        i++
+      }
+      line = out
+      # A module header or footer ends whatever definition was open.
+      if (line ~ /^(====|----)/) { cur = ""; next }
+      # A definition starts in column 1: `Name ==` or `Name(args) ==`.
+      if (match(line, /^[A-Za-z_][A-Za-z0-9_]*[ \t]*(\([^)]*\))?[ \t]*==/)) {
+        name = substr(line, 1, RLENGTH)
+        sub(/[ \t]*(\([^)]*\))?[ \t]*==$/, "", name)
+        cur = name
+        body[cur] = body[cur] substr(line, RLENGTH + 1) "\n"
+        next
+      }
+      if (cur != "") body[cur] = body[cur] line "\n"
+    }
+    END {
+      if (!(start in body)) exit 0
+      queue[1] = start; qn = 1; qi = 1; seen[start] = 1
+      while (qi <= qn) {
+        nm = queue[qi]; qi++
+        printf "%s", body[nm]
+        t = body[nm]
+        while (match(t, /[A-Za-z_][A-Za-z0-9_]*/)) {
+          id = substr(t, RSTART, RLENGTH)
+          t = substr(t, RSTART + RLENGTH)
+          if (id == skip) continue
+          if (id in body && !(id in seen)) { seen[id] = 1; queue[++qn] = id }
+        }
+      }
+    }
+  ' "$@"
+}
+
+# The operators that make a formula temporal, and the two that make it
+# liveness-shaped. Both matches run over text with `<<` and `>>` removed
+# first: the EMPTY TUPLE `<<>>` contains `<>` as a substring, and reading that
+# as a diamond would put `INVARIANT` obligations through the liveness channel.
+TEMPORAL_RE='\[[[:space:]]*\]|<>|~>|WF_|SF_|\\EE|\\AA'
+LIVENESS_RE='<>|~>'
+
+# Every match below is a here-string. A live pipe into `grep -q` returns 141
+# under `set -o pipefail`, which an `if` reads as "no match" -- and here a
+# missed match silently restores the INVARIANT-always behaviour this section
+# removed. Bead tla-kr9.
+tla_shape() {   # tla_shape <op> <dir> -> sets SHAPE / SHAPE_LIVENESS
+  local op="$1" dir="$2" txt
+  SHAPE="state"
+  SHAPE_LIVENESS=0
+  txt=$(tla_closure "$op" "$SPEC" "$dir"/*.tla 2>/dev/null) || true
+  txt=${txt//<</ }
+  txt=${txt//>>/ }
+  if grep -qE -- "$TEMPORAL_RE" <<<"$txt"; then
+    SHAPE="temporal"
+    if grep -qE -- "$LIVENESS_RE" <<<"$txt"; then SHAPE_LIVENESS=1; fi
+  fi
+}
+
+tla_spec_is_fair() {   # tla_spec_is_fair <dir> -> 0 if fair
+  local dir="$1" txt
+  txt=$(tla_closure "$SPEC" "" "$dir"/*.tla 2>/dev/null) || true
+  grep -qE -- 'WF_|SF_' <<<"$txt"
+}
 
 [ -n "$PROP_MODULE" ] || { echo "seeded-bugs.sh: no property module given" >&2; usage >&2; exit 2; }
 [ -f "$VERDICT_SH" ] || { echo "seeded-bugs.sh: missing $VERDICT_SH" >&2; exit 2; }
@@ -515,6 +700,12 @@ trap cleanup EXIT
 CASE_RC=0
 CASE_TOKEN=""
 CASE_TRACE=""
+CASE_KEYWORD=INVARIANT
+CASE_LIVENESS=0
+CASE_SPEC_FAIR=0
+CASE_REFUTED=0
+SHAPE="state"
+SHAPE_LIVENESS=0
 
 # run_case <tag> <variant-dir-or-empty> <property-module>
 #
@@ -540,10 +731,21 @@ run_case() {
   # variant runs. A variant is the reference module mutated, so it declares
   # the same constants, and giving two runs different values would make the
   # rc==0 and rc==12 obligations statements about different models.
+  # THE KEYWORD IS READ OFF THE STAGED MODULES, not off a flag. Classifying
+  # here rather than once up front is what lets the oracle and the submission
+  # differ in shape, and it costs one awk pass over five small files against a
+  # TLC run that costs a second. See THE KEYWORD AND THE REFUTATION CODE.
+  tla_shape "$PROPERTY" "$stage"
+  CASE_KEYWORD=INVARIANT
+  [ "$SHAPE" = "temporal" ] && CASE_KEYWORD=PROPERTY
+  CASE_LIVENESS=$SHAPE_LIVENESS
+  CASE_SPEC_FAIR=0
+  tla_spec_is_fair "$stage" && CASE_SPEC_FAIR=1
+
   local cfg="$stage/run.cfg"
   {
     printf 'SPECIFICATION %s\n' "$SPEC"
-    printf 'INVARIANT %s\n' "$PROPERTY"
+    printf '%s %s\n' "$CASE_KEYWORD" "$PROPERTY"
     [ -n "$ALIAS_OP" ] && printf 'ALIAS %s\n' "$ALIAS_OP"
     [ -n "$CONST_FRAG" ] && cat "$CONST_FRAG"
   } > "$cfg"
@@ -556,9 +758,43 @@ run_case() {
     --trace "$CASE_TRACE" --log "$stage/tlc.log" --scratch "$stage/scratch" \
     "$stage/$(basename -- "$prop")" 2>/dev/null)
   CASE_RC=$?
+
+  # WHAT COUNTS AS A REFUTATION. 12 for either keyword; 13 as well for a
+  # PROPERTY, because verdict.sh's table splits 12 from 13 on the shape of the
+  # FORMULA rather than on the keyword, and deciding which one a given
+  # temporal formula will produce is deciding safety from liveness statically.
+  # This script does not pretend to; it accepts both and lets TLC say.
+  CASE_REFUTED=0
+  [ "$CASE_RC" = "12" ] && CASE_REFUTED=1
+  [ "$CASE_RC" = "13" ] && [ "$CASE_KEYWORD" = "PROPERTY" ] && CASE_REFUTED=1
+  return 0
 }
 
-# Any TLC outcome that is neither 0 nor 12 goes back to the caller as
+# A liveness refutation against an unfair spec is not a catch. Three
+# conditions, all of them needed -- see THE KEYWORD AND THE REFUTATION CODE
+# for why each one alone over-refuses.
+fairness_gate() {   # fairness_gate <what>
+  [ "$CASE_RC" = "13" ] || return 0
+  [ "$CASE_LIVENESS" = "1" ] || return 0
+  [ "$CASE_SPEC_FAIR" = "0" ] || return 0
+  say "A LIVENESS obligation was refuted against a spec operator that carries"
+  say "no fairness conjunct, so the refutation is not evidence about the spec."
+  say ""
+  say "$1 exited 13, and \`$SPEC\` reaches no WF_ or SF_ conjunct. So it admits"
+  say "the behaviour that takes some steps and then stutters for ever, and that"
+  say "behaviour violates EVERY liveness property, the correct one included."
+  say "Measured on the relay fixture: against an unfair spec the matrix's own"
+  say "oracle exits 13 on the reference, which the matrix would otherwise"
+  say "report as ORACLE_UNSOUND."
+  say ""
+  say "NOTHING HERE IS A VERDICT ABOUT THE SUBMISSION. Give the reference a"
+  say "fair spec operator -- \`FairSpec == Spec /\\ WF_vars(Next)\` is the"
+  say "shape harness/fixtures/seeded-bugs/relay/reference/Relay.tla uses -- and"
+  say "name it with --spec."
+  finish "MATRIX_MALFORMED" 44
+}
+
+# Any TLC outcome that is neither 0 nor a refutation goes back to the caller as
 # verdict.sh reported it. The prose says WHICH run produced it, because that
 # is the part the exit code cannot carry.
 passthrough() {   # passthrough <what>
@@ -577,7 +813,8 @@ inconclusive() {   # inconclusive <what>
   say "A run was violated but left no readable counterexample, so the"
   say "counterexample comparison could not be made."
   say ""
-  say "$1 exited rc=12 and $CASE_TRACE is missing or unreadable. This is a"
+  say "$1 exited rc=$CASE_RC and $CASE_TRACE is missing or unreadable. This is"
+  say "a"
   say "harness fault, not a verdict about the submitted property."
   finish "PROBE_INCONCLUSIVE" 46
 }
@@ -589,20 +826,22 @@ PROP_NAME=$(basename -- "$PROP_MODULE" .tla)
 # PHASE 1 -- is OUR INSTRUMENT sound? The oracle must hold of the reference.
 # ===========================================================================
 run_case "oracle-reference" "" "$ORACLE"
-case "$CASE_RC" in
-  0) ;;
-  12)
-    say "The reference specification violates the matrix's OWN oracle."
-    say ""
-    say "$ORACLE_NAME!$PROPERTY is what every variant is certified against, so"
-    say "an oracle the correct spec already breaks would 'catch' every variant"
-    say "for the wrong reason and certify nothing at all."
-    say ""
-    say "NOTHING HERE IS A VERDICT ABOUT THE SUBMISSION. Fix the oracle or the"
-    say "reference, then re-run."
-    finish "ORACLE_UNSOUND" 45 ;;
-  *) passthrough "The oracle against the reference" ;;
-esac
+fairness_gate "The oracle against the reference"
+if [ "$CASE_RC" = "0" ]; then
+  :
+elif [ "$CASE_REFUTED" = "1" ]; then
+  say "The reference specification violates the matrix's OWN oracle."
+  say ""
+  say "$ORACLE_NAME!$PROPERTY is what every variant is certified against, so"
+  say "an oracle the correct spec already breaks would 'catch' every variant"
+  say "for the wrong reason and certify nothing at all."
+  say ""
+  say "NOTHING HERE IS A VERDICT ABOUT THE SUBMISSION. Fix the oracle or the"
+  say "reference, then re-run."
+  finish "ORACLE_UNSOUND" 45
+else
+  passthrough "The oracle against the reference"
+fi
 
 # ===========================================================================
 # PHASE 2 -- is the SUBMISSION sound? It must hold of the reference.
@@ -611,22 +850,24 @@ esac
 # before the variant set is touched.
 # ===========================================================================
 run_case "property-reference" "" "$PROP_MODULE"
-case "$CASE_RC" in
-  0) ;;
-  12)
-    say "Your property is violated by the reference solution itself."
-    say ""
-    say "TLC found a behaviour of the correct specification in which"
-    say "$PROP_NAME!$PROPERTY is false. A property that the intended answer"
-    say "breaks is not a strong property, it is a wrong one -- and 'catches"
-    say "every seeded bug' is trivial to satisfy that way, which is why this"
-    say "half of the matrix exists."
-    say ""
-    say "The counterexample is a run of the reference the property should have"
-    say "allowed. Read it and decide which of the two you meant."
-    finish "PROPERTY_UNSOUND" 41 ;;
-  *) passthrough "Your property against the reference" ;;
-esac
+fairness_gate "Your property against the reference"
+if [ "$CASE_RC" = "0" ]; then
+  :
+elif [ "$CASE_REFUTED" = "1" ]; then
+  say "Your property is violated by the reference solution itself."
+  say ""
+  say "TLC found a behaviour of the correct specification in which"
+  say "$PROP_NAME!$PROPERTY is false. A property that the intended answer"
+  say "breaks is not a strong property, it is a wrong one -- and 'catches"
+  say "every seeded bug' is trivial to satisfy that way, which is why this"
+  say "half of the matrix exists."
+  say ""
+  say "The counterexample is a run of the reference the property should have"
+  say "allowed. Read it and decide which of the two you meant."
+  finish "PROPERTY_UNSOUND" 41
+else
+  passthrough "Your property against the reference"
+fi
 
 # ===========================================================================
 # PHASE 3 -- is our VARIANT SET sound? The oracle must catch every variant.
@@ -644,19 +885,18 @@ declare -a INERT_NAMES=()
 for vd in "${VARIANT_DIRS[@]}"; do
   vname=$(basename -- "$vd")
   run_case "oracle-$vname" "$vd" "$ORACLE"
-  case "$CASE_RC" in
-    12)
-      osig=$(trace_signature "$CASE_TRACE")
-      [ "$osig" = "NO_TRACE" ] && inconclusive "The oracle against variant $vname"
-      LIVE_DIRS+=("$vd")
-      LIVE_NAMES+=("$vname")
-      LIVE_ORACLE_SIG+=("$osig")
-      ;;
-    0)
-      INERT_NAMES+=("$vname")
-      ;;
-    *) passthrough "The oracle against variant $vname" ;;
-  esac
+  fairness_gate "The oracle against variant $vname"
+  if [ "$CASE_REFUTED" = "1" ]; then
+    osig=$(trace_signature "$CASE_TRACE")
+    [ "$osig" = "NO_TRACE" ] && inconclusive "The oracle against variant $vname"
+    LIVE_DIRS+=("$vd")
+    LIVE_NAMES+=("$vname")
+    LIVE_ORACLE_SIG+=("$osig")
+  elif [ "$CASE_RC" = "0" ]; then
+    INERT_NAMES+=("$vname")
+  else
+    passthrough "The oracle against variant $vname"
+  fi
 done
 
 if [ "${#INERT_NAMES[@]}" -gt 0 ]; then
@@ -681,7 +921,8 @@ fi
 # ===========================================================================
 # PHASE 4 -- THE GRADING. The submission must catch every live variant.
 #
-# `Inv == TRUE` lands here: it exits 0 where 12 was required, on the first
+# `Inv == TRUE` lands here: it exits 0 where a refutation was required, on the
+# first
 # variant it meets.
 # ===========================================================================
 declare -a MISSED=()
@@ -695,28 +936,27 @@ while [ "$i" -lt "${#LIVE_DIRS[@]}" ]; do
   osig="${LIVE_ORACLE_SIG[$i]}"
 
   run_case "property-$vname" "$vd" "$PROP_MODULE"
-  case "$CASE_RC" in
-    12)
-      psig=$(trace_signature "$CASE_TRACE")
-      [ "$psig" = "NO_TRACE" ] && inconclusive "Your property against variant $vname"
-      if [ "$psig" = "$osig" ]; then
-        ROWS="${ROWS}  $vname: caught (rc=12), same counterexample as the oracle
+  fairness_gate "Your property against variant $vname"
+  if [ "$CASE_REFUTED" = "1" ]; then
+    psig=$(trace_signature "$CASE_TRACE")
+    [ "$psig" = "NO_TRACE" ] && inconclusive "Your property against variant $vname"
+    if [ "$psig" = "$osig" ]; then
+      ROWS="${ROWS}  $vname: caught (rc=$CASE_RC), same counterexample as the oracle
 "
-      else
-        DIVERGED+=("$vname")
-        ROWS="${ROWS}  $vname: caught (rc=12), DIFFERENT counterexample
+    else
+      DIVERGED+=("$vname")
+      ROWS="${ROWS}  $vname: caught (rc=$CASE_RC), DIFFERENT counterexample
       oracle: $osig
       yours:  $psig
 "
-      fi
-      ;;
-    0)
-      MISSED+=("$vname")
-      ROWS="${ROWS}  $vname: MISSED (rc=0, wanted rc=12)
+    fi
+  elif [ "$CASE_RC" = "0" ]; then
+    MISSED+=("$vname")
+    ROWS="${ROWS}  $vname: MISSED (rc=0, wanted a refutation)
 "
-      ;;
-    *) passthrough "Your property against variant $vname" ;;
-  esac
+  else
+    passthrough "Your property against variant $vname"
+  fi
   i=$((i + 1))
 done
 
@@ -724,8 +964,9 @@ if [ "${#MISSED[@]}" -gt 0 ]; then
   say "Your property does not catch every seeded bug."
   say ""
   say "Each variant below is the reference specification with one definition"
-  say "broken on purpose. Your property held anyway -- TLC exited 0 where 12"
-  say "was required -- so it would have said the broken spec was fine."
+  say "broken on purpose. Your property held anyway -- TLC exited 0 where a"
+  say "refutation was required -- so it would have said the broken spec was"
+  say "fine."
   say ""
   for n in "${MISSED[@]}"; do
     say "  $n: not caught."
@@ -759,12 +1000,12 @@ if [ "${#DIVERGED[@]}" -gt 0 ]; then
     finish "TRACE_DIVERGED" 43
   fi
   say ""
-  say "Reference: rc=0. Every variant: rc=12."
+  say "Reference: rc=0. Every variant: refuted."
   finish "BUGS_CAUGHT" 0
 fi
 
 say "Your property holds of the reference (rc=0) and is violated by every"
-say "seeded variant (rc=12), on the same counterexample the oracle found."
+say "seeded variant, on the same counterexample the oracle found."
 say ""
 say "$ROWS"
 say "WHAT THIS DOES NOT SAY: the variants above are mutants of the reference,"

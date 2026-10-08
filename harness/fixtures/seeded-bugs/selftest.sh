@@ -362,6 +362,167 @@ rm -rf "$PKEPT"
 
 # ---------------------------------------------------------------------------
 echo
+echo "== LIVENESS: a temporal obligation is graded as a temporal obligation =="
+# ---------------------------------------------------------------------------
+# WHY THIS SECTION HAD TO EXIST BEFORE THE FIX COULD BE TRUSTED. Every row
+# above this one has a STATE PREDICATE for its obligation, so every row above
+# passes on a script that writes `INVARIANT` into the .cfg unconditionally and
+# reads rc==12 as the only refutation. That is what seeded-bugs.sh did until
+# bead tla-r2ih, and it is why the defect reached the field: the tla-pmm2.2
+# spike author hit it on the first liveness problem the project attempted,
+# wrote a state-predicate surrogate to get a number, and measured the
+# surrogate firing exactly one `Begin` step later than the oracle. The matrix
+# reported BUGS_CAUGHT either way.
+#
+# relay/ is the pair crossing/ cannot be. Its obligation is `[]<>(stage = 2)`,
+# which no finite prefix refutes, so TLC checks it through the liveness
+# channel and exits 13. Measured on v1.8.0, every refutation in this fixture:
+# rc=13, never 12.
+#
+# The obligation is named `Live` rather than `Inv`, per
+# `.claude/rules/tla-practice.md` §3 -- an `*Inv` name tells a reader the
+# obligation is a state predicate and this one is not -- and the matrix is
+# driven against `FairSpec`, because against `Spec` the stuttering behaviour
+# refutes the correct property too.
+
+RMATRIX="$FIX/relay"
+RPROPS="$RMATRIX/properties"
+relay=(--matrix "$RMATRIX" --spec FairSpec --property Live --alias Alias)
+
+# THE ROW THE WHOLE BEAD IS ABOUT. Before the fix this was
+# SAFETY_EVAL_FAILURE/rc=76 -- TLC handed a temporal formula under the
+# INVARIANT keyword cannot evaluate it as a state predicate, so PHASE 1 died
+# and nothing was graded at all.
+assert_matrix "a temporal property that catches every seeded bug" \
+  "BUGS_CAUGHT" 0 \
+  "${relay[@]}" "$RPROPS/RelayGood.tla"
+
+# `Inv == TRUE`'s temporal twin: true of the reference, true of both variants,
+# and it has to be refused for the same reason. A trivially true STATE
+# predicate would be graded by the invariant channel and would say nothing
+# about whether the temporal channel grades at all.
+assert_matrix "a trivially true temporal property" \
+  "PROPERTY_TOO_WEAK" 40 \
+  "${relay[@]}" "$RPROPS/RelayVacuous.tla"
+
+# The discriminating row. RelayWeak catches advance-stalls and misses
+# recycle-early, so it is the only evidence that rc=13 is read as a refutation
+# PER VARIANT rather than anywhere.
+assert_matrix "a temporal property that catches one variant of two" \
+  "PROPERTY_TOO_WEAK" 40 \
+  "${relay[@]}" "$RPROPS/RelayWeak.tla"
+
+# Captured once and matched twice: assert_report re-runs the matrix, and six
+# TLC invocations is not worth a second grep.
+RWEAK=$(bash "$SEEDED" "${relay[@]}" "$RPROPS/RelayWeak.tla" 2>/dev/null)
+
+LBL="the too-weak diagnosis names the temporal variant that got through"
+if grep -qE -- 'recycle-early: not caught' <<<"$RWEAK"; then ok "$LBL"
+else nope "$LBL"; fi
+
+# THE REFUTATION CODE, PINNED. 13 and not 12, read off the matrix table the
+# learner sees. A script that had been taught the PROPERTY keyword and not the
+# code would report this variant as MISSED and bill it to the submission.
+LBL="a liveness refutation is reported as rc=13"
+if grep -qE -- 'advance-stalls: caught \(rc=13\)' <<<"$RWEAK"; then ok "$LBL"
+else nope "$LBL"; fi
+
+# PHASE 2 over the liveness channel. Without this row, rc=13 reaching
+# PROPERTY_UNSOUND would be untested, and the learner would be told TLC's exit
+# code where they could have been told their property is wrong.
+assert_matrix "a temporal property the reference itself violates" \
+  "PROPERTY_UNSOUND" 41 \
+  "${relay[@]}" "$RPROPS/RelayUnsound.tla"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a liveness verdict against an unfair spec is refused, not counted =="
+# ---------------------------------------------------------------------------
+# `Spec == Init /\ [][Next]_vars` admits the behaviour that takes some steps
+# and then stutters for ever, and that behaviour violates every liveness
+# property anyone could write -- RelayGood included. Measured: against `Spec`
+# the matrix's OWN oracle exits 13 on the reference, so without the gate the
+# matrix reports ORACLE_UNSOUND and blames the instrument for the config.
+#
+# Attributed to the MATRIX, because the missing fairness conjunct is the
+# matrix author's defect and not the submission's. Same party, same code, as
+# every other way the matrix can be the wrong shape.
+#
+# The gate fires on three conditions together -- rc==13, a `<>` or `~>` in the
+# obligation's closure, and no WF_/SF_ in the spec's. Each alone over-refuses:
+# `[][A]_vars` exits 13 and needs no fairness, and `~<>P` carries a diamond
+# and is safety. The crossing rows above are the falsification: their
+# obligations are state predicates against an unfair `Spec`, and they pass.
+
+assert_matrix "a liveness matrix driven against an UNFAIR spec operator" \
+  "MATRIX_MALFORMED" 44 \
+  --matrix "$RMATRIX" --spec Spec --property Live --alias Alias \
+  "$RPROPS/RelayGood.tla"
+
+assert_report "...and the refusal names fairness rather than the submission" \
+  'no fairness conjunct' \
+  --matrix "$RMATRIX" --spec Spec --property Live --alias Alias \
+  "$RPROPS/RelayGood.tla"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the .cfg keyword follows the obligation's SHAPE, read off disk =="
+# ---------------------------------------------------------------------------
+# The keyword is the defect's actual site. A matrix can come back BUGS_CAUGHT
+# with the wrong keyword in cases where TLC happens to tolerate it, so the
+# generated .cfg is read rather than inferred from the verdict -- and EVERY
+# generated .cfg, counted rather than sampled, because a keyword that was
+# right for the oracle run and wrong for a variant run is a verdict about two
+# different formulas.
+
+RKEPT=$(mktemp -d -t tla_seeded_relay.XXXXXX)
+rm -rf "$RKEPT"
+bash "$SEEDED" -q --keep "$RKEPT" "${relay[@]}" \
+  "$RPROPS/RelayGood.tla" >/dev/null 2>&1
+
+RNCFG=$(find "$RKEPT" -name 'run.cfg' | wc -l)
+RNPROP=$(grep -rlE '^[[:space:]]*PROPERTY[[:space:]]+Live[[:space:]]*$' \
+  "$RKEPT" --include='run.cfg' | wc -l)
+LBL="the temporal obligation went in as PROPERTY in every .cfg ($RNPROP of $RNCFG)"
+if [ "$RNCFG" -gt 0 ] && [ "$RNCFG" = "$RNPROP" ]; then ok "$LBL"; else nope "$LBL"; fi
+
+# The must-be-absent half. This is the line that was there before tla-r2ih.
+LBL="no .cfg wrote INVARIANT over the temporal obligation"
+RNINV=$(grep -rlE '^[[:space:]]*INVARIANT' "$RKEPT" --include='run.cfg' | wc -l)
+if [ "$RNINV" = "0" ]; then ok "$LBL"; else nope "$LBL — $RNINV of $RNCFG"; fi
+
+# The generated SPECIFICATION line names the FAIR operator, so the fairness
+# conjunct reaches TLC rather than merely existing in the module.
+LBL="the generated .cfg names the fair spec operator"
+RNFAIR=$(grep -rlE '^[[:space:]]*SPECIFICATION[[:space:]]+FairSpec[[:space:]]*$' \
+  "$RKEPT" --include='run.cfg' | wc -l)
+if [ "$RNCFG" -gt 0 ] && [ "$RNCFG" = "$RNFAIR" ]; then ok "$LBL"
+else nope "$LBL — $RNFAIR of $RNCFG"; fi
+
+rm -rf "$RKEPT"
+
+# The mirror of the two keyword rows above, on the SAFETY matrix. Without it,
+# a script that wrote PROPERTY unconditionally would pass every row in this
+# section — the inverse of the bug, and just as wrong.
+SKEPT=$(mktemp -d -t tla_seeded_safety.XXXXXX)
+rm -rf "$SKEPT"
+bash "$SEEDED" -q --keep "$SKEPT" --matrix "$MATRIX" --alias Alias \
+  "$PROPS/Good.tla" >/dev/null 2>&1
+
+SNCFG=$(find "$SKEPT" -name 'run.cfg' | wc -l)
+SNINV=$(grep -rlE '^[[:space:]]*INVARIANT[[:space:]]+Inv[[:space:]]*$' \
+  "$SKEPT" --include='run.cfg' | wc -l)
+LBL="a state predicate still goes in as INVARIANT in every .cfg ($SNINV of $SNCFG)"
+if [ "$SNCFG" -gt 0 ] && [ "$SNCFG" = "$SNINV" ]; then ok "$LBL"; else nope "$LBL"; fi
+
+LBL="no .cfg wrote PROPERTY over the state predicate"
+SNPROP=$(grep -rlE '^[[:space:]]*PROPERTY' "$SKEPT" --include='run.cfg' | wc -l)
+if [ "$SNPROP" = "0" ]; then ok "$LBL"; else nope "$LBL — $SNPROP of $SNCFG"; fi
+
+rm -rf "$SKEPT"
+
+# ---------------------------------------------------------------------------
+echo
 echo "== a constants fragment carries CONSTANTS, and nothing else =="
 # ---------------------------------------------------------------------------
 # The fragment is the only text from the matrix directory that reaches a
@@ -449,6 +610,32 @@ assert_file_present "the file calls itself a bootstrap"               '[Bb]ootst
 # learn it exists. Bead tla-40y.
 assert_file_present "the header names the constants fragment by filename" \
   'constants\.cfg'
+
+# THE DEFECT'S OWN SITE, as a structural row. `printf 'INVARIANT %s\n'` is the
+# line bead tla-r2ih removed, and a fixture cannot see it come back in the one
+# case TLC tolerates both keywords. The keyword has to be a variable.
+assert_code_absent "the .cfg keyword is not hardcoded" \
+  "printf 'INVARIANT"
+
+# And it must be chosen by the obligation's shape rather than by a flag. A
+# flag defaulting to the old behaviour reproduces the defect for every caller
+# who does not know to pass it.
+assert_code_present "the keyword comes from a shape classifier" \
+  'tla_shape'
+assert_code_absent "no flag selects the keyword" \
+  '--(property-kind|temporal|liveness|invariant|keyword)\)'
+
+# The classifier follows NAMES. `Live == Reaches2Again` has no temporal
+# operator on its own line, and RelayGood.tla is written that way on purpose,
+# so the closure is the thing that makes that row pass.
+assert_code_present "the classifier walks the definition closure" \
+  'tla_closure'
+
+# rc=13 has to appear in the refutation test. Before tla-r2ih the only
+# refutation code in the file was 12, and a matrix that knew the PROPERTY
+# keyword and not the code reports every liveness mutant as uncaught.
+assert_code_present "13 is a refutation code" \
+  'CASE_RC" = "13"'
 
 # Verdicts come from exit codes (§5.1). This script reads its own generated
 # files and TLC's JSON trace dump, never TLC's console prose.
