@@ -56,8 +56,9 @@
 #   The delivered directory name is printf '%02d_%s' POS name, where POS is the
 #   problem's 1-based position in <dest-root>/ORDER. A name ORDER does not carry
 #   is off the ramp and delivers under its bare name. ORDER parsing matches
-#   scripts/number-problems.sh exactly: blank lines, comment lines, and the two
-#   checkpoint markers consume no position.
+#   scripts/number-problems.sh exactly: blank lines and comment lines consume
+#   no position, so a position is not a line number, and a line matching
+#   ^[[:space:]]*checkpoint: is a parse error that refuses the run.
 #
 #   No file is ever overwritten. An existing file is left alone and reported on
 #   stdout as "skipped (exists): <path>".
@@ -149,6 +150,13 @@ DEST_AGREE="$TMPROOT/dest-agree"     # cross-check against number-problems.sh
 DEST_NP="$TMPROOT/dest-np"           # the same ORDER, renamed by the sibling
 DEST_REJECT="$TMPROOT/dest-reject"   # never written, the error runs
 
+# The D6 destinations, added by bead tla-5zgr.2. One per retired spelling plus
+# one arbitrary tail, because the markers were two separate case arms and the
+# invariant is over the pattern rather than over the two literals.
+DEST_CP13="$TMPROOT/dest-cp-ch13"
+DEST_CPREF="$TMPROOT/dest-cp-refinement"
+DEST_CPINDENT="$TMPROOT/dest-cp-indented"
+
 mkdir -p "$SANDBOX_HOME" "$DEFAULT_ROOT"
 
 # ---------------------------------------------------------------------------
@@ -238,6 +246,16 @@ printf 'only the author copy\n' \
 # DEST_MAIN's ORDER carries every shape the parser has to skip, so no entry sits
 # on the line number matching its position. A script that read the line number
 # instead of the position would number alpha-fixture 3 and probe-bonded 5.
+#
+# D6, bead tla-5zgr.2: the two `checkpoint:` markers used to hold lines 4 and 7
+# here. They are gone, and a comment and a blank hold those two lines instead,
+# which keeps every (position, raw line) pair below exactly as it was:
+#
+#   line 3 -> position 1, line 5 -> 2, line 6 -> 3, line 8 -> 4, line 9 -> 5.
+#
+# The pairs are what the position rows assert against, and they were never
+# about the markers. A skipped line is a skipped line, and the two that remain
+# skip just as well as the two that went.
 # ---------------------------------------------------------------------------
 
 write_main_order() {
@@ -247,10 +265,10 @@ write_main_order() {
     printf '# the ramp, with shapes the parser has to skip\n'
     printf '\n'
     printf 'alpha-fixture\n'
-    printf 'checkpoint: ch13\n'
+    printf '# a comment between two entries\n'
     printf 'probe-bonded\n'
     printf '   gamma-fixture\n'
-    printf 'checkpoint: refinement\n'
+    printf '\n'
     printf 'delta-fixture\n'
     printf 'epsilon-fixture\n'
   } >"$root/ORDER"
@@ -264,6 +282,32 @@ write_main_order "$DEST_NP"
 
 mkdir -p "$DEST_BARE"
 printf 'alpha-fixture\n' >"$DEST_BARE/ORDER"
+
+# --- D6: destinations whose ORDER still carries a retired marker ------------
+#
+# alpha-fixture is named by each of these ORDERs, so the run has real work to
+# do and refuses anyway. A refusal against a destination that had nothing to
+# deliver would prove only that there was nothing to deliver.
+mkdir -p "$DEST_CP13"
+{
+  printf 'alpha-fixture\n'
+  printf 'checkpoint: ch13\n'
+  printf 'probe-bonded\n'
+} >"$DEST_CP13/ORDER"
+
+mkdir -p "$DEST_CPREF"
+{
+  printf 'alpha-fixture\n'
+  printf 'checkpoint: refinement\n'
+  printf 'probe-bonded\n'
+} >"$DEST_CPREF/ORDER"
+
+mkdir -p "$DEST_CPINDENT"
+{
+  printf 'alpha-fixture\n'
+  printf '  checkpoint: anything-at-all\n'
+  printf 'probe-bonded\n'
+} >"$DEST_CPINDENT/ORDER"
 
 mkdir -p "$DEST_NOORDER"
 
@@ -771,7 +815,14 @@ echo "== the position agrees with scripts/number-problems.sh =="
 # The ORDER parse is duplicated from scripts/number-problems.sh, which owns the
 # convention. This section is what keeps the duplicate from drifting: it hands
 # the same ORDER to both scripts and requires the same names out. If the sibling
-# changes how it skips a checkpoint marker or pads a number, this goes red.
+# changes how it skips a comment or a blank, or how it pads a number, this goes
+# red.
+#
+# The agreement is the reason the two scripts can carry a duplicated parse at
+# all, so D6 narrows what the shared ORDER contains and leaves this gate
+# exactly where it was. The refusal half gets its own section below, and it is
+# checked against both scripts for the same reason: a refusal in one and a skip
+# in the other is the drift this section exists to catch.
 
 if [ ! -f "$NUMBER_SCRIPT" ]; then
   nope "the ORDER convention agrees with $NUMBER_SCRIPT. The sibling script is missing"
@@ -803,11 +854,94 @@ else
   elif [ -z "$NP_NAMES" ]; then
     nope "the ORDER convention agrees with $NUMBER_SCRIPT. The sibling produced no directories, so the comparison is vacuous"
   elif [ "$AGREE_NAMES" = "$NP_NAMES" ]; then
-    ok "the ORDER convention agrees with $NUMBER_SCRIPT over comments, blanks and both checkpoints"
+    ok "the ORDER convention agrees with $NUMBER_SCRIPT over comments and blanks"
   else
     nope "the ORDER convention disagrees with $NUMBER_SCRIPT. deliver=[$(tr '\n' ' ' <<<"$AGREE_NAMES")] number=[$(tr '\n' ' ' <<<"$NP_NAMES")]"
   fi
 fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== D6: a checkpoint: line in ORDER refuses the delivery =="
+# ---------------------------------------------------------------------------
+
+# The RED invariant from bead tla-5zgr.2, this script's half. The two
+# positional markers stopped existing when the reading gate became a label, so
+# a destination ORDER still carrying one is stale rather than merely verbose.
+#
+# Exit 1, because that is the only failure code this script has. Its sibling
+# uses 2 for the same refusal, since that script separates "the input is
+# unusable" from "ORDER and the tree disagree" and this one does not. The two
+# codes differ and the two refusals do not, which is the part that matters:
+# neither script numbers a position out of an ORDER it cannot parse.
+#
+# Nothing delivered is asserted alongside every refusal. ~/tla-practice is not
+# a git repo, so a run that writes half a problem into a destination it then
+# refuses has left a tree nobody can reason about.
+
+run_deliver alpha-fixture "$DEST_CP13"
+
+assert_rc "a destination ORDER carrying checkpoint: ch13 exits 1" 1
+
+assert_says "the refusal names the offending line" \
+  'checkpoint: ch13' "$RUN_ERR"
+
+assert_not_delivered "nothing lands under the numbered name on a stale ORDER" \
+  "$DEST_CP13" "01_alpha-fixture"
+
+assert_not_delivered "nothing lands under the bare name either" \
+  "$DEST_CP13" "alpha-fixture"
+
+run_deliver --check alpha-fixture "$DEST_CP13"
+
+assert_rc "--check exits 1 on the same ORDER" 1
+
+run_deliver alpha-fixture "$DEST_CPREF"
+
+assert_rc "a destination ORDER carrying checkpoint: refinement exits 1" 1
+
+assert_says "the refusal names the refinement line too" \
+  'checkpoint: refinement' "$RUN_ERR"
+
+assert_not_delivered "the refinement marker delivers nothing" \
+  "$DEST_CPREF" "01_alpha-fixture"
+
+# The generalisation row, for the same reason as in the sibling suite: a script
+# that swapped two equality tests for two inequality tests passes every row
+# above and fails this one.
+run_deliver alpha-fixture "$DEST_CPINDENT"
+
+assert_rc "an indented checkpoint: line with an unknown tail exits 1" 1
+
+assert_says "the refusal names the unknown-tail line" \
+  'checkpoint: anything-at-all' "$RUN_ERR"
+
+assert_not_delivered "an unknown checkpoint: tail delivers nothing" \
+  "$DEST_CPINDENT" "01_alpha-fixture"
+
+# The row that rules out the quiet wrong answer, and it is the worst case in
+# this suite.
+#
+# Dropping the two case arms and nothing else makes the marker an ORDER ENTRY
+# rather than a skipped line, and in THIS script that failure is silent. The
+# marker takes position 2, so probe-bonded is pushed to 3 and the run exits 0
+# having delivered it under 03_probe-bonded. Its sibling at least reports
+# something, because it goes looking for a directory named after the marker and
+# cannot find one. Here there is nothing to report: a position was computed
+# from a line nobody can parse and the delivery succeeded.
+#
+# So exit 0 is the shape to rule out, and the numbered name it would have used
+# is ruled out beside it.
+run_deliver probe-bonded "$DEST_CP13"
+
+if [ "$RUN_RC" -eq 0 ]; then
+  nope "a stale marker is refused rather than silently consuming a position. The run exited 0, so probe-bonded was numbered out of an ORDER nobody could parse"
+else
+  ok "a stale marker is refused rather than silently consuming a position"
+fi
+
+assert_not_delivered "probe-bonded does not land at the marker-shifted position" \
+  "$DEST_CP13" "03_probe-bonded"
 
 # ---------------------------------------------------------------------------
 echo
