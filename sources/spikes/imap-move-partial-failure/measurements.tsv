@@ -1,0 +1,18 @@
+label	module	rc	verdict	secs	generated	distinct	depth	vars	defs	fairness	temporal	instance	modules	lines
+atomic-1msg	MCAtomic1	0	checked, no violation	0.3	8	7	3	4	19	no	no	no	3	185
+atomic-2msg	MCAtomic2	0	checked, no violation	0.3	26	17	4	4	19	no	no	no	3	185
+atomic-3msg	MCAtomic3	0	checked, no violation	0.3	90	43	5	4	19	no	no	no	3	185
+atomic-4msg	MCAtomic4	0	checked, no violation	0.3	314	113	6	4	19	no	no	no	3	185
+atomic-5msg	MCAtomic5	0	checked, no violation	0.3	1086	307	7	4	19	no	no	no	3	185
+atomic-6msg	MCAtomic6	0	checked, no violation	0.3	3710	857	8	4	19	no	no	no	3	185
+decomposed-1msg	MCDecomposed1	12	invariant violated	0.3	2	2	2	4	21	no	no	no	3	214
+decomposed-2msg	MCDecomposed2	12	invariant violated	0.3	2	2	2	4	21	no	no	no	3	214
+decomposed-3msg	MCDecomposed3	12	invariant violated	0.3	2	2	2	4	21	no	no	no	3	214
+expungefirst-1msg	MCExpungeFirst1	12	invariant violated	0.3	2	2	2	4	20	no	no	no	3	190
+expungefirst-3msg	MCExpungeFirst3	12	invariant violated	0.3	2	2	2	4	20	no	no	no	3	190
+storefirst-1msg	MCStoreFirst1	12	invariant violated	0.3	2	2	2	4	21	no	no	no	3	211
+storefirst-3msg	MCStoreFirst3	12	invariant violated	0.3	2	2	2	4	21	no	no	no	3	211
+probe-clause1-alone	ProbeStoreFirst1	12	invariant violated	0.3	2	2	2	4	24	no	no	no	4	256
+decomposed-3msg-sized	MCDecomposedFull3	0	checked, no violation	0.3	434	197	11	4	21	no	no	no	3	214
+expungefirst-3msg-sized	MCExpungeFirstFull3	0	checked, no violation	0.3	217	99	8	4	20	no	no	no	3	190
+storefirst-3msg-sized	MCStoreFirstFull3	0	checked, no violation	0.3	434	197	11	4	21	no	no	no	3	211
