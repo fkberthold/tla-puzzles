@@ -128,12 +128,72 @@ SRC="$(collect "$MODULE")"
 # subshell. Count the module headers in the collected text, which is the same
 # number by construction and does not depend on a variable surviving a fork.
 NMODULES="$(grep -cE '^-{4,}[[:space:]]*MODULE[[:space:]]' <<<"$SRC" || true)"
-# sed rather than ${var//search/replace}, which shellcheck suggests and which
-# is wrong here. This strips a \* comment to end of LINE, and bash pattern
-# replacement has no line concept: * matches newlines too, so the parameter
-# form would delete from the first comment to the end of the file.
-# shellcheck disable=SC2001
-strip() { sed -e 's/\\\*.*//' <<<"$1"; }
+# Remove both comment forms, so no column below reads prose as code. Comments
+# are whitespace to TLA+ and this has to agree with that. Four things make a
+# naive strip wrong, and every one of them was measured on a real module
+# before this was written. The fixtures are in test-spike-measure.sh section
+# 6, each labelled with the wrong number it used to produce.
+#
+#   - Block comments NEST. `(* a (* b *) c *)` is one comment, so a non-greedy
+#     match stops at the first `*)` and leaves `c *)` standing as code, while
+#     a greedy one runs to the last `*)` on the line and eats a declaration
+#     sitting between two separate comments.
+#   - The two forms are not independent. Inside a block, `\*` is ordinary
+#     text; inside a line comment, `(*` opens nothing. Strip either form first
+#     and the other leaves an unterminated comment that swallows the file.
+#   - A comment opener inside a string literal is not an opener. Nothing used
+#     to look for `(*` at all, so this is a hole the fix would otherwise open
+#     rather than one it inherits, and it fails silently: the declaration
+#     block disappears and the count reads 0.
+#   - A line whose content is entirely comment is REMOVED, not blanked. The
+#     declaration scanner below ends on a blank line, so blanking a commented
+#     line between two declarations loses every declaration after it. The old
+#     `\*` strip did exactly that, and a module with a line comment between
+#     two VARIABLES entries read 1 for 2. A line that was already blank in the
+#     source stays blank, so a real paragraph break still ends the block.
+#
+# Not handled, deliberately: an unterminated block comment bleeds into the
+# next module in the EXTENDS closure rather than being reset at the module
+# header. Such a module does not parse, so TLC reports it as rc 150 and the
+# descriptive columns are not what anyone is reading on that row.
+strip() {
+  awk '
+    {
+      line = $0
+      out = ""
+      i = 1
+      n = length(line)
+      stripped = 0
+      if (depth > 0) stripped = 1
+      while (i <= n) {
+        two = substr(line, i, 2)
+        if (depth > 0) {
+          if (two == "(*") { depth++; i += 2; continue }
+          if (two == "*)") { depth--; i += 2; continue }
+          i++
+          continue
+        }
+        if (two == "(*") { depth++; stripped = 1; i += 2; continue }
+        if (two == "\\*") { stripped = 1; break }
+        if (substr(line, i, 1) == "\"") {
+          out = out "\""
+          i++
+          while (i <= n) {
+            ch = substr(line, i, 1)
+            if (ch == "\\") { out = out substr(line, i, 2); i += 2; continue }
+            out = out ch
+            i++
+            if (ch == "\"") break
+          }
+          continue
+        }
+        out = out substr(line, i, 1)
+        i++
+      }
+      if (stripped && out ~ /^[ \t]*$/) next
+      print out
+    }' <<<"$1"
+}
 CLEAN="$(strip "$SRC")"
 
 # No \b here. mawk does not implement it, and with it this counted zero
