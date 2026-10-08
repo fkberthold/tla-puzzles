@@ -133,12 +133,26 @@ for problem in "$ROOT"/*/statement/PROBLEM.md; do
   traces_dir="${statement_dir}/traces"
   refutations=0
   has_traces=0
+  declared_none=0
   if [ -d "$traces_dir" ]; then
     has_traces=1
     for f in "$traces_dir"/*.md; do
       [ -f "$f" ] || continue
       base="$(basename -- "$f")"
       [ "${base,,}" = "readme.md" ] && continue
+      # NONE.md is a DECLARATION that this package ships no refutation trace,
+      # carrying the reason. It is not itself a refutation, so it does not
+      # count, and its presence is what separates a deliberate absence from an
+      # absence nobody has explained. Added 2026-10-08 after acme-challenge-
+      # retry-deadlock was measured UNABLE to carry a trace for its own
+      # requirement 1: the violating state that trace needs is exactly the
+      # state its other requirements forbid. That is a true fact about the
+      # problem rather than unfinished work, and a gate that cannot tell the
+      # two apart reports the same verdict for both.
+      if [ "${base,,}" = "none.md" ]; then
+        declared_none=1
+        continue
+      fi
       refutations=$((refutations + 1))
     done
   fi
@@ -148,6 +162,9 @@ for problem in "$ROOT"/*/statement/PROBLEM.md; do
     printf 'NO_TRACES         %-32s requirements=%-4s refutations=-   no statement/traces/ directory\n' \
       "$pkg" "${req:-?}"
     bad=$((bad + 1))
+  elif [ "$refutations" -eq 0 ] && [ "$declared_none" -eq 1 ]; then
+    printf 'DECLARED_NONE     %-32s requirements=%-4s refutations=0   traces/NONE.md declares and explains the absence\n' \
+      "$pkg" "${req:-?}"
   elif [ "$refutations" -eq 0 ]; then
     printf 'EMPTY_TRACES      %-32s requirements=%-4s refutations=0   traces/ holds no refutation file\n' \
       "$pkg" "${req:-?}"

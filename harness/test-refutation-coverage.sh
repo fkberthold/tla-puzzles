@@ -235,8 +235,8 @@ declare -a PIN_WHY=()
 
 pin() { PIN_PKG+=("$1"); PIN_VERDICT+=("$2"); PIN_WHY+=("$3"); }
 
-pin acme-challenge-retry-deadlock NO_TRACES \
-  "bead tla-n8oq: all nine requirements hold at rc 0, 16 states, depth 5, over a model whose retry loop never turns. No refutation was authored for any of them."
+pin acme-challenge-retry-deadlock DECLARED_NONE \
+  "bead tla-n8oq, and this pin MOVED from NO_TRACES on 2026-10-08. All nine requirements hold at rc 0, 16 states, depth 5, over a model whose retry loop never turns. No refutation CAN be authored: requirement 1's violating state is exactly the state the other requirements forbid, measured at rc 12 on State 3. traces/NONE.md declares that and carries the reason, so this is a fact about the problem rather than unfinished work."
 pin assay-office                  OK        ""
 pin bonded-store                  OK        ""
 pin buyclub                       OK        ""
@@ -248,8 +248,8 @@ pin floor-malting                 OK        ""
 pin herbarium-sheet               OK        ""
 pin imap-move-partial-failure     OK        ""
 pin laytime                       OK        ""
-pin progressive-sync-stale-status NO_TRACES \
-  "bead tla-n8oq: all seven requirements hold at rc 0, 14 states, depth 11, over a model with no board and no clerk. No refutation was authored for any of them."
+pin progressive-sync-stale-status OK \
+  "bead tla-n8oq, and this pin MOVED from NO_TRACES on 2026-10-08 when the step 5 edit landed. Eight refutations against seven requirements, each forbidden run replayed and refused against the reference. Req7's is rc 12 by design, since the forbidden thing is an infinite stall and every individual row is legal. CAUTION: the original boardless model is STILL rc 0 at 14 states after the rule 4 edit, because no requirement mentions the board. What shuts that door is the satisfying trace, refusing at row 5, not a requirement. So this OK rests on the traces and would not survive deleting them."
 pin qsl                           NO_STATED_COUNT \
   "qsl has no requirements section at all; its PROBLEM.md goes from the interface straight to the traces. Nine trace files, no stated count to compare them against."
 pin river-call                    UNDER_COVERED \
