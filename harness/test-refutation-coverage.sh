@@ -256,8 +256,8 @@ pin river-call                    UNDER_COVERED \
   "river-call declares four requirements and ships three pairs on purpose: PROBLEM.md:197 says 'one pair per requirement past the first', the first being the model's own type invariant. A type invariant IS refutable, so this is a convention question for central rather than an unfalsifiable requirement. Found by this gate, not reported to it."
 pin seedlib                       NO_TRACES \
   "seedlib ships SeedLibrary.tla and SeedLibrary.cfg and no traces tree. Predates the per-requirement trace convention; not one of the three tla-n8oq instances."
-pin txn-epoch-fence-vs-retry      NO_TRACES \
-  "txn-epoch-fence-vs-retry ships PROBLEM.md alone. Not yet through step 5; not one of the three tla-n8oq instances."
+pin txn-epoch-fence-vs-retry      DECLARED_NONE \
+  "bead tla-pmm2.2. MOVED from NO_TRACES on 2026-10-08: step 5 ran and its edits landed. The author shipped traces/NONE.md rather than pairs and put the measurement in the file. Requirement 1's state is only LEGALLY reachable through a withdrawal, rc 0 over 17 states, so the legal route is the office's own counterexample. The one break reaching it without a withdrawal signposts the rule 7 asymmetry step 5 certified as withheld, so that trace would leak, and shipping seven of eight instead fires the screen's tiling and elimination probes at harness/PUZZLE-SCREEN.md:305. Nine clean breaks with their rc are recorded in the file for step 6."
 
 REAL_OUT="$(bash "$CHECKER" "${REPO_ROOT}/authoring" 2>&1)"
 real_rc=$?
