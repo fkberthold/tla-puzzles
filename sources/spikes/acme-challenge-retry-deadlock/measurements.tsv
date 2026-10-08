@@ -1,0 +1,16 @@
+label	module	rc	verdict	secs	generated	distinct	depth	vars	defs	fairness	temporal	instance	modules	lines
+section-8-as-published	Challenge	12	invariant violated	0.4	4	4	3	5	24	no	no	no	1	197
+section-8-per-erratum-5732	MCErratum	12	invariant violated	0.3	6	6	4	5	24	no	no	no	2	202
+section-8-per-erratum-plus-clearing	MCCleared	0	checked, no violation	0.4	17	13	6	5	24	no	no	no	2	206
+section-8-per-erratum-plus-clearing-maxq3	MCCleared3	0	checked, no violation	0.3	24	18	7	5	24	no	no	no	2	204
+section-8-per-erratum-plus-clearing-maxq8	MCCleared8	0	checked, no violation	0.4	59	43	12	5	24	no	no	no	2	204
+section-8-per-erratum-plus-clearing-3var	MCMinimalCleared	0	checked, no violation	0.3	8	8	5	3	13	no	no	no	2	83
+retry-reachable-under-clearing	MCClearedRetry	12	invariant violated	0.3	6	6	4	5	24	no	no	no	2	204
+retry-reachable-prose-model	MCRetryReachable	12	invariant violated	0.3	6	6	4	5	24	no	no	no	2	204
+retry-unreachable-wedged-model	Wedged	0	checked, no violation	0.3	7	5	3	5	19	no	no	no	1	111
+section-8-holds-in-wedged-model	MCWedgedS8	0	checked, no violation	0.3	7	5	3	5	19	no	no	no	2	118
+section-8-as-published-3var	Minimal	12	invariant violated	0.3	4	4	3	3	13	no	no	no	1	77
+section-8-per-erratum-3var	MCMinimalErratum	12	invariant violated	0.3	5	5	4	3	13	no	no	no	2	82
+section-8-per-erratum-maxq5	MCErratum5	12	invariant violated	0.3	6	6	4	5	24	no	no	no	2	202
+prose-refines-section-7-1-6-diagram	MCDiagram	0	checked, no violation	0.3	17	13	6	5	30	no	no	yes	2	233
+wedged-refines-section-7-1-6-diagram	MCWedgedDiagram	0	checked, no violation	0.3	7	5	3	5	23	no	no	yes	2	133
