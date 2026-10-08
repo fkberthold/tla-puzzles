@@ -24,12 +24,10 @@ stated here.
 
 ## What you get
 
-- This statement: the rules, the office's own diagram, the interface, and the
-  nine requirements.
-- `traces/`: one pair of runs per requirement. In each pair, one run follows
-  the rules and one breaks them.
-
-No model ships. You write it.
+This statement: the rules, the office's own diagram, the interface, and the
+nine requirements. No model ships, and no reference runs ship either. You write
+the model, and you write one check of your own besides the nine. The last
+section says which.
 
 ## Your task
 
@@ -38,16 +36,17 @@ No model ships. You write it.
 3. Write each of the nine requirements as a formula over `Observe`, and declare
    it in your `.cfg` under the keyword the requirement names.
 4. Run TLC at the checking instance.
-5. Hold your model against the traces. Every allowed run must be a run your
-   model can produce. Every forbidden run must break at least one requirement.
+5. Write a tenth formula, the one the last section asks for, and run it by
+   itself.
 
 A model can be wrong in two directions, and only one of them turns a check red.
 Allow a step the rules forbid, and a requirement breaks with a trace to show
 for it. Forbid a step the rules allow, and every check stays green over a
-system that no longer exists. The allowed runs are your oracle for the second
-direction, and on this problem they carry more weight than usual. The whole
-business of going back and looking again is a loop, and a model that never
-turns the loop will pass a great many things.
+system that no longer exists. The whole business of going back and looking
+again is a loop, and a model that never turns the loop will pass a great many
+things. The office going back a second time is a claim that some run reaches a
+state. None of the nine is a claim of that kind, so the tenth formula is the
+only thing here that can go looking for it.
 
 ## The system
 
@@ -287,26 +286,6 @@ requirement 7. A step that moves a settled man breaks it, and such a step
 moves his standing, so a subscript watching only the defect count never sees
 it. Work the same question for each of the seven step rules.
 
-## The traces
-
-`traces/` holds one pair per requirement, nine in all. Each file carries two
-runs, rendered over the three `Observe` fields at the checking instance, with
-applicants `a1` and `a2`.
-
-- **A run the rules allow.** Your model must be able to produce it.
-- **A run the rules forbid.** Your model must rule it out, and your requirement
-  set must break on it.
-
-Each row of a trace is one moment, the value of `Observe`. Consecutive rows are
-one step apart.
-
-Three notes on reading them. A forbidden run can break more than one
-requirement, and if your set rejects it for any requirement it breaks, your set
-is right about that run. Every run here is a prefix, so a run that ends with a
-man still under inspection isn't forbidden for that alone. And where a
-forbidden run's fault is that nothing more ever happens, the trace says so
-under its last state.
-
 ## Checking
 
 Check at two applicants and a patience of two:
@@ -331,8 +310,24 @@ refused, and the office can also come to rest with a man under inspection and
 its patience spent. Nothing is enabled at either, and the system stops. That
 stall is the design working, not an error.
 
-No distinct-state count is quoted here. The pairs in `traces/` are the check.
+No distinct-state count is quoted here, and none of the nine says how far your
+model reaches. The tenth formula is where that gets checked.
 
 ## What to deliver
 
-Your module and the `.cfg` you checked it with.
+- Your module and the `.cfg` you checked it with.
+- A tenth formula, with the run you made of it and the result.
+- A line or two on what that result says about your model.
+
+Every one of the nine is an upper bound, and a system where nothing happens
+satisfies every upper bound there is. So none of them asks whether your office
+ever goes back, and none of them can answer it either. The tenth formula is the
+one that asks.
+
+Write a formula that's false the moment the office goes back to a man it has
+already put an entry against. Working out what that looks like on the register
+is part of the job, and `Observe` has three fields to say it with. Declare it as
+an `INVARIANT` and run it on its own, not beside the nine.
+
+Then say which way TLC called it. Either answer is a fact about your model, and
+the line or two is where you say which fact you got.
