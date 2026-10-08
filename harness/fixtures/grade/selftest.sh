@@ -946,6 +946,133 @@ fi
 
 echo
 # ===========================================================================
+echo "== a degenerate model of a real authored problem must be rejected =="
+# ===========================================================================
+
+# Bead tla-8kgj. The four problems at step 5 of the authoring pipeline each
+# have a degenerate reading of their own rules, and three of the four cannot
+# reject it from their requirement set alone. Bead tla-n8oq says no statement
+# can. So the grader is the only instrument left, and this block is the
+# measurement of whether it does the job.
+#
+# WHAT A DEGENERATE MODEL IS HERE. Not a wrong answer. Each one satisfies
+# every requirement its statement declares, at rc 0, and that was measured by
+# the step 5 reader before any of this existed:
+#
+#   acme         the collapse: one act writes the defect entry and gives up.
+#                All nine requirements rc 0, 16 distinct, depth 5.
+#   progressive  the boardless model: underIssue drops on the paste step.
+#                All seven rc 0, 14 distinct, depth 11.
+#   txn          rule 5 row 4 deleted, so the retry row carries no weight.
+#                The same 12/13/0 verdict vector as the faithful office.
+#   imap         the set-atomic clerk, who never fails partway through the
+#                set. All three requirements rc 0 by construction.
+#
+# Each one is OVER-CONSTRAINED BY OMISSION. It leaves a step out rather than
+# declaring a rule that is too tight, which is the form learners actually
+# produce and the form `strict-and-silent` pins in the lockbox matrix above.
+# So obligation 2 alone has nothing to refute on three of the four, and the
+# landmark member of the Relational suite is what has to catch them.
+#
+# WHAT THESE REFERENCES ARE, AND WHAT THEY ARE NOT. Three of the four problems
+# have no frozen reference. They sit at step 5 and the freeze is step 6. Each
+# package below is a STAND-IN built from the spike's own reference under
+# sources/spikes/<slug>/, faithful to the statement's frozen Observe
+# interface and carrying the requirements the faithful system satisfies. It is
+# not the shipped reference and must not be read as one. What it pins is the
+# grader, not the problem.
+#
+# The landmark each package states is the load-bearing choice, and it is worth
+# naming as a choice rather than leaving it to be inferred. A landmark is a
+# reachability claim, and a reachability claim is the one thing the step 5
+# reports say every one of these statements is missing. So a frozen reference
+# that states no landmark the degenerate model misses would grade it ACCEPTABLE
+# whatever this block says.
+DEGEN="harness/fixtures/grade/degenerate"
+
+run_degenerate() {
+  local slug="$1" sub="$2"
+  GOT_ERR=$(mktemp)
+  GOT_JSON=$(bash "$GRADE" --reference "$DEGEN/$slug/reference" \
+                           --submission "$DEGEN/$slug/submissions/$sub" \
+                           --problem-id "$slug" 2>"$GOT_ERR")
+  GOT_RC=$?
+}
+
+# assert_degenerate <slug> <submission> <adequacy-total> <want-under>
+#
+# The four assertions that matter, in the order the verdict object answers
+# them. `adequacy-total` is the reference conjunct count, which is what
+# per-conjunct partial credit discloses and what a reference with one
+# undecomposed obligation would collapse to 1.
+assert_degenerate() {
+  local slug="$1" sub="$2" total="$3" want_under="$4"
+  run_degenerate "$slug" "$sub"
+  assert_rc   "$slug: the degenerate model is rejected" 1
+  assert_json "$slug: its verdict"          '.verdict'          'FAIL'
+  assert_json "$slug: it is over-constrained" '.over_constrained' 'true'
+  assert_json "$slug: under-constrained"    '.under_constrained' "$want_under"
+  assert_json "$slug: the reference decomposes into $total obligations" \
+    '.suites.Adequacy.total' "$total"
+  assert_no_leak_at "$slug: the verdict object is leak-free" \
+    "$DEGEN/$slug/reference" "$DEGEN/$slug/submissions/$sub"
+}
+
+# imap, progressive and txn all state requirements the faithful reference
+# satisfies, so obligation 2 passes on each and the landmark is the only
+# member left. Adequacy passes too, which is the step 5 rc 0 reproduced
+# inside the grader rather than taken on report.
+assert_degenerate imap-move        set-atomic  3 'false'
+assert_degenerate progressive-sync boardless   3 'false'
+assert_degenerate txn-epoch        no-retry    3 'false'
+
+# acme is the one that is caught twice, and the second catch is a fact about
+# the statement rather than about the collapse. Its requirement 1 says an
+# entry on the defect list means refused, and the faithful office writes an
+# entry on a failed visit and leaves the man under inspection. So the
+# requirement is false of the system it describes, and any submission stating
+# it is over-constrained by obligation 2 proper as well as by the landmark.
+assert_degenerate acme-challenge   collapse    3 'false'
+
+# The witness kind is the claim this block rests on, so it is asserted rather
+# than described. `reference-observation-unreachable` is the landmark member
+# of the Relational suite. A `stated-requirement-refuted` here would mean
+# obligation 2 proper did the work and the landmark was never needed.
+run_degenerate imap-move set-atomic
+assert_json "imap-move: the landmark is what refuses it" \
+  '.witnesses.over_constraint.kind' 'reference-observation-unreachable'
+run_degenerate progressive-sync boardless
+assert_json "progressive-sync: the landmark is what refuses it" \
+  '.witnesses.over_constraint.kind' 'reference-observation-unreachable'
+run_degenerate txn-epoch no-retry
+assert_json "txn-epoch: the landmark is what refuses it" \
+  '.witnesses.over_constraint.kind' 'reference-observation-unreachable'
+run_degenerate acme-challenge collapse
+assert_json "acme-challenge: a stated requirement is refuted as well" \
+  '.witnesses.over_constraint.kind' 'stated-requirement-refuted'
+assert_json "acme-challenge: and the landmark is unreachable too" \
+  '.suites.Relational.unmet | length' '2'
+
+# THE CONTROLS, and without them the four rows above are not evidence. A
+# landmark nothing reaches refuses every submission alike, so a Relational
+# suite that always fails would satisfy every assertion in this block. Each
+# `faithful` submission is its own reference's spec under another module
+# name, so it reaches the landmark, and each must grade PASS.
+assert_control() {
+  local slug="$1"
+  run_degenerate "$slug" faithful
+  assert_rc   "$slug: the faithful control passes" 0
+  assert_json "$slug: the control is not over-constrained" '.over_constrained' 'false'
+  assert_json "$slug: and it draws no witnesses" '.witnesses | length' '0'
+}
+
+assert_control imap-move
+assert_control progressive-sync
+assert_control txn-epoch
+assert_control acme-challenge
+
+echo
+# ===========================================================================
 echo "== structural: constraints no fixture can observe =="
 # ===========================================================================
 

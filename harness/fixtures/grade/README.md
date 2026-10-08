@@ -8,8 +8,9 @@ with no arguments.
 harness/grade.sh --selftest          # or run selftest.sh directly
 ```
 
-There are four problem packages, and the same system underlies all of them: a
-box that holds between zero and three parcels, one in or one out at a time.
+Four packages are built on one invented system, a box that holds between zero
+and three parcels with one in or one out at a time. The fifth directory holds
+four more that are built on real authored problems instead.
 
 | package | what it is for |
 |---|---|
@@ -17,6 +18,7 @@ box that holds between zero and three parcels, one in or one out at a time.
 | `stepwise/` | the same system with "one at a time" stated over a PAIR of successive observations |
 | `chaos-probe/` | three references over that system, one of which cannot tell it from chaos |
 | `smuggled-constants/` | a problem package whose `constants.cfg` carries a directive |
+| `degenerate/` | four of `authoring/`'s own problems, each with the degenerate reading its requirement set cannot see |
 
 ## The fixture matrix
 
@@ -179,6 +181,70 @@ reference obligation was unmet", and a correct submission is reported
 under-constrained. Measured, and it grades PASS against the same reference
 with the fragment removed. Bead `tla-j8yd`, the same class as `tla-nesz` in
 `refinement.sh` and `tla-40y` in `seeded-bugs.sh`.
+
+### `degenerate/`: four real problems and the readings they cannot refuse
+
+Bead `tla-8kgj`. Every other package here is an invented system sized to pin
+one mechanism. These four come from `authoring/`, and each one carries the
+degenerate reading its own step 5 report measured at rc 0 against every
+requirement the statement declares.
+
+| package | the degenerate model | measured by step 5 as |
+|---|---|---|
+| `acme-challenge/` | the collapse: one act writes the defect entry and gives up | all nine rc 0, 16 distinct, depth 5 |
+| `progressive-sync/` | the boardless region: `underIssue` drops on the paste step | all seven rc 0, 14 distinct, depth 11 |
+| `txn-epoch/` | rule 5 row 4 deleted, so the retry row carries no weight | the same 12/13/0 vector as the faithful office |
+| `imap-move/` | the set-atomic clerk, who never fails partway through the set | all three rc 0 by construction |
+
+| submission | Adequacy | Relational | under | over | exit |
+|---|---|---|---|---|---|
+| `imap-move/set-atomic` | PASS 3/3 | FAIL 3/4 | no | **yes** | 1 |
+| `imap-move/faithful` | PASS 3/3 | PASS 4/4 | no | no | 0 |
+| `progressive-sync/boardless` | PASS 3/3 | FAIL 3/4 | no | **yes** | 1 |
+| `progressive-sync/faithful` | PASS 3/3 | PASS 4/4 | no | no | 0 |
+| `txn-epoch/no-retry` | PASS 3/3 | FAIL 2/3 | no | **yes** | 1 |
+| `txn-epoch/faithful` | PASS 3/3 | PASS 3/3 | no | no | 0 |
+| `acme-challenge/collapse` | PASS 3/3 | FAIL 2/4 | no | **yes** | 1 |
+| `acme-challenge/faithful` | PASS 3/3 | PASS 3/3 | no | no | 0 |
+
+**Adequacy passes on all four degenerate models, and that is the step 5
+measurement reproduced rather than taken on report.** A degenerate model meets
+every requirement its statement declares, so obligation 1 has nothing to say
+about it.
+
+**Three of the four are caught by the LANDMARK and by nothing else.** They are
+over-constrained by omission: each leaves a step out rather than declaring a
+rule that is too tight, so the requirements they state are all true of the
+reference and obligation 2 proper passes on every one. `strict-and-silent` in
+the `lockbox` matrix pins the same shape on the invented system, and these
+four say it is the shape real problems take.
+
+**`acme-challenge` is caught twice, and the second catch is a finding about
+the statement.** Its requirement 1 says an entry on the defect list means
+refused, and the faithful office writes an entry on a failed visit and leaves
+the man under inspection. So the requirement is false of the system it was
+written over, and any submission stating it draws
+`stated-requirement-refuted`. The `faithful` control there states requirement
+2 and not requirement 1, which is the only way a submission that keeps the
+retry loop can pass.
+
+**The `faithful` control in each package is what makes the other row
+evidence.** A landmark nothing reaches refuses every submission alike, and a
+Relational suite that always fails is not a measurement. Delete a control and
+its sibling assertion stays green with nothing behind it.
+
+**THESE REFERENCES ARE STAND-INS AND NOT THE SHIPPED ONES.** Three of the four
+problems are at step 5 and the freeze is step 6, so there is no frozen
+reference to grade against yet. Each package here is built from the spike's
+own reference under `sources/spikes/<slug>/`, faithful to the statement's
+frozen `Observe` interface, and carries only the requirements the faithful
+system satisfies. What it pins is the grader, not the problem.
+
+The landmark each one states is the load-bearing choice, and it is a choice
+rather than something the statements hand over. A landmark is a reachability
+claim, and a reachability claim is the one thing all four step 5 reports say
+these statements are missing. A frozen reference that states no landmark the
+degenerate model misses will grade it a clean PASS whatever this matrix says.
 
 ## The verdict object
 
