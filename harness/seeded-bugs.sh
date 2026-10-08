@@ -252,6 +252,36 @@
 #   not by the submission: the oracle run has to normalise identically or the
 #   comparison means nothing, and a submission's module is not in scope there.
 #
+#   AND IT HOLDS ON THE SAFETY CHANNEL ONLY: a liveness dump is NOT
+#   normalised (bead tla-0igq). On TLC 2026.07.31.184830 a liveness
+#   counterexample's -dumpTrace json carries the spec's own variable names
+#   rather than the alias record's fields. Measured on the relay fixture: one
+#   module, one model, two .cfg files differing in the obligation line alone.
+#
+#     INVARIANT NeverTwo   rc=12   {"position":0}   "vars":["position"]
+#     PROPERTY  Live       rc=13   {"stage":0}      "vars":["stage"]
+#
+#   THAT IS TLC'S BEHAVIOUR AND NOT A GAP IN THE .cfg THIS FILE WRITES, and
+#   two measurements separate them. The generated .cfg carried `ALIAS Alias`
+#   on 6 of 6 liveness runs. The console error trace of that same rc=13 run
+#   printed `position = 0` and `position = 1`, so TLC received the alias and
+#   evaluated it. Only the JSON writer on the liveness path skips it, and
+#   that is upstream work rather than ours.
+#
+#   SO THE CLAIM GOT NARROWED AND THE PATH DID NOT GET FIXED. Nothing here
+#   depends on the alias reaching a liveness trace. The comparator below
+#   reads action names and the state-list length, and both survive an
+#   un-normalised dump. The exposure is a future consumer that opens a
+#   liveness state record expecting `position`. I'd read that as a reason to
+#   check this paragraph before writing such a consumer. Post-processing the
+#   dump is not the remedy, because the write is the only chance to
+#   normalise.
+#
+#   harness/fixtures/seeded-bugs/selftest.sh pins both halves of the
+#   asymmetry, counted over every trace the matrix dumps. A later TLC that
+#   honours the alias here turns the suite red rather than leaving this
+#   paragraph quietly wrong.
+#
 #   AND IT IS NOT A GATE BY DEFAULT. The rc obligations are correctness
 #   invariants and are always fatal. Trace agreement is a JUDGEMENT about
 #   which bug was caught, and a submission whose property is legitimately

@@ -596,6 +596,68 @@ fi
 
 # ---------------------------------------------------------------------------
 echo
+echo "== the dump honours ALIAS on the SAFETY channel only (bead tla-0igq) =="
+# ---------------------------------------------------------------------------
+# The four rows above are the SAFETY channel, and they pass. On the LIVENESS
+# channel TLC 2026.07.31.184830 writes the spec's own variable names into
+# `-dumpTrace json` even though the same run's console error trace prints the
+# aliased record. So the normalisation the section above demonstrates is a
+# property of one channel rather than of the dump.
+#
+# WHY THESE ROWS ASSERT THE GAP RATHER THAN THE GUARANTEE. The guarantee is
+# not ours to deliver -- the console trace proves TLC received and evaluated
+# the alias -- so a row demanding `position` here would be a row demanding
+# that an upstream build behave differently, permanently red and never
+# actionable. What IS ours is that seeded-bugs.sh's header says which channel
+# it is claiming, and these rows are what makes that claim a measurement. If a
+# later TLC honours the alias in the liveness dump, THEY GO RED, and the
+# header gets narrowed back out rather than drifting into a lie by standing
+# still.
+#
+# Counted rather than sampled, over every liveness trace the matrix dumps: a
+# dump that normalised on some runs and not others would be worse than one
+# that never normalises, because the comparator would be handed two
+# representations of the same state.
+
+LKEPT=$(mktemp -d -t tla_seeded_live.XXXXXX)
+rm -rf "$LKEPT"
+bash "$SEEDED" -q --keep "$LKEPT" "${relay[@]}" \
+  "$RPROPS/RelayGood.tla" >/dev/null 2>&1
+
+LNTRACE=$(find "$LKEPT" -name 'trace.json' -size +0 | wc -l)
+LBL="the liveness matrix dumped counterexamples to inspect ($LNTRACE)"
+if [ "$LNTRACE" -gt 0 ]; then ok "$LBL"; else nope "$LBL"; fi
+
+LNRAW=$(grep -rlE '"stage"' "$LKEPT" --include='trace.json' | wc -l)
+LBL="every dumped liveness trace carries the RAW variable name ($LNRAW of $LNTRACE)"
+if [ "$LNTRACE" -gt 0 ] && [ "$LNTRACE" = "$LNRAW" ]; then ok "$LBL"
+else nope "$LBL"; fi
+
+LNALIAS=$(grep -rlE '"position"' "$LKEPT" --include='trace.json' | wc -l)
+LBL="no dumped liveness trace carries the aliased field — the gap, pinned"
+if [ "$LNALIAS" = "0" ]; then ok "$LBL"
+else nope "$LBL — $LNALIAS of $LNTRACE now DO. TLC honours ALIAS in the liveness dump on this build; narrow the header claim back out."; fi
+
+# The comparator's inputs survive the gap, which is why this is P2 and not P1.
+# Action names and the state-list length are what --trace-signature reads, and
+# both are present on an un-normalised liveness trace.
+LNNAME=$(grep -rlE '"name"' "$LKEPT" --include='trace.json' | wc -l)
+LBL="a liveness trace still carries action names — what the comparator reads"
+if [ "$LNTRACE" -gt 0 ] && [ "$LNTRACE" = "$LNNAME" ]; then ok "$LBL"
+else nope "$LBL — $LNNAME of $LNTRACE"; fi
+
+rm -rf "$LKEPT"
+
+# And the header has to SAY which channel it claims. Without this row the
+# narrowing above is prose that the next edit can drop without anything going
+# red, which is how the claim got overbroad in the first place.
+assert_file_present "the header names the liveness dump as the exception" \
+  'liveness.*(dump|-dumpTrace)|(dump|-dumpTrace).*liveness'
+assert_file_present "the header records the build the gap was measured on" \
+  '2026\.07\.31\.184830'
+
+# ---------------------------------------------------------------------------
+echo
 echo "== structural: constraints no fixture can observe =="
 # ---------------------------------------------------------------------------
 
