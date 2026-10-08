@@ -26,6 +26,8 @@ follows is stated here.
 ## What you get
 
 - This statement: the rules, the interface, and the three requirements.
+- `traces/`: two runs the orders allow, and one run per requirement that breaks
+  it.
 
 No model ships. You write it.
 
@@ -92,9 +94,11 @@ The effect on one member is the same as this sequence:
 2. Mark the sending roll's entry for striking.
 3. Strike it and take it off.
 
-The effect is the same and the semantics are not. The conditions those three
-steps would pass through never stand as moments of their own. The clerk never
-marks an entry for striking at all.
+The effect is the same and the semantics are not. The clerk has the pen for
+each of those three steps and she can make a part entry with it. The orders
+forbid a part entry that stands. She must not leave a mark for striking on the
+sending roll, and she must not leave a half-written entry on the receiving
+roll. Either one is a breach at the moment it stands, whatever she does next.
 
 ### Rule 4. The transfer can fail partway through the set
 
@@ -174,6 +178,11 @@ and what kind of formula it is.
 The standing orders say more than these three do. Working out which of their
 rules a formula over `Observe` can carry is part of the job.
 
+The three aren't rule 4's three promises restated. Take the first of each. The
+promise is about a member, transferred whole or left alone. The requirement is
+about a roll at a moment, and it's the weaker of the two. A model that keeps
+the promise keeps the requirement, and the other direction doesn't hold.
+
 1. **Nothing stands half-made.** At every moment, neither roll carries a part
    entry for any member. An entry is whole or it isn't there, and there's no
    third condition for it to be caught in.
@@ -204,15 +213,38 @@ because a run is easier to read with it, not because a requirement needs it.
 ### Requirements 2 and 3 are separate on purpose
 
 They're close enough to look like one rule with two halves, and joining them
-into "exactly one roll" would read tidier than either. Don't. The orders hold
-them at different strengths, which is rule 4, and a single formula throws that
-away. Each of the three above rules out something the other two allow. Drop any
-one and a whole way of getting this wrong goes unchecked.
+into "exactly one roll" would read tidier than either. Don't. TLC names the
+obligation that broke. Two names tell you which half you got wrong. One name
+tells you only that something did. Each of the three above rules out something
+the other two allow. Drop any one and a whole way of getting this wrong goes
+unchecked.
 
-Requirement 1 has a history worth knowing. An earlier edition of the standing
-orders put it as something the clerk should do. The present edition makes it
-something she must do. Of the three promises in rule 4, that's the only one
-whose strength the revision touched.
+### Rule 4's first promise has a history worth knowing
+
+An earlier edition of the standing orders put it as something the clerk should
+do. The present edition makes it something she must do. Of the three promises,
+that's the only one whose strength the revision touched.
+
+## The traces
+
+The `traces/` directory holds two allowed behaviours in one file and one
+violating run per requirement. Each state shows the three fields of `Observe`,
+and consecutive states are one step apart. The narration column is there to
+read by. It isn't a fourth field, and your model doesn't have to name any of
+it.
+
+Three notes:
+
+- Every run shown is finite.
+- Each violating run breaks the requirement it's named for and holds the other
+  two.
+- If your model can't produce both allowed runs, it's over-constrained.
+
+The second note is a check on your formulas rather than on your model. A
+formula that goes red on another requirement's run is asking for more than its
+requirement does. The third is the one that catches the quiet failure, because
+a model that can't fail partway keeps all three requirements green over a
+system this statement doesn't describe.
 
 ## Checking
 
