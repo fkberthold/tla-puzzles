@@ -1,0 +1,25 @@
+-------------------------- MODULE MCBrokenDeadlock --------------------------
+(***************************************************************************)
+(* THE CHECK THAT MAKES THE LIVENESS COUNTEREXAMPLE BELIEVABLE.            *)
+(*                                                                         *)
+(* MCBrokenLiveness's trace closes with "State 13: Stuttering". A           *)
+(* stuttering tail is exactly what a liveness counterexample looks like     *)
+(* when the fairness conjunct is MISSING, so the tail on its own is not     *)
+(* evidence about the run -- see MCBrokenNoFair.cfg, where the same tail    *)
+(* appears after two steps.                                                *)
+(*                                                                         *)
+(* This config asks the independent question: is that final state actually  *)
+(* terminal? CHECK_DEADLOCK TRUE and no invariant, so the only thing TLC    *)
+(* can report is a state with no successors.                               *)
+(*                                                                         *)
+(* Expect exit 11, on a state with txn = "Ongoing". That, and not the       *)
+(* stuttering tail, is what says the transaction cannot be ended.          *)
+(*                                                                         *)
+(* Reading the trace matters here and the rc does not settle it: this spec  *)
+(* ALSO has a benign terminal state, where the client was refused and sits  *)
+(* with a stale epoch and no transaction open. Both are deadlocks and only  *)
+(* one is the bug, which is why NoStuckTxn exists as well.                  *)
+(***************************************************************************)
+EXTENDS TxnBroken
+
+=============================================================================

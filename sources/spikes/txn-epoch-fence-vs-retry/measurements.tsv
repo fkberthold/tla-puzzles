@@ -1,0 +1,32 @@
+label	module	rc	verdict	secs	generated	distinct	depth	vars	defs	fairness	temporal	instance	modules	lines
+TxnBroken	TxnBroken	12	invariant violated	0.4	22	16	8	4	29	yes	yes	no	1	266
+MCBrokenLiveness	MCBrokenLiveness	13	property violated	0.4	29	21	12	4	29	yes	yes	no	2	280
+MCBrokenNoFair	MCBrokenNoFair	13	property violated	0.4	29	21	12	4	29	yes	yes	no	2	280
+MCBrokenStuck	MCBrokenStuck	12	invariant violated	0.3	27	19	10	4	29	yes	yes	no	2	278
+MCBrokenDeadlock	MCBrokenDeadlock	11	deadlock reported	0.3	29	21	12	4	29	yes	yes	no	2	291
+MCWitnessOngoing	MCWitnessOngoing	12	invariant violated	0.3	2	2	2	4	29	yes	yes	no	2	271
+MCWitnessAborted	MCWitnessAborted	12	invariant violated	0.4	8	7	4	4	29	yes	yes	no	2	271
+MCWitnessRotation	MCWitnessRotation	12	invariant violated	0.3	4	4	3	4	29	yes	yes	no	2	272
+MCWitnessCeiling	MCWitnessCeiling	12	invariant violated	0.3	14	12	6	4	29	yes	yes	no	2	277
+TxnFenceRotates	TxnFenceRotates	0	checked, no violation	0.3	27	18	9	4	30	yes	yes	no	1	284
+MCFenceRotatesLiveness	MCFenceRotatesLiveness	0	checked, no violation	0.3	27	18	9	4	30	yes	yes	no	2	300
+MCFenceRotatesCeiling	MCFenceRotatesCeiling	0	checked, no violation	0.3	27	18	9	4	30	yes	yes	no	2	293
+MCFenceRotatesWork	MCFenceRotatesWork	12	invariant violated	0.3	4	4	3	4	30	yes	yes	no	2	295
+TxnBeginChecks	TxnBeginChecks	12	invariant violated	0.3	22	16	8	4	29	yes	yes	no	1	267
+MCBeginChecksLiveness	MCBeginChecksLiveness	0	checked, no violation	0.3	26	18	9	4	29	yes	yes	no	2	286
+MCBeginChecksWork	MCBeginChecksWork	12	invariant violated	0.3	4	4	3	4	29	yes	yes	no	2	274
+TxnRetryGuarded	TxnRetryGuarded	0	checked, no violation	0.3	26	18	9	4	29	yes	yes	no	1	271
+MCRetryGuardedLiveness	MCRetryGuardedLiveness	0	checked, no violation	0.3	26	18	9	4	29	yes	yes	no	2	279
+MCRetryGuardedWork	MCRetryGuardedWork	12	invariant violated	0.3	4	4	3	4	29	yes	yes	no	2	276
+TxnDoubleBump	TxnDoubleBump	0	checked, no violation	0.3	42	30	12	4	30	yes	yes	no	1	292
+MCDoubleBumpLiveness	MCDoubleBumpLiveness	0	checked, no violation	0.3	42	30	12	4	30	yes	yes	no	2	299
+MCDoubleBumpFenceable	MCDoubleBumpFenceable	12	invariant violated	0.3	26	21	8	4	30	yes	yes	no	2	297
+MCBroken4	MCBroken4	13	property violated	0.3	55	39	18	4	29	yes	yes	no	2	272
+MCBroken16	MCBroken16	13	property violated	0.3	211	147	54	4	29	yes	yes	no	2	273
+MCFenceRotates16	MCFenceRotates16	0	checked, no violation	0.3	209	144	51	4	30	yes	yes	no	2	291
+TxnUnbounded	TxnUnbounded	0	checked, no violation	0.3	110	75	27	4	27	yes	yes	no	1	166
+MCUnboundedWork	MCUnboundedWork	12	invariant violated	0.3	92	66	24	4	27	yes	yes	no	2	173
+MCUnboundedFree	MCUnboundedFree	124	hit the 120s budget	120.1	-	62,615,625	-	4	27	yes	yes	no	2	178
+MCBrokenCoverage	MCBrokenCoverage	0	checked, no violation	0.3	29	21	12	4	29	yes	yes	no	2	282
+MCFenceRotatesCoverage	MCFenceRotatesCoverage	0	checked, no violation	0.4	27	18	9	4	30	yes	yes	no	2	292
+MCReInertProbe	MCReInertProbe	0	checked, no violation	0.3	27	18	9	4	30	yes	yes	no	2	291
