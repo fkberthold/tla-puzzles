@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Test stub for `gh` that CANNOT ANSWER (bead tla-hl96, site 1).
+#
+# It reproduces what the real `gh api` does when the code-search call fails:
+# it writes GitHub's error BODY to stdout rather than the --jq result, and
+# exits nonzero. Measured 2026-10-08 against a bad endpoint on this box:
+#
+#     out=$(gh api -X GET search/codez -f q='x' --jq '.total_count' 2>/dev/null)
+#     stdout = {
+#       "message": "Not Found",
+#       "documentation_url": "https://docs.github.com/rest",
+#       "status": "404"
+#     }
+#     rc = 1
+#
+# That shape is why screen.sh's `^[0-9]+$` test is the right guard and a
+# `-z "$n"` test would not be: the call produces OUTPUT on failure, just not
+# a number, and no line of the body is bare digits. A rate-limit 403 has the
+# same body shape with a different message, so neither can be read as a zero.
+#
+# The README fetch is answered from the sibling screen fixture, so --refresh
+# is not what this stub is testing. Only the code search fails.
+
+set -uo pipefail
+
+args="$*"
+
+# Here-string, never `printf ... | grep -q`. Under `pipefail` grep -q exits on
+# its first match, the producer takes SIGPIPE, and the pipeline reports 141 --
+# which an `if` reads as "no match", so the stub would answer the wrong call.
+# Bead tla-kr9.
+if grep -q 'contents/README.md' <<<"$args"; then
+	printf '{\n  "message": "Not Found",\n  "status": "404"\n}\n'
+	exit 1
+fi
+
+printf '{\n'
+printf '  "message": "API rate limit exceeded for user ID 1.",\n'
+printf '  "documentation_url": "https://docs.github.com/rest/overview/rate-limits",\n'
+printf '  "status": "403"\n'
+printf '}\n'
+exit 1

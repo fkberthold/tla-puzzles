@@ -385,7 +385,55 @@ assert_verdict "abs module, rel --config" \
   --config "$FIXTURES/Ok.cfg" "$REPO_ROOT/$FIXTURES/Ok.tla"
 
 echo
+echo "== rc=99 — the one row that is not TLC's (bead tla-hl96) =="
+
+# TLC's deadlock checking is an AND across the .cfg's CHECK_DEADLOCK keyword
+# and the command line's -deadlock flag, and neither side mentions the other.
+# This script passes -deadlock by default, so a learner's CHECK_DEADLOCK TRUE
+# used to get no check and no notice: OK, rc=0, on a module that deadlocks.
+#
+# ONE ROW HERE, deliberately. This suite owns "verdict.sh's exit-code table is
+# what it says it is", and 99 is now a row of that table. The six-cell
+# measurement, both conflict directions, the agreement controls and the
+# commented-keyword control live in harness/test-indeterminate.sh, which owns
+# the convention across every instrument. A duplicate pair can only fail
+# together, so it would buy no discriminating power and cost this suite's
+# budget twice over.
+assert_verdict "rc=99  CHECK_DEADLOCK TRUE would be discarded, so no run is made" \
+  "CHECK_DID_NOT_RUN" 99 \
+  --config "harness/fixtures/indeterminate/DeadlockKeywordTrue.cfg" \
+  "harness/fixtures/indeterminate/DeadlockKeyword.tla"
+
+# The control, and it is what stops the row above from being satisfied by
+# refusing every .cfg that mentions the keyword. 334 of the .cfg files in this
+# repo carry CHECK_DEADLOCK FALSE, which AGREES with the default flag.
+assert_verdict "rc=0   CHECK_DEADLOCK FALSE agrees with the default flag and runs" \
+  "OK" 0 \
+  --config "harness/fixtures/indeterminate/DeadlockKeywordFalse.cfg" \
+  "harness/fixtures/indeterminate/DeadlockKeyword.tla"
+
+echo
 echo "== structural: the constraints that no fixture can observe =="
+
+# 99 IS DOCUMENTED IN THE TABLE, not just implemented. Every other row of the
+# header table is pinned by a fixture above; this one is pinned both ways,
+# because a reserved code the header does not carry is a code the next reader
+# will reuse for something else.
+#
+# AGAINST THE RAW FILE, not VERDICT_CODE. The header table IS a comment block,
+# and VERDICT_CODE exists precisely to strip those -- so the assertion that
+# documentation is present is the one assertion here that must not use it.
+if grep -qE -- '^#[[:space:]]+99[[:space:]]+CHECK_DID_NOT_RUN' "$VERDICT"; then
+  ok "the 99 CHECK_DID_NOT_RUN row is in the header table"
+else
+  nope "the header table carries no 99 CHECK_DID_NOT_RUN row"
+fi
+
+# And the code is bound to a NAME rather than written as a literal at the exit
+# site. A bare `exit 99` three instruments apart is three conventions;
+# harness/test-indeterminate.sh asserts the same binding across all of them.
+assert_present "99 is bound to EXIT_INDETERMINATE" \
+  'EXIT_INDETERMINATE=99'
 
 # -workers 1 is mandatory (V2-PLAN.md 5.1): counterexamples are
 # nondeterministic above one worker.

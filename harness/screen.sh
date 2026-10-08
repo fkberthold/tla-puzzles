@@ -39,8 +39,57 @@
 #   0  CLEAR    no name collision, no mechanism collision
 #   1  SUSPECT  a §2.2 suspicion stands unresolved — a human must look
 #   2  BURNED   name or mechanism already in the corpus
+#   99 CHECK_DID_NOT_RUN  a step this screen was asked for COULD NOT RUN, so
+#                         its silence is not evidence. Not a verdict about the
+#                         candidate. See A SKIPPED STEP IS NOT A CLEAR STEP
 #   64 usage error
-#   (multiple candidates: the worst verdict wins)
+#   (multiple candidates: the worst verdict wins, and 99 is the worst)
+#
+# ---------------------------------------------------------------------------
+# A SKIPPED STEP IS NOT A CLEAR STEP (bead tla-hl96, filed as tla-795s)
+#
+# This screen used to return CLEAR, exit 0, with step 1 skipped. The caller
+# read a pass, and the collision step 1 exists to catch walked through. The
+# worker that found it caught it only because it read the OUTPUT rather than
+# the exit code, and it said so in its own return rather than banking the
+# CLEAR.
+#
+# So a step that could not run now reports 99, and the per-step status on the
+# verdict line distinguishes three things that used to look like two:
+#
+#   CLEAR    the step ran and found nothing
+#   BURNED   the step ran and found a collision
+#   WAIVED   the CALLER said not to run it (--offline). Their scope, their
+#            call; the verdict stays CLEAR and the line names the mode
+#   SKIPPED  the step COULD NOT run. Verdict 99, whatever else is clear
+#
+# WAIVED is why --offline still exits 0. Returning 99 for a skip the caller
+# asked for would make the flag unusable, and `--offline` means exactly "cache
+# only; no network at all". The distinction is the whole fix: before it, both
+# read SKIPPED and both reported CLEAR.
+#
+# WHAT A 403 LOOKS LIKE, measured, because it is the case that matters most.
+# GitHub code search allows about 10 requests a minute and answers a breach
+# with a 403 carrying a MESSAGE rather than an error shape. `gh api --jq` then
+# writes GitHub's JSON BODY to stdout instead of the --jq result and exits
+# nonzero -- so the guard below has to be "is this a number?", not "is this
+# empty?". No line of that body is bare digits, so a 403 can never be read as
+# a zero. SCREEN_SLEEP defaults to 7 seconds so a multi-name screen paces
+# itself rather than relying on the guard.
+#
+# STILL BROKEN, AND NOT FIXED HERE. Step 1 sends a BARE-NAME query, and a bare
+# name counts substring hits anywhere in a .tla file rather than module
+# declarations: Challenge 390, Minimal 544, Props 211, Rollout 68, measured
+# against live GitHub on 2026-10-08. Those numbers answer nothing, so no
+# historical CLEAR from step 1 is worth anything. The query that answers the
+# question is '"MODULE <Name>" language:tla -repo:fkberthold/tla-puzzles',
+# and the exclusion is now load-bearing because this project's spikes went
+# public: '"MODULE Wedged" language:tla' returns 1 distinct repository and the
+# 1 is us, while the same query with the exclusion returns 0. Both measured
+# the same day. Changing the query shape breaks the self-test's `gh` stub,
+# which strips a trailing ' language:tla' and looks the remainder up in a
+# table, so it needs fixtures/screen/gh-stub, gh-stub-counts.txt and
+# selftest.sh changed in the same commit. That stays in bead tla-795s.
 #
 # ENVIRONMENT (all optional; the self-test drives every one of them)
 #   SCREEN_GH         gh binary                    default: gh
@@ -62,8 +111,48 @@ SLEEP="${SCREEN_SLEEP:-7}"
 BURNED_AT=3 # ">3 hits as burned" — 4 burns, 3 does not
 MAX_ROWS=6  # README hits printed per mechanism term before eliding
 
+# The reserved project-wide code for "a check this instrument was asked for
+# could not be performed". Bound to a name rather than written as a literal at
+# the exit site; harness/test-indeterminate.sh asserts the binding, the token,
+# and that nothing else in the tree documents 99 as anything else.
+EXIT_INDETERMINATE=99
+INDETERMINATE_TOKEN="CHECK_DID_NOT_RUN"
+
 OFFLINE=0
 NAME_OVERRIDE=""
+
+# --- step-status ranking ----------------------------------------------------
+#
+# The four per-step statuses in a total order, so a step's outcome can be
+# upgraded without a reader having to work out which assignment wins. CLEAR
+# and WAIVED share rank 0 on purpose: a step the caller waived leaves the
+# verdict exactly where it was, which is what keeps --offline usable.
+#
+# SKIPPED SITS ABOVE BURNED, and that is a choice rather than an accident.
+# Both are "do not freeze this candidate", so neither is unsafe -- and the
+# collision rows are printed either way, so a human loses nothing. What a
+# CALLER branching on the code must not do is bank a run that did not finish,
+# and SKIPPED outranking everything is the only arrangement where it cannot.
+rank_of() {
+	case "$1" in
+	CLEAR | WAIVED) printf '0' ;;
+	SUSPECT) printf '1' ;;
+	BURNED) printf '2' ;;
+	SKIPPED) printf '3' ;;
+	*) printf '3' ;;
+	esac
+}
+
+# Raise $1 (a status variable's current value) to $2 if $2 ranks higher.
+# Echoes the winner.
+raise() {
+	local now="$1" want="$2"
+	if [ "$(rank_of "$want")" -gt "$(rank_of "$now")" ]; then
+		printf '%s' "$want"
+	else
+		printf '%s' "$now"
+	fi
+}
 
 # ---------------------------------------------------------------------------
 # §2.2 PRE-SCREEN SUSPICIONS — seeded so the screen is never run blind.
@@ -270,6 +359,8 @@ do_list_suspicions() {
 
 # --- the screen -------------------------------------------------------------
 
+SCREEN_RANK=0
+
 screen_one() {
 	local cand="$1"
 	local lc name hits pat kind label note terms t re rows n cs
@@ -315,16 +406,18 @@ screen_one() {
 	name_verdict="CLEAR"
 	printf -- '--- step 1: NAME collision\n'
 	if [ -z "$name" ]; then
-		printf '    (no name derivable from the candidate; pass --name)\n'
+		printf '    no name derivable from the candidate, so the query was never\n'
+		printf '    built. This step did not run; pass --name. -> SKIPPED\n'
 		name_verdict="SKIPPED"
 	elif [ "$OFFLINE" = 1 ]; then
-		printf "    query: '%s language:tla'  — skipped (offline)\n" "$name"
-		name_verdict="SKIPPED"
+		printf "    query: '%s language:tla'  — skipped (offline) -> WAIVED\n" "$name"
+		name_verdict="WAIVED"
 	else
 		printf "    query: '%s language:tla'\n" "$name"
 		hits="$(gh_count "$name")"
 		if [ "$hits" = "ERR" ]; then
 			printf '    hits: ERROR (code search unavailable) -> SKIPPED\n'
+			printf '    This step did not run, so its silence is not evidence.\n'
 			name_verdict="SKIPPED"
 		elif [ "$hits" -gt "$BURNED_AT" ]; then
 			printf '    hits: %s -> BURNED (>%s)\n' "$hits" "$BURNED_AT"
@@ -388,7 +481,7 @@ screen_one() {
 				# Slice with a here-string so no pipe is live. Bead tla-kr9.
 				head -n "$MAX_ROWS" <<<"$rows" | sed 's/^/                             /'
 				[ "$n" -gt "$MAX_ROWS" ] && printf '                             ... and %s more\n' "$((n - MAX_ROWS))"
-				mech_verdict="BURNED"
+				mech_verdict="$(raise "$mech_verdict" BURNED)"
 			fi
 		done
 
@@ -401,16 +494,23 @@ screen_one() {
 					IFS=', '
 					printf '%s' "${unsettled[*]}"
 				)"
+				mech_verdict="$(raise "$mech_verdict" WAIVED)"
 			else
 				printf '    mechanism code-search (README did not settle these):\n'
 				for t in "${unsettled[@]}"; do
 					cs="$(camel "$t")"
 					n="$(gh_count "$cs")"
 					if [ "$n" = "ERR" ]; then
-						printf '      %-20s ERROR (code search unavailable)\n' "$cs"
+						# NOT a zero. This printed an ERROR line and left the
+						# verdict alone, so a mechanism the README does not
+						# settle and the corpus could not be asked about
+						# reported CLEAR. That is the same defect step 1 had,
+						# one block down, and it was found by fixing step 1.
+						printf '      %-20s ERROR (code search unavailable) -> SKIPPED\n' "$cs"
+						mech_verdict="$(raise "$mech_verdict" SKIPPED)"
 					elif [ "$n" -gt "$BURNED_AT" ]; then
 						printf '      %-20s %s hits -> BURNED (>%s)\n' "$cs" "$n" "$BURNED_AT"
-						mech_verdict="BURNED"
+						mech_verdict="$(raise "$mech_verdict" BURNED)"
 					else
 						printf '      %-20s %s hits -> clear (<=%s)\n' "$cs" "$n" "$BURNED_AT"
 					fi
@@ -426,13 +526,25 @@ screen_one() {
 	fi
 
 	# ---- verdict -----------------------------------------------------------
-	verdict="CLEAR"
-	case "$name_verdict$mech_verdict" in
-	*BURNED*) verdict="BURNED" ;;
-	*SUSPECT*) verdict="SUSPECT" ;;
+	#
+	# The worse of the two step statuses, by the rank_of order. WAIVED lands on
+	# CLEAR, so a caller who said --offline gets the verdict the run earned
+	# within the scope they set. SKIPPED does not: see A SKIPPED STEP IS NOT A
+	# CLEAR STEP in the header.
+	local worst_status
+	worst_status="$(raise "$name_verdict" "$mech_verdict")"
+	case "$worst_status" in
+	SKIPPED) verdict="$INDETERMINATE_TOKEN" ;;
+	BURNED) verdict="BURNED" ;;
+	SUSPECT) verdict="SUSPECT" ;;
+	*) verdict="CLEAR" ;;
 	esac
 
 	printf -- '--- §5.7 VERDICT: %s   (name: %s | mechanism: %s)\n' "$verdict" "$name_verdict" "$mech_verdict"
+	if [ "$verdict" = "$INDETERMINATE_TOKEN" ]; then
+		printf '    A step this screen was asked for could not run, so this run says\n'
+		printf '    nothing either way about a collision. Re-run it once the step can.\n'
+	fi
 	printf -- '--- §5.7b is a SEPARATE screen and is NOT run here.\n'
 	printf '    "Has someone already solved this?" is not "is it even the right KIND of\n'
 	printf '    thing?" A candidate can pass §5.7 cleanly and still be useless.\n'
@@ -440,11 +552,13 @@ screen_one() {
 	printf '    time (§6 step 4): harness/PUZZLE-SCREEN.md\n'
 	printf '\n'
 
-	case "$verdict" in
-	BURNED) return 2 ;;
-	SUSPECT) return 1 ;;
-	*) return 0 ;;
-	esac
+	# A RANK IN A GLOBAL, not an exit code and not stdout. main() aggregates
+	# across candidates and maps the worst rank to the code -- a numeric `-gt`
+	# over exit codes would put 99 above 2 for the wrong reason and, worse,
+	# would have put 64 above both. stdout is the report, so the rank cannot
+	# ride there either.
+	SCREEN_RANK="$(rank_of "$worst_status")"
+	return 0
 }
 
 # --- main -------------------------------------------------------------------
@@ -475,7 +589,13 @@ main() {
 			exec "$FIXTURE_DIR/selftest.sh"
 			;;
 		-h | --help)
-			sed -n '2,60p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+			# The whole header block, stopping at the first line of code. This
+			# used to be `sed -n '2,60p'`, a line number that silently
+			# truncated the help the moment the header grew -- and bead
+			# tla-hl96 grew it by fifty lines. Same drift shape scripts/test
+			# fixed in its own --help.
+			awk 'NR > 1 && /^set -uo pipefail$/ { exit } NR > 1' "${BASH_SOURCE[0]}" |
+				sed 's/^# \{0,1\}//'
 			exit 0
 			;;
 		-*) die "unknown option: $1" ;;
@@ -489,13 +609,21 @@ main() {
 	[ "${#candidates[@]}" -gt 0 ] || die "no candidate given (try --help)"
 	require_readme
 
-	local worst=0 rc
+	# The worst RANK across the candidates, then one mapping to an exit code.
+	# "the worst verdict wins" was already the contract; what changed is that
+	# the comparison happens in rank space, where SKIPPED outranks BURNED by
+	# construction rather than by the accident of 99 > 2.
+	local worst=0
 	for c in "${candidates[@]}"; do
 		screen_one "$c"
-		rc=$?
-		[ "$rc" -gt "$worst" ] && worst=$rc
+		[ "$SCREEN_RANK" -gt "$worst" ] && worst="$SCREEN_RANK"
 	done
-	exit "$worst"
+	case "$worst" in
+	3) exit "$EXIT_INDETERMINATE" ;;
+	2) exit 2 ;;
+	1) exit 1 ;;
+	*) exit 0 ;;
+	esac
 }
 
 main "$@"

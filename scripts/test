@@ -260,6 +260,17 @@ SUITES=(
   # Its cost tracks the number of fixtures plus the number of real packages, so
   # it grows with authoring/ rather than with itself.
   "fast|1.5|refutation coverage|./harness/test-refutation-coverage.sh"
+  # Measured 2026-10-08 on the green tree for bead tla-hl96: 7.375 / 6.947 /
+  # 7.046 s over three serial runs, so 7.4 is the slowest rounded up. SLOW and
+  # not fast, by the rule in this header rather than by its wall clock: it
+  # drives verdict.sh and vacuity.sh against real fixtures, so it runs TLC's
+  # MODEL CHECKER, and a suite that model-checks belongs in slow whatever it
+  # happens to cost today. Fourteen of its 61 assertions are static scans and
+  # cost nothing; the rest are eight TLC runs through two instruments.
+  #
+  # Its cost tracks the REGISTRY rather than the tree: the census is a scan,
+  # but every row added to the registry is another instrument invocation.
+  "slow|7.4|indeterminate gate|./harness/test-indeterminate.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"

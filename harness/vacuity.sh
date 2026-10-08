@@ -42,10 +42,56 @@
 #     7  VACUOUS_UNSATISFIABLE  vector 4 — Spec admits no behaviour at all
 #     8  VACUOUS_FROZEN_OBSERVE vector 5 — a field of the observation never
 #                                          changes anywhere in the space
+#    99  CHECK_DID_NOT_RUN      a probe the CALLER ASKED FOR was skipped, so
+#                                          this run cannot say the submission
+#                                          is non-vacuous. Not a verdict about
+#                                          the submission. See THE SKIP LEDGER
 #
 #   The codes are deliberately disjoint from TLC's own (0/10/11/12/13/124/
 #   150/151/255) so a caller can never confuse a vacuity verdict with a
 #   model-checking one.
+#
+#   99 IS PROJECT-WIDE AND IS NOT THIS SCRIPT'S (bead tla-hl96). Every
+#   instrument under harness/ that can be asked for a check it cannot perform
+#   returns the same number, so a caller asking "did the check run?" asks one
+#   question rather than one per instrument. harness/test-indeterminate.sh is
+#   the gate, and it asserts the non-collision rather than asking a reader to
+#   trust this paragraph.
+#
+#   6 AND 99 ARE DIFFERENT FACTS, and the distinction is worth keeping. 6 is
+#   "a probe RAN and TLC gave a status nobody here can read" -- a fault in the
+#   submission or in the invocation, and the run stops at it. 99 is "a probe
+#   DID NOT RUN", and the run carries on and learns what it can: the state
+#   space may be healthy and the obligation configured, and the summary says
+#   which probes delivered. 99 is the honest token for a PARTIAL assessment.
+#
+# ---------------------------------------------------------------------------
+# THE SKIP LEDGER (bead tla-hl96)
+#
+#   Probes 4, 5 and 6 are each guarded on `nv_rc = 0`. A module that VIOLATES
+#   its configured invariant stops probe 2 at rc 12, so all three are skipped
+#   -- and that is every broken-variant run, which is to say exactly the runs
+#   a spike author cares about.
+#
+#   Before this bead the summary SAID the probes were skipped and the token
+#   said NON_VACUOUS at rc 0. The token is what a script reads, so the script
+#   read a pass over three probes that did not happen.
+#   fixtures/indeterminate/ViolatedWithDeadAction.tla is the masking pair: its
+#   invariant is violated AND an action can never fire, so the probe that was
+#   skipped is a probe that had something to find.
+#
+#   A SKIP THE CALLER ASKED FOR IS NOT A SKIP. `--expect none`,
+#   `--no-dead-actions` and an absent `--observe` are the caller stating their
+#   own scope, and refusing to serve them would make the flags unusable. So
+#   the ledger records only probes that were ASKED FOR and did not run.
+#
+#   AND THE SUMMARY HAS TO SAY WHICH. This script used ONE sentence for both
+#   causes of a skipped dead-action probe -- the caller's --no-dead-actions
+#   and an earlier probe stopping at a violation -- so no reader and no gate
+#   could tell them apart from the output. Every waived line now NAMES THE
+#   FLAG THAT WAIVED IT, in parentheses; a skip admission with no such
+#   parenthetical is involuntary. harness/test-indeterminate.sh keys on that
+#   convention, and new instruments follow it.
 #
 # FIVE VECTORS, AND WHY ONE VERDICT WOULD NOT DO
 #
@@ -279,6 +325,13 @@ HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 VERDICT="$HERE/verdict.sh"
 GATE_DIR="$HERE"
 
+# The reserved project-wide code for "a check this instrument was asked for
+# could not be performed". Bound to a name rather than written as a literal at
+# the exit site; harness/test-indeterminate.sh asserts the binding and the
+# token.
+EXIT_INDETERMINATE=99
+INDETERMINATE_TOKEN="CHECK_DID_NOT_RUN"
+
 MODULE=""
 CONFIG=""
 # Unset on purpose, and it must stay a sentinel rather than a number. See THE
@@ -317,7 +370,8 @@ usage: harness/vacuity.sh [OPTIONS] <module.tla>
   -q, --quiet           verdict token only
   -h, --help            this text
 
-Prints the verdict token on line 1; exits 0/3/4/5/6/7/8.
+Prints the verdict token on line 1; exits 0/3/4/5/6/7/8, or 99 when a probe
+the caller asked for did not run.
 USAGE
 }
 
@@ -443,7 +497,16 @@ run_probe() {
   # The module goes BEFORE the caller's arguments: verdict.sh treats `--` as
   # "everything after this is a raw tlc argument", so a module placed after a
   # `--` is consumed as one and never seen as the module.
-  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$PROBE_LOG" \
+  #
+  # --deadlock-override (bead tla-hl96): every probe here runs with deadlock
+  # checking OFF on purpose, because a terminal state would exit 11 before the
+  # probe meant anything. The learner's .cfg reaches the probe unchanged, so
+  # it may carry CHECK_DEADLOCK TRUE -- and verdict.sh now refuses a run where
+  # that keyword would be discarded in silence. This flag is how the override
+  # stops being silent. Without it every probe against such a .cfg would come
+  # back 99 and the submission would read PROBE_INCONCLUSIVE for a keyword
+  # that has nothing to do with its vacuity.
+  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$PROBE_LOG" --deadlock-override \
     --config "$CONFIG_ABS" "$MODULE_ABS" "$@" >/dev/null 2>&1
   local rc=$?
   if [ -n "$KEEP_LOGS" ]; then
@@ -757,10 +820,11 @@ TLA
   # Not run_probe: this is the one probe whose main module and .cfg are
   # generated rather than the learner's, and run_probe exists to guarantee the
   # opposite. Deadlock checking stays off, as it is for every probe -- a
-  # terminal state would otherwise exit 11 before the probe meant anything.
+  # terminal state would otherwise exit 11 before the probe meant anything,
+  # and --deadlock-override is what says so out loud; see run_probe.
   PROBE_N=$((PROBE_N + 1))
   sat_log="$SCRATCH/probe${PROBE_N}-satisfiable.log"
-  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$sat_log" \
+  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$sat_log" --deadlock-override \
     --config "$SCRATCH/VacuitySatProbe.cfg" "$SCRATCH/VacuitySatProbe.tla" \
     >/dev/null 2>&1
   sat_rc=$?
@@ -925,7 +989,7 @@ TLA
 
   PROBE_N=$((PROBE_N + 1))
   obs_log="$SCRATCH/probe${PROBE_N}-observe.log"
-  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$obs_log" \
+  bash "$VERDICT" -q --timeout "$TIMEOUT" --log "$obs_log" --deadlock-override \
     --config "$SCRATCH/VacuityObserve.cfg" "$SCRATCH/VacuityObserve.tla" \
     -- -inv VACUITY_OBSERVE_TRACE >/dev/null 2>&1
   obs_rc=$?
@@ -1012,6 +1076,14 @@ fi
 # The summary names only the probes that actually ran. Saying "a configured
 # check" after --expect none skipped that probe would claim a guarantee this
 # run did not obtain.
+#
+# THE LEDGER, and it is what the token is derived from. A probe lands here iff
+# the caller ASKED FOR IT and it did not run; a probe the caller waived does
+# not. See THE SKIP LEDGER in the header. Every waived line below names the
+# flag that waived it, in parentheses, so the output says which of the two
+# happened rather than leaving a reader to guess.
+SKIPPED_PROBES=""
+
 say "The specification has a non-empty state space (at least $MIN_STATES"
 say "distinct states)."
 if [ "$EXPECT" != "none" ]; then
@@ -1026,6 +1098,7 @@ if [ "$nv_rc" = "0" ]; then
 else
   say "The satisfiability probe did not run, so nothing here says Spec"
   say "admits a behaviour."
+  SKIPPED_PROBES="${SKIPPED_PROBES}  satisfiability (probe 4)"$'\n'
 fi
 if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
   if [ -n "$EXPECT_ACTIONS" ]; then
@@ -1035,22 +1108,67 @@ if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
     # No names were given, so an action DELETED from Next leaves no row and
     # cannot have been checked for. Claiming "every action" would overstate
     # what this run actually saw.
-    say "Every action Next mentions fired at least once. No action names"
-    say "were expected, so an action missing from Next was not looked for."
+    #
+    # ONE LINE carries both the admission and the flag that waived it, and
+    # that is a wrapping constraint rather than a stylistic one: the
+    # parenthetical rule is read line by line, so an admission wrapped away
+    # from its flag reads as involuntary. See THE SKIP LEDGER.
+    say "Every action Next mentions fired at least once. The absent-action"
+    say "check did not run (no --expect-actions), so an action missing from"
+    say "Next has not been ruled out: a deleted action leaves no coverage row"
+    say "to compare against."
   fi
+elif [ "$DEAD_ACTIONS" != "1" ]; then
+  say "The dead-action probe was not run (--no-dead-actions), so no action"
+  say "was proved live."
 else
+  # ASKED FOR AND SKIPPED, which is the case the one sentence this branch used
+  # to share with the line above could not distinguish.
   say "The dead-action probe did not run, so no action was proved live."
+  SKIPPED_PROBES="${SKIPPED_PROBES}  dead actions (probe 5)"$'\n'
 fi
 # The opt-in flag's whole honesty burden sits here. A run that never looked
 # for a frozen field must not read like a run that looked and found none.
 if [ -z "$OBSERVE" ]; then
-  say "No frozen-observation probe ran, because no observation operator was named."
-  say "A field of an observation that never changes was not looked for."
+  # Same one-line constraint as the absent-action waiver above, and the
+  # admission gets a line to itself here. The REASON clause has to stay
+  # contiguous too -- harness/test-vacuity.sh pins "no observation operator
+  # was named" as one string, so wrapping it is what makes that suite red.
+  say "The frozen-observation probe did not run (no --observe)."
+  say "Reason: no observation operator was named, so a field that holds one"
+  say "value in every reachable state has not been ruled out."
 elif [ "$OBSERVE_RAN" = "1" ]; then
   say "Every field of $OBSERVE takes more than one value across the reachable"
   say "states, so the observation passes the model's motion through."
 else
   say "The frozen-observation probe did not run, so no field of $OBSERVE was"
   say "shown to move."
+  SKIPPED_PROBES="${SKIPPED_PROBES}  frozen observation (probe 6)"$'\n'
 fi
+
+# THE TOKEN FOLLOWS THE LEDGER. Reporting NON_VACUOUS here with probes 4, 5
+# and 6 skipped is the defect bead tla-hl96 was filed for: the remediation
+# text said so and the token did not, and the token is what a script reads.
+if [ -n "$SKIPPED_PROBES" ]; then
+  # The summary above is KEPT rather than replaced. It is the only place that
+  # says which probes DID deliver, and a partial assessment is worth exactly
+  # the probes that ran.
+  say ""
+  say "A probe this run was asked for did not run, so this run cannot say"
+  say "whether your submission is vacuous. It is not a verdict about the"
+  say "submission either way."
+  say ""
+  say "Probes that did not run:"
+  say "$SKIPPED_PROBES"
+  say "Each of those is guarded on the non-vacuity probe completing, and that"
+  say "probe stopped at rc=$nv_rc -- a real violation cut the exploration"
+  say "short, so coverage of the state space is partial and a probe reading"
+  say "partial coverage would report live actions as dead."
+  say ""
+  say "Fix what the run already found -- the violation that stopped probe 2 --"
+  say "and run this again. The probes above will then have a complete"
+  say "exploration to read, and a clean verdict will mean something."
+  finish "$INDETERMINATE_TOKEN" "$EXIT_INDETERMINATE"
+fi
+
 finish "NON_VACUOUS" 0
