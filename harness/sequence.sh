@@ -4,14 +4,15 @@
 #
 # WHAT IT DOES
 #
-#   harness/sequence.sh --search [--out <path>]
+#   harness/sequence.sh --search --order <path> [--out <path>]
 #   harness/sequence.sh --check <order-file>
 #
-# --search reads every vector record under VECTOR_ROOT and looks for an order
-# the ramp can be delivered in. --check reads an order somebody already wrote
-# and says whether it holds.
+# --search reads every vector record under VECTOR_ROOT, takes the ramp's
+# membership from the ORDER file, and looks for an order the ramp can be
+# delivered in. --check reads an order somebody already wrote and says whether
+# it holds.
 #
-# THE RULE (decision D4, V2-PLAN.md:355-364)
+# THE RULE (decision D4, V2-PLAN.md:355-364, narrowed by D6)
 #
 # Over the delivered sequence P_1 .. P_n, with the floor F as the starting
 # point:
@@ -19,17 +20,51 @@
 #   (a)  no two neighbours share a situation or a task shape,
 #   (b)  for every dimension d, level_d(P_i) is at most one over the running
 #        maximum of level_d(F) and level_d(P_1) .. level_d(P_i-1),
-#   (b') at most one dimension rises above that running maximum,
-#   (c)  a problem gated ch13 sits after `checkpoint: ch13`, and one gated
-#        refinement sits after `checkpoint: refinement`.
+#   (b') at most one dimension rises above that running maximum.
 #
 # Drops and returns are free, so a problem may sit under the running maximum on
-# every dimension and still be legal. Neighbours are consecutive problems, so a
-# checkpoint line between two of them leaves them neighbours. The floor is
-# never an item in the sequence. It is the initial running maximum, and it is
-# the prev-name at position 1.
+# every dimension and still be legal. The floor is never an item in the
+# sequence. It is the initial running maximum, and it is the prev-name at
+# position 1.
 #
-# Positions count problems, not lines. A checkpoint consumes no position.
+# THERE USED TO BE A CLAUSE (c), AND D6 TOOK IT OUT
+#
+# It read: a problem gated ch13 sits after `checkpoint: ch13`, and one gated
+# refinement sits after `checkpoint: refinement`. The reading gate is now a
+# per-problem label naming the learntla chapter a problem's constructs come
+# from, and a label orders nothing.
+#
+# The clause and the placement came out together, because they were two halves
+# of one mechanism: --search emitted the two marker lines by construction, so
+# clause (c) was true before --check ever looked at it and could only bite on
+# an order somebody wrote by hand. Removing one without the other would have
+# left either a marker nothing reads or a rule nothing can satisfy.
+#
+# So this script no longer reads a record's gate line at all, no ORDER file it
+# writes carries a `checkpoint:` line, and --check gives such a line no special
+# meaning. One handed to --check now falls through to the same name resolution
+# every other unrecognised entry hits, which is a usage error. The field itself
+# stays in the records. Restating it is bead tla-5zgr.3's job, and not reading
+# it here is what lets that bead rename it freely.
+#
+# THE RAMP IS NOT THE RECORD SET (decision D7)
+#
+# Thirteen vector records sit under authoring/ and pilot/, and D5 withdrew six
+# of them on 2026-09-04 while keeping their records deliberately reachable, so
+# that a rung near the top can still draw one as a per-rung call. The ramp is
+# the seven the ORDER file names. The other six are the reserve.
+#
+# This distinction is the whole of D7, and it exists because the report without
+# it produced a wrong conclusion that stood for a day. --search over all
+# thirteen said "no valid order over 13 problems, hole at position 8" and listed
+# all six withdrawn records as violations. The ramp was complete at seven and
+# position 8 had nothing written for it yet. Withdrawal was recorded in each
+# record's prose and in the ORDER file, and in neither place this script read,
+# so the fix is to read the surface that knows: ORDER.
+#
+# Membership only, never sequence. The search is over the ramp set and the
+# order it finds is its own, which is why it may differ from the ORDER file it
+# read. Judging ORDER's own sequence is what --check is for.
 #
 # WHY THE HOLE IS THE HALF THAT MATTERS
 #
@@ -39,19 +74,19 @@
 # each remaining candidate broke. Without that the author goes off to write a
 # problem for a rung that cannot exist.
 #
+# A sound ramp gets the same treatment from the other side. The position after
+# the last rung is unauthored, and each reserve record is reported against it:
+# the clause it breaks there, or that it would fit. A fit is an offer rather
+# than a placement, because D5 makes the draw a call with Frank.
+#
 # HOW THE SEARCH WORKS
 #
-# Depth first over the records, candidates tried in name order, backtracking on
-# a dead end. The state at each step is the running maximum, the previous
-# problem's situation and task shape, and the set already placed. That is
-# enough, because the running maximum does not depend on the order the placed
-# problems arrived in. A state the search has already refused is remembered, so
-# the same set is not walked twice.
-#
-# The two checkpoints are placed rather than searched. The first problem gated
-# ch13 gets `checkpoint: ch13` emitted right before it, and the same for
-# refinement. Clause (c) is then true by construction, which is why it only
-# bites under --check.
+# Depth first over the ramp's records, candidates tried in name order,
+# backtracking on a dead end. The state at each step is the running maximum,
+# the previous problem's situation and task shape, and the set already placed.
+# That is enough, because the running maximum does not depend on the order the
+# placed problems arrived in. A state the search has already refused is
+# remembered, so the same set is not walked twice.
 #
 # WHERE THE RECORDS COME FROM
 #
@@ -61,20 +96,35 @@
 # set, and the repo root otherwise. A problem's name is the directory holding
 # its VECTOR.md.
 #
-# This script reads a record for its six levels and its three key lines. It
-# does not judge the record's shape. That is test-vector.sh's job, and running
-# the check twice in two places is how the two answers drift apart.
+# This script reads a record for its six levels and its two key lines. It does
+# not judge the record's shape. That is test-vector.sh's job, and running the
+# check twice in two places is how the two answers drift apart.
 #
 # ORDER FORMAT
 #
-# One entry per line. Either a problem name, or exactly `checkpoint: ch13`, or
-# exactly `checkpoint: refinement`. Blank lines and lines starting with # are
-# ignored.
+# One problem name per line. Blank lines and lines starting with # are ignored.
+# Nothing else is a line with a meaning.
 #
-# Usage:  harness/sequence.sh --search [--out <path>]
+# WHERE THE ORDER FILE COMES FROM
+#
+# --order names it. With no --order it is $HOME/tla-practice/problems/ORDER,
+# which is where scripts/number-problems.sh and scripts/deliver-problems.sh
+# default their problems root, so a bare run answers about the delivered ramp.
+# If neither is available --search refuses rather than guessing. Treating every
+# record on disk as a rung is the misreport D7 removed, so a guess here would
+# put it straight back.
+#
+# An ORDER entry no record answers to is reported and left out of the ramp,
+# rather than refused. The ramp's membership is ORDER's to declare, and a rung
+# with no vector record is a gap in the vector tree rather than a broken ramp.
+# PRACTICE-PLAN.md:291-297 says the first prose problem on the ramp will be one
+# of these, so refusing here would turn a planned state into a red gate.
+# --check keeps refusing, because there the file is the thing under judgement.
+#
+# Usage:  harness/sequence.sh --search --order <path> [--out <path>]
 #         harness/sequence.sh --check <order-file>
-# Exit:   0 an order was found, or the order holds
-#         1 no order exists, or the order breaks a clause
+# Exit:   0 the ramp has an order, or the order holds
+#         1 the ramp has no order, or the order breaks a clause
 #         2 bad arguments, a missing file, or a record that will not parse
 
 set -uo pipefail
@@ -94,7 +144,6 @@ HEADER_RE='^[[:space:]]*\|[[:space:]]*dimension[[:space:]]*\|[[:space:]]*level[[
 ROW_RE='^[[:space:]]*\|'
 SITUATION_RE='^[[:space:]]*situation[[:space:]]*:[[:space:]]*(.*)$'
 TASK_RE='^[[:space:]]*task[[:space:]]+shape[[:space:]]*:[[:space:]]*(.*)$'
-GATE_RE='^[[:space:]]*reading[[:space:]]+gate[[:space:]]*:[[:space:]]*(.*)$'
 
 die2() {
   printf 'sequence.sh: %s\n' "$1" >&2
@@ -118,14 +167,17 @@ trim() {
 PR_LV=()
 PR_SITU=""
 PR_SHAPE=""
-PR_GATE=""
 PARSE_WHY=""
 
 # parse_record <file>
 #
-# Sets PR_LV to the six levels in row order, and PR_SITU, PR_SHAPE and PR_GATE
-# to the three key lines. Returns 1 with PARSE_WHY set on anything it cannot
-# read.
+# Sets PR_LV to the six levels in row order, and PR_SITU and PR_SHAPE to the
+# two key lines clause (a) reads. Returns 1 with PARSE_WHY set on anything it
+# cannot read.
+#
+# The `reading gate:` line is deliberately not read. D6 made it a label, so
+# nothing here orders on it, and a record missing one is not this script's
+# complaint to make. test-vector.sh owns the record's shape.
 parse_record() {
   local file="$1"
   local -a lines=()
@@ -133,12 +185,11 @@ parse_record() {
   local -a cells=()
   local line body lvl
   local hdr=-1 i j
-  local got_situ=0 got_shape=0 got_gate=0
+  local got_situ=0 got_shape=0
 
   PR_LV=()
   PR_SITU=""
   PR_SHAPE=""
-  PR_GATE=""
   PARSE_WHY=""
 
   if [ ! -f "$file" ]; then
@@ -216,11 +267,6 @@ parse_record() {
       PR_SHAPE="$TRIMMED"
       got_shape=1
     fi
-    if [ "$got_gate" -eq 0 ] && [[ ${lines[$i]} =~ $GATE_RE ]]; then
-      trim "${BASH_REMATCH[1]}"
-      PR_GATE="$TRIMMED"
-      got_gate=1
-    fi
   done
 
   if [ "$got_situ" -eq 0 ] || [ -z "$PR_SITU" ]; then
@@ -229,10 +275,6 @@ parse_record() {
   fi
   if [ "$got_shape" -eq 0 ] || [ -z "$PR_SHAPE" ]; then
     PARSE_WHY="no 'task shape:' line"
-    return 1
-  fi
-  if [ "$got_gate" -eq 0 ] || [ -z "$PR_GATE" ]; then
-    PARSE_WHY="no 'reading gate:' line"
     return 1
   fi
 
@@ -251,7 +293,6 @@ PATHS=()
 LV=()
 SITU=()
 SHAPE=()
-GATE=()
 declare -A IDX=()
 
 FLOOR_LV=()
@@ -295,7 +336,6 @@ load_records() {
       done
       SITU+=("$PR_SITU")
       SHAPE+=("$PR_SHAPE")
-      GATE+=("$PR_GATE")
       N=$((N + 1))
     done < <(find "$ROOT/$sub" -type f -name FREEZE.sha256 -not -path '*/.git/*' | LC_ALL=C sort)
   done
@@ -303,6 +343,64 @@ load_records() {
   if [ "$N" -gt 0 ]; then
     mapfile -t SORTED_NAMES < <(printf '%s\n' "${NAMES[@]}" | LC_ALL=C sort)
   fi
+}
+
+# ---------------------------------------------------------------------------
+# The ramp and the reserve.
+#
+# RAMP_SORTED is the search's candidate list, in name order so the answer is
+# deterministic. RESERVE_SORTED is everything else on disk, in the same order,
+# and it is reported rather than placed.
+# ---------------------------------------------------------------------------
+
+RAMP_SORTED=()
+RESERVE_SORTED=()
+RAMP_MISSING=()
+RAMP_N=0
+
+# plural_s <count> -> "" for one, "s" otherwise
+plural_s() {
+  if [ "$1" -eq 1 ]; then
+    printf ''
+  else
+    printf 's'
+  fi
+}
+
+# load_ramp
+#
+# Reads ORDER_PATH for the ramp's membership and partitions the record set.
+# A name repeated in ORDER counts once, because a record cannot be placed
+# twice and the second mention would otherwise shorten the ramp by one.
+load_ramp() {
+  local line name
+  local -A want=()
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    trim "$line"
+    name="$TRIMMED"
+    case "$name" in
+    "") continue ;;
+    "#"*) continue ;;
+    esac
+    [ -z "${want[$name]:-}" ] || continue
+    want[$name]=1
+    if [ -z "${IDX[$name]:-}" ]; then
+      RAMP_MISSING+=("$name")
+      continue
+    fi
+    RAMP_SORTED+=("$name")
+  done <"$ORDER_PATH"
+
+  if [ "${#RAMP_SORTED[@]}" -gt 1 ]; then
+    mapfile -t RAMP_SORTED < <(printf '%s\n' "${RAMP_SORTED[@]}" | LC_ALL=C sort)
+  fi
+  RAMP_N=${#RAMP_SORTED[@]}
+
+  for name in ${SORTED_NAMES[@]+"${SORTED_NAMES[@]}"}; do
+    [ -z "${want[$name]:-}" ] || continue
+    RESERVE_SORTED+=("$name")
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -319,9 +417,9 @@ CV_DETAIL=""
 # clause_abbp <idx> <prev-situation> <prev-shape>
 #
 # Applies (a), (b) and (b') to one candidate against MAXLV. Returns 1 with
-# CV_CLAUSE and CV_DETAIL set on the first breach. Clause (c) is not here,
-# because the search satisfies it by placing the checkpoint and the checker
-# has to see the ORDER to judge it.
+# CV_CLAUSE and CV_DETAIL set on the first breach. These are now the whole
+# rule, so the search, the checker and the reserve probe all read it and there
+# is one place a clause can be got wrong.
 clause_abbp() {
   local idx="$1" psitu="$2" pshape="$3"
   local base=$((idx * 6))
@@ -405,14 +503,18 @@ placed_key() {
 # search_from <depth> <prev-index>
 #
 # prev-index is -1 at position 1, which is how the floor gets to be the
-# previous entry. Returns 0 with ORDER_IDX holding a full order.
+# previous entry. Returns 0 with ORDER_IDX holding a full order over the ramp.
+#
+# On the success path every frame returns 0 without restoring, so MAXLV is left
+# holding the running maximum at the end of the ramp. The reserve probe reads
+# it there rather than recomputing it.
 search_from() {
   local depth="$1" prev_idx="$2"
   local psitu pshape key name idx accepted=0
   local -a rejects=()
   local -a saved=()
 
-  if [ "$depth" -ge "$N" ]; then
+  if [ "$depth" -ge "$RAMP_N" ]; then
     return 0
   fi
 
@@ -430,7 +532,7 @@ search_from() {
     return 1
   fi
 
-  for name in "${SORTED_NAMES[@]}"; do
+  for name in ${RAMP_SORTED[@]+"${RAMP_SORTED[@]}"}; do
     idx="${IDX[$name]}"
     [ "${PLACED[$idx]}" -eq 0 ] || continue
     if ! clause_abbp "$idx" "$psitu" "$pshape"; then
@@ -478,10 +580,11 @@ INFO_OUT=()
 
 # build_output
 #
-# Turns ORDER_IDX into the ORDER lines, with each checkpoint sitting right
-# before the first problem that needs it, and into the first-appearance lines.
+# Turns ORDER_IDX into the ORDER lines and the first-appearance lines. Every
+# line it writes is a problem name, which is D6's "no ORDER file contains a
+# line matching ^checkpoint:".
 build_output() {
-  local seen13=0 seenref=0 pos=0 idx s
+  local pos=0 idx s
   local -A first=()
 
   ORDER_OUT=()
@@ -489,14 +592,6 @@ build_output() {
   [ "${#ORDER_IDX[@]}" -gt 0 ] || return 0
 
   for idx in "${ORDER_IDX[@]}"; do
-    if [ "${GATE[$idx]}" = "ch13" ] && [ "$seen13" -eq 0 ]; then
-      ORDER_OUT+=("checkpoint: ch13")
-      seen13=1
-    fi
-    if [ "${GATE[$idx]}" = "refinement" ] && [ "$seenref" -eq 0 ]; then
-      ORDER_OUT+=("checkpoint: refinement")
-      seenref=1
-    fi
     ORDER_OUT+=("${NAMES[$idx]}")
 
     pos=$((pos + 1))
@@ -509,8 +604,57 @@ build_output() {
   return 0
 }
 
+# report_missing
+#
+# ORDER entries no record answers to. Named rather than refused, for the reason
+# the header gives.
+report_missing() {
+  local name
+  for name in ${RAMP_MISSING[@]+"${RAMP_MISSING[@]}"}; do
+    printf "note: ORDER names '%s', which is no record under %s. It is not counted as a rung\n" \
+      "$name" "$ROOT"
+  done
+}
+
+# report_reserve <position> <prev-situation> <prev-shape>
+#
+# Each reserve record against MAXLV at the position after the last rung. A
+# record that clears every clause there is reported as a fit, which is an offer
+# and not a placement: D5 makes the draw a per-rung call with Frank.
+report_reserve() {
+  local pos="$1" psitu="$2" pshape="$3"
+  local m=${#RESERVE_SORTED[@]} fits=0
+  local name idx
+  local -a lines=()
+
+  [ "$m" -gt 0 ] || return 0
+
+  for name in "${RESERVE_SORTED[@]}"; do
+    idx="${IDX[$name]}"
+    if clause_abbp "$idx" "$psitu" "$pshape"; then
+      fits=$((fits + 1))
+      lines+=("  $name: fits at position $pos")
+    else
+      lines+=("  $name: breaks ($CV_CLAUSE) at position $pos: $CV_DETAIL")
+    fi
+  done
+
+  if [ "$fits" -eq 0 ]; then
+    printf 'reserve: %d of %d record%s off the ramp. None is placeable at position %d\n' \
+      "$m" "$N" "$(plural_s "$N")" "$pos"
+  else
+    printf 'reserve: %d of %d record%s off the ramp. %d placeable at position %d, as a per-rung draw\n' \
+      "$m" "$N" "$(plural_s "$N")" "$fits" "$pos"
+  fi
+  for name in "${lines[@]}"; do
+    printf '%s\n' "$name"
+  done
+  return 0
+}
+
 run_search() {
   local i line rej name clause detail rest
+  local next_pos prev_idx psitu pshape
 
   MAXLV=("${FLOOR_LV[@]}")
   PLACED=()
@@ -531,13 +675,41 @@ run_search() {
         printf '%s\n' "$line"
       done
     fi
+
+    # Every line from here on begins `info:`, `note:` or `reserve:`, and the
+    # first of them is an info: line. A consumer reading the ORDER off stdout
+    # stops at the first line that is not a name, so the membership line has to
+    # come before the notes rather than after them.
+    printf 'info: ramp membership read from %s\n' "$ORDER_PATH"
+    report_missing
     for line in ${INFO_OUT[@]+"${INFO_OUT[@]}"}; do
       printf '%s\n' "$line"
     done
+
+    next_pos=$((RAMP_N + 1))
+    printf 'info: position %d is unauthored. The ramp is %d rung%s and nothing is written for the next one\n' \
+      "$next_pos" "$RAMP_N" "$(plural_s "$RAMP_N")"
+
+    prev_idx=-1
+    if [ "${#ORDER_IDX[@]}" -gt 0 ]; then
+      prev_idx="${ORDER_IDX[$((${#ORDER_IDX[@]} - 1))]}"
+    fi
+    if [ "$prev_idx" -lt 0 ]; then
+      psitu="$FLOOR_SITU"
+      pshape="$FLOOR_SHAPE"
+    else
+      psitu="${SITU[$prev_idx]}"
+      pshape="${SHAPE[$prev_idx]}"
+    fi
+    report_reserve "$next_pos" "$psitu" "$pshape"
     return 0
   fi
 
-  printf 'no valid order over %d problems\n' "$N"
+  # The ramp itself has no order. This is the only path that says so, and it
+  # says it about the ramp rather than about every record on disk.
+  printf 'info: ramp membership read from %s\n' "$ORDER_PATH"
+  report_missing
+  printf 'no valid order over the %d-rung ramp\n' "$RAMP_N"
   if [ "$BEST_POS" -le 1 ]; then
     printf 'hole at position 1: no problem within one new high of the floor\n'
   else
@@ -551,6 +723,10 @@ run_search() {
     detail="${rest#*|}"
     printf '  %s: violates (%s): %s\n' "$name" "$clause" "$detail"
   done
+  if [ "${#RESERVE_SORTED[@]}" -gt 0 ]; then
+    printf 'reserve: %d of %d record%s off the ramp. The ramp has no order, so none was probed\n' \
+      "${#RESERVE_SORTED[@]}" "$N" "$(plural_s "$N")"
+  fi
   return 1
 }
 
@@ -565,7 +741,7 @@ run_check() {
   local -A first=()
   local line e idx s
   local prev="floor" psitu pshape
-  local seen13=0 seenref=0 pos=0
+  local pos=0
   local failline=""
 
   [ -f "$file" ] || die2 "no such order file: $file"
@@ -583,10 +759,11 @@ run_check() {
   # Resolve every entry before judging any of them. A name the tree does not
   # carry is a usage error, and a usage error must not come back dressed as a
   # verdict on the ramp.
+  #
+  # `checkpoint: ch13` and `checkpoint: refinement` used to be skipped here.
+  # D6 took their meaning away, so they fall through to this resolution like
+  # any other unrecognised entry and exit 2.
   for e in ${entries[@]+"${entries[@]}"}; do
-    case "$e" in
-    "checkpoint: ch13" | "checkpoint: refinement") continue ;;
-    esac
     if [ -z "${IDX[$e]:-}" ]; then
       die2 "$file names '$e', which is no record under $ROOT"
     fi
@@ -597,28 +774,11 @@ run_check() {
   pshape="$FLOOR_SHAPE"
 
   for e in ${entries[@]+"${entries[@]}"}; do
-    if [ "$e" = "checkpoint: ch13" ]; then
-      seen13=1
-      continue
-    fi
-    if [ "$e" = "checkpoint: refinement" ]; then
-      seenref=1
-      continue
-    fi
-
     idx="${IDX[$e]}"
     pos=$((pos + 1))
 
     if ! clause_abbp "$idx" "$psitu" "$pshape"; then
       failline="FAIL at position $pos: $prev -> $e violates ($CV_CLAUSE): $CV_DETAIL"
-      break
-    fi
-    if [ "${GATE[$idx]}" = "ch13" ] && [ "$seen13" -eq 0 ]; then
-      failline="FAIL at position $pos: $prev -> $e violates (c): gated ch13 with no 'checkpoint: ch13' line before it"
-      break
-    fi
-    if [ "${GATE[$idx]}" = "refinement" ] && [ "$seenref" -eq 0 ]; then
-      failline="FAIL at position $pos: $prev -> $e violates (c): gated refinement with no 'checkpoint: refinement' line before it"
       break
     fi
 
@@ -649,9 +809,12 @@ run_check() {
 # Arguments.
 # ---------------------------------------------------------------------------
 
+USAGE="Usage: sequence.sh --search --order <path> [--out <path>] | --check <order-file>"
+
 MODE=""
 ORDER_FILE=""
 OUT_PATH=""
+ORDER_PATH=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -665,13 +828,18 @@ while [ "$#" -gt 0 ]; do
     ORDER_FILE="$2"
     shift 2
     ;;
+  --order)
+    [ "$#" -ge 2 ] || die2 "--order wants a path"
+    ORDER_PATH="$2"
+    shift 2
+    ;;
   --out)
     [ "$#" -ge 2 ] || die2 "--out wants a path"
     OUT_PATH="$2"
     shift 2
     ;;
   *)
-    die2 "unknown argument '$1'. Usage: sequence.sh --search [--out <path>] | --check <order-file>"
+    die2 "unknown argument '$1'. $USAGE"
     ;;
   esac
 done
@@ -680,6 +848,9 @@ done
 if [ -n "$OUT_PATH" ] && [ "$MODE" != "search" ]; then
   die2 "--out only goes with --search"
 fi
+if [ -n "$ORDER_PATH" ] && [ "$MODE" != "search" ]; then
+  die2 "--order only goes with --search. --check already takes the order file as its argument"
+fi
 
 ROOT="${VECTOR_ROOT:-}"
 if [ -z "$ROOT" ]; then
@@ -687,9 +858,23 @@ if [ -z "$ROOT" ]; then
 fi
 [ -d "$ROOT" ] || die2 "no such vector root: $ROOT"
 
+# The ramp's membership. An explicit --order has to exist. The delivered default
+# may be absent, and then there is nothing to fall back on, because treating
+# every record on disk as a rung is the misreport D7 removed.
+if [ "$MODE" = "search" ]; then
+  if [ -n "$ORDER_PATH" ]; then
+    [ -f "$ORDER_PATH" ] || die2 "no such order file: $ORDER_PATH"
+  else
+    ORDER_PATH="$HOME/tla-practice/problems/ORDER"
+    [ -f "$ORDER_PATH" ] ||
+      die2 "no ORDER file at $ORDER_PATH, and no --order given. The ramp's membership has to be stated, not guessed. $USAGE"
+  fi
+fi
+
 load_records
 
 if [ "$MODE" = "search" ]; then
+  load_ramp
   run_search
   exit $?
 fi
