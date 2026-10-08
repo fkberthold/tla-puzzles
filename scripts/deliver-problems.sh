@@ -59,9 +59,10 @@
 #
 # A problem is delivered as NN_name, where NN is its 1-based position in
 # <dest-root>/ORDER. ORDER is the one source of truth for the ramp's sequence,
-# and scripts/number-problems.sh owns that convention. Blank lines, comment
-# lines, and the two `checkpoint:` markers consume no position, so a position is
-# not a line number.
+# and scripts/number-problems.sh owns that convention. Blank lines and comment
+# lines consume no position, so a position is not a line number. A line
+# matching ^[[:space:]]*checkpoint: is refused outright, which is D6 and bead
+# tla-5zgr.2. See the parse itself for why a refusal rather than a skip.
 #
 # The parse below is DUPLICATED from scripts/number-problems.sh rather than
 # shared with it, because sharing means editing that file. What keeps the copy
@@ -271,13 +272,34 @@ ORDER_FILE="$DEST_ROOT/ORDER"
 names=()
 
 if [ -f "$ORDER_FILE" ]; then
+  lineno=0
   while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
     trimmed="${line#"${line%%[![:space:]]*}"}"
     [ -z "$trimmed" ] && continue
     case "$trimmed" in
       '#'*) continue ;;
-      'checkpoint: ch13') continue ;;
-      'checkpoint: refinement') continue ;;
+      'checkpoint:'*)
+        # D6, bead tla-5zgr.2. The two positional markers were retired when the
+        # reading gate became a per-problem label, so an ORDER still carrying
+        # one is stale.
+        #
+        # This refusal matters more here than in the sibling script, because
+        # here the alternative failure is SILENT. A marker read as an ORDER
+        # entry takes a position, every problem below it shifts by one, and the
+        # run exits 0 having delivered into a directory numbered out of a line
+        # nobody could parse. The sibling at least goes looking for a directory
+        # named after the marker and reports that it is missing.
+        #
+        # Exit 1, because that is the only failure code this script has. The
+        # sibling uses 2, which separates an unusable input from a disagreement
+        # with the tree. The codes differ and the refusals do not.
+        echo "$0: $ORDER_FILE line $lineno is a retired checkpoint marker: '$trimmed'" >&2
+        echo "$0: the reading gate is a per-problem label now, so the positional markers are gone." >&2
+        echo "$0: the line is not a problem name and it cannot take a position." >&2
+        echo "$0: delete the line from ORDER, then run again." >&2
+        exit 1
+        ;;
     esac
     names+=("$trimmed")
   done <"$ORDER_FILE"

@@ -20,9 +20,11 @@
 #   <problems-root> defaults to $HOME/tla-practice/problems.
 #
 #   ORDER lives at <problems-root>/ORDER. Blank lines and lines whose first
-#   non-space character is # are ignored. A line reading exactly
-#   `checkpoint: ch13` or exactly `checkpoint: refinement` is ignored and does
-#   not consume a position. Positions count the problem entries alone.
+#   non-space character is # are ignored and consume no position. Positions
+#   count the problem entries alone, so a position is not a line number.
+#
+#   A line matching ^[[:space:]]*checkpoint: is a parse error. The run refuses,
+#   names the line, and exits 2. See the D6 section below.
 #
 #   The entry at position N, 1-based, wants the directory named
 #   printf '%02d_%s' N name. The directory that already belongs to an entry is
@@ -92,6 +94,29 @@
 # interpolated straight into an extended regex, so an entry carrying a dot or a
 # plus matched more than itself. Nothing in the ramp does today, which is why
 # the fixture for it has to be built rather than borrowed.
+#
+# ---------------------------------------------------------------------------
+# D6, 2026-10-08: THE TWO CHECKPOINT MARKERS STOP EXISTING (bead tla-5zgr.2)
+#
+# The reading gate became a label instead of an ordering rule, so the two
+# positional markers `checkpoint: ch13` and `checkpoint: refinement` have
+# nothing left to order. They used to be skipped here and consume no position.
+# Now they are a parse error: the run refuses, names the line, and exits 2.
+#
+# A refusal rather than a silent skip, because the markers are gone rather
+# than optional. A skipped unknown line is how an ORDER carrying a typo gets
+# numbered as though it were correct, and the one thing this tree cannot
+# afford is a rename it could not account for. Exit 2 puts it with the missing
+# root and the missing ORDER: the input is unusable, as against exit 1's
+# disagreement between a usable ORDER and the tree.
+#
+# WHAT SURVIVES, AND WHY IT IS THE POINT. A marker took a POSITION without
+# consuming a NUMBER, which is why ORDER's line number is not its position.
+# Blank lines and # comments still do exactly that, so the property outlives
+# the markers that first motivated it. The happy-path fixture below keeps no
+# entry on the line number matching its position, using only the two skips
+# that remain, and the two rows that used to read "a checkpoint line consumes
+# no position" now read the surviving half of the same claim.
 #
 # ---------------------------------------------------------------------------
 # WHY EVERY RUN IS SANDBOXED TWICE
@@ -171,7 +196,7 @@ SANDBOX_HOME="$TMPROOT/home"
 ERRFILE="$TMPROOT/stderr.txt"
 mkdir -p "$SANDBOX_HOME"
 
-ROOT_HAPPY="$TMPROOT/happy"       # all bare, one comment, one blank, two checkpoints
+ROOT_HAPPY="$TMPROOT/happy"       # all bare, two comments, one blank
 ROOT_CLEAN="$TMPROOT/clean"       # already numbered and correct
 ROOT_STRANGE="$TMPROOT/stranger"  # shape 1: a numbered directory ORDER doesn't name
 ROOT_MISNUM="$TMPROOT/misnum"     # shape 2: a number that disagrees with its position
@@ -180,6 +205,13 @@ ROOT_UNNUM="$TMPROOT/unnumbered"  # shape 4: an entry still under its bare name
 ROOT_RENUM="$TMPROOT/renum"       # the rename side of shape 2
 ROOT_NOORDER="$TMPROOT/noorder"   # a root with no ORDER file
 ROOT_ABSENT="$TMPROOT/absent"     # never created, on purpose
+
+# The D6 roots, added by bead tla-5zgr.2. One per spelling, because the two
+# markers were two separate case arms and a half-removal would leave one of
+# them still skipped.
+ROOT_CP13="$TMPROOT/checkpoint-ch13"  # ORDER carries the retired ch13 marker
+ROOT_CPREF="$TMPROOT/checkpoint-ref"  # ORDER carries the retired refinement one
+ROOT_CPINDENT="$TMPROOT/checkpoint-indented" # the same, indented and arbitrary
 
 # The phase-3 roots, added by bead tla-rgpe.
 ROOT_REGEX="$TMPROOT/regex"             # an ORDER entry carrying a regex metacharacter
@@ -213,19 +245,23 @@ make_problem() {
 
 # --- the happy path --------------------------------------------------------
 #
-# The two checkpoint spellings sit between entries rather than at the end, so
-# a script that counts lines instead of entries gets river-call and
-# assay-office wrong by one and two.
+# Every skipped shape sits BETWEEN entries rather than at the end, so no entry
+# lands on the line number matching its position and a script that counts
+# lines instead of entries gets all four wrong. The raw line numbers are 2, 4,
+# 6 and 7 against positions 1, 2, 3 and 4.
+#
+# This fixture used to carry the two checkpoint markers in the slots the
+# comment and the blank now hold (D6, bead tla-5zgr.2). The markers were never
+# what made the property true; being skipped was, and the comment and the
+# blank still are.
 mkdir -p "$ROOT_HAPPY"
 {
   printf '# the ramp, in order\n'
   printf 'bonded-store\n'
   printf '\n'
   printf 'laytime\n'
-  printf 'checkpoint: ch13\n'
-  printf 'river-call\n'
   printf '   # an indented comment, still a comment\n'
-  printf 'checkpoint: refinement\n'
+  printf 'river-call\n'
   printf 'assay-office\n'
 } >"$ROOT_HAPPY/ORDER"
 make_problem "$ROOT_HAPPY" bonded-store "attempt state for bonded-store"
@@ -239,7 +275,7 @@ mkdir -p "$ROOT_CLEAN"
 {
   printf '# already in step\n'
   printf 'alpha\n'
-  printf 'checkpoint: ch13\n'
+  printf '\n'
   printf 'beta\n'
   printf 'gamma\n'
 } >"$ROOT_CLEAN/ORDER"
@@ -367,6 +403,46 @@ make_problem "$ROOT_STRAND_BARE" "02_beta$STRAND_SUFFIX" "beta, parked by a run 
 # --- a root with no ORDER ---------------------------------------------------
 mkdir -p "$ROOT_NOORDER"
 make_problem "$ROOT_NOORDER" 01_alpha "alpha"
+
+# --- D6: an ORDER carrying a retired checkpoint marker ----------------------
+#
+# All three roots are otherwise clean AND hold two bare names the script could
+# have numbered. The bare names are the non-vacuity control: "it renamed
+# nothing" says nothing unless there was something there to rename, and a
+# refusal that happens to land on a tree with no work in it proves only that
+# the tree had no work in it.
+#
+# The third root carries `  checkpoint: anything-at-all`, indented and with a
+# tail neither retired spelling used. The invariant is over the pattern
+# ^[[:space:]]*checkpoint: rather than over the two literals, so a script that
+# swapped its two equality arms for two inequality arms would still pass the
+# first two roots and fail this one.
+mkdir -p "$ROOT_CP13"
+{
+  printf 'alpha\n'
+  printf 'checkpoint: ch13\n'
+  printf 'beta\n'
+} >"$ROOT_CP13/ORDER"
+make_problem "$ROOT_CP13" alpha "alpha"
+make_problem "$ROOT_CP13" beta  "beta"
+
+mkdir -p "$ROOT_CPREF"
+{
+  printf 'alpha\n'
+  printf 'checkpoint: refinement\n'
+  printf 'beta\n'
+} >"$ROOT_CPREF/ORDER"
+make_problem "$ROOT_CPREF" alpha "alpha"
+make_problem "$ROOT_CPREF" beta  "beta"
+
+mkdir -p "$ROOT_CPINDENT"
+{
+  printf 'alpha\n'
+  printf '  checkpoint: anything-at-all\n'
+  printf 'beta\n'
+} >"$ROOT_CPINDENT/ORDER"
+make_problem "$ROOT_CPINDENT" alpha "alpha"
+make_problem "$ROOT_CPINDENT" beta  "beta"
 
 # --- the default root, under the sandboxed HOME -----------------------------
 #
@@ -513,6 +589,19 @@ assert_says() {
   fi
 }
 
+# assert_never_says <label> <extended-regex> <captured-text>
+#
+# The negative of the row above, for a report that has to NOT say something.
+# Same here-string rule and the same reason.
+assert_never_says() {
+  local label="$1" pattern="$2" body="$3"
+  if grep -qE -- "$pattern" <<<"$body"; then
+    nope "$label. The output matched: $pattern"
+  else
+    ok "$label"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 echo "== the script itself =="
 # ---------------------------------------------------------------------------
@@ -538,13 +627,14 @@ assert_marker "bonded-store becomes 01_bonded-store" \
 assert_marker "laytime becomes 02_laytime" \
   "$ROOT_HAPPY/02_laytime/MARK" "attempt state for laytime" 0
 
-# The two rows the checkpoint lines bear on. river-call follows
-# `checkpoint: ch13` and is still 3, and assay-office follows a second
-# checkpoint and is still 4.
-assert_marker "a checkpoint: ch13 line consumes no position" \
+# The two rows that carry the surviving half of D6. river-call follows an
+# indented comment and is still 3. assay-office follows nothing at all and is
+# still 4, on raw line 7, which is the arithmetic the whole fixture is built
+# for: a position is not a line number.
+assert_marker "an indented comment line consumes no position" \
   "$ROOT_HAPPY/03_river-call/MARK" "attempt state for river-call" 0
 
-assert_marker "a checkpoint: refinement line consumes no position either" \
+assert_marker "position 4 sits on raw line 7, so a position is not a line number" \
   "$ROOT_HAPPY/04_assay-office/MARK" "attempt state for assay-office" 0
 
 assert_gone "the bare bonded-store is gone, not copied" "$ROOT_HAPPY" bonded-store 0
@@ -793,6 +883,88 @@ assert_rc "a root with no ORDER exits 2 under --check too" 2
 
 # ---------------------------------------------------------------------------
 echo
+echo "== D6: a checkpoint: line in ORDER is a parse error, not a skip =="
+# ---------------------------------------------------------------------------
+
+# The RED invariant from bead tla-5zgr.2. The two positional markers stopped
+# existing when the reading gate became a label, so an ORDER still carrying one
+# is a stale file rather than a file with an optional line in it.
+#
+# Each root is checked three ways, and all three matter. The code says the
+# input is unusable rather than at odds with the tree. The report names the
+# offending line, because a refusal a reader cannot locate costs them the fix.
+# And the tree is unchanged, because this script renames live attempt state in
+# a directory with no history to come back from.
+#
+# Both modes, because --check and a bare run read ORDER through the same parse
+# and a refusal wired into only the applying half would let --check certify a
+# tree the bare run then refuses.
+
+CP13_BEFORE=$(snapshot "$ROOT_CP13")
+
+run_np "$ROOT_CP13"
+
+assert_rc "a bare run exits 2 on an ORDER carrying checkpoint: ch13" 2
+
+assert_says "the refusal names the offending line" \
+  'checkpoint: ch13' "$RUN_ALL"
+
+assert_unchanged "the bare run renames nothing on a stale ORDER" \
+  "$ROOT_CP13" "$CP13_BEFORE" 2
+
+assert_marker "alpha is still bare, so the refusal came before any rename" \
+  "$ROOT_CP13/alpha/MARK" "alpha" 2
+
+run_np --check "$ROOT_CP13"
+
+assert_rc "--check exits 2 on the same ORDER" 2
+
+CPREF_BEFORE=$(snapshot "$ROOT_CPREF")
+
+run_np "$ROOT_CPREF"
+
+assert_rc "a bare run exits 2 on an ORDER carrying checkpoint: refinement" 2
+
+assert_says "the refusal names the refinement line too" \
+  'checkpoint: refinement' "$RUN_ALL"
+
+assert_unchanged "the refinement marker renames nothing either" \
+  "$ROOT_CPREF" "$CPREF_BEFORE" 2
+
+run_np --check "$ROOT_CPREF"
+
+assert_rc "--check exits 2 on the refinement marker as well" 2
+
+# The generalisation row. Neither retired spelling appears here, so a script
+# that replaced two equality tests with two inequality tests passes every row
+# above and fails this one.
+CPINDENT_BEFORE=$(snapshot "$ROOT_CPINDENT")
+
+run_np "$ROOT_CPINDENT"
+
+assert_rc "an indented checkpoint: line with an unknown tail exits 2" 2
+
+assert_says "the refusal names the unknown-tail line" \
+  'checkpoint: anything-at-all' "$RUN_ALL"
+
+assert_unchanged "an unknown checkpoint: tail renames nothing" \
+  "$ROOT_CPINDENT" "$CPINDENT_BEFORE" 2
+
+# The row that says the marker is REFUSED rather than merely unnumbered.
+#
+# A script that dropped the two case arms and nothing else would read the
+# marker as a PROBLEM NAME, find no directory for it, and exit 1 as a
+# disagreement. The exit codes above already separate that case, so what this
+# row adds is the report: a reader told "no directory found for ORDER entry
+# 'checkpoint: ch13'" has been sent to create that directory, which is the
+# opposite of the fix. The line has to come out of ORDER instead.
+run_np "$ROOT_CP13"
+
+assert_never_says "the refusal does not ask for a directory named after the marker" \
+  'no directory found' "$RUN_ALL"
+
+# ---------------------------------------------------------------------------
+echo
 echo "== the three exit codes are distinct =="
 # ---------------------------------------------------------------------------
 
@@ -1027,6 +1199,76 @@ elif grep -qE -- "$SUITE_ROW" <<<"$SUITES_BLOCK"; then
   ok "SUITES carries a fast-tier row for ./harness/test-number-problems.sh"
 else
   nope "SUITES carries no fast-tier row for ./harness/test-number-problems.sh"
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== structural: D6, no script parses a checkpoint: line =="
+# ---------------------------------------------------------------------------
+
+# The structural half of the RED invariant on bead tla-5zgr.2. The behavioral
+# rows above prove the two ORDER-reading scripts refuse a marker; this one
+# proves no third parser grew back anywhere under scripts/.
+#
+# WHY THE SWEEP STOPS AT scripts/ AND THE INVARIANT DOES NOT.
+#
+# D6's L3 spec reads "no file under scripts/ or harness/ parses one", and that
+# is wider than this bead can make true. harness/sequence.sh PLACES both
+# markers and clause (c) ENFORCES them, and harness/test-sequence.sh parses
+# them in its own verifier. Both files belong to bead tla-5zgr.1, which was
+# in flight alongside this one, so this bead must not touch them. Widening
+# this sweep to harness/ belongs to whichever of the two lands second.
+# Measured 2026-10-08: harness/sequence.sh and harness/test-sequence.sh are
+# the only two files under harness/ that parse the pattern.
+#
+# Scoped to scripts/, the sweep is a real gate over a whole directory rather
+# than a check with an exclusion list nobody retires. It greps the tree rather
+# than a list of filenames, so a script that does not exist yet is covered the
+# moment it lands.
+#
+# WHAT IT BANS, AND WHY NOT THE WORD ITSELF.
+#
+# "Parses one" and "is a parse error" are opposites, so a sweep that banned
+# every mention of checkpoint: would ban the refusal along with the skip. Both
+# scripts have to name the pattern in order to refuse it.
+#
+# So the sweep reads CODE and not prose, dropping comment lines first, and
+# then bans the two shapes that mean the line was accepted: a skip, which is
+# the `continue` the two retired case arms used to carry, and either retired
+# literal spelling, which nothing needs now that the refusal matches the whole
+# prefix. Comments are dropped rather than scanned because the history of the
+# two markers is worth keeping written down, and writing it down names them.
+
+CP_CODE=$(grep -rnE -- 'checkpoint:' scripts/ 2>/dev/null \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')
+
+CP_SKIPS=$(grep -E -- 'continue' <<<"$CP_CODE")
+
+if [ -z "$CP_SKIPS" ]; then
+  ok "no script under scripts/ skips a checkpoint: line"
+else
+  nope "a script under scripts/ still skips a checkpoint: line:$(printf '\n')$CP_SKIPS"
+fi
+
+CP_LITERALS=$(grep -E -- 'checkpoint:[[:space:]]*(ch13|refinement)' <<<"$CP_CODE")
+
+if [ -z "$CP_LITERALS" ]; then
+  ok "no script under scripts/ names a retired checkpoint spelling in code"
+else
+  nope "a script under scripts/ still names a retired checkpoint spelling:$(printf '\n')$CP_LITERALS"
+fi
+
+# The non-vacuity control, and this sweep needs one more than most. Both rows
+# above are satisfied by a CP_CODE that is empty for the wrong reason: a typo
+# in the outer pattern, or a scripts/ directory the grep never read. So require
+# the outer grep to have found the refusal arms it is supposed to find.
+CP_CODE_LINES=$(grep -c . <<<"$CP_CODE")
+[ -z "$CP_CODE" ] && CP_CODE_LINES=0
+
+if [ "$CP_CODE_LINES" -ge 2 ]; then
+  ok "the sweep read $CP_CODE_LINES checkpoint: code lines under scripts/, so a green sweep means something"
+else
+  nope "the sweep read $CP_CODE_LINES checkpoint: code lines under scripts/, wanted the 2 refusal arms. An empty scan passes both rows above for free"
 fi
 
 echo

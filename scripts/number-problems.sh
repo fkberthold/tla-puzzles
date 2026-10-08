@@ -12,9 +12,10 @@
 # the full behavioral spec. Summary:
 #
 #   - <problems-root> defaults to $HOME/tla-practice/problems.
-#   - ORDER entries are non-blank, non-comment lines, except the two
-#     `checkpoint: ch13` / `checkpoint: refinement` markers, which are
-#     skipped and consume no position.
+#   - ORDER entries are the non-blank, non-comment lines. A blank line and a
+#     comment consume no position, so a position is not a line number.
+#   - A line matching ^[[:space:]]*checkpoint: is refused and exits 2. The two
+#     positional markers were retired with D6 (bead tla-5zgr.2).
 #   - Entry N (1-based) wants a directory named NN_name (zero-padded to 2).
 #   - A directory not named by ORDER is fine unless it carries a numeric
 #     prefix, which is always an error (a "numbered stranger").
@@ -111,16 +112,41 @@ matches_entry() {
 
 # ---------------------------------------------------------------------------
 # Phase 1: parse ORDER into an ordered list of problem names.
+#
+# A blank line and a # comment are skipped and consume no position, which is
+# why an entry's position is not its line number.
+#
+# A checkpoint: line is refused outright (D6, bead tla-5zgr.2). The two markers
+# `checkpoint: ch13` and `checkpoint: refinement` used to be skipped here, back
+# when the reading gate ordered the ramp. The gate is a per-problem label now,
+# so the markers order nothing and an ORDER still carrying one is stale.
+#
+# Refused rather than skipped, because a skip is how a stale file gets numbered
+# as though it were current. Exit 2 puts it with the missing root and the
+# missing ORDER: the input cannot be used. Exit 1 means a usable ORDER and the
+# tree disagree, which is a different report and a different fix.
+#
+# The pattern is the whole checkpoint: prefix rather than the two literals. A
+# tail nobody retired is still a line this script cannot give a position to,
+# and reading it as a problem name would send the reader off to create a
+# directory named after it.
 # ---------------------------------------------------------------------------
 
 names=()
+lineno=0
 while IFS= read -r line || [ -n "$line" ]; do
+  lineno=$((lineno + 1))
   trimmed="${line#"${line%%[![:space:]]*}"}"
   [ -z "$trimmed" ] && continue
   case "$trimmed" in
     '#'*) continue ;;
-    'checkpoint: ch13') continue ;;
-    'checkpoint: refinement') continue ;;
+    'checkpoint:'*)
+      echo "number-problems.sh: $ORDER_FILE line $lineno is a retired checkpoint marker: '$trimmed'" >&2
+      echo "number-problems.sh: the reading gate is a per-problem label now, so the positional markers are gone." >&2
+      echo "number-problems.sh: the line is not a problem name and no directory belongs to it." >&2
+      echo "number-problems.sh: delete the line from ORDER, then run again." >&2
+      exit 2
+      ;;
   esac
   names+=("$trimmed")
 done <"$ORDER_FILE"
