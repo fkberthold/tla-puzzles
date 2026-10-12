@@ -1,0 +1,112 @@
+# Cold list
+
+Tick every construct you could write from a blank page right now, without
+looking anything up. Leave the rest unticked: unticked is the useful answer,
+and an unticked line becomes a drill target. 105 lines, about five seconds
+each, one pass. The id doubles as a progress bar.
+
+- [ ] K001  ch02  Operator definition
+- [ ] K002  ch02  IF-THEN-ELSE
+- [ ] K003  ch02  Equality and inequality
+- [ ] K004  ch02  EXTENDS (module import)
+- [ ] K005  ch02  Integers
+- [ ] K006  ch02  Strings
+- [ ] K007  ch02  Booleans and logical operators
+- [ ] K008  ch02  Bullet-point boolean notation
+- [ ] K009  ch02  Implication
+- [ ] K010  ch02  Sequences
+- [ ] K011  ch02  Sequence module operators
+- [ ] K012  ch02  Sets
+- [ ] K013  ch02  Set relational and algebraic operators
+- [ ] K014  ch02  Cardinality
+- [ ] K015  ch02  BOOLEAN and integer interval as sets
+- [ ] K016  ch02  Cartesian product
+- [ ] K017  ch02  SUBSET (powerset)
+- [ ] K018  ch02  Set map
+- [ ] K019  ch02  Set filter
+- [ ] K020  ch02  CHOOSE
+- [ ] K021  ch02  LET-IN
+- [ ] K022  ch03  --algorithm block
+- [ ] K023  ch03  := assignment
+- [ ] K024  ch03  label
+- [ ] K025  ch03  || simultaneous assignment
+- [ ] K026  ch03  skip
+- [ ] K027  ch03  assert
+- [ ] K028  ch03  goto
+- [ ] K029  ch03  PlusCal if
+- [ ] K030  ch03  macro
+- [ ] K031  ch03  with
+- [ ] K032  ch03  while
+- [ ] K033  ch03  \in on a variable declaration
+- [ ] K034  ch04  Invariant (as a TLA+ operator, checked at every state)
+- [ ] K035  ch04  define block (PlusCal)
+- [ ] K036  ch04  pc (PlusCal's label-tracking variable)
+- [ ] K037  ch04  \A (universal quantifier, "forall")
+- [ ] K038  ch04  \E (existential quantifier, "exists")
+- [ ] K039  ch05  CONSTANT
+- [ ] K040  ch05  ASSUME
+- [ ] K041  ch05  model value
+- [ ] K042  ch05  set of model values
+- [ ] K043  ch05  symmetry set
+- [ ] K044  ch06  struct literal
+- [ ] K045  ch06  struct set
+- [ ] K046  ch06  DOMAIN
+- [ ] K047  ch06  function literal
+- [ ] K048  ch06  :> (singleton function)
+- [ ] K049  ch06  @@ (function merge)
+- [ ] K050  ch06  function set
+- [ ] K051  ch07  nondeterministic with
+- [ ] K052  ch07  either-or
+- [ ] K053  ch08  process (single)
+- [ ] K054  ch08  pc[...] (multi-process pc)
+- [ ] K055  ch08  process-local variable
+- [ ] K056  ch08  process set
+- [ ] K057  ch08  self
+- [ ] K058  ch08  await
+- [ ] K059  ch08  deadlock (checking)
+- [ ] K060  ch08  procedure
+- [ ] K061  ch08  call
+- [ ] K062  ch08  return
+- [ ] K063  ch09  [] (always)
+- [ ] K064  ch09  PROPERTY (TLC model config: register a temporal property)
+- [ ] K065  ch09  fair process (weak fairness)
+- [ ] K066  ch09  fair+ (strong fairness)
+- [ ] K067  ch09  <> (eventually)
+- [ ] K068  ch09  <>[] (eventually always)
+- [ ] K069  ch09  []<> (always eventually)
+- [ ] K070  ch09  ~> (leads-to)
+- [ ] K071  ch10  RECURSIVE
+- [ ] K072  ch10  Higher-order operator parameter
+- [ ] K073  ch10  LAMBDA
+- [ ] K074  ch10  Custom binary operator
+- [ ] K075  ch10  Bracket function definition
+- [ ] K076  ch10  Recursive function definition
+- [ ] K077  ch10  CASE
+- [ ] K078  ch11  action property
+- [ ] K079  ch11  ' (prime, next-state value)
+- [ ] K080  ch11  [P]_x (box action formula)
+- [ ] K081  ch12  VARIABLE / VARIABLES
+- [ ] K082  ch12  vars (the all-variables tuple)
+- [ ] K083  ch12  Init / Next / Spec (the pure-TLA+ spec skeleton)
+- [ ] K084  ch12  action (formal definition)
+- [ ] K085  ch12  UNCHANGED
+- [ ] K086  ch12  nondeterministic action (\E form and disjunction form)
+- [ ] K087  ch12  EXCEPT
+- [ ] K088  ch12  @ (the original value, inside EXCEPT)
+- [ ] K089  ch12  ProcSet
+- [ ] K090  ch12  label-as-action encoding
+- [ ] K091  ch12  Trans helper action for pc transitions
+- [ ] K092  ch12  Terminating
+- [ ] K093  ch12  ENABLED
+- [ ] K094  ch12  <<A>>_v (angle action formula)
+- [ ] K095  ch12  WF_v(A) (weak fairness)
+- [ ] K096  ch12  SF_v(A) (strong fairness)
+- [ ] K097  ch12  fairness conjunct on Spec
+- [ ] K098  ch12  fairness on a subaction
+- [ ] K099  ch13  LOCAL (definition modifier)
+- [ ] K100  ch13  INSTANCE
+- [ ] K101  ch13  LOCAL INSTANCE
+- [ ] K102  ch13  named instance
+- [ ] K103  ch13  ! (namespace lookup)
+- [ ] K104  ch13  INSTANCE ... WITH (<- constant substitution)
+- [ ] K105  ch13  partial parameterization
