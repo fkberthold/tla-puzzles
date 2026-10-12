@@ -1062,9 +1062,29 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
       continue
     fi
 
+    # TLC's deadlock checking is an AND across the .cfg's CHECK_DEADLOCK
+    # keyword and verdict.sh's -d flag, and verdict.sh defaults -d OFF
+    # (harness/verdict.sh:25, :189-195). So an item whose cfg says
+    # CHECK_DEADLOCK TRUE and whose recorded rc is 11 cannot reproduce here
+    # unless the gate asks for the check too: verdict.sh refuses the
+    # disagreement at rc 99, CHECK_DID_NOT_RUN.
+    #
+    # That refusal is correct and it is how this bug was found, within an hour
+    # of the gate landing: four control-state items recorded rc 11 and the
+    # gate reported VERIFY-RC-MISMATCH ... TLC returned 99 rather than a
+    # silent 0. Pass -d when the cfg asks for it, and never strip the keyword
+    # from an item to make this green -- the keyword is the item's own
+    # statement that its terminal state is the subject. Bead tla-eafx reserved
+    # rc 99 for exactly this, and tla-pmm2's control-state author kept its
+    # keywords on purpose.
+    deadlock_args=()
+    if grep -qE '^[[:space:]]*CHECK_DEADLOCK[[:space:]]+TRUE' "$cfg"; then
+      deadlock_args=(-d)
+    fi
+
     got=0
     set +e
-    "$VERDICT" --timeout "$TIMEOUT" -q -c "$cfg" "$mod" >/dev/null 2>&1
+    "$VERDICT" --timeout "$TIMEOUT" -q "${deadlock_args[@]+"${deadlock_args[@]}"}" -c "$cfg" "$mod" >/dev/null 2>&1
     got=$?
     set -e
 
