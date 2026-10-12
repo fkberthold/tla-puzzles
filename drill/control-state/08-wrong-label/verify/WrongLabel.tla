@@ -1,5 +1,6 @@
----------------------------- MODULE CarWashC ---------------------------
-(* Neighbour C: Enter forgets to mark the bay busy.                      *)
+---------------------------- MODULE WrongLabel ---------------------------
+(* The spec that produced the trace in the prompt. Pay's pc update names *)
+(* the wrong label.                                                      *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,
           Arrived, Paid, Washing, Gone,
@@ -14,13 +15,14 @@ Init == /\ pc = [c \in Customers |-> Arrived]
 
 Pay(c) == /\ pc[c] = Arrived
           /\ till' = till + 1
-          /\ pc' = [pc EXCEPT ![c] = Paid]
+          /\ pc' = [pc EXCEPT ![c] = Washing]       \* should be Paid
           /\ UNCHANGED bay
 
 Enter(c) == /\ pc[c] = Paid
             /\ bay = Free
+            /\ bay' = Busy
             /\ pc' = [pc EXCEPT ![c] = Washing]
-            /\ UNCHANGED <<bay, till>>               \* bay stays Free
+            /\ UNCHANGED till
 
 Leave(c) == /\ pc[c] = Washing
             /\ bay' = Free

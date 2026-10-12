@@ -152,3 +152,13 @@ the rule fails, that the supervisor's change is the atomic encoding, and
 the verdict under either. The sentence "that is the end of the shift, not
 an error" hints at deadlock handling, which is a different lesson and had
 to be defused somehow in a ten-minute item.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| TwoStep.tla | TwoStep.cfg | rc 12 | 9 |
+| Atomic.tla | Atomic.cfg | rc 0 | 3 |

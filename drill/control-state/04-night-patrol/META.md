@@ -4,24 +4,37 @@
 - shape: prose situation with a fairness statement in prose, one liveness property, a diagnosis instruction for the counter-example case, and a closing question about whether the position belongs in the state and in the fairness statement
 - time: 10 minutes
 - shows TLA+ in the prompt: no
-- two encodings measured: yes, `vars` with the position (rc 0, 8 states) and without it (rc 13, 8 states, stuttering)
+- two encodings measured: yes, the tuple with the position (rc 0, 8 states) and without it (rc 13, 8 states, stuttering)
 
 ## Constructs exercised
 
-Named as `drill/INVENTORY.md` field 4 writes them.
+One per bullet, spelled as `drill/INVENTORY.md` field 4 spells it.
 
-| id | construct | where |
-|---|---|---|
-| K082 | vars (the all-variables tuple) | the whole item: it must cover the control variable |
-| K080 | `[P]_x` (box action formula) | the spec skeleton |
-| K095 | `WF_v(A)` (weak fairness) | "never stops for good" |
-| K094 | `<<A>>_v` (angle action formula) | why the slipped tuple cannot see `Walk`, in the answer |
-| K036 | `pc` (PlusCal's label-tracking variable) | hand-rolled as `pos`, a scalar |
-| K090 | label-as-action encoding | `Walk` is the pure control-advance action |
-| K067 | `<>` (eventually) | `WholeRound` |
-| K085 | UNCHANGED | both actions |
-| K015 | BOOLEAN and integer interval as sets | `1..N` |
-| K013 | Set relational and algebraic operators | `\cup`, `\notin` |
+- vars (the all-variables tuple)
+- [P]_x (box action formula)
+- WF_v(A) (weak fairness)
+- <<A>>_v (angle action formula)
+- pc (PlusCal's label-tracking variable)
+- label-as-action encoding
+- <> (eventually)
+- UNCHANGED
+- BOOLEAN and integer interval as sets
+- Set relational and algebraic operators
+
+## Where each lands
+
+| what | where |
+|---|---|
+| the all-variables tuple | the whole item: it must cover the control variable |
+| the box action | the spec skeleton |
+| weak fairness | "never stops for good" |
+| the angle action | why the slipped tuple cannot see `Walk`, in the answer |
+| the label-tracking variable | hand-rolled as `pos`, a scalar |
+| label-as-action | `Walk` is the pure control-advance action |
+| eventually | `WholeRound` |
+| UNCHANGED | both actions |
+| the integer interval | `1..N` |
+| the set operators | union and non-membership in `Log` and `Walk` |
 
 ## The lesson in one line
 

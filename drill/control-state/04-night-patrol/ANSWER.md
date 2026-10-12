@@ -51,7 +51,7 @@ mention the position cannot see `Walk` happen, so cannot force it.
 
 ## The slip, and the trace it produces
 
-`verify/PatrolSlip.tla` is the same module with one line changed:
+`verify/SlipTuple.tla` is the same module with one line changed:
 
 ```tla
 vars == <<logged>>
@@ -59,7 +59,7 @@ vars == <<logged>>
 
 Everything else is identical, including `[][Next]_vars /\ WF_vars(Next)`.
 **Measured: rc 13, `WholeRound` violated, 8 distinct states**
-(`verify-all.sh` row `04-PatrolSlip`). Same state count as the correct
+(`verify-all.sh` row `04-SlipTuple`). Same state count as the correct
 spec, which is the first thing to notice: TLC generated the same graph.
 The difference is entirely in what fairness forces.
 
@@ -133,3 +133,13 @@ without showing code, so it is built the other way round, as a correct
 answer with the slip's trace alongside for the reader who made it. The
 instruction "say at which state the guard stopped and what the guard was
 able to do there" is the diagnosis step, pre-written for whoever needs it.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| SlipTuple.tla | SlipTuple.cfg | rc 13 | 8 |
+| Patrol.tla | Patrol.cfg | rc 0 | 8 |

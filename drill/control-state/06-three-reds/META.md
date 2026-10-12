@@ -8,21 +8,33 @@
 
 ## Constructs exercised
 
-Named as `drill/INVENTORY.md` field 4 writes them.
+One per bullet, spelled as `drill/INVENTORY.md` field 4 spells it.
 
-| id | construct | where |
-|---|---|---|
-| K036 | `pc` (PlusCal's label-tracking variable) | hand-rolled scalar, five labels |
-| K090 | label-as-action encoding | one action per transition, loop closed by `pc' = Start` |
-| K092 | Terminating | two intended ends under one disjunct |
-| K059 | deadlock (checking) | the config-switch alternative, measured |
-| K002 | IF-THEN-ELSE | the branch in `SeeRed` |
-| K079 | `'` (prime, next-state value) | `reds'` on the right-hand side of the branch |
-| K078 | action property | `HandsOff` |
-| K080 | `[P]_x` (box action formula) | `HandsOff` as a `PROPERTY`, not only the spec |
-| K064 | PROPERTY (TLC model config: register a temporal property) | `HandsOff` |
-| K007 | Booleans and logical operators | `<=>` in `ThreeRedsExactly` |
-| K041 | model value | labels |
+- pc (PlusCal's label-tracking variable)
+- label-as-action encoding
+- Terminating
+- deadlock (checking)
+- IF-THEN-ELSE
+- ' (prime, next-state value)
+- action property
+- [P]_x (box action formula)
+- PROPERTY (TLC model config: register a temporal property)
+- Booleans and logical operators
+- model value
+
+## Where each lands
+
+| what | where |
+|---|---|
+| the label-tracking variable | hand-rolled scalar, five labels |
+| label-as-action | one action per transition, loop closed by `pc' = Start` |
+| Terminating | two intended ends under one disjunct |
+| deadlock checking | the config-switch alternative, measured |
+| IF-THEN-ELSE | the branch in `SeeRed` |
+| the prime | `reds'` on the right-hand side of the branch |
+| the action property and the box action | `HandsOff`, registered as a `PROPERTY` |
+| the logical operators | the equivalence in `ThreeRedsExactly` |
+| model values | labels |
 
 ## The lesson in one line
 

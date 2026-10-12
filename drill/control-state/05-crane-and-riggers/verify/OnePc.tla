@@ -1,4 +1,4 @@
----------------------------- MODULE CraneOnePc -------------------------
+---------------------------- MODULE OnePc -------------------------
 (* The same site with the translator's shape: one pc over the union of  *)
 (* every process identity, riggers and crane alike.                      *)
 CONSTANTS Riggers, TheCrane,

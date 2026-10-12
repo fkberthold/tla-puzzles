@@ -1,4 +1,4 @@
----------------------------- MODULE CraneUnguarded ---------------------
+---------------------------- MODULE Unguarded ---------------------
 (* Crane.tla with the one guard a hurried author drops: Lift no longer   *)
 (* checks that nobody is still Hooked.                                   *)
 CONSTANTS Riggers,

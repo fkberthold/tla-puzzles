@@ -8,22 +8,34 @@
 
 ## Constructs exercised
 
-Named as `drill/INVENTORY.md` field 4 writes them.
+One per bullet, spelled as `drill/INVENTORY.md` field 4 spells it.
 
-| id | construct | where |
-|---|---|---|
-| K091 | `Trans` helper action for `pc` transitions | the whole item |
-| K089 | ProcSet | domain of `pc`, range of the `\A` in `Terminating` |
-| K090 | label-as-action encoding | six actions, six transitions |
-| K092 | Terminating | the intended end |
-| K054 | `pc[...]` (multi-process pc) | guards and updates |
-| K036 | `pc` (PlusCal's label-tracking variable) | hand-rolled, and the only variable |
-| K019 | Set filter | `At(label)` |
-| K014 | Cardinality | both rules and the chair guard |
-| K001 | Operator definition | `At`, `Trans` as parameterised operators |
-| K038 | `\E` (existential quantifier, "exists") | `Next` |
-| K041 | model value | labels |
-| K042 | set of model values | `Donors` |
+- Trans helper action for pc transitions
+- ProcSet
+- label-as-action encoding
+- Terminating
+- pc[...] (multi-process pc)
+- pc (PlusCal's label-tracking variable)
+- Set filter
+- Cardinality
+- Operator definition
+- \E (existential quantifier, "exists")
+- model value
+- set of model values
+
+## Where each lands
+
+| what | where |
+|---|---|
+| the helper | the whole item |
+| ProcSet | domain of `pc`, range of the quantifier in `Terminating` |
+| label-as-action | six actions, six transitions |
+| Terminating | the intended end |
+| the label-tracking variable | hand-rolled, and the only variable |
+| the set filter and Cardinality | `At(label)`, both rules, the chair guard |
+| operator definitions | `At`, `Trans` as parameterised operators |
+| the existential | `Next` |
+| model values | labels, `Donors` |
 
 ## The lesson in one line
 

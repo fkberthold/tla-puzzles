@@ -1,6 +1,5 @@
----------------------------- MODULE CarWashB ---------------------------
-(* Neighbour B: Pay rebuilds pc for every customer instead of updating   *)
-(* the payer's entry.                                                    *)
+---------------------------- MODULE BayFree ---------------------------
+(* Neighbour C: Enter forgets to mark the bay busy.                      *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,
           Arrived, Paid, Washing, Gone,
@@ -15,14 +14,13 @@ Init == /\ pc = [c \in Customers |-> Arrived]
 
 Pay(c) == /\ pc[c] = Arrived
           /\ till' = till + 1
-          /\ pc' = [d \in Customers |-> Paid]        \* not EXCEPT
+          /\ pc' = [pc EXCEPT ![c] = Paid]
           /\ UNCHANGED bay
 
 Enter(c) == /\ pc[c] = Paid
             /\ bay = Free
-            /\ bay' = Busy
             /\ pc' = [pc EXCEPT ![c] = Washing]
-            /\ UNCHANGED till
+            /\ UNCHANGED <<bay, till>>               \* bay stays Free
 
 Leave(c) == /\ pc[c] = Washing
             /\ bay' = Free

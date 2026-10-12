@@ -65,7 +65,7 @@ scalar because there is one.
 
 ## The translator's shape: one function over everyone
 
-`verify/CraneOnePc.tla`. PlusCal would give the crane a process identity
+`verify/OnePc.tla`. PlusCal would give the crane a process identity
 and put every label in one function over `ProcSet`.
 
 ```tla
@@ -82,7 +82,7 @@ Lift == /\ pc[TheCrane] = Parked
 ```
 
 **Measured: rc 0, 12 distinct states** (`verify-all.sh` row
-`05-CraneOnePc`). Identical count, identical verdict. The two encodings
+`05-OnePc`). Identical count, identical verdict. The two encodings
 are the same model with the state tuple drawn differently.
 
 Which to write by hand: the first. The union-domain `pc` exists because
@@ -100,7 +100,7 @@ worth not reproducing.
 | one `pc` over `ProcSet` | `pc` (function over riggers and crane) | 12 | 0 |
 | one site-wide phase | `phase` (scalar) | 3 | 0, and cannot state the rule |
 
-The third row is `verify/CraneLazy.tla`, the lazy neighbour measured for
+The third row is `verify/SitePhase.tla`, the lazy neighbour measured for
 completeness: `Rigging -> Rigged -> Lifting -> Rigging`. It passes TLC
 because its config has no invariant, and it has no invariant because the
 rule cannot be written: "a rigger is at the load" is not a state the model
@@ -108,9 +108,9 @@ has.
 
 ## The rule is real
 
-`verify/CraneUnguarded.tla` is `Crane.tla` with the `\A r : rig[r] /=
+`verify/Unguarded.tla` is `Crane.tla` with the `\A r : rig[r] /=
 Hooked` conjunct dropped from `Lift`. **Measured: rc 12,
-`NobodyUnderTheHook` violated** (`verify-all.sh` row `05-CraneUnguarded`):
+`NobodyUnderTheHook` violated** (`verify-all.sh` row `05-Unguarded`):
 
 | state | action | r1 | r2 | crane |
 |---|---|---|---|---|
@@ -141,9 +141,9 @@ state, which is the thing a per-process label is for.
 
 | neighbour answer | what kills it |
 |---|---|
-| one site-wide phase (`CraneLazy.tla`) | row 1 of the table, and the rule cannot be written at all. |
+| one site-wide phase (`SitePhase.tla`) | row 1 of the table, and the rule cannot be written at all. |
 | one label per rigger, no crane state, `Lift` as a pure guard check | row 3: "the crane is lifting while both riggers stand clear" is a state, and `Hook` must be disabled in it. Without a crane label there is nothing to disable it on. |
-| `Lift` without the Hooked guard (`CraneUnguarded.tla`) | the trace above, rc 12. |
+| `Lift` without the Hooked guard (`Unguarded.tla`) | the trace above, rc 12. |
 | `Hook` without the `crane = Parked` guard | a rigger hooks on during a lift. The rule fails at the next state (INFERRED, not run). |
 
 ## why-not-in-prompt
@@ -156,3 +156,15 @@ caught by TLC, only by the table's first row and by that question, and
 the first row alone has been read past before. The word "procedure" in
 both the rigger's and the crane's description does the rest of the
 telegraphing: it says they each have one.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| OnePc.tla | OnePc.cfg | rc 0 | 12 |
+| SitePhase.tla | SitePhase.cfg | rc 0 | 3 |
+| Unguarded.tla | Unguarded.cfg | rc 12 | 12 |
+| Crane.tla | Crane.cfg | rc 0 | 12 |

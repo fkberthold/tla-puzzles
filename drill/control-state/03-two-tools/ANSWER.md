@@ -49,8 +49,8 @@ action, because waiting changes nothing.
 ## What TLC says first
 
 With `Spec == Init /\ [][Work]_vars` and nothing about the end of the day
-(`verify/Agreed-Bare.cfg`): **rc 11, deadlock reached, 12 distinct
-states** (`verify-all.sh` row `03-Agreed-Bare`). The trace is seven states
+(`verify/DayBare.cfg`): **rc 11, deadlock reached, 12 distinct
+states** (`verify-all.sh` row `03-DayBare`). The trace is seven states
 long and ends at `pc = (a :> Done @@ b :> Done)` with both tools on the
 rack. That is the intended end, reported as a fault.
 
@@ -70,12 +70,12 @@ Next == Work \/ Terminating
 Spec == Init /\ [][Next]_vars
 ```
 
-`verify/Agreed-Term.cfg`: **rc 0, 12 distinct states.** The quantifier
+`verify/Agreed.cfg`: **rc 0, 12 distinct states.** The quantifier
 ranges over `ProcSet`, which is why that set gets a name even when it is
 just `Techs`.
 
 **The config switch.** Leave the spec alone and write `CHECK_DEADLOCK
-FALSE` in the config. `verify/Agreed-NoDL.cfg`: **rc 0, 12 distinct
+FALSE` in the config. `verify/DayNoDL.cfg`: **rc 0, 12 distinct
 states.**
 
 Same verdict, same count, and on the agreed procedure nothing tells them
@@ -91,9 +91,9 @@ two named actions. Nothing else moves.
 
 | end-of-day treatment | config | rc | what TLC says |
 |---|---|---|---|
-| `Terminating` disjunct | `NewHire-Term.cfg` | **11** | deadlock after 3 states: `a` holds the ladder, `b` holds the meter, each waiting for the other |
-| `CHECK_DEADLOCK FALSE` | `NewHire-NoDL.cfg` | **0** | nothing. 13 distinct states, invariant holds |
-| `CHECK_DEADLOCK FALSE` plus a liveness property | `NewHire-Live.cfg` | **13** | `DayEnds` violated, stuttering at the same state |
+| `Terminating` disjunct | `NewHire.cfg` | **11** | deadlock after 3 states: `a` holds the ladder, `b` holds the meter, each waiting for the other |
+| `CHECK_DEADLOCK FALSE` | `RookieNoDL.cfg` | **0** | nothing. 13 distinct states, invariant holds |
+| `CHECK_DEADLOCK FALSE` plus a liveness property | `RookieLive.cfg` | **13** | `DayEnds` violated, stuttering at the same state |
 
 The trace under `Terminating`:
 
@@ -130,7 +130,7 @@ three:
 
 | treatment | agreed order | new hire |
 |---|---|---|
-| nothing | rc 11 on the intended end (`verify-all.sh` row `03-Agreed-Bare`) | rc 11 on the real deadlock (row `03-NewHire-Bare`. The lock deadlock sits at depth 2 and the intended end at depth 6, and breadth-first search reports the shallower) |
+| nothing | rc 11 on the intended end (`verify-all.sh` row `03-DayBare`) | rc 11 on the real deadlock (row `03-RookieBare`. The lock deadlock sits at depth 2 and the intended end at depth 6, and breadth-first search reports the shallower) |
 | `Terminating` | rc 0 | rc 11 on the real deadlock |
 | `CHECK_DEADLOCK FALSE` | rc 0 | rc 0 |
 
@@ -152,7 +152,7 @@ three:
 
 | neighbour answer | what kills it |
 |---|---|
-| `CHECK_DEADLOCK FALSE` offered as the only treatment | the new hire: rc 0 on a real deadlock, measured in `NewHire-NoDL.cfg`. |
+| `CHECK_DEADLOCK FALSE` offered as the only treatment | the new hire: rc 0 on a real deadlock, measured in `RookieNoDL.cfg`. |
 | `Terminating` enabled whenever *anyone* is `Done` | not killed by the agreed order. On the new hire it still reports rc 11, because nobody is `Done` in the deadlocked state (INFERRED, not run). It is wrong for the other reason: a day on which `a` is done and `b` is stuck forever would be accepted. |
 | a `Waiting` label the technician moves to when the tool is out | admits a step that changes nothing but `pc`. Not wrong, and the verdicts are the same, but it is the item 02 cost for no information: "waiting for the ladder" is `pc = Idle /\ holder[Ladder] /= Nobody`, already in the state. |
 | `BothInHand` as `pc[t] = HasBoth => holder[Ladder] /= Nobody` | passes (INFERRED), and says nothing: the ladder could be in the other technician's hand. The rule is about *whose* hand. |
@@ -170,3 +170,20 @@ both halves and learns nothing. The last sentence, "whether the way you
 dealt with the end of the day had anything to do with what it said", is
 the lesson asked as a question, and it is asked after the second run, so
 the answer is already on the screen when he reads it.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage. `DayBare`, `DayNoDL` and the
+three `Rookie*` modules are one-line `EXTENDS` wrappers so that each config
+has a module of its own.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| DayBare.tla | DayBare.cfg | rc 11 | 12 |
+| DayNoDL.tla | DayNoDL.cfg | rc 0 | 12 |
+| RookieBare.tla | RookieBare.cfg | rc 11 | 7 |
+| RookieNoDL.tla | RookieNoDL.cfg | rc 0 | 13 |
+| RookieLive.tla | RookieLive.cfg | rc 13 | 13 |
+| NewHire.tla | NewHire.cfg | rc 11 | 7 |
+| Agreed.tla | Agreed.cfg | rc 0 | 12 |

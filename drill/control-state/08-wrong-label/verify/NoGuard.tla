@@ -1,6 +1,5 @@
----------------------------- MODULE CarWashE ---------------------------
-(* The spec that produced the trace in the prompt. Pay's pc update names *)
-(* the wrong label.                                                      *)
+---------------------------- MODULE NoGuard ---------------------------
+(* Neighbour A: Enter has no pc guard at all.                            *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,
           Arrived, Paid, Washing, Gone,
@@ -15,11 +14,10 @@ Init == /\ pc = [c \in Customers |-> Arrived]
 
 Pay(c) == /\ pc[c] = Arrived
           /\ till' = till + 1
-          /\ pc' = [pc EXCEPT ![c] = Washing]       \* should be Paid
+          /\ pc' = [pc EXCEPT ![c] = Paid]
           /\ UNCHANGED bay
 
-Enter(c) == /\ pc[c] = Paid
-            /\ bay = Free
+Enter(c) == /\ bay = Free                            \* no pc[c] = Paid
             /\ bay' = Busy
             /\ pc' = [pc EXCEPT ![c] = Washing]
             /\ UNCHANGED till

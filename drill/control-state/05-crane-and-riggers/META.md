@@ -8,21 +8,34 @@
 
 ## Constructs exercised
 
-Named as `drill/INVENTORY.md` field 4 writes them.
+One per bullet, spelled as `drill/INVENTORY.md` field 4 spells it.
 
-| id | construct | where |
-|---|---|---|
-| K054 | `pc[...]` (multi-process pc) | `rig[r]`, and `pc[r]` in the union encoding |
-| K089 | ProcSet | `Riggers \cup {TheCrane}` in the union encoding, and why hand-written TLA+ does not need it |
-| K036 | `pc` (PlusCal's label-tracking variable) | hand-rolled, in two shapes |
-| K090 | label-as-action encoding | every action owns one label transition |
-| K038 | `\E` (existential quantifier, "exists") | `Lift`'s "somebody has rigged" |
-| K037 | `\A` (universal quantifier, "forall") | `Lift`'s "nobody is still at it", and the rule |
-| K009 | Implication | the rule |
-| K002 | IF-THEN-ELSE | `Init` in the union encoding |
-| K041 | model value | labels, `TheCrane` |
-| K042 | set of model values | `Riggers` |
-| K040 | ASSUME | `TheCrane \notin Riggers` |
+- pc[...] (multi-process pc)
+- ProcSet
+- pc (PlusCal's label-tracking variable)
+- label-as-action encoding
+- \E (existential quantifier, "exists")
+- \A (universal quantifier, "forall")
+- Implication
+- IF-THEN-ELSE
+- model value
+- set of model values
+- ASSUME
+
+## Where each lands
+
+| what | where |
+|---|---|
+| the multi-process form | `rig[r]`, and `pc[r]` in the union encoding |
+| ProcSet | `Riggers \cup {TheCrane}` in the union encoding, and why hand-written TLA+ does not need it |
+| the label-tracking variable | hand-rolled, in two shapes |
+| label-as-action | every action owns one label transition |
+| the existential | `Lift`'s "somebody has rigged" |
+| the universal | `Lift`'s "nobody is still at it", and the rule |
+| implication | the rule |
+| IF-THEN-ELSE | `Init` in the union encoding |
+| model values | labels, `TheCrane`, `Riggers` |
+| ASSUME | `TheCrane \notin Riggers` |
 
 ## The lesson in one line
 

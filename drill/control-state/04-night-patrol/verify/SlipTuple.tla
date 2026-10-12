@@ -1,4 +1,4 @@
----------------------------- MODULE PatrolSlip -------------------------
+---------------------------- MODULE SlipTuple -------------------------
 (* The same spec with one slip: the subscript tuple leaves out pos.      *)
 EXTENDS Naturals
 CONSTANT N

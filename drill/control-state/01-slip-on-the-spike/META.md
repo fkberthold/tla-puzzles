@@ -8,20 +8,30 @@
 
 ## Constructs exercised
 
-Named as `drill/INVENTORY.md` field 4 writes them.
+One per bullet, spelled as `drill/INVENTORY.md` field 4 spells it.
 
-| id | construct | where |
-|---|---|---|
-| K036 | `pc` (PlusCal's label-tracking variable) | hand-rolled, a function from picker to label |
-| K054 | `pc[...]` (multi-process pc) | the guard and update in each action |
-| K090 | label-as-action encoding | `Glance` and `Fetch` each own one label |
-| K041 | model value | every label and both slip positions |
-| K042 | set of model values | `Pickers` |
-| K087 | EXCEPT | the pc update |
-| K080 | `[P]_x` (box action formula) | the spec skeleton |
-| K082 | vars (the all-variables tuple) | covers pc |
-| K059 | deadlock (checking) | `CHECK_DEADLOCK FALSE`, and why that is the right call here |
-| K037 | `\A` (universal quantifier, "forall") | the property |
+- pc (PlusCal's label-tracking variable)
+- pc[...] (multi-process pc)
+- label-as-action encoding
+- model value
+- set of model values
+- EXCEPT
+- [P]_x (box action formula)
+- vars (the all-variables tuple)
+- deadlock (checking)
+- \A (universal quantifier, "forall")
+
+## Where each lands
+
+| what | where |
+|---|---|
+| the label-tracking variable | hand-rolled, a function from picker to label |
+| the multi-process form | the guard and update in each action |
+| label-as-action | `Glance` and `Fetch` each own one label |
+| model values | every label and both slip positions, and `Pickers` |
+| the box action and the tuple | the spec skeleton, with the tuple covering the control variable |
+| deadlock checking | `CHECK_DEADLOCK FALSE`, and why that is the right call here |
+| the universal quantifier | the property |
 
 ## The lesson in one line
 

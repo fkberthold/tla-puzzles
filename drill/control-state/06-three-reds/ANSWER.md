@@ -77,13 +77,13 @@ different next steps at each.
 ## The two ends
 
 Both `Fixed` and `Escalated` are terminal. Without the `Terminating`
-disjunct (`verify/Reboot-Bare.cfg`, which checks `BareSpec == Init /\
+disjunct (`verify/EndsBare.cfg`, which checks `BareSpec == Init /\
 [][Work]_vars`): **rc 11, deadlock reached, 5 distinct states**
-(`verify-all.sh` row `06-Reboot-Bare`). The trace is the first row of the
+(`verify-all.sh` row `06-EndsBare`). The trace is the first row of the
 table, four states ending at `pc = Fixed`, reported as a fault.
 
-With `CHECK_DEADLOCK FALSE` instead of the disjunct (`verify/Reboot-NoDL.cfg`):
-**rc 0, 13 distinct states** (row `06-Reboot-NoDL`). Same verdict as the
+With `CHECK_DEADLOCK FALSE` instead of the disjunct (`verify/EndsNoDL.cfg`):
+**rc 0, 13 distinct states** (row `06-EndsNoDL`). Same verdict as the
 disjunct here, because this procedure has no stuck state that is not an
 intended end. Item 03 is the case where the two differ.
 
@@ -93,7 +93,7 @@ states TLC has already seen (17 generated against 13), and no new ones.
 
 ## The off-by-one neighbour
 
-`verify/RebootLate.tla` tests the count before bumping it:
+`verify/OffByOne.tla` tests the count before bumping it:
 
 ```tla
 SeeRed == /\ pc = Booting
@@ -102,7 +102,7 @@ SeeRed == /\ pc = Booting
 ```
 
 **Measured: rc 12, `ThreeRedsExactly` violated, 13 distinct states** (row
-`06-RebootLate`). The trace runs ten states: three full power cycles, three
+`06-OffByOne`). The trace runs ten states: three full power cycles, three
 reds, and in state 10 `reds = 3` with `pc = Start`, which is a fourth
 power cycle about to begin. The third row of the prompt's table together
 with "never a fourth power cycle" is what forecloses it. `AtMostThreeReds`
@@ -132,7 +132,7 @@ equivalence and not as an implication.
 
 | neighbour answer | what kills it |
 |---|---|
-| test-before-bump (`RebootLate.tla`) | rc 12, `ThreeRedsExactly` at state 10. Row 3 plus rule 1. |
+| test-before-bump (`OffByOne.tla`) | rc 12, `ThreeRedsExactly` at state 10. Row 3 plus rule 1. |
 | escalate when `reds` reaches 3 at `CutPower` | not killed by the table. It is the `cycles` variant with a different name and is acceptable (INFERRED). |
 | no `Terminating` and no config switch | rc 11 on `pc = Fixed`, measured. An intended end reported as a fault. |
 | an `Amber` action that moves the label somewhere | adds states for a step that changes nothing. Not wrong. The item 02 cost for no information. |
@@ -151,3 +151,16 @@ a non-step, since it is the only outcome with no instruction attached.
 The table's third row carries "and nothing happens after", which is the
 `HandsOff` rule stated as a behaviour and a nudge toward an action
 property.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage. `EndsBare` and `EndsNoDL`
+are one-line `EXTENDS` wrappers so that each config has a module of its own.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| EndsBare.tla | EndsBare.cfg | rc 11 | 5 |
+| EndsNoDL.tla | EndsNoDL.cfg | rc 0 | 13 |
+| OffByOne.tla | OffByOne.cfg | rc 12 | 13 |
+| Reboot.tla | Reboot.cfg | rc 0 | 13 |

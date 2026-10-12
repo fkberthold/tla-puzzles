@@ -1,4 +1,4 @@
----------------------------- MODULE DonorsRush -------------------------
+---------------------------- MODULE RushDesk -------------------------
 (* The neighbour with the nurse guard dropped: CallIn no longer looks at *)
 (* anyone else's control state.                                          *)
 EXTENDS Naturals, FiniteSets

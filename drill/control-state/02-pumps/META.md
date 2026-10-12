@@ -4,26 +4,37 @@
 - shape: a handbook extract, two rules, a four-row behaviour table with two foreclosing rows, and a closing question about what records the position in the procedure
 - time: 10 minutes
 - shows TLA+ in the prompt: no
-- two encodings measured: yes, switches only (rc 0, 26 states) and a label per pump (rc 0, 63 states)
+- two encodings measured: yes, switches only (rc 0, 26 states) and a label per pump (rc 0, 63 states), plus the switches-only neighbour with a guard dropped (rc 12)
 
 ## Constructs exercised
 
-Named as `drill/INVENTORY.md` field 4 writes them.
+One per bullet, spelled as `drill/INVENTORY.md` field 4 spells it.
 
-| id | construct | where |
-|---|---|---|
-| K036 | `pc` (PlusCal's label-tracking variable) | the thing deliberately not written, and measured when it is |
-| K086 | nondeterministic action (\E form and disjunction form) | `Next` |
-| K084 | action (formal definition) | four guarded actions per pump |
-| K047 | function literal | `Init` |
-| K050 | function set | the shape of `inlet` and `motor` |
-| K087 | EXCEPT | every update |
-| K085 | UNCHANGED | every action |
-| K014 | Cardinality | the budget guard and rule |
-| K019 | Set filter | `Running` |
-| K037 | `\A` (universal quantifier, "forall") | `NeverDry` |
-| K039 | CONSTANT | `Pumps`, `Budget` |
-| K042 | set of model values | `Pumps` |
+- pc (PlusCal's label-tracking variable)
+- nondeterministic action (\E form and disjunction form)
+- action (formal definition)
+- function literal
+- function set
+- EXCEPT
+- UNCHANGED
+- Cardinality
+- Set filter
+- \A (universal quantifier, "forall")
+- CONSTANT
+- set of model values
+
+## Where each lands
+
+| what | where |
+|---|---|
+| the label-tracking variable | the thing deliberately not written, and measured when it is |
+| the nondeterministic action | `Next` |
+| the actions | four guarded actions per pump |
+| function literal and function set | `Init`, and the shape of `inlet` and `motor` |
+| EXCEPT and UNCHANGED | every update |
+| Cardinality and the set filter | `Running`, the budget guard, and the budget rule |
+| the universal quantifier | `NeverDry` |
+| the constants | `Pumps`, `Budget` |
 
 ## The lesson in one line
 

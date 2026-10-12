@@ -12,7 +12,7 @@ Two rules.
 
 Somebody has written a specification of this in raw TLA+, with one label
 per step of the visit, and TLC reports that the first rule is violated.
-Here is the trace, for two customers. Each customer's column is where they
+Here is the trace, for two customers. The column for each customer is where they
 are in the visit.
 
 | state | what happened | customer 1 | customer 2 | bay | till |

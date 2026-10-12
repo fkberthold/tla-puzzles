@@ -82,9 +82,9 @@ recognisable, not because `Donors` would not do.
 
 ## The nurse guard is real
 
-`verify/DonorsRush.tla` drops `At(Screening) = {}` from `CallIn`.
+`verify/RushDesk.tla` drops `At(Screening) = {}` from `CallIn`.
 **Measured: rc 12, `OneAtTheDesk` violated** (`verify-all.sh` row
-`07-DonorsRush`):
+`07-RushDesk`):
 
 | state | action | d1 | d2 | d3 |
 |---|---|---|---|---|
@@ -124,7 +124,7 @@ helper and worth knowing before the first long trace.
 
 | neighbour answer | what kills it |
 |---|---|
-| `CallIn` without the nurse guard (`DonorsRush.tla`) | rc 12 at state 3, above. |
+| `CallIn` without the nurse guard (`RushDesk.tla`) | rc 12 at state 3, above. |
 | `Sit` without the chair guard | `NoStandingDonors` fails once three donors are cleared and seated (INFERRED, not run). Row 2 is also unreachable, since nobody ever waits. |
 | one session-wide phase | row 1: three donors at three different steps. |
 | `Pass` straight to `Donating` with the chair guard | row 2 is unreachable: nobody is ever cleared and waiting. |
@@ -145,3 +145,13 @@ than requiring.
 The table's first row, three donors at three different steps, telegraphs
 "per donor" the way item 05's first row telegraphs "per rigger". That is
 the price of foreclosing a single phase.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| RushDesk.tla | RushDesk.cfg | rc 12 | 7 |
+| Donors.tla | Donors.cfg | rc 0 | 199 |

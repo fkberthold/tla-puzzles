@@ -1,5 +1,6 @@
----------------------------- MODULE CarWashA ---------------------------
-(* Neighbour A: Enter has no pc guard at all.                            *)
+---------------------------- MODULE Rebuilt ---------------------------
+(* Neighbour B: Pay rebuilds pc for every customer instead of updating   *)
+(* the payer's entry.                                                    *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,
           Arrived, Paid, Washing, Gone,
@@ -14,10 +15,11 @@ Init == /\ pc = [c \in Customers |-> Arrived]
 
 Pay(c) == /\ pc[c] = Arrived
           /\ till' = till + 1
-          /\ pc' = [pc EXCEPT ![c] = Paid]
+          /\ pc' = [d \in Customers |-> Paid]        \* not EXCEPT
           /\ UNCHANGED bay
 
-Enter(c) == /\ bay = Free                            \* no pc[c] = Paid
+Enter(c) == /\ pc[c] = Paid
+            /\ bay = Free
             /\ bay' = Busy
             /\ pc' = [pc EXCEPT ![c] = Washing]
             /\ UNCHANGED till

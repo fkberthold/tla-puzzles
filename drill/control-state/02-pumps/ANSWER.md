@@ -131,7 +131,7 @@ label is carrying history the data does not, and it earns its place.
 | one site-wide position in the procedure (the operator does one pump at a time) | row 2: two pumps mid-start at once. A single label cannot hold both. |
 | a strict four-step cycle per pump, `Offline -> GoingUp -> Online -> GoingDown -> Offline` | row 3: open then close with no start. The cycle has no edge from `GoingUp` back to `Offline`. Row 4 kills it a second time: no edge from `GoingDown` to `Online`. |
 | a label per pump with the backward edges added (`Phases.tla`) | not killed by the table, and TLC passes it. Killed only by the state count and by the question at the end of the prompt. 63 against 26 for the same verdicts. |
-| switches only, but `CloseInlet` without the `~motor[p]` guard | `NeverDry` fails, rc 12 (INFERRED from the guard's role, not run). The handbook's "stop the motor, then close the inlet" is this guard. |
+| switches only, but `CloseInlet` without the `~motor[p]` guard (`DryMotor.tla`) | `NeverDry` fails, rc 12, measured. The handbook's "stop the motor, then close the inlet" is this guard. |
 | switches only, but `StartMotor` without the budget guard | `WithinBudget` fails, rc 12 (INFERRED, not run). |
 
 ## why-not-in-prompt
@@ -148,3 +148,14 @@ written, so he has already chosen by the time he reads it.
 The table's rows 3 and 4 are there to kill the strict cycle, and they
 read as "the procedure is not really a sequence", which is the lesson
 stated sideways.
+
+## Measured runs
+
+Every row is a line of `drill/control-state/verify-all.sh`. One config per
+module, run with one worker, no trace spillage.
+
+| module | config | rc | distinct states |
+|---|---|---|---|
+| Phases.tla | Phases.cfg | rc 0 | 63 |
+| DryMotor.tla | DryMotor.cfg | rc 12 | 11 |
+| Switches.tla | Switches.cfg | rc 0 | 26 |
