@@ -326,6 +326,24 @@ say()       { [ "$QUIET" = "1" ] || printf '%s\n' "$1"; }
 finding()   { printf 'FINDING   %-28s %-44s %s\n' "$1" "$2" "$3"; finding_n=$((finding_n + 1)); }
 unchecked() { printf 'UNCHECKED %-28s %-44s %s\n' "$1" "$2" "$3"; unchecked_n=$((unchecked_n + 1)); }
 
+# declared <kind> <where> <why>: a check this gate CATEGORICALLY cannot run,
+# as distinct from one that could not run TODAY.
+#
+# The difference is the whole point and it decides the exit code. UNCHECKED
+# means the instrument failed and somebody should fix it, so it escalates to
+# rc 99, CHECK_DID_NOT_RUN. DECLARED means the claim is not of a kind this
+# gate can see, the item says so and carries its own measurement, and no
+# amount of fixing the gate will change that. It prints and does not escalate.
+#
+# Conflating the two is the defect bead tla-hl96 is about, arriving from the
+# other side: an instrument that cannot tell a permanent fact from today's
+# breakage either cries wolf forever or goes quiet about a real failure. The
+# refutation-coverage gate drew the same line this morning, between a
+# traces/NONE.md that declares and explains an absence and a directory nobody
+# has filled yet.
+declared_n=0
+declared() { printf 'DECLARED  %-28s %-44s %s\n' "$1" "$2" "$3"; declared_n=$((declared_n + 1)); }
+
 # ---------------------------------------------------------------------------
 # normalize <text>: the form constructs are MATCHED in. Lowercased, backticks
 # and surrounding punctuation stripped, whitespace collapsed. The RAW cell is
@@ -719,7 +737,13 @@ meta_constructs() {
 # ---------------------------------------------------------------------------
 rc_claim() {
   local ans="$1" mod="$2" lines hits rc=""
-  lines="$(grep -F -- "$mod" "$ans" 2>/dev/null || true)"
+  # WORD-BOUNDARY, not substring. A plain `grep -F` on the basename matches
+  # any English word the name is a prefix of: a module called Commit.tla
+  # picked up the prose word "Committed" and the digit from that sentence
+  # became a phantom rc 1 claim. Found by the tla-pmm2 temporal author, which
+  # worked around it by renaming its module. A base name that is a prefix of
+  # an English word would have bitten every later author.
+  lines="$(grep -E -- "(^|[^A-Za-z0-9_])${mod}([^A-Za-z0-9_]|\$)" "$ans" 2>/dev/null || true)"
   [ -n "$lines" ] || return 0
 
   hits="$(grep -oiE 'rc[^0-9A-Za-z]{0,3}[0-9]{1,3}' <<<"$lines" || true)"
@@ -1088,6 +1112,25 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     got=$?
     set -e
 
+    # A RECORDED rc 99 IS NOT A MODULE PROPERTY, so this gate cannot verify it.
+    # 99 is CHECK_DID_NOT_RUN (bead tla-hl96): it means the caller asked for a
+    # check its configuration did not permit, so it is a fact about an
+    # INVOCATION rather than about a module. This gate runs every module under
+    # ONE convention, and since the deadlock fix above it always agrees with
+    # the .cfg, so it can never produce the disagreement a 99 reports.
+    #
+    # state-space/04-clean-run-colleague-deadlock is the item that needs this:
+    # its six-cell table demonstrates the deadlock AND across the keyword and
+    # the flag, and the 99 cell is the one where caller and .cfg disagree.
+    # The item is right and the gate is right, so the gate says it cannot see
+    # this one rather than calling a correct item a mismatch. The item carries
+    # its own measurement for that cell.
+    if [ "$want" = "99" ]; then
+      declared "verify-rc" "$rel" \
+        "${modbase} records rc 99, CHECK_DID_NOT_RUN, which is a claim about an invocation rather than about the module. This gate uses one convention and cannot reproduce a refusal it never triggers."
+      continue
+    fi
+
     if [ "$got" != "$want" ]; then
       finding "VERIFY-RC-MISMATCH" "$rel" \
         "${modbase}: ANSWER.md records rc ${want}, TLC returned ${got}"
@@ -1183,7 +1226,7 @@ fi
 
 # ===========================================================================
 echo
-echo "drill-gate.sh: ${item_n} item(s), ${finding_n} finding(s), ${unchecked_n} unchecked"
+echo "drill-gate.sh: ${item_n} item(s), ${finding_n} finding(s), ${unchecked_n} unchecked, ${declared_n} declared"
 
 if [ "$finding_n" -gt 0 ]; then
   echo "VERDICT FINDINGS"
