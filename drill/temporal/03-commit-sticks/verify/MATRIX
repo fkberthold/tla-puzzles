@@ -1,0 +1,29 @@
+# tag	Rows	cfg body
+# The answer on every allowed row together, then on each forbidden row alone.
+answer-allowed	{1,2,3}	PROPERTY Answer
+answer-r4	{4}	PROPERTY Answer
+answer-r5	{5}	PROPERTY Answer
+# The same two runs with no fairness in the trace spec, to see the channel move.
+answer-allowed-nofair	{1,2,3}	SPECIFICATION SpecNoFair;PROPERTY Answer
+answer-r4-nofair	{4}	SPECIFICATION SpecNoFair;PROPERTY Answer
+answer-r5-nofair	{5}	SPECIFICATION SpecNoFair;PROPERTY Answer
+v1-r4-nofair	{4}	SPECIFICATION SpecNoFair;PROPERTY V1
+# The action-formula spellings of the same property.
+v1-allowed	{1,2,3}	PROPERTY V1
+v1-r4	{4}	PROPERTY V1
+v1-r5	{5}	PROPERTY V1
+v2-allowed	{1,2,3}	PROPERTY V2
+v2-r4	{4}	PROPERTY V2
+v2-r5	{5}	PROPERTY V2
+v3-allowed	{1,2,3}	PROPERTY V3
+v3-r4	{4}	PROPERTY V3
+v3-r5	{5}	PROPERTY V3
+# Each neighbour on the row that kills it.
+n1-r2	{2}	PROPERTY N1
+n2-r3	{3}	PROPERTY N2
+n3-r3	{3}	PROPERTY N3
+n4-r4	{4}	PROPERTY N4
+n5-r5	{5}	PROPERTY N5
+n6-r2	{2}	PROPERTY N6
+n7-r2	{2}	PROPERTY N7
+n8-r1	{1}	PROPERTY N8

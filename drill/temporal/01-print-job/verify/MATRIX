@@ -1,0 +1,20 @@
+# tag	Rows	cfg body
+# The answer on every allowed row together, then on each forbidden row alone.
+answer-allowed	{1,2,5}	PROPERTY Answer
+answer-r3	{3}	PROPERTY Answer
+answer-r4	{4}	PROPERTY Answer
+answer-r6	{6}	PROPERTY Answer
+# The spelled-out form of the same formula.
+answerbox-allowed	{1,2,5}	PROPERTY AnswerBox
+answerbox-r3	{3}	PROPERTY AnswerBox
+answerbox-r4	{4}	PROPERTY AnswerBox
+answerbox-r6	{6}	PROPERTY AnswerBox
+# Each neighbour on the row that kills it.
+n1-r4	{4}	PROPERTY N1
+n2-r2	{2}	PROPERTY N2
+n3-r5	{5}	PROPERTY N3
+n4-r3	{3}	PROPERTY N4
+n5-r1	{1}	PROPERTY N5
+n6-r3	{3}	PROPERTY N6
+n7-r3	{3}	PROPERTY N7
+n8-r6	{6}	PROPERTY N8

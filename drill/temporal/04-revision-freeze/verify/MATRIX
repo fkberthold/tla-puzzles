@@ -1,0 +1,22 @@
+# tag	Rows	cfg body
+# Init half: one-state rows, checked as an invariant of the only state.
+init-i1	{1}	INVARIANT AnswerInit
+init-i2	{2}	INVARIANT AnswerInit
+init-i3	{3}	INVARIANT AnswerInit
+init-asprop-i2	{2}	PROPERTY AnswerInit
+# Next half: the box-action formula on every allowed step, then each forbidden step alone.
+next-allowed	{4,5,10}	PROPERTY AnswerNext
+next-s3	{6}	PROPERTY AnswerNext
+next-s4	{7}	PROPERTY AnswerNext
+next-s5	{8}	PROPERTY AnswerNext
+next-s6	{9}	PROPERTY AnswerNext
+# Each neighbour on the row that kills it.
+noguard-s5	{8}	PROPERTY NoGuard
+nounchanged-s3	{6}	PROPERTY NoUnchanged
+gt-s6	{9}	PROPERTY Gt
+toggle-s4	{7}	PROPERTY Toggle
+conj-s1	{4}	PROPERTY Conj
+subrev-s4	{7}	PROPERTY SubRev
+subpub-s6	{9}	PROPERTY SubPub
+initnorev-i3	{3}	INVARIANT InitNoRev
+initnopub-i2	{2}	INVARIANT InitNoPub

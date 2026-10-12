@@ -1,0 +1,29 @@
+# tag	Rows	cfg body
+# Each candidate conjunct as a property of each lasso. 0 admits, 13 rules out.
+lasso-sf-l1	{1}	PROPERTY SFDeliver
+lasso-sf-l2	{2}	PROPERTY SFDeliver
+lasso-sf-l3	{3}	PROPERTY SFDeliver
+lasso-wf-l1	{1}	PROPERTY WFDeliver
+lasso-wf-l2	{2}	PROPERTY WFDeliver
+lasso-wf-l3	{3}	PROPERTY WFDeliver
+lasso-wfnext-l1	{1}	PROPERTY WFNext
+lasso-wfnext-l2	{2}	PROPERTY WFNext
+lasso-sfnext-l2	{2}	PROPERTY SFNext
+lasso-sfnext-l3	{3}	PROPERTY SFNext
+lasso-linkfair-l3	{3}	PROPERTY SFDeliverLinkFair
+lasso-wfboth-l2	{2}	PROPERTY WFBoth
+# The system under each conjunct, against the guarantee SF buys.
+ret-none	-	\* MODULE: FlakyLink;SPECIFICATION Spec;PROPERTY DeliveredIfLinkReturns
+ret-sf	-	\* MODULE: FlakyLink;SPECIFICATION SpecSF;PROPERTY DeliveredIfLinkReturns
+ret-wf	-	\* MODULE: FlakyLink;SPECIFICATION SpecWF;PROPERTY DeliveredIfLinkReturns
+ret-wfnext	-	\* MODULE: FlakyLink;SPECIFICATION SpecWFNext;PROPERTY DeliveredIfLinkReturns
+ret-sfnext	-	\* MODULE: FlakyLink;SPECIFICATION SpecSFNext;PROPERTY DeliveredIfLinkReturns
+ret-wfboth	-	\* MODULE: FlakyLink;SPECIFICATION SpecWFBoth;PROPERTY DeliveredIfLinkReturns
+# The system under each conjunct, against unconditional delivery.
+sys-none	-	\* MODULE: FlakyLink;SPECIFICATION Spec;PROPERTY Delivered
+sys-sf	-	\* MODULE: FlakyLink;SPECIFICATION SpecSF;PROPERTY Delivered
+sys-wf	-	\* MODULE: FlakyLink;SPECIFICATION SpecWF;PROPERTY Delivered
+sys-wfnext	-	\* MODULE: FlakyLink;SPECIFICATION SpecWFNext;PROPERTY Delivered
+sys-sfnext	-	\* MODULE: FlakyLink;SPECIFICATION SpecSFNext;PROPERTY Delivered
+sys-wfboth	-	\* MODULE: FlakyLink;SPECIFICATION SpecWFBoth;PROPERTY Delivered
+sys-sf-linkfair	-	\* MODULE: FlakyLink;SPECIFICATION SpecSFLinkFair;PROPERTY Delivered

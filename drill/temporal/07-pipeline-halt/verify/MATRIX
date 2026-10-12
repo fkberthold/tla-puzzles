@@ -1,0 +1,15 @@
+# tag	Rows	cfg body
+# The answer, as an invariant and as a property, on the buggy and the fixed pipeline.
+answer-inv-buggy	-	SPECIFICATION Spec;INVARIANT HaltsOnlyFinished
+answer-inv-fixed	-	SPECIFICATION SpecFixed;INVARIANT HaltsOnlyFinishedFixed
+answer-prop-buggy	-	SPECIFICATION Spec;PROPERTY AnswerProp
+answer-prop-fixed	-	SPECIFICATION SpecFixed;PROPERTY AnswerPropFixed
+# The hand-inlined guard, equal on this system.
+inlined-buggy	-	SPECIFICATION Spec;INVARIANT Inlined
+# Neighbours.
+n1-fixed	-	SPECIFICATION SpecFixed;PROPERTY N1
+n2-fixed	-	SPECIFICATION SpecFixed;PROPERTY N2
+n3-buggy	-	\* MODULE: PipelineRefused;SPECIFICATION Spec;PROPERTY N3
+n4-buggy	-	SPECIFICATION Spec;PROPERTY N4
+n5-deadlock-fixed	-	SPECIFICATION SpecFixed;CHECK_DEADLOCK TRUE
+n5-deadlock-buggy	-	SPECIFICATION Spec;CHECK_DEADLOCK TRUE

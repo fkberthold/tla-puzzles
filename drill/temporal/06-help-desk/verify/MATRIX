@@ -1,0 +1,23 @@
+# tag	Rows	cfg body
+# Each candidate conjunct as a property of each lasso. 0 admits, 13 rules out.
+lasso-wfserve-l1	{1}	PROPERTY WFServe
+lasso-wfserve-l2	{2}	PROPERTY WFServe
+lasso-wfserve-l3	{3}	PROPERTY WFServe
+lasso-sfserve-l1	{1}	PROPERTY SFServe
+lasso-sfserve-l2	{2}	PROPERTY SFServe
+lasso-sfserve-l3	{3}	PROPERTY SFServe
+lasso-wfnext-l1	{1}	PROPERTY WFNext
+lasso-wfnext-l2	{2}	PROPERTY WFNext
+lasso-wfnext-l3	{3}	PROPERTY WFNext
+lasso-wfarrive-l3	{3}	PROPERTY WFArrive
+# The system under each conjunct, against three properties.
+sys-none-stays	-	\* MODULE: HelpDesk;SPECIFICATION Spec;PROPERTY ServedIfClerkStays
+sys-wfserve-stays	-	\* MODULE: HelpDesk;SPECIFICATION SpecWFServe;PROPERTY ServedIfClerkStays
+sys-wfserve-served	-	\* MODULE: HelpDesk;SPECIFICATION SpecWFServe;PROPERTY Served
+sys-sfserve-served	-	\* MODULE: HelpDesk;SPECIFICATION SpecSFServe;PROPERTY Served
+sys-wfnext-served	-	\* MODULE: HelpDesk;SPECIFICATION SpecWFNext;PROPERTY Served
+sys-none-returns	-	\* MODULE: HelpDesk;SPECIFICATION Spec;PROPERTY ServedIfClerkReturns
+sys-wfserve-returns	-	\* MODULE: HelpDesk;SPECIFICATION SpecWFServe;PROPERTY ServedIfClerkReturns
+sys-sfserve-returns	-	\* MODULE: HelpDesk;SPECIFICATION SpecSFServe;PROPERTY ServedIfClerkReturns
+sys-wfserve-neverstops	-	\* MODULE: HelpDesk;SPECIFICATION SpecWFServe;PROPERTY NeverStops
+sys-wfnext-neverstops	-	\* MODULE: HelpDesk;SPECIFICATION SpecWFNext;PROPERTY NeverStops
