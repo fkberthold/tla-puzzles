@@ -271,6 +271,33 @@ SUITES=(
   # Its cost tracks the REGISTRY rather than the tree: the census is a scan,
   # but every row added to the registry is another instrument invocation.
   "slow|7.4|indeterminate gate|./harness/test-indeterminate.sh"
+  # Measured 2026-10-12 on the green tree: 10.231 / 9.748 / 10.266 s over
+  # three back-to-back serial runs, so 10.3 is the slowest rounded up.
+  # Jitter 5.3%.
+  # SLOW by the rule in this header rather than by its wall clock: it drives
+  # harness/verdict.sh against real fixtures, so it runs TLC's MODEL CHECKER,
+  # and a suite that model-checks belongs in slow whatever it costs today.
+  # Eight of its TLC runs are in the parts that assert an rc reproduces;
+  # every other fixture runs the gate under --no-tlc, which is what keeps the
+  # cost flat as the fixture count grows.
+  #
+  # It read 7.4 at 72 assertions and then 25.4 at 90, and the jump was NOT
+  # the eighteen assertions. harness/drill-gate.sh had grown a loop forking
+  # one grep per symbol per construct, 70 of them, which is 7,350 forks
+  # against the real 105-row inventory. Collapsing it to a single grep over a
+  # pattern file brought it back to 9.8, and 93 assertions read 10.3. Worth
+  # knowing because the assertion count is the obvious suspect for a 3.4x
+  # overrun and was the wrong one.
+  #
+  # ITS COST TRACKS THE CORPUS, not the suite. Part 3 runs
+  # harness/drill-gate.sh over the real drill/ tree, verifying every
+  # checkable module of every item, and drill/ holds no items yet. So this
+  # budget is the fixture cost alone and it WILL drift upward as the six
+  # authors land items, roughly one TLC run per recorded rc. Re-measure when
+  # the corpus settles rather than treating the first drift nudge as a
+  # regression. That is the honest statement; a number that pretended to
+  # cover a corpus of forty items would be wrong next week.
+  "slow|10.3|drill corpus gate|./harness/test-drill.sh"
   "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
   "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
   "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
