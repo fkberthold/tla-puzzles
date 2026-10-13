@@ -66,6 +66,7 @@
 #   fast   0.3 s  harness/test-toolchain-pin.sh
 #   fast   0.7 s  harness/test-build-docs-chapter.sh
 #   fast   0.7 s  harness/test-number-problems.sh
+#   fast   0.7 s  harness/test-deliver-drill.sh           (added, bead tla-s5iz)
 #   fast   0.9 s  harness/test-deliver-problems.sh
 #   fast   1.0 s  harness/test-build-docs-exercises.sh
 #   fast   1.1 s  harness/test-printed-commands.sh
@@ -89,15 +90,20 @@
 #   slow  60.0 s  harness/test-vacuity.sh
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
-#         23.6 s  fast tier, 16 suites   (measured --fast total: 23.2 s)
+#         24.3 s  fast tier, 17 suites   (measured --fast total: 23.2 s at 16)
 #        332.1 s  slow tier, 10 suites
-#        355.7 s  whole registry
+#        356.4 s  whole registry
 #
 # The two slow rows that moved are bead tla-ocpw's, 2026-10-13: the reading
 # corpus gate added at 4.1 s and the indeterminate gate re-based 7.4 -> 10.7.
+# The fast tier gained the drill delivery row the same day, bead tla-s5iz.
 # Every other row is the 2026-10-13 tla-0eis.3 pass unchanged.
 #
-# THE 355.7 IS ARITHMETIC, not a reading. It is the sum of 26 budgets, and
+# The parenthesised --fast reading is the one from before that row landed, and
+# it is left as it was read rather than adjusted by arithmetic. A measurement
+# nobody took is worth less than a stale one that says when it was taken.
+#
+# THE 356.4 IS ARITHMETIC, not a reading. It is the sum of 27 budgets, and
 # every budget is a worst-of-three, so the total is a sum of worst cases and
 # no single run should be expected to hit it. Three full passes on 2026-10-13
 # read 308.8 s warm, then 365.2 s and 352.1 s cold, so the arithmetic sits
@@ -335,6 +341,17 @@ SUITES=(
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 0.8 / 0.9 / 0.8 s, so 0.9 and up from 0.7.
   "fast|0.9|problem delivery|./harness/test-deliver-problems.sh"
+  # Added 2026-10-13 by bead tla-s5iz, which built scripts/deliver-drill.sh.
+  # Measured standalone over three back-to-back runs: 0.54 / 0.58 / 0.63 s, so
+  # 0.7 is the slowest rounded up. Taken while seven sibling workers were
+  # running TLC, which makes it a loaded-box reading rather than a quiet one,
+  # and the direction of that error is safe for a budget. It builds five
+  # fixture source roots out of mkdir and printf, runs the delivery script
+  # seventeen times, and runs no TLC. One of those runs reads the real drill/
+  # tree, under --check, and it derives its expected counts from a second walk
+  # of the tree rather than carrying a literal, so the row's cost tracks the
+  # corpus while its assertions do not go stale as the 29 pending items land.
+  "fast|0.7|drill delivery|./harness/test-deliver-drill.sh"
   # Budget measured on the red tree, where the digest check does not exist yet
   # and part 1 stops at the first fetch: 0.2 s over two runs. Once the check
   # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and

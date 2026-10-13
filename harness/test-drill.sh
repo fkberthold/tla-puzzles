@@ -23,9 +23,16 @@
 #                           shape serve the gate. Part 1d is the pin that
 #                           keeps the failing arm removed.
 #
+# A FOURTH CHECK LIVES HERE AND NOT IN THE GATE: the delivery shape, which
+# asserts that every item's top-level entry set is exactly ANSWER.md, META.md,
+# PROMPT.md and verify. Do not go looking for it in harness/drill-gate.sh. It
+# guards scripts/deliver-drill.sh's one-name manifest rather than anything
+# about an item's honesty, it runs in all three invocations, and THE DELIVERY
+# SHAPE section below says why it is gated rather than written down.
+#
 # PART 1  the checks, each against a fixture built to trip it
 # PART 2  controls the other way: shapes that LOOK wrong and must not fire
-# PART 3  the real drill/ tree
+# PART 3  the real drill/ tree, and the delivery shape
 #
 # Usage:  harness/test-drill.sh [--static | --full-sweep]
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -296,6 +303,91 @@ CFG
 }
 
 # ===========================================================================
+# THE DELIVERY SHAPE, and why it is gated rather than written down.
+#
+# scripts/deliver-drill.sh delivers PROMPT.md BY NAME. Its sibling
+# scripts/deliver-problems.sh refuses to name a single file and says why at
+# length in its own header: on 2026-10-02 a guessed manifest deleted 39
+# delivered files, among them bonded-store's BondedStore.tla. Naming a file is
+# only safe here because the row below holds the shape still.
+#
+# An undeclared entry reddens this suite and names itself, so whoever adds one
+# decides whether it is deliverable before it can land. The alternative design
+# was an exclusion list, and it fails UNSAFE: the next answer-bearing file
+# lands by default, and the list drifts from the tree the moment somebody adds
+# one. So this row is the other half of a one-name manifest rather than a
+# tidiness check. Drop it and deliver-drill.sh becomes the 2026-10-02 defect.
+#
+# HIDDEN ENTRIES COUNT, in both halves. deliver-drill.sh reads the item
+# directory with dotfiles included and withholds any it finds, and this row
+# reports one, so neither half tolerates what the other does not.
+DRILL_ITEM_SHAPE="ANSWER.md META.md PROMPT.md verify"
+
+# item_entries <item-dir>: the item's top-level entry names, sorted, one line,
+# space separated. find and not ls, because find is what deliver-drill.sh reads
+# the same set with.
+item_entries() {
+  local dir="$1" out
+  out="$(find "$dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort | tr '\n' ' ')"
+  printf '%s' "${out% }"
+}
+
+# shape_arm <drill-root> <item-count>
+#
+# One PASS when every item carries exactly the four entries, or one FAIL per
+# item that does not, naming what it carries that the delivery script cannot
+# classify and what it is missing.
+#
+# THE ITEM COUNT IS PASSED IN as the non-vacuity control. A row reporting that
+# all 32 items carry the shape after looking at none is the false-PASS
+# direction, and it is the one that matters here, because the thing on the
+# other side of it is a script that names a filename.
+shape_arm() {
+  local root="$1" count="$2"
+  local item rel got extras missing entry seen=0 bad=0
+  local -a got_arr=() want_arr=()
+  while IFS= read -r item; do
+    [ -n "$item" ] || continue
+    seen=$((seen + 1))
+    rel="${item#"$root/"}"
+    got="$(item_entries "$item")"
+    [ "$got" = "$DRILL_ITEM_SHAPE" ] && continue
+    bad=$((bad + 1))
+    extras=""
+    missing=""
+    read -r -a got_arr <<<"$got"
+    read -r -a want_arr <<<"$DRILL_ITEM_SHAPE"
+    for entry in "${got_arr[@]}"; do
+      case " ${DRILL_ITEM_SHAPE} " in
+        *" ${entry} "*) ;;
+        *) extras="${extras} ${entry}" ;;
+      esac
+    done
+    for entry in "${want_arr[@]}"; do
+      case " ${got} " in
+        *" ${entry} "*) ;;
+        *) missing="${missing} ${entry}" ;;
+      esac
+    done
+    nope "real tree, delivery shape: drill/${rel} carries undeclared [${extras# }] and is missing [${missing# }]"
+    echo "        Every item's top-level entries must be exactly: ${DRILL_ITEM_SHAPE}"
+    echo "        scripts/deliver-drill.sh delivers PROMPT.md by name and withholds"
+    echo "        every other entry, so an undeclared one is an entry nobody has"
+    echo "        classified. Decide whether it is deliverable, then say so here and"
+    echo "        in that script. Read its WHY THIS SCRIPT NAMES A FILE section first."
+  done < <(find "$root" -mindepth 2 -maxdepth 2 -type d \
+    ! -name '.*' ! -path "$root/.*" | LC_ALL=C sort)
+
+  if [ "$seen" -ne "$count" ]; then
+    nope "real tree, delivery shape: looked at ${seen} item(s) out of ${count}, so the row proves nothing"
+    return 0
+  fi
+  if [ "$bad" -eq 0 ]; then
+    ok "real tree, delivery shape: all ${count} item(s) carry exactly ${DRILL_ITEM_SHAPE}"
+  fi
+}
+
+# ===========================================================================
 # PART 3, AS A FUNCTION, because two of the three invocations run it ALONE.
 #
 # It is defined up here and called at the bottom of the file, where part 3
@@ -356,7 +448,12 @@ real_tree_arm() {
     return 0
   fi
 
-  # State 3, and the mode decides WHICH question gets put to the tree.
+  # State 3. The delivery shape runs first and in every mode, because it costs
+  # one find per item and it is the row scripts/deliver-drill.sh's one-name
+  # manifest rests on. See THE DELIVERY SHAPE above.
+  shape_arm "${REPO_ROOT}/drill" "$DRILL_ITEMS"
+
+  # And the mode decides WHICH question gets put to the tree.
   local -a gate_args=()
   local what=""
   case "$SUITE_MODE" in
