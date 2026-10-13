@@ -146,6 +146,8 @@ SCREEN="harness/screen.sh"
 VACUITY="harness/vacuity.sh"
 VERDICT="harness/verdict.sh"
 CGATE="harness/comment-gate.sh"
+DGATE="harness/drill-gate.sh"
+RGATE="harness/reading-gate.sh"
 
 pass_count=0
 fail_count=0
@@ -200,7 +202,24 @@ involuntary_admissions() {
 # refusal now says "did not run", so the census reaches it from here on, and a
 # second silent-skip path added to it later lands in part 3 rather than in
 # nobody's lap.
-REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE")
+#
+# THE TWO CORPUS GATES, added by bead tla-ocpw after the census named them and
+# CI went red on main. Both reproduce a recorded rc through harness/verdict.sh
+# and both carry a --no-tlc mode that is asked for that reproduction and does
+# not perform it, so each has a real 99 path and neither is registered to
+# quiet a false positive.
+#
+# WHAT MADE drill-gate.sh VISIBLE IS NOT WHAT IT IS REGISTERED FOR, and the
+# distinction is the whole of bead tla-ocpw. The census reached it through
+# drill-gate.sh:1942, a --changed-only line reading "A CACHED JOB IS VERIFIED,
+# not skipped", a sentence that DENIES a skip and matches on the word.
+# Registering against that would have been an accident. Its real admissions
+# are four non-run paths the vocabulary could not see, and --static-only is
+# the one that mattered: it exits 0 having reproduced none of 237 recorded
+# rcs, which is a success code carrying a skip admission, exactly what part 3
+# forbids. That block now spells the admission and names its flag
+# (drill-gate.sh:1922), and the --static-only row below is what checks it.
+REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE")
 ROWS_RUN=()
 ROWS_NONPASS=()
 for i in "${!REGISTERED[@]}"; do
@@ -567,6 +586,74 @@ run_row "$VACUITY" "vacuity.sh: --expect none and --no-dead-actions are caller i
   "harness/fixtures/vacuity/Healthy.tla"
 assert_out "the configured-check waiver names its flag" "(--expect none)"
 assert_out "the dead-action waiver names its flag" "(--no-dead-actions)"
+
+# --- the two corpus gates: a 99 path and a waived rc 0 each -----------------
+#
+# Bead tla-ocpw. Both gates reproduce recorded rcs through verdict.sh, so both
+# can be asked for a check they do not make. Each gets its involuntary row and
+# drill-gate.sh gets the waived one as well, because --static-only is the mode
+# that exits 0 over an admission and is therefore the one worth a row.
+#
+# THESE ROWS RUN OVER THE REAL TREES, drill/ and reading/, and that is a
+# choice with a cost. A one-item fixture would be cheaper, and it would also
+# rebuild what harness/test-drill.sh already builds in 90 lines of mk_item.
+# Measured: --no-tlc over drill/'s 32 items is 1.355 s and --static-only
+# 1.307 s, against 0.078 s for reading/'s 6. That is 2.74 s added to a suite
+# that read 7.8 s before them, so the three rows are a quarter of the 10.7 s
+# it reads now, and the budget in scripts/test was re-based for them rather
+# than left to drift.
+#
+# The tree is also the honest subject. The gates' own controls live in
+# harness/test-drill.sh and harness/test-reading.sh. What this suite asks is
+# whether the instrument lies about a check it did not make, and it asks it of
+# the corpus a caller actually points it at.
+
+# --no-tlc means "I asked you to verify and you could not", so it can never
+# exit 0. drill-gate.sh's header states that as a contract, and this is the
+# row that holds it to it from outside the drill suite.
+#
+# WHAT THIS ROW DOES NOT ESTABLISH, said here rather than left to be inferred
+# from a green tick. Its UNCHECKED lines read "--no-tlc, recorded rc 0 not
+# reproduced", and not one phrase of SKIP_VOCAB is in that sentence. So
+# run_row's second assertion finds no admission to judge and stays silent:
+# this row proves the EXIT CODE is 99 and proves nothing about the wording.
+# That is hole C in the header, on one of the four drill-gate paths bead
+# tla-ocpw found and deliberately left alone. Widening the vocabulary is the
+# change that would close it, and it reaches instruments nobody has read.
+run_row "$DGATE" "drill-gate.sh: --no-tlc was asked to reproduce 237 rcs and did not" \
+  "$INDETERMINATE" -- \
+  bash "$DGATE" --no-tlc -q drill
+assert_out "the drill gate names the check it did not run" "UNCHECKED verify-rc"
+assert_not_out "the drill gate does not claim OK over it" "VERDICT OK"
+
+# THE WAIVED SIDE, and the row bead tla-ocpw exists for. --static-only answers
+# a different question completely and a clean run is a true pass, so the gate
+# must not be forced to 99 for it. What it must do is SAY what it skipped and
+# name the flag that waived it, on one line, which is what keeps this rc 0 off
+# part 3's failure list. Drop the parenthetical from drill-gate.sh:1922 and
+# this row goes red rather than quiet.
+run_row "$DGATE" "drill-gate.sh: --static-only is a caller instruction, not a failure" \
+  0 -- \
+  bash "$DGATE" --static-only -q drill
+# ONE SUBSTRING AND NOT TWO, because the waiver is a per-LINE property.
+# involuntary_admissions() matches SKIP_VOCAB line by line and asks each
+# matching line for a parenthetical, so an admission on one line and a flag on
+# the next waives nothing. assert_out greps the whole output and cannot see a
+# line boundary, so the two halves are pinned adjacent instead.
+assert_out "the static-only admission and its waiving flag are on one line" \
+  "was not run (--static-only)"
+assert_out "the static-only run still states the count it did not reproduce" \
+  "recorded rc(s) not reproduced"
+
+# reading-gate.sh came with this right. Its author reworded its own skip lines
+# to "the check was not run" so the census could reach them, which is why the
+# census named two instruments rather than one. It carries no waived mode: all
+# four checks run or the gate is 99.
+run_row "$RGATE" "reading-gate.sh: --no-tlc was asked to reproduce six rcs and did not" \
+  "$INDETERMINATE" -- \
+  bash "$RGATE" --no-tlc -q reading
+assert_out "the reading gate names the check it did not run" "UNCHECKED verify-rc"
+assert_out "the reading gate reports the reserved token" "VERDICT $TOKEN"
 
 # --- comment-gate.sh: the instrument that already got this right ------------
 #

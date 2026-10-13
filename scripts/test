@@ -78,7 +78,8 @@
 #   fast   2.2 s  harness/comment-gate.sh --self-test
 #   fast   2.6 s  harness/test-corpus-manifest.sh
 #   fast   4.8 s  harness/test-spike-measure.sh
-#   slow   7.4 s  harness/test-indeterminate.sh          (budget NOT re-based)
+#   slow   4.1 s  harness/test-reading.sh                 (added, bead tla-ocpw)
+#   slow  10.7 s  harness/test-indeterminate.sh        (re-based, bead tla-ocpw)
 #   slow   9.0 s  chapter/snippets/run-all.sh
 #   slow   9.8 s  scripts/test-verify-puzzle.sh                        (v1)
 #   slow  12.9 s  harness/fixtures/refinement/selftest.sh
@@ -89,8 +90,20 @@
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
 #         23.6 s  fast tier, 16 suites   (measured --fast total: 23.2 s)
-#        324.7 s  slow tier,  9 suites
-#        348.3 s  whole registry         (measured cold total: ~349 s)
+#        332.1 s  slow tier, 10 suites
+#        355.7 s  whole registry
+#
+# The two slow rows that moved are bead tla-ocpw's, 2026-10-13: the reading
+# corpus gate added at 4.1 s and the indeterminate gate re-based 7.4 -> 10.7.
+# Every other row is the 2026-10-13 tla-0eis.3 pass unchanged.
+#
+# THE 355.7 IS ARITHMETIC, not a reading. It is the sum of 26 budgets, and
+# every budget is a worst-of-three, so the total is a sum of worst cases and
+# no single run should be expected to hit it. The full gate measured 308.8 s
+# WARM on 2026-10-13, with the drill gate reading 16.2 s against its cold
+# budget of 54.4. Add the 38 s that row gives up when .drill-gate-state is
+# absent and a cold run lands near 347 s. `scripts/test --list` is the
+# authority on what runs, and this block is the authority on nothing.
 #
 # Assertion counts are gone from this table on purpose. This script does not
 # aggregate one, so every total written here was a hand-count that went stale
@@ -100,19 +113,26 @@
 # If a row here ever disagrees with a suite's own final line, the suite is
 # right and this comment is stale.
 #
-# THE TIER GAP HAS COLLAPSED, AND THE DRIFT NUDGE'S 3.0x RESTS ON IT.
+# THE TIER GAP HAS INVERTED, AND THE DRIFT NUDGE'S 3.0x RESTED ON IT.
 #
 # The boundary itself has not moved and is not a wall clock: a suite that runs
 # TLC's MODEL CHECKER belongs in slow, and the paragraph below says why the
 # JVM is the wrong test. What HAS moved is the gap either side of it. This
 # header used to read "the cut is at the 4.2x gap between 2.4 s and 10.2 s",
-# and it is now the 1.5x gap between 4.8 s and 7.4 s — spike measurement runs
-# three real TLC jobs against 3-by-3 fixtures and stays fast deliberately,
-# while the indeterminate census is slow by the model-checker rule at 7.4 s.
+# then "the 1.5x gap between 4.8 s and 7.4 s", and on 2026-10-13 bead
+# tla-ocpw took it past zero: the reading corpus gate is SLOW at 4.1 s, which
+# is cheaper than spike measurement, the most expensive FAST row at 4.8 s.
 #
-# That breaks a stated justification further down this header: "A 3x threshold
-# therefore catches every possible tier crossing by construction." At a 1.5x
-# gap it no longer does. BUDGET_DRIFT_FACTOR is left at 3 here, because
+# Both numbers are the rule working. Spike measurement runs three real TLC
+# jobs against 3-by-3 fixtures and stays fast deliberately. The reading gate
+# model-checks six items and is slow for that reason and no other. A tier
+# split on the model checker was always free to invert on a wall clock, and
+# now it has, so nobody should read the tier column as a cost ordering.
+#
+# That finishes off a stated justification further down this header: "A 3x
+# threshold therefore catches every possible tier crossing by construction."
+# At a 1.5x gap it no longer did. With the tiers overlapping there is no gap
+# left to argue from at all. BUDGET_DRIFT_FACTOR is left at 3 here, because
 # re-deciding it needs a human — tla-kqry's own note asks whether the nudge's
 # AND is right at all, observing that it never fires on a slow suite that
 # merely doubles and never on a fast suite that grows tenfold from 0.5 s, so
@@ -428,22 +448,70 @@ SUITES=(
   #
   # Its cost tracks the REGISTRY rather than the tree: the census is a scan,
   # but every row added to the registry is another instrument invocation.
-  # NOT RE-BASELINED, 2026-10-13, and that is the finding rather than an
-  # omission. It read 7.8 / 8.1 / 8.2 s over three back-to-back full gate
-  # runs, which is over the 7.4 recorded here — but every one of those runs
-  # was RED. Part 2's census finds harness/drill-gate.sh admitting a skip and
-  # UNREGISTERED, because the --changed-only honesty block that bead tla-0eis.2
-  # added to drill-gate.sh:1924 contains the word "skipped". The suite and the
-  # gate are both byte-identical to main at 807fe9a, so this is pre-existing
-  # and not from the wiring work in bead tla-0eis.3.
   #
-  # A red-tree wall clock is not a measurement of the suite doing its job, and
-  # this file has refused one twice before on exactly that ground — see the
-  # toolchain-pin and problem-numbering notes above. Closing the census means
-  # ADDING a registry row that drives drill-gate.sh, and this row's own note
-  # below says every registry row is another instrument invocation, so the
-  # number will move again. Whoever closes that failure re-bases this row.
-  "slow|7.4|indeterminate gate|./harness/test-indeterminate.sh"
+  # RE-BASED 7.4 -> 10.7 on 2026-10-13 by bead tla-ocpw, which is the bead the
+  # note here asked for. Measured standalone over three back-to-back serial
+  # runs on the green tree: 10.643 / 10.385 / 10.594 s, so 10.7 is the slowest
+  # rounded up. Spread 2.5%. One in-suite warm pass read 10.6 s, so the
+  # standalone figure is the conservative one and is what is recorded.
+  #
+  # A COLD FULL-GATE PASS THE SAME DAY READ 11.4 s, over this budget, and it
+  # is not re-based on that. Eight other rows came in over on the same pass,
+  # every one of them measured by tla-0eis.3 the day before: the grader 101.5
+  # against 99.0, chapter snippets 10.9 against 9.0, the refinement harness
+  # 14.2 against 12.9. A pass where a third of the registry runs 5% to 20%
+  # hot is a fact about the box that hour, not about nine suites drifting
+  # together, so the three serial runs stand. If a later pass puts this row
+  # over on its own, that is the reading worth acting on.
+  #
+  # THE WHOLE 3.3 s IS ATTRIBUTED, which is rare enough in this file to say
+  # out loud. The registry grew by two instruments and three rows, and the
+  # three were measured one at a time before they were written: drill-gate.sh
+  # --no-tlc 1.355 s, drill-gate.sh --static-only 1.307 s, reading-gate.sh
+  # --no-tlc 0.078 s, so 2.74 s of row and the rest fixture and scan. The row
+  # note above predicted this move in those words, and the prediction is the
+  # reason the number is trusted rather than suspected.
+  #
+  # The previous note recorded 7.8 / 8.1 / 8.2 s and REFUSED to re-base on
+  # them, because all three runs were RED: part 2's census found
+  # harness/drill-gate.sh admitting a skip and UNREGISTERED. That refusal was
+  # right and it is worth keeping. A red-tree wall clock measures a suite
+  # stopping early, not a suite doing its job, and this file has refused one
+  # twice before on the same ground. The fix was bead tla-ocpw, the census now
+  # names both corpus gates as registered, and 10.7 is a green-tree number.
+  "slow|10.7|indeterminate gate|./harness/test-indeterminate.sh"
+  # THE READING CORPUS GATE, added by bead tla-ocpw. It landed on main in
+  # 95264ad with no row here at all, so between that merge and this row the
+  # reading corpus was gated by scripts/cibuild and by nothing a developer
+  # runs. A suite in the tree and absent from this registry is worse than a
+  # missing suite: `scripts/test --list` reads as the authority on what is
+  # gated, and it was silently wrong.
+  #
+  # SLOW, by the rule in this header rather than by its wall clock. Part 1c
+  # and part 3 drive harness/verdict.sh against real modules, so they run
+  # TLC's MODEL CHECKER, and harness/test-reading.sh:27-31 states that as its
+  # own boundary. Every other fixture runs the gate under --no-tlc, which is
+  # what keeps the cost flat as the corpus grows.
+  #
+  # Measured standalone over three back-to-back serial runs on the green tree:
+  # 3.923 / 3.901 / 4.015 s, so 4.1 is the slowest rounded up. Spread 2.9%.
+  # One in-suite warm pass read 3.9 s and the cold pass 4.4 s. The cold
+  # reading is over, and the note on the indeterminate row above says why
+  # eight rows went over together on that pass and none of them was re-based.
+  #
+  # AND IT INVERTS THE TIER GAP, which is a finding about this header and not
+  # about the suite. The paragraph above reads "the 1.5x gap between 4.8 s and
+  # 7.4 s". At 4.1 s this is the cheapest row in the slow tier and it is now
+  # CHEAPER than the most expensive row in the fast tier, spike measurement at
+  # 4.8 s. The tier boundary is the model checker, so an inversion is the rule
+  # working rather than breaking. What it finishes off is the wall-clock
+  # justification BUDGET_DRIFT_FACTOR=3 was once resting on: there is no gap
+  # left to catch a tier crossing by construction, and re-deciding that
+  # constant still needs a human.
+  #
+  # Its cost tracks the item count: 6 items today, one TLC run each in part 3
+  # plus the two in part 1c.
+  "slow|4.1|reading corpus gate|./harness/test-reading.sh"
   # Measured 2026-10-12 on the green tree: 10.231 / 9.748 / 10.266 s over
   # three back-to-back serial runs, so 10.3 is the slowest rounded up.
   # Jitter 5.3%.

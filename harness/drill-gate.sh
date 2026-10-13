@@ -1902,6 +1902,24 @@ fi
 if [ "$STATIC_ONLY" = "1" ]; then
   echo
   echo "drill-gate.sh: --static-only. ${static_n} recorded rc(s) not reproduced, no TLC ran."
+  # THE LINE BELOW IS WRITTEN FOR THE CENSUS AS WELL AS FOR A READER, and it
+  # looks redundant against the count above until you know why.
+  #
+  # harness/test-indeterminate.sh part 2 scans every instrument's source for a
+  # fixed vocabulary of phrases that admit a skip, and an instrument that can
+  # admit one without being driven by a row of that suite fails the census.
+  # The count line above states a number and dodges all nine phrases, so this
+  # mode exited 0 carrying a skip admission that no gate could see. That is
+  # the defect the reserved-indeterminate gate exists for, one level up.
+  #
+  # So the admission is spelled in the vocabulary, and the waiving flag is
+  # named IN PARENTHESES, which is the PARENTHETICAL RULE in that suite's
+  # header: an admission that names the caller flag behind it is voluntary and
+  # its rc 0 is legitimate, while one that names no flag is involuntary and
+  # must carry 99. Dropping the parenthetical turns this run into a failure,
+  # correctly. Keep both halves on ONE line: the suite tests the waiver per
+  # line, so a parenthetical on the next line waives nothing.
+  echo "Check 2's TLC half was not run (--static-only), which is the scope the caller asked for."
   echo "NOT CHECKED HERE: whether any recorded rc still reproduces on this TLC build."
   echo "The slow row of harness/test-drill.sh and scripts/cibuild run that."
   echo "This run answers whether the corpus is STRUCTURALLY sound and nothing more."
