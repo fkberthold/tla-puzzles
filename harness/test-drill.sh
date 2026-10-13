@@ -837,6 +837,80 @@ hasnt "control: a hidden family directory is still skipped" ".scratch/01-served"
 
 # ===========================================================================
 echo
+echo "== part 2b: the static pass stays off the fork path =="
+# ===========================================================================
+# WHAT THIS PINS, and it is a budget rather than a measurement to match.
+# Bead tla-0eis.1 found the static pass forking 8,371 processes over 32
+# items, 262 per item, with 3.45 s of system time against 5.67 s of user.
+# Four call sites did almost all of it, and each one forked PER CALL where a
+# parameter expansion or one batched pass does the same work. The gap this
+# closes is that nothing else in the suite can see a fork count at all, so
+# the next author to reach for `$(grep ...)` inside a per-row loop gets no
+# signal until somebody times the gate by hand.
+#
+# A FORK COUNT, NOT A WALL CLOCK. The count is deterministic for a fixed
+# input, where elapsed time on a box running a TLC job next door is not, and
+# a flaky timing gate teaches people to re-run it rather than read it.
+#
+# THE FIXTURE IS SIZED FOR SENSITIVITY, and the ceiling comes from planting
+# each old call site back and reading the count. 60 inventory rows and 12
+# items gives, on this box:
+#
+#   169   as it stands, and the same 169 on five consecutive runs
+#   457   with the per-module rc grep chain planted back
+#   1173  with the tr-and-sed normalize planted back
+#
+# So the ceiling catches either of those two. It does NOT catch a return to
+# `basename`, which is 36 forks over this fixture and lands around 205. Say
+# that rather than implying the budget covers all four sites equally.
+#
+# The 131 forks of headroom above 169 are there so that one new awk or grep
+# on a per-item path does not redden the suite. A change that needs more
+# than that is a change worth arguing about in review.
+#
+# IT DOES NOT PIN THE REAL TREE. drill/ grows as authors land items, so a
+# count over it would need editing every wave and would read as noise.
+R_FORK="${TMP}/forkbudget"
+mkdir -p "$R_FORK"
+mk_inventory "$R_FORK"
+# 56 more rows on top of mk_inventory's 4. Plain prose cells, so no backtick
+# lands in a single-quoted printf format and raises SC2016.
+for ((fi = 1; fi <= 56; fi++)); do
+  printf '| Operator definition %02d | core | medium |\n' "$fi" >>"${R_FORK}/INVENTORY.md"
+done
+for ((fi = 1; fi <= 12; fi++)); do
+  mk_item "$R_FORK" "liveness/$(printf '%02d' "$fi")-served"
+done
+
+FORK_CEILING=300
+if ! command -v strace >/dev/null 2>&1; then
+  echo "  SKIP  fork budget: strace is not on PATH, so the fork count was not measured"
+  echo "        This is a statement about the box, not about the gate. Install strace"
+  echo "        to re-arm it."
+else
+  strace -f -c -e trace=clone,clone3,vfork -o "${TMP}/forks.txt" \
+    bash "$GATE" --no-tlc -q "$R_FORK" >/dev/null 2>&1
+  # strace -c puts the call count in column 4 and the syscall name last. The
+  # errors column is present on some rows and absent on others, which is why
+  # the name is read from $NF rather than from a fixed position.
+  FORKS="$(awk '$NF == "clone" || $NF == "clone3" || $NF == "vfork" { n += $4 } END { print n + 0 }' \
+    "${TMP}/forks.txt" 2>/dev/null || echo 0)"
+  if [ "${FORKS:-0}" -eq 0 ]; then
+    echo "  SKIP  fork budget: strace ran but reported no clone calls, so it could not"
+    echo "        trace the gate here (ptrace is often restricted in a container)."
+  elif [ "$FORKS" -le "$FORK_CEILING" ]; then
+    ok "fork budget: the static pass forked ${FORKS} process(es) over 60 rows and 12 items, ceiling ${FORK_CEILING}"
+  else
+    nope "fork budget: the static pass forked ${FORKS} process(es) over 60 rows and 12 items, ceiling ${FORK_CEILING}"
+    echo "        Something on a per-row or per-module path is forking again. The four"
+    echo "        sites bead tla-0eis.1 closed are normalize, the rc reader, basename"
+    echo "        and the inventory token builder. Compare against:"
+    echo "          strace -f -c -e trace=execve ./harness/drill-gate.sh --no-tlc -q drill"
+  fi
+fi
+
+# ===========================================================================
+echo
 echo "== part 3: the real drill/ tree =="
 # ===========================================================================
 # THREE STATES, AND ONLY THE THIRD CAN FAIL. The distinction is what keeps

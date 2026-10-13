@@ -348,13 +348,50 @@ declared() { printf 'DECLARED  %-28s %-44s %s\n' "$1" "$2" "$3"; declared_n=$((d
 # normalize <text>: the form constructs are MATCHED in. Lowercased, backticks
 # and surrounding punctuation stripped, whitespace collapsed. The RAW cell is
 # kept separately, because that is where a token like `~>` survives.
+#
+# PURE BASH. This used to fork `tr` and then `sed` on every call, which was
+# all 855 `tr` execs and most of the 795 `sed` execs bead tla-0eis.1 measured
+# over the 32-item tree. The expansions below do the same work in-process.
+#
+# TWO CHOICES HERE ARE NOT INTERCHANGEABLE WITH THE OBVIOUS ONES.
+#
+# The lowercase pattern spells out A to Z rather than using a bare `${s,,}`.
+# `${s,,}` is locale-aware and lowercases non-ASCII. The `tr` it replaces did
+# not: in en_US.UTF-8, `tr '[:upper:]' '[:lower:]'` leaves an accented capital
+# alone. So a construct cell holding one would normalize two ways and match
+# two different inventory rows. `[A-Z]` is not the fix either, because a
+# bracket RANGE follows collation order and can pull in accented letters.
+#
+# The function reads ONE LINE. A newline in the input collapses to a space
+# here, where the old `sed` kept it and anchored `^` and `$` per line. No
+# caller can reach that difference: every call site passes a single field
+# that came out of `read -r`, and such a field cannot hold a newline.
+#
+# IT SETS NORM AND PRINTS NOTHING, so that no caller needs `$( )`. The
+# inventory and the declared constructs call this 563 times over the 32-item
+# tree, and a command substitution forks a subshell every time, which was
+# 563 forks carrying a string back. See inv_index's own note further down for
+# the other half of this: a global assigned INSIDE a `$( )` cannot escape it,
+# so a function that returns through a global has to be called plainly.
 # ---------------------------------------------------------------------------
+NORM=""
 normalize() {
-  local s="$1"
-  s="${s//\`/}"
-  s="$(tr '[:upper:]' '[:lower:]' <<<"$s")"
-  s="$(sed -e 's/^[[:space:],.;:*_-]*//' -e 's/[[:space:],.;:*_-]*$//' -e 's/[[:space:]][[:space:]]*/ /g' <<<"$s")"
-  printf '%s' "$s"
+  local s="${1//\`/}"
+  s="${s,,[ABCDEFGHIJKLMNOPQRSTUVWXYZ]}"
+  # Every whitespace character becomes a space, then runs of spaces collapse.
+  # Each pass halves a run, so the loop ends after log2(run length) passes.
+  s="${s//[[:space:]]/ }"
+  while [[ "$s" == *"  "* ]]; do s="${s//  / }"; done
+  # Strip the leading and trailing class one character per pass. `sed` took
+  # each end greedily, and both forms converge on the same maximal prefix and
+  # suffix of class characters.
+  local prev=""
+  while [ "$s" != "$prev" ]; do
+    prev="$s"
+    s="${s#[[:space:],.;:*_-]}"
+    s="${s%[[:space:],.;:*_-]}"
+  done
+  NORM="$s"
 }
 
 # ---------------------------------------------------------------------------
@@ -407,24 +444,29 @@ INV_SHAPE=""
 # whitespace character, and empty fields survive. harness/test-drill.sh part
 # 1g is what caught this and is what keeps it fixed.
 parse_inventory_tab() {
-  local rec id fam raw weight items sentinel norm
+  local rec id fam raw weight items itemsf sentinel norm
   local n=0
   while IFS=$'\037' read -r id fam raw weight items sentinel; do
     [ "$sentinel" = "END" ] || continue
-    norm="$(normalize "$raw")"
+    normalize "$raw"
+    norm="$NORM"
     [ -n "$norm" ] || continue
-    case "$(normalize "$weight")" in
+    # The `*)` arm reads NORM straight back, since it is still the normalized
+    # weight this case is branching on.
+    normalize "$weight"
+    case "$NORM" in
       high*) weight=high ;;
       med*)  weight=medium ;;
       low*)  weight=low ;;
-      *)     weight="unrecognized:$(normalize "$weight")" ;;
+      *)     weight="unrecognized:${NORM}" ;;
     esac
     INV_RAW+=("$raw")
     INV_NORM+=("$norm")
     INV_FAMILY+=("${fam:-?}")
     INV_FREQ+=("$weight")
-    # Field 8 is comma-separated; normalise to spaces for the union below.
-    INV_ITEMS+=("$(tr ',' ' ' <<<"${items:-}")")
+    # Field 8 is comma-separated. Normalise to spaces for the union below.
+    itemsf="${items:-}"
+    INV_ITEMS+=("${itemsf//,/ }")
     n=$((n + 1))
     # id is read but not otherwise used; the construct text is the key.
     rec="$id"
@@ -453,7 +495,8 @@ parse_inventory_pipe() {
 
     if [ "$in_table" = "0" ]; then
       for ((i = 0; i < ncells; i++)); do
-        cell="$(normalize "${cells[$i]}")"
+        normalize "${cells[$i]}"
+        cell="$NORM"
         case "$cell" in
           *construct*)        c_construct=$i ;;
           *family*)           c_family=$i ;;
@@ -473,10 +516,10 @@ parse_inventory_pipe() {
     [ -n "$sep" ] || continue
 
     local raw="${cells[$c_construct]}"
-    local norm; norm="$(normalize "$raw")"
+    local norm; normalize "$raw"; norm="$NORM"
     [ -n "$norm" ] || continue
-    local fam; fam="$(normalize "${cells[$c_family]}")"
-    local frq; frq="$(normalize "${cells[$c_freq]}")"
+    local fam; normalize "${cells[$c_family]}"; fam="$NORM"
+    local frq; normalize "${cells[$c_freq]}"; frq="$NORM"
     case "$frq" in
       high*)   frq=high ;;
       med*)    frq=medium ;;
@@ -484,7 +527,13 @@ parse_inventory_pipe() {
       *)       frq="unrecognized:${frq}" ;;
     esac
 
-    INV_RAW+=("$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<<"$raw")")
+    local trimmed="$raw" tprev=""
+    while [ "$trimmed" != "$tprev" ]; do
+      tprev="$trimmed"
+      trimmed="${trimmed#[[:space:]]}"
+      trimmed="${trimmed%[[:space:]]}"
+    done
+    INV_RAW+=("$trimmed")
     INV_NORM+=("$norm")
     INV_FAMILY+=("${fam:-?}")
     INV_FREQ+=("$frq")
@@ -503,8 +552,9 @@ if [ -f "$INVENTORY" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# construct_tokens <raw-cell>: the literal strings a prompt may not show for
-# this construct, one per line. Derived four ways, in order:
+# build_inv_tokens: fills INV_TOKENS, one entry per inventory row, each
+# holding the literal strings a prompt may not show for that construct,
+# newline separated. Derived four ways, in order:
 #
 #   1. a backticked span in the cell          `~>`          -> ~>
 #   2. a parenthesised symbol-ish span        leads-to (~>) -> ~>
@@ -515,67 +565,70 @@ fi
 # A construct that yields NO token is reported UNCHECKED rather than passed
 # over, because layer A silently covering nothing is the false-PASS
 # direction. The remedy is one backtick pair in the inventory cell.
+#
+# FOUR GREPS FOR THE WHOLE INVENTORY, where this used to be a per-row
+# function forking six. That cost 560 greps and 105 `sed` execs over the real
+# 105-row inventory, which is the largest block left once bead tla-0eis.1's
+# three named callers are fixed. Each "find every match" route now runs ONE
+# grep over a file holding every raw cell, with `-n` so a match carries its
+# row number back. The two membership tests became bash `=~` against the same
+# ERE. Route 3c already worked this way, and its reasoning is this one.
+#
+# ORDER IS PART OF THE CONTRACT. Layer A walks a row's tokens in sequence and
+# raises a FINDING per token the prompt shows, so re-ordering the routes
+# re-orders the run's output. The routes append in the order above.
 # ---------------------------------------------------------------------------
-construct_tokens() {
-  local raw="$1"
-  local got=0 t
 
-  # 1. backticked spans
-  local bt
+# TOKENISH — routes 2 and 3 ask whether a span is itself a token. bash `=~`
+# reads POSIX ERE, which is the dialect `grep -E` read this pattern in.
+TOKENISH='^[^A-Za-z0-9 ]+$|^[A-Z][A-Za-z]*_$|^[A-Z_]{2,}$'
+
+build_inv_tokens() {
+  INV_TOKENS=()
+  local n="${#INV_RAW[@]}"
+  [ "$n" -gt 0 ] || return 0
+
+  # ONE LINE PER ROW, so grep's `-n` prefix IS the row number. A row that
+  # matches nothing contributes no line and the numbering still holds.
+  local rawfile="${SCRATCH}/inv-raw"
+  printf '%s\n' "${INV_RAW[@]}" >"$rawfile"
+
+  local -a BT=() PAR=() CAPS=() SYM=()
+  local i ln tok
+  for ((i = 0; i < n; i++)); do BT+=(""); PAR+=(""); CAPS+=(""); SYM+=(""); done
+
+  # 1. backticked spans.
   # The pattern needs two LITERAL backticks and must not expand, which is
-  # what single quotes are doing here; shellcheck reads the pair as a
+  # what single quotes are doing here. shellcheck reads the pair as a
   # command substitution it is warning me about.
   # shellcheck disable=SC2016
-  bt="$(grep -oE '`[^`]+`' <<<"$raw" || true)"
-  if [ -n "$bt" ]; then
-    while IFS= read -r t; do
-      t="${t//\`/}"
-      [ -n "$t" ] || continue
-      printf '%s\n' "$t"
-      got=1
-    done <<<"$bt"
-  fi
+  grep -oEn -- '`[^`]+`' "$rawfile" >"${SCRATCH}/m-bt" || true
+  while IFS=: read -r ln tok; do
+    [ -n "$tok" ] || continue
+    BT[ln - 1]="${BT[ln - 1]}${tok}"$'\n'
+  done <"${SCRATCH}/m-bt"
 
-  # 2. parenthesised symbol-ish spans
-  local par
-  par="$(grep -oE '\([^)]+\)' <<<"$raw" || true)"
-  if [ -n "$par" ]; then
-    while IFS= read -r t; do
-      t="${t#(}"; t="${t%)}"
-      [ -n "$t" ] || continue
-      if grep -qE '^[^A-Za-z0-9 ]+$|^[A-Z][A-Za-z]*_$|^[A-Z_]{2,}$' <<<"$t"; then
-        printf '%s\n' "$t"
-        got=1
-      fi
-    done <<<"$par"
-  fi
-
-  # 3. the bare cell, when it is itself a token
-  local bare
-  bare="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<<"$raw")"
-  if grep -qE '^[^A-Za-z0-9 ]+$|^[A-Z][A-Za-z]*_$|^[A-Z_]{2,}$' <<<"$bare"; then
-    printf '%s\n' "$bare"
-    got=1
-  fi
+  # 2. parenthesised spans. Whether each one is symbol-ish is decided below.
+  grep -oEn -- '\([^)]+\)' "$rawfile" >"${SCRATCH}/m-par" || true
+  while IFS=: read -r ln tok; do
+    [ -n "$tok" ] || continue
+    PAR[ln - 1]="${PAR[ln - 1]}${tok}"$'\n'
+  done <"${SCRATCH}/m-par"
 
   # 3b. ALL-CAPS keywords sitting INSIDE a prose cell. This is what reaches
   # the real inventory, whose field 4 is prose from a cheat sheet:
   # "EXTENDS (module import)" yields EXTENDS, "IF-THEN-ELSE" yields IF, THEN
   # and ELSE. Two letters minimum, so an initial does not become a token.
-  local caps
-  caps="$(grep -oE '[A-Z][A-Z_]+' <<<"$raw" || true)"
-  if [ -n "$caps" ]; then
-    while IFS= read -r t; do
-      [ -n "$t" ] || continue
-      printf '%s\n' "$t"
-      got=1
-    done <<<"$caps"
-  fi
+  grep -oEn -- '[A-Z][A-Z_]+' "$rawfile" >"${SCRATCH}/m-caps" || true
+  while IFS=: read -r ln tok; do
+    [ -n "$tok" ] || continue
+    CAPS[ln - 1]="${CAPS[ln - 1]}${tok}"$'\n'
+  done <"${SCRATCH}/m-caps"
 
-  # 3c. any TLA+ symbol or operator NAME appearing in the cell, in ONE grep
-  # pass over a pattern file built once at startup. The obvious loop forks a
-  # grep per symbol, which is 70 forks per construct and 7,350 for the real
-  # 105-row inventory. That measured 25 s against 7 s for the whole suite.
+  # 3c. any TLA+ symbol or operator NAME appearing in the cell, against a
+  # pattern file built once at startup. The obvious loop forks a grep per
+  # symbol, which is 70 forks per construct and 7,350 for the real 105-row
+  # inventory. That measured 25 s against 7 s for the whole suite.
   #
   # This scans LAYER_A_SYMBOLS, which is WIDER than DISTINCTIVE and includes
   # the shared vocabulary the floor excludes. The asymmetry is deliberate.
@@ -585,38 +638,92 @@ construct_tokens() {
   # a prompt showing it gives that away. The real inventory has rows named
   # `\A (universal quantifier, "forall")` and `:= assignment`, and layer A
   # would reach neither from DISTINCTIVE alone.
-  local sym
-  sym="$(grep -oF -f "$SYMFILE" <<<"$raw" || true)"
-  if [ -n "$sym" ]; then
-    printf '%s\n' "$sym"
-    got=1
-  fi
+  grep -oFn -f "$SYMFILE" -- "$rawfile" >"${SCRATCH}/m-sym" || true
+  while IFS=: read -r ln tok; do
+    [ -n "$tok" ] || continue
+    SYM[ln - 1]="${SYM[ln - 1]}${tok}"$'\n'
+  done <"${SCRATCH}/m-sym"
 
-  [ "$got" = "0" ] || return 0
+  local raw toks got t bare prev alias
+  for ((i = 0; i < n; i++)); do
+    raw="${INV_RAW[i]}"
+    toks=""
+    got=0
 
-  # 4. the alias table. Modest on purpose: a prose cell that is not here is
-  #    reported unchecked, which is a louder and more useful signal than a
-  #    guess.
-  local n; n="$(normalize "$raw")"
-  case "$n" in
-    *"eventually always"*)                     printf '%s\n' '<>[]' ;;
-    *"leads to"*|*"leads-to"*|*"leadsto"*)     printf '%s\n' '~>' ;;
-    *"weak fairness"*|*"weakly fair"*)         printf '%s\n' 'WF_' ;;
-    *"strong fairness"*|*"strongly fair"*)     printf '%s\n' 'SF_' ;;
-    *eventually*)                              printf '%s\n' '<>' ;;
-    *"always"*|*"box operator"*)               printf '%s\n' '[]' ;;
-    *enabled*)                                 printf '%s\n' 'ENABLED' ;;
-    *unchanged*)                               printf '%s\n' 'UNCHANGED' ;;
-    *choose*)                                  printf '%s\n' 'CHOOSE' ;;
-    *except*|*"function update"*)              printf '%s\n' 'EXCEPT' ;;
-    *subset*|*powerset*)                       printf '%s\n' 'SUBSET' ;;
-    *union*)                                   printf '%s\n' 'UNION' ;;
-    *instance*|*"refinement mapping"*)         printf '%s\n' 'INSTANCE' ;;
-    *recursive*)                               printf '%s\n' 'RECURSIVE' ;;
-    *cardinality*)                             printf '%s\n' 'Cardinality' ;;
-    *"stuttering subscript"*|*subscript*)      printf '%s\n' ']_' ;;
-    *) : ;;
-  esac
+    while IFS= read -r t; do
+      t="${t//\`/}"
+      [ -n "$t" ] || continue
+      toks="${toks}${t}"$'\n'
+      got=1
+    done <<<"${BT[i]}"
+
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      t="${t#(}"; t="${t%)}"
+      [ -n "$t" ] || continue
+      if [[ "$t" =~ $TOKENISH ]]; then
+        toks="${toks}${t}"$'\n'
+        got=1
+      fi
+    done <<<"${PAR[i]}"
+
+    # 3. the bare cell, when it is itself a token.
+    bare="$raw"
+    prev=""
+    while [ "$bare" != "$prev" ]; do
+      prev="$bare"
+      bare="${bare#[[:space:]]}"
+      bare="${bare%[[:space:]]}"
+    done
+    if [[ "$bare" =~ $TOKENISH ]]; then
+      toks="${toks}${bare}"$'\n'
+      got=1
+    fi
+
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      toks="${toks}${t}"$'\n'
+      got=1
+    done <<<"${CAPS[i]}"
+
+    if [ -n "${SYM[i]}" ]; then
+      toks="${toks}${SYM[i]}"
+      got=1
+    fi
+
+    # 4. the alias table. Modest on purpose: a prose cell that is not here is
+    #    reported unchecked, which is a louder and more useful signal than a
+    #    guess. It runs only when nothing above produced a token, so it
+    #    assigns rather than appends.
+    if [ "$got" = "0" ]; then
+      normalize "$raw"
+      alias="$NORM"
+      case "$alias" in
+        *"eventually always"*)                 toks='<>[]'$'\n' ;;
+        *"leads to"*|*"leads-to"*|*"leadsto"*) toks='~>'$'\n' ;;
+        *"weak fairness"*|*"weakly fair"*)     toks='WF_'$'\n' ;;
+        *"strong fairness"*|*"strongly fair"*) toks='SF_'$'\n' ;;
+        *eventually*)                          toks='<>'$'\n' ;;
+        *"always"*|*"box operator"*)           toks='[]'$'\n' ;;
+        *enabled*)                             toks='ENABLED'$'\n' ;;
+        *unchanged*)                           toks='UNCHANGED'$'\n' ;;
+        *choose*)                              toks='CHOOSE'$'\n' ;;
+        *except*|*"function update"*)          toks='EXCEPT'$'\n' ;;
+        *subset*|*powerset*)                   toks='SUBSET'$'\n' ;;
+        *union*)                               toks='UNION'$'\n' ;;
+        *instance*|*"refinement mapping"*)     toks='INSTANCE'$'\n' ;;
+        *recursive*)                           toks='RECURSIVE'$'\n' ;;
+        *cardinality*)                         toks='Cardinality'$'\n' ;;
+        *"stuttering subscript"*|*subscript*)  toks=']_'$'\n' ;;
+        *) : ;;
+      esac
+    fi
+
+    # The per-row function this replaces printed its tokens and the caller
+    # captured them through `$( )`, which strips every trailing newline.
+    while [ "${toks: -1}" = $'\n' ]; do toks="${toks%$'\n'}"; done
+    INV_TOKENS+=("$toks")
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -727,37 +834,92 @@ meta_constructs() {
 }
 
 # ---------------------------------------------------------------------------
-# rc_claim <answer.md> <module-basename>: the rc ANSWER.md records for a
-# module, or empty.
+# rc_claims <answer.md> <module-stem>...: fills RC_CLAIM, keyed by stem, with
+# the rc ANSWER.md records for that module, or the empty string.
+#
+# ONE AWK PASS PER ITEM. This used to be a chain of two to five greps plus a
+# `tail` PER MODULE, which over the 32-item tree was roughly 950 greps and all
+# 237 `tail` execs in bead tla-0eis.1's measurement. The awk below reads
+# ANSWER.md once and answers for every module of the item at the same time.
 #
 # TOLERANT ON PURPOSE. Six authors are writing to a format that says
 # "measured rc in ANSWER.md" and does not fix a line shape, so this reads a
 # table cell, `rc=12`, `rc: 12` and `exit 12` alike. What it will NOT do is
 # guess: a module with no recoverable rc is a FINDING, never a pass.
+#
+# WORD-BOUNDARY, not substring. A plain substring match on the stem matches
+# any English word the name is a prefix of: a module called Commit.tla picked
+# up the prose word "Committed" and the digit from that sentence became a
+# phantom rc 1 claim. Found by the tla-pmm2 temporal author, which worked
+# around it by renaming its module. A base name that is a prefix of an English
+# word would have bitten every later author. The awk carries the same
+# `(^|[^A-Za-z0-9_])STEM([^A-Za-z0-9_]|$)` the grep did, and the stem still
+# goes in unescaped, which holds while module names stay alphanumeric.
+#
+# THE PRECEDENCE IS LOAD-BEARING and it is the grep chain's, unchanged. An
+# `rc<digits>` hit anywhere in the module's lines wins. Failing that an
+# `exit<digits>` hit. Failing that a bare pipe-delimited table cell of digits.
+# Within each class the LAST hit wins, which is why lastmatch() scans a line
+# to its end instead of stopping at the first match.
 # ---------------------------------------------------------------------------
-rc_claim() {
-  local ans="$1" mod="$2" lines hits rc=""
-  # WORD-BOUNDARY, not substring. A plain `grep -F` on the basename matches
-  # any English word the name is a prefix of: a module called Commit.tla
-  # picked up the prose word "Committed" and the digit from that sentence
-  # became a phantom rc 1 claim. Found by the tla-pmm2 temporal author, which
-  # worked around it by renaming its module. A base name that is a prefix of
-  # an English word would have bitten every later author.
-  lines="$(grep -E -- "(^|[^A-Za-z0-9_])${mod}([^A-Za-z0-9_]|\$)" "$ans" 2>/dev/null || true)"
-  [ -n "$lines" ] || return 0
+declare -A RC_CLAIM=()
 
-  hits="$(grep -oiE 'rc[^0-9A-Za-z]{0,3}[0-9]{1,3}' <<<"$lines" || true)"
-  if [ -z "$hits" ]; then
-    hits="$(grep -oiE 'exit[^0-9A-Za-z]{0,3}[0-9]{1,3}' <<<"$lines" || true)"
-  fi
-  if [ -n "$hits" ]; then
-    rc="$(grep -oE '[0-9]{1,3}' <<<"$hits" | tail -1 || true)"
-  else
-    # A bare table cell of digits, e.g. `| Wrong.tla | Wrong.cfg | 12 |`
-    hits="$(grep -oE '\|[[:space:]]*[0-9]{1,3}[[:space:]]*\|' <<<"$lines" || true)"
-    [ -n "$hits" ] && rc="$(grep -oE '[0-9]{1,3}' <<<"$hits" | tail -1 || true)"
-  fi
-  printf '%s' "$rc"
+# The awk program holds `$0`, and NOT expanding it is the whole point of the
+# single quotes. shellcheck reads it as a shell variable I forgot to expand.
+# shellcheck disable=SC2016
+RC_CLAIM_AWK='
+# lastmatch: the final non-overlapping match of pat in s, or "". This is what
+# `grep -o PAT | tail -1` did. Advancing past RLENGTH rather than past RSTART
+# is what keeps the matches non-overlapping the way grep -o does, and that
+# matters for a row of table cells: `| 1 | 2 |` yields one match, not two.
+function lastmatch(s, pat,   out) {
+  out = ""
+  while (match(s, pat) > 0) {
+    if (RLENGTH <= 0) break
+    out = substr(s, RSTART, RLENGTH)
+    s = substr(s, RSTART + RLENGTH)
+  }
+  return out
+}
+BEGIN { nmod = split(mods, MOD, "\n") }
+{
+  # tolower() stands in for grep -i. Both rc patterns are ASCII literals, so
+  # folding the whole line cannot move what they match.
+  low = tolower($0)
+  for (i = 1; i <= nmod; i++) {
+    if (MOD[i] == "") continue
+    if ($0 !~ ("(^|[^A-Za-z0-9_])" MOD[i] "([^A-Za-z0-9_]|$)")) continue
+    m = lastmatch(low, "rc[^0-9A-Za-z]{0,3}[0-9]{1,3}")
+    if (m != "") RCH[i] = m
+    m = lastmatch(low, "exit[^0-9A-Za-z]{0,3}[0-9]{1,3}")
+    if (m != "") EXH[i] = m
+    m = lastmatch($0, "\\|[[:space:]]*[0-9]{1,3}[[:space:]]*\\|")
+    if (m != "") CELL[i] = m
+  }
+}
+END {
+  for (i = 1; i <= nmod; i++) {
+    if (MOD[i] == "") continue
+    hit = (i in RCH) ? RCH[i] : ((i in EXH) ? EXH[i] : ((i in CELL) ? CELL[i] : ""))
+    rc = ""
+    if (hit != "" && match(hit, "[0-9]{1,3}")) rc = substr(hit, RSTART, RLENGTH)
+    printf "%s\t%s\n", MOD[i], rc
+  }
+}'
+
+rc_claims() {
+  local ans="$1"; shift
+  RC_CLAIM=()
+  [ "$#" -gt 0 ] || return 0
+  [ -f "$ans" ] || return 0
+  local stems="" stem rc
+  for stem in "$@"; do
+    stems="${stems}${stem}"$'\n'
+  done
+  while IFS=$'\t' read -r stem rc; do
+    [ -n "$stem" ] || continue
+    RC_CLAIM["$stem"]="$rc"
+  done < <(awk -v mods="$stems" "$RC_CLAIM_AWK" "$ans")
 }
 
 # verdict.sh's table. A recorded rc outside it is a mis-transcription.
@@ -780,17 +942,23 @@ rc_in_table() {
 # whichever source named them.
 # ---------------------------------------------------------------------------
 declare -a INV_COUNT=() INV_TOKENS=() INV_SEEN=()
+build_inv_tokens
 for ((_i = 0; _i < ${#INV_NORM[@]}; _i++)); do
-  INV_TOKENS+=("$(construct_tokens "${INV_RAW[$_i]}")")
-  _seed="$(tr -s ' ' <<<"${INV_ITEMS[$_i]}" | sed -e 's/^ //' -e 's/ $//')"
+  # Squeeze runs of spaces, then drop one leading and one trailing space,
+  # which is what `tr -s ' '` into a two-expression `sed` did.
+  _seed="${INV_ITEMS[$_i]}"
+  while [[ "$_seed" == *"  "* ]]; do _seed="${_seed//  / }"; done
+  _seed="${_seed# }"
+  _seed="${_seed% }"
   INV_SEEN+=("$_seed")
   if [ -z "$_seed" ]; then
     INV_COUNT+=(0)
   else
-    INV_COUNT+=("$(wc -w <<<"$_seed")")
+    read -r -a _words <<<"$_seed"
+    INV_COUNT+=("${#_words[@]}")
   fi
 done
-unset _i _seed
+unset _i _seed _words
 
 # inv_index <normalized-construct> -> echoes index, or fails.
 #
@@ -866,7 +1034,9 @@ fi
 
 for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
   rel="${item#"$ROOT"/}"
-  base="$(basename "$item")"
+  # `${x##*/}` rather than basename. find never emits a trailing slash, so the
+  # two agree on every path that reaches here, and basename was 303 execs.
+  base="${item##*/}"
   item_n=$((item_n + 1))
 
   # --- shape -------------------------------------------------------------
@@ -892,6 +1062,14 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     missing=1
   fi
   [ "$missing" = "0" ] || continue
+
+  # PROMPT.md read ONCE, because both telegraph layers ask the same question
+  # of it over and over: does this token appear anywhere in the prompt? That
+  # was a `grep -qF` per token, 297 of them over the 32-item tree, and a
+  # substring test against the file's text answers it without a fork. A token
+  # never holds a newline, so it cannot straddle two lines, which is the only
+  # way the line-oriented grep and a whole-file test could disagree.
+  prompt_text="$(<"$prompt")"
 
   # =======================================================================
   # CHECK 1 — TELEGRAPH
@@ -929,7 +1107,7 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
 
   # --- the why-not-in-prompt field ---------------------------------------
   cav="$(caveat_text "$answer")"
-  cav_squeezed="$(tr -d '[:space:]' <<<"$cav")"
+  cav_squeezed="${cav//[[:space:]]/}"
   if [ "${#cav_squeezed}" -lt 20 ]; then
     finding "TELEGRAPH-NO-CAVEAT" "$rel" \
       "ANSWER.md has no why-not-in-prompt field with real content (${#cav_squeezed} non-space chars, 20 required)"
@@ -950,7 +1128,8 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
   mc="$(meta_constructs "$meta")"
   if [ -n "$mc" ]; then
     while IFS= read -r c; do
-      cn="$(normalize "$c")"
+      normalize "$c"
+      cn="$NORM"
       [ -n "$cn" ] || continue
       DECLARED+=("$cn")
     done <<<"$mc"
@@ -1004,7 +1183,7 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     while IFS= read -r tok; do
       [ -n "$tok" ] || continue
       is_waived "$tok" && continue
-      if grep -qF -- "$tok" "$prompt"; then
+      if [[ "$prompt_text" == *"$tok"* ]]; then
         finding "TELEGRAPH-DECLARED" "$rel" \
           "PROMPT.md shows '${tok}', the token of the declared construct '${INV_RAW[$idx]}'"
       fi
@@ -1013,14 +1192,14 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
 
   # --- layer B: the floor over the answer's own code ---------------------
   code="$(answer_code "$answer")"
-  if [ -z "$(tr -d '[:space:]' <<<"$code")" ]; then
+  if [ -z "${code//[[:space:]]/}" ]; then
     unchecked "telegraph-floor" "$rel" \
       "ANSWER.md has no fenced code block; the floor has no answer tokens to compare against"
   elif prompt_shows_code "$prompt"; then
     for tok in "${DISTINCTIVE[@]}"; do
       is_waived "$tok" && continue
-      grep -qF -- "$tok" <<<"$code" || continue
-      if grep -qF -- "$tok" "$prompt"; then
+      [[ "$code" == *"$tok"* ]] || continue
+      if [[ "$prompt_text" == *"$tok"* ]]; then
         finding "TELEGRAPH-FLOOR" "$rel" \
           "ANSWER.md's code uses '${tok}' and PROMPT.md shows it too"
       fi
@@ -1040,15 +1219,24 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     finding "VERIFY-NO-MODULES" "$rel" "verify/ holds no .tla module"
   fi
 
+  # Every recorded rc for this item, read out of ANSWER.md ONCE, before the
+  # per-module loop that consumes them.
+  declare -a STEMS=()
+  for m in "${MODS[@]+"${MODS[@]}"}"; do
+    m="${m##*/}"
+    STEMS+=("${m%.tla}")
+  done
+  rc_claims "$answer" "${STEMS[@]+"${STEMS[@]}"}"
+
   saw_pass=0
   saw_refutation=0
   checkable=0
 
   for mod in "${MODS[@]+"${MODS[@]}"}"; do
-    modbase="$(basename "$mod")"
+    modbase="${mod##*/}"
     modstem="${modbase%.tla}"
     cfg="${verify}/${modstem}.cfg"
-    want="$(rc_claim "$answer" "$modstem")"
+    want="${RC_CLAIM[$modstem]-}"
 
     if [ ! -f "$cfg" ]; then
       # Exactly one .cfg in verify/ is taken as this module's config only
@@ -1149,7 +1337,7 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
       "verify/ holds ${#MODS[@]} module(s) and not one is checkable (a .cfg plus a recorded rc)"
   fi
 
-  unset WAIVED DECLARED MODS
+  unset WAIVED DECLARED MODS STEMS
 done
 
 # ===========================================================================
