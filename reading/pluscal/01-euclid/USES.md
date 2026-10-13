@@ -8,6 +8,13 @@ rc: 0
 Translated with `pcal -lineWidth 60 -nocfg -termination`. The
 translation is committed, so the module checks as it stands.
 
+That `-termination` is where the `WF_vars(Next)` on line 43 comes from. The
+algorithm block carries no `fair` and no `process`, so the flag supplies the
+fairness on its own. Measured three ways by the `tla-fwkz.2.1` author: a
+`fair process` with no flag gives `WF_vars`, no keyword with `-termination`
+gives `WF_vars` anyway, and a `fair process` with `-nof` gives nothing. Read
+`reading/pluscal/02-interleave` for the keyword itself.
+
 ## Constructs
 
 - --algorithm block
@@ -18,7 +25,6 @@ translation is committed, so the module checks as it stands.
 - pc (PlusCal's label-tracking variable)
 - Terminating
 - label-as-action encoding
-- fair process (weak fairness)
 
 ## Constructs from other families, also exercised
 
