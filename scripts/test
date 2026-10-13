@@ -8,8 +8,8 @@
 # gate-don't-advise failure this script closes.
 #
 # Usage:
-#   bash scripts/test               # ALL suites (default) — ~2 min
-#   bash scripts/test --fast        # only the sub-2s tier   — ~4 s
+#   bash scripts/test               # ALL suites (default) — ~350 s
+#   bash scripts/test --fast        # only the fast tier    — ~24 s
 #   bash scripts/test --verbose     # stream every suite's output, not just failures
 #   bash scripts/test <substring>   # run only suites whose label or command matches
 #   bash scripts/test --list        # print the suite table and exit
@@ -20,71 +20,144 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is ~141 s wall (measured below), and the fast tier is only
-# 108 of the 292 harness assertions — 37% — plus none of the 33 v1 assertions
-# and none of the 26 snippet pairs. Defaulting to that would make
-# canonical_commands.test name a command that runs a third of the gate, which
-# is the same class of lie as naming a command that fails by design. So the
-# default is the whole thing, and --fast is the opt-in for tight iteration.
+# Here the full run is ~350 s wall (measured below), and the fast tier is 16
+# of the 25 suites but only about 7% of the wall clock. It skips every
+# TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
+# refinement harness, the seeded-bug matrix, the indeterminate census and the
+# drill corpus's rc verification. Defaulting to that would make
+# canonical_commands.test name a command that runs a fourteenth of the cost
+# and none of the model checking, which is the same class of lie as naming a
+# command that fails by design. So the default is the whole thing, and --fast
+# is the opt-in for tight iteration.
+#
+# The share is given in wall clock rather than in assertions on purpose. This
+# script does not aggregate an assertion total, so every such figure written
+# here has been a hand-count with a shelf life — the suite count alone has
+# been three out of date twice (see .claude/rules/dispatched-agents.md). The
+# authority on how many suites there are and what they cost is
+# `bash scripts/test --list`.
 #
 # ---------------------------------------------------------------------------
-# TIER SPLIT — re-measured 2026-08-07 (bead tla-htx), this box,
-#              TLC2 2026.07.31.184830 / tla2tools v1.8.0, 22 cores,
-#              load avg 2-5 (other agents were working the box).
+# TIER SPLIT — the WHOLE registry re-measured 2026-10-13 (bead tla-0eis.3),
+#              this box, TLC2 2026.07.31.184830 / tla2tools v1.8.0, 16 cores.
+#              NOT an idle box: a 65-minute game JVM was holding about 0.2 of
+#              one core throughout, and that is stated rather than hidden.
+#              Run-to-run spread was tight enough to bound its effect — the
+#              grader read 99.0 / 98.8 / 98.9 s, a 0.2% spread.
 #
 # Each budget below is the SLOWEST of three back-to-back serial runs, so it is
 # the wall clock this box has actually been seen to need, not an average. That
 # is deliberate: the budget-drift nudge (below) measures from it, and a nudge
-# that trips on ordinary run-to-run jitter gets ignored. Observed jitter across
-# the three runs was under 8% on every suite.
+# that trips on ordinary run-to-run jitter gets ignored.
 #
-# The cut is at the 4.2x gap between 2.4 s and 10.2 s. Nothing here "takes
-# minutes": the slowest single suite is 47 s and the whole set is ~141 s.
+# WHY ALL 25 AT ONCE RATHER THAN THE ROWS THAT COMPLAINED. Bead tla-kqry was
+# filed over two stale rows on 2026-10-08, corrected to eight the same day,
+# then to nine, and its own note settled on "re-measure all twenty-one on a
+# quiet box rather than patching rows". Nine of twenty-one over is not nine
+# stale numbers, it is a budget set nobody had re-measured since the box or
+# the suites changed — and the rows had been taken on four different days
+# against trees of four different shapes, so they were never comparable with
+# each other in the first place. The three numbers under each row below all
+# come from one pass.
 #
-#   tier  wall    assertions  suite
-#   ----  ------  ----------  ------------------------------------------
-#   fast    0.7 s      19     harness/test-pipefail.sh
-#   fast    1.0 s      71     harness/screen.sh --selftest
-#   fast    2.4 s      25     harness/comment-gate.sh --self-test
-#   slow   10.8 s      21     harness/test-verdict.sh
-#   slow   11.7 s      33     scripts/test-verify-puzzle.sh          (v1)
-#   slow   13.6 s   26 pairs  chapter/snippets/run-all.sh (+ check-blocks.py)
-#   slow   16.8 s      43     harness/fixtures/refinement/selftest.sh
-#   slow   18.4 s      26     harness/test-vacuity.sh
-#   slow   19.7 s      57     harness/grade.sh --selftest
-#   slow   46.9 s      37     harness/fixtures/seeded-bugs/selftest.sh
-#   ----  ------  ----------
-#          141 s     299      harness assertions (fast tier alone: ~4.3 s, 115)
-#                     +27     scripts/test-verify-puzzle.sh, now slow
-#                  +26 prs    chapter/snippets, already slow
+#   tier    wall  suite
+#   ----  ------  ------------------------------------------------------
+#   fast   0.2 s  harness/test-deliver-exercises.sh
+#   fast   0.3 s  harness/test-toolchain-pin.sh
+#   fast   0.7 s  harness/test-build-docs-chapter.sh
+#   fast   0.7 s  harness/test-number-problems.sh
+#   fast   0.9 s  harness/test-deliver-problems.sh
+#   fast   1.0 s  harness/test-build-docs-exercises.sh
+#   fast   1.1 s  harness/test-printed-commands.sh
+#   fast   1.2 s  harness/test-drill.sh --static
+#   fast   1.3 s  harness/test-vector.sh
+#   fast   1.3 s  harness/test-refutation-coverage.sh
+#   fast   1.5 s  harness/screen.sh --selftest
+#   fast   1.8 s  harness/test-pipefail.sh
+#   fast   2.0 s  harness/test-sequence.sh
+#   fast   2.2 s  harness/comment-gate.sh --self-test
+#   fast   2.6 s  harness/test-corpus-manifest.sh
+#   fast   4.8 s  harness/test-spike-measure.sh
+#   slow   7.4 s  harness/test-indeterminate.sh          (budget NOT re-based)
+#   slow   9.0 s  chapter/snippets/run-all.sh
+#   slow   9.8 s  scripts/test-verify-puzzle.sh                        (v1)
+#   slow  12.9 s  harness/fixtures/refinement/selftest.sh
+#   slow  14.4 s  harness/test-verdict.sh
+#   slow  54.4 s  harness/test-drill.sh                    (COLD; warm ~17 s)
+#   slow  57.8 s  harness/fixtures/seeded-bugs/selftest.sh
+#   slow  60.0 s  harness/test-vacuity.sh
+#   slow  99.0 s  harness/grade.sh --selftest
+#   ----  ------
+#         23.6 s  fast tier, 16 suites   (measured --fast total: 23.2 s)
+#        324.7 s  slow tier,  9 suites
+#        348.3 s  whole registry         (measured cold total: ~349 s)
 #
-# The test-pipefail.sh row moved 12 -> 19 on 2026-08-07 (bead tla-4u0): its ban
-# widened from harness/ alone to harness/ + scripts/ + chapter/, which cost
-# three per-root coverage assertions, an allowlist-staleness assertion, and
-# three controls proving the scanner still detects a planted violation. The
-# same bead deleted six assertions from scripts/test-verify-puzzle.sh — a local
-# mirror of the ban, redundant once the real gate reached scripts/ — so that
-# suite is 33 -> 27.
+# Assertion counts are gone from this table on purpose. This script does not
+# aggregate one, so every total written here was a hand-count that went stale
+# — and the SUITE count in the sibling rules file was three out of date twice
+# for the same reason. `bash scripts/test --list` is the authority.
 #
-# NOTE these two beads landed in the same wave and both edited this table; the
-# merge kept tla-htx's tier placement (the v1 suite is SLOW) and tla-4u0's
-# counts. If a row here ever disagrees with a suite's own final line, the
-# suite is right and this comment is stale.
+# If a row here ever disagrees with a suite's own final line, the suite is
+# right and this comment is stale.
 #
-# WHAT MOVED, AND WHY (bead tla-htx)
+# THE TIER GAP HAS COLLAPSED, AND THE DRIFT NUDGE'S 3.0x RESTS ON IT.
 #
-#   scripts/test-verify-puzzle.sh: fast 0.7 s -> slow 11.7 s. Bead tla-syn
-#   rewrote it to classify by TLC exit code instead of by stdout grep, taking
-#   it from 2 assertions to 33 and from a pure-shell suite to one that runs
-#   real TLC. That is a 16x overrun of its recorded budget, and it is what
-#   pushed --fast from ~4 s to a measured 17 s. Nothing else changed tier.
+# The boundary itself has not moved and is not a wall clock: a suite that runs
+# TLC's MODEL CHECKER belongs in slow, and the paragraph below says why the
+# JVM is the wrong test. What HAS moved is the gap either side of it. This
+# header used to read "the cut is at the 4.2x gap between 2.4 s and 10.2 s",
+# and it is now the 1.5x gap between 4.8 s and 7.4 s — spike measurement runs
+# three real TLC jobs against 3-by-3 fixtures and stays fast deliberately,
+# while the indeterminate census is slow by the model-checker rule at 7.4 s.
 #
-#   comment-gate.sh drifted 1.9 s -> 2.4 s (+27%) with no code change since
-#   the commit that created it, so that is box/build variation, not growth.
-#   It stays fast; only its budget is re-baselined. It does narrow the tier
-#   gap from tla-xme's 5.4x to 4.2x — still by far the largest gap in the
-#   sequence, and still in the same place, so the boundary itself does not
-#   move. Everything else landed within 8% of its old budget.
+# That breaks a stated justification further down this header: "A 3x threshold
+# therefore catches every possible tier crossing by construction." At a 1.5x
+# gap it no longer does. BUDGET_DRIFT_FACTOR is left at 3 here, because
+# re-deciding it needs a human — tla-kqry's own note asks whether the nudge's
+# AND is right at all, observing that it never fires on a slow suite that
+# merely doubles and never on a fast suite that grows tenfold from 0.5 s, so
+# the two halves protect different sizes and nothing protects the middle.
+# Recorded here as a measured fact rather than acted on.
+#
+# WHAT MOVED SINCE THE ROWS WERE LAST TAKEN, and which moves are attributed.
+#
+#   ATTRIBUTED, cause named in tla-kqry or in git:
+#     grader            59.1 -> 99.0 s   tla-8kgj added 26 fixture files;
+#                                        tla-kqry measured 90.4 mid-wave
+#     seeded bugs       46.9 -> 57.8 s   tla-r2ih's liveness pair, measured
+#                                        at 48.1 then 50.8 on the way here
+#     spike measurement  1.9 ->  4.8 s   tla-83lg's nine comment-shape
+#                                        fixtures
+#     drill corpus gate 10.3 -> 54.4 s   32 items landed against a budget
+#                                        measured over an EMPTY tree; see
+#                                        that row and bead tla-0eis
+#     ramp sequence      1.5 ->  2.0 s   tla-5zgr.1 took the suite from 29
+#                                        assertions to 51
+#     vector records     0.5 ->  1.3 s   tla-5zgr.3 grew it by 178 lines
+#
+#   NOT ATTRIBUTED, and said so rather than papered over. A budget that
+#   tracks a measurement is worth keeping; one padded to stop a row
+#   complaining is not, and so is one trimmed on a guess.
+#     pipefail idiom ban 3.0 ->  1.8 s   DOWN 40% while the suite GREW from
+#                                        19 assertions to 24. Standalone
+#                                        reads 1.72 s, so it is not an
+#                                        in-suite artefact. The 2.9 s reading
+#                                        of 2026-10-02 and the 3.5 s of
+#                                        2026-10-08 were real on those days
+#                                        and nothing in git explains the drop.
+#     vacuity gate      80.6 -> 60.0 s   DOWN 26% with test-vacuity.sh
+#                                        unchanged since the 80.6 reading of
+#                                        2026-09-04. vacuity.sh itself moved
+#                                        in 3f6d845, which is a candidate and
+#                                        was not verified.
+#     chapter snippets  13.6 ->  9.0 s   DOWN 34%, unexplained.
+#     refinement        16.8 -> 12.9 s   DOWN 23%, unexplained.
+#     v1 verify-puzzle  11.7 ->  9.8 s   DOWN 16%, unexplained.
+#
+#   The downward moves are the reason this table now records the box's state.
+#   Four suites reading 16% to 34% lower, while the grader reads 67% higher,
+#   rules out "the box got faster" as a single explanation: a box effect does
+#   not move two rows in opposite directions.
 #
 # WHAT THE BOUNDARY ACTUALLY IS — not "launches a JVM"
 #
@@ -170,14 +243,18 @@ fi
 # three serial runs on the box named in the header. The tier column is derived
 # from it. Keep the rows sorted by budget within each tier.
 SUITES=(
-  # Re-measured 2026-10-02: 2.94 / 2.86 / 2.88 s over three serial runs, up from
-  # 0.7. This suite scans every shell file under harness/ by shebang, so its cost
-  # tracks the size of that tree rather than anything about itself. tla-i3zu and
-  # tla-rsjc added 663 lines there in one night. It already read 1.2 to 1.3 s
-  # against 0.7 before those landed, so part of this was stale and part is new.
-  # Neither part tripped the drift nudge, since 2.9 - 0.7 is under the 5 s clause.
-  "fast|3.0|pipefail idiom ban|./harness/test-pipefail.sh"
-  "fast|1.0|puzzle screen|./harness/screen.sh --selftest"
+  # Re-measured 2026-10-13: 1.7 / 1.7 / 1.8 s in-suite, and 1.72 s standalone
+  # as a cross-check, DOWN from the 2.94 / 2.86 / 2.88 recorded 2026-10-02 and
+  # the 3.5 s tla-kqry observed 2026-10-08. The suite grew over that window,
+  # 19 assertions to 24, so this is not the suite shrinking, and nothing in
+  # git explains it. Recorded unattributed rather than left at a number no
+  # run has produced since.
+  # Its cost tracks the size of the harness/ + scripts/ + chapter/ tree it
+  # scans by shebang, not anything about itself.
+  "fast|1.8|pipefail idiom ban|./harness/test-pipefail.sh"
+  # Re-measured 2026-10-13: 1.4 / 1.4 / 1.5 s, up from 1.0. tla-kqry recorded
+  # 1.5 on 2026-10-08, so this row has been over for at least five days.
+  "fast|1.5|puzzle screen|./harness/screen.sh --selftest"
   # Re-measured on the green tree 2026-10-01 after tla-i3zu: 1.123 / 1.112 /
   # 1.109 s standalone over three serial runs, and 1.2 s inside the full gate.
   # The chapter list is derived from the tree now, so the suite covers twelve
@@ -185,13 +262,17 @@ SUITES=(
   # 0.23 s is the two new chapters plus the fixture tree the coverage section
   # builds. The line that used to sit here said to uncomment this row when the
   # chapter repair wave merged. That wave merged.
-  "fast|1.2|printed commands|./harness/test-printed-commands.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 1.1 / 1.0 / 1.1 s, so 1.1 and down from 1.2.
+  "fast|1.1|printed commands|./harness/test-printed-commands.sh"
   # Measured on the green tree 2026-10-02 after tla-jaob.1: 0.685 / 0.693 / 0.683 s
   # over three serial runs. It builds a mini-repo of symlinks and runs the real
   # generator against it twice, once over a fixture holding a ch14 this repo does
   # not have and once again after creating a ch15 mid-run, so it proves the
   # derivation rather than counting twelve.
-  "fast|0.7|docs exercises section|./harness/test-build-docs-exercises.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 0.9 / 0.9 / 1.0 s, so 1.0 and up from 0.7.
+  "fast|1.0|docs exercises section|./harness/test-build-docs-exercises.sh"
   # Measured on the green tree 2026-10-08 after tla-jaob.5: 0.706 / 0.683 /
   # 0.736 s over three serial runs, so 0.8 is the slowest rounded up. It runs
   # the real generator four times — once over the real chapter/, twice over a
@@ -200,8 +281,18 @@ SUITES=(
   # symlinks with no exercises/ and an empty puzzles/. No TLC, so it belongs in
   # fast by the rule in this header: the boundary is the model checker. Its
   # cost tracks the size of chapter/ rather than anything about itself.
-  "fast|0.8|docs chapter section|./harness/test-build-docs-chapter.sh"
-  "fast|2.4|comment gate|./harness/comment-gate.sh --self-test"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 0.6 / 0.6 / 0.7 s, so 0.7 and down from 0.8. tla-kqry
+  # recorded this row at 1.0 on 2026-10-08, which no run has reproduced since.
+  "fast|0.7|docs chapter section|./harness/test-build-docs-chapter.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 1.7 / 2.2 / 2.2 s, so 2.2 and down from 2.4. The 1.7 was
+  # the first run of the three, which is the opposite of a cold-cache effect
+  # and is why the SLOWEST rather than the first is what gets recorded.
+  "fast|2.2|comment gate|./harness/comment-gate.sh --self-test"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 0.2 / 0.2 / 0.2 s. Unchanged, and the only row in the
+  # registry that was already exact.
   "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
   # Re-measured 2026-09-18 on the green tree, after tla-rgpe took the suite
   # from 64 assertions to 84: 0.47 / 0.48 / 0.48 s over three serial runs, so
@@ -211,27 +302,45 @@ SUITES=(
   # re-measure note attached to it said, and it read 0.6 s in a full run
   # before this line caught up. It builds fourteen fixture roots out of mkdir
   # and printf and runs no TLC.
-  "fast|0.5|problem numbering|./harness/test-number-problems.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 0.6 / 0.7 / 0.6 s, so 0.7 and up from 0.5.
+  "fast|0.7|problem numbering|./harness/test-number-problems.sh"
   # Measured on the green tree 2026-10-02 after tla-6mrz: 0.681 / 0.696 / 0.690 s
   # over three serial runs. It delivers into temp roots only, and its own default
   # root section runs --check and nothing mutating. One row of it delivers the real
   # bonded-store into a temp dest and diffs it against authoring/bonded-store/
   # statement, so the manifest is checked against the tree rather than a list.
-  "fast|0.7|problem delivery|./harness/test-deliver-problems.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 0.8 / 0.9 / 0.8 s, so 0.9 and up from 0.7.
+  "fast|0.9|problem delivery|./harness/test-deliver-problems.sh"
   # Budget measured on the red tree, where the digest check does not exist yet
   # and part 1 stops at the first fetch: 0.2 s over two runs. Once the check
   # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and
   # starts one JVM on it, which costs about another 0.2 s on this box.
-  "fast|0.4|toolchain pin|./harness/test-toolchain-pin.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 0.3 / 0.3 / 0.3 s, so 0.3 and down from 0.4. The digest
+  # check the note below anticipated has landed, and it did not cost 0.2 s.
+  "fast|0.3|toolchain pin|./harness/test-toolchain-pin.sh"
   # Re-measured on the green tree 2026-09-05: 0.42 / 0.43 / 0.44 s over three
   # serial runs, up from 0.26 on the red tree where part 1 stopped at "missing
   # file" for every package. Reading and parsing seven records is the gap.
-  "fast|0.5|vector records|./harness/test-vector.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 1.3 / 1.3 / 1.3 s, so 1.3 and up from 0.5. tla-5zgr.3 grew
+  # harness/test-vector.sh by 178 lines, which tla-kqry attributed when it read
+  # 1.1 and then 1.5 on 2026-10-08. This row is the one that bead was filed
+  # over, and the measurement has now caught up with the growth.
+  "fast|1.3|vector records|./harness/test-vector.sh"
   # Re-measured on the green tree 2026-09-05: 1.492 / 1.495 / 1.493 s over three
   # serial runs, and 1.4 s in the full gate. The red tree measured 0.1 s, since
   # all 29 runs of a missing script die at once. The green run reads eleven
   # records and searches over ten of them, which is where the time goes.
-  "fast|1.5|ramp sequence|./harness/test-sequence.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 1.9 / 2.0 / 1.9 s, so 2.0 and up from 1.5. tla-5zgr.1 took
+  # harness/test-sequence.sh from 29 assertions to 51, and part of the new cost
+  # is the 13-record search the reserve-report split added. That worker measured
+  # 2.0 to 2.1 against the recorded 1.5 and reported it as outside its footprint,
+  # which was correct; this is the sweep that closes it.
+  "fast|2.0|ramp sequence|./harness/test-sequence.sh"
   # Measured 2026-09-05 on the green tree: 0.695 s. It reads 143 rows and
   # builds six control files. One check inside it does NOT run here: path
   # resolution needs a 54 MB clone of the corpus and is skipped unless
@@ -243,14 +352,59 @@ SUITES=(
   # against 17 planted controls rather than 6. It reports 19 passed and 10
   # skipped, and each skip names the count it could not derive, so the output
   # says what went unchecked rather than going quiet about it.
-  "fast|2.8|corpus manifest|./harness/test-corpus-manifest.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 2.6 / 2.6 / 2.6 s, so 2.6 and down from 2.8.
+  "fast|2.6|corpus manifest|./harness/test-corpus-manifest.sh"
   # Re-measured 2026-09-06 after the EXTENDS-closure fixture landed: 1.80 and
   # 1.83 s over two serial runs, up from 1.37 and 1.30 with three TLC runs
   # instead of two. Three real TLC runs against tiny fixtures plus three
   # argument-refusal checks. It is here rather than in the slow tier because both fixtures are
   # a 3 by 3 grid, and it needs to stay that way: the point of the suite is
   # the parsers, not the model checker.
-  "fast|1.9|spike measurement|./harness/test-spike-measure.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 4.4 / 4.8 / 4.6 s, so 4.8 and up from 1.9 — a 2.5x move,
+  # the largest proportional one in this sweep. tla-83lg added nine
+  # comment-shape fixtures, which tla-kqry attributed at about 4.3 s.
+  # IT IS NOW THE SLOWEST FAST-TIER ROW, and that is what collapsed the tier
+  # gap from 4.2x to 1.5x. See THE TIER GAP HAS COLLAPSED in this header. Its
+  # tier is unchanged and correct: the boundary is the model checker, and its
+  # two fixtures are 3-by-3 grids that must stay that way.
+  "fast|4.8|spike measurement|./harness/test-spike-measure.sh"
+  # THE FAST HALF OF THE DRILL GATE, added by bead tla-0eis.3. It asks ONE
+  # question of the real drill/ tree — is the corpus STRUCTURALLY sound — by
+  # running harness/drill-gate.sh --static-only, which runs check 1, check 3
+  # and the structural half of check 2 and no TLC at all.
+  #
+  # WHAT IT DOES NOT COVER, and that has to be written down rather than
+  # noticed later. Parts 1, 2, 2b and 2c to 2e of harness/test-drill.sh are
+  # the instrument's OWN controls, and four of their fixtures run real TLC, so
+  # they stay in the slow row below. This row therefore asserts a property of
+  # the corpus using an instrument whose controls ran elsewhere. It is not a
+  # weakening — the whole drill suite is slow today, so the fast tier asserts
+  # nothing at all about drill/ — but it is the kind of gap that gets forgotten.
+  # It also does not reproduce a single recorded rc; the run prints the count
+  # it skipped, and this suite ASSERTS that it printed it.
+  #
+  # IT GOES THROUGH THE SUITE AND NOT STRAIGHT AT THE GATE, on purpose. Part
+  # 3's three-state logic is what keeps drill/ absent and drill/ with zero
+  # items from reddening the tier, and the gate correctly returns 99 over an
+  # empty root, so a row wired to the gate would be red for every agent in the
+  # repo whenever the corpus is between waves.
+  #
+  # THE NUMBER THAT DRIFTS IS PER-ITEM, NOT THE TOTAL. Measured 2026-10-13
+  # in-suite over three back-to-back full gate runs on the 32-item tree:
+  # 1.1 / 1.2 / 1.2 s, so 1.2 is the slowest, and 1.37 s standalone as a
+  # cross-check. The gate's own static pass is 1.307 s of that, measured by
+  # central against main's drill tree.
+  #
+  # That is roughly 0.034 s per item on top of a fixed cost of about 0.1 s, so
+  # 64 items is about 2.3 s and 256 items about 8.8 s. A fixed second count is
+  # the wrong KIND of budget for a corpus whose whole purpose is to grow, so
+  # when this row drifts, divide by the item count before calling it drift.
+  # The bead that asked for this row set itself a 10 s ceiling at 64 items;
+  # the measurement meets it with room, and the per-item figure is what to
+  # check it against rather than the total.
+  "fast|1.2|drill corpus static sweep|./harness/test-drill.sh --static"
   # Measured 2026-10-08 on the green tree for bead tla-n8oq: 1.436 / 1.429 /
   # 1.428 s over three serial runs, so 1.5 is the slowest rounded up. It builds
   # ten fixture statement packages out of mkdir and printf, runs
@@ -259,7 +413,11 @@ SUITES=(
   # the rule in this header: the boundary is the model checker, not the JVM.
   # Its cost tracks the number of fixtures plus the number of real packages, so
   # it grows with authoring/ rather than with itself.
-  "fast|1.5|refutation coverage|./harness/test-refutation-coverage.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 1.2 / 1.3 / 1.3 s, so 1.3 and down from 1.5. Its author
+  # measured 1.5 over three serial runs on 2026-10-08 and tla-kqry confirmed
+  # 1.3 in-suite the same day, calling it the one accurate row in the set.
+  "fast|1.3|refutation coverage|./harness/test-refutation-coverage.sh"
   # Measured 2026-10-08 on the green tree for bead tla-hl96: 7.375 / 6.947 /
   # 7.046 s over three serial runs, so 7.4 is the slowest rounded up. SLOW and
   # not fast, by the rule in this header rather than by its wall clock: it
@@ -270,6 +428,21 @@ SUITES=(
   #
   # Its cost tracks the REGISTRY rather than the tree: the census is a scan,
   # but every row added to the registry is another instrument invocation.
+  # NOT RE-BASELINED, 2026-10-13, and that is the finding rather than an
+  # omission. It read 7.8 / 8.1 / 8.2 s over three back-to-back full gate
+  # runs, which is over the 7.4 recorded here — but every one of those runs
+  # was RED. Part 2's census finds harness/drill-gate.sh admitting a skip and
+  # UNREGISTERED, because the --changed-only honesty block that bead tla-0eis.2
+  # added to drill-gate.sh:1924 contains the word "skipped". The suite and the
+  # gate are both byte-identical to main at 807fe9a, so this is pre-existing
+  # and not from the wiring work in bead tla-0eis.3.
+  #
+  # A red-tree wall clock is not a measurement of the suite doing its job, and
+  # this file has refused one twice before on exactly that ground — see the
+  # toolchain-pin and problem-numbering notes above. Closing the census means
+  # ADDING a registry row that drives drill-gate.sh, and this row's own note
+  # below says every registry row is another instrument invocation, so the
+  # number will move again. Whoever closes that failure re-bases this row.
   "slow|7.4|indeterminate gate|./harness/test-indeterminate.sh"
   # Measured 2026-10-12 on the green tree: 10.231 / 9.748 / 10.266 s over
   # three back-to-back serial runs, so 10.3 is the slowest rounded up.
@@ -289,19 +462,58 @@ SUITES=(
   # knowing because the assertion count is the obvious suspect for a 3.4x
   # overrun and was the wrong one.
   #
-  # ITS COST TRACKS THE CORPUS, not the suite. Part 3 runs
-  # harness/drill-gate.sh over the real drill/ tree, verifying every
-  # checkable module of every item, and drill/ holds no items yet. So this
-  # budget is the fixture cost alone and it WILL drift upward as the six
-  # authors land items, roughly one TLC run per recorded rc. Re-measure when
-  # the corpus settles rather than treating the first drift nudge as a
-  # regression. That is the honest statement; a number that pretended to
-  # cover a corpus of forty items would be wrong next week.
-  "slow|10.3|drill corpus gate|./harness/test-drill.sh"
-  "slow|10.8|TLC verdict channel|./harness/test-verdict.sh"
-  "slow|11.7|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
-  "slow|13.6|chapter snippets|bash chapter/snippets/run-all.sh"
-  "slow|16.8|refinement harness|bash harness/fixtures/refinement/selftest.sh"
+  # ITS COST TRACKS WHAT CHANGED, not the corpus, since bead tla-0eis.3. Part
+  # 3 now puts the --changed-only question to the real tree at -P8: it runs
+  # only the queue jobs whose cache key is absent from .drill-gate-state, and
+  # a key covers the TLC build, verdict.sh, the item's whole verify/ tree, the
+  # flags and the timeout. So a cached job is verified rather than skipped,
+  # and the per-commit cost is proportional to the change. The row above is
+  # the structural half; scripts/cibuild runs the full sweep.
+  #
+  # THE BUDGET IS THE COLD NUMBER AND THE COST IS BIMODAL. A fresh checkout
+  # has no state file, so every job runs: that is the number below. A warm run
+  # is roughly a quarter of it. The budget has to be one or the other, and it
+  # is the cold one, because the drift nudge only fires when elapsed EXCEEDS
+  # budget — so budgeting the worst case never trips it spuriously, while
+  # budgeting the warm case would redden the gate on every fresh checkout and
+  # after every TLC upgrade. That is the flaky-gate failure this header warns
+  # about further up.
+  #
+  # Measured 2026-10-13 (bead tla-0eis.3) on the 32-item tree. COLD, three
+  # back-to-back standalone runs with .drill-gate-state removed before each:
+  # 54.3 / 54.3 / 52.4 s, so 54.4 is the slowest rounded up. One in-suite cold
+  # run read 49.5 s, which is the lower of the two, so the standalone figure is
+  # the conservative one and is what is recorded. WARM, in-suite over three
+  # full gate runs: 15.8 / 16.8 / 16.6 s, so about 31% of cold.
+  #
+  # The fixtures are most of the warm number: parts 1 to 2e cost about 14 s
+  # and the warm real-tree arm about 2.4 s. So the cold-versus-warm swing is
+  # the 32 items' TLC queue and nothing else.
+  #
+  # It read 96.6 s against a 10.3 s budget on 2026-10-12 with the first 32
+  # items landed and no tiering at all, which is the defect bead tla-0eis was
+  # filed for: 9.4x and plus 86 s absolute, tripping both halves of the nudge
+  # without anything having drifted. The budget had been measured honestly
+  # over an EMPTY drill tree and 32 items arrived afterwards.
+  "slow|54.4|drill corpus gate|./harness/test-drill.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 13.2 / 14.4 / 14.1 s, so 14.4 and up from 10.8. tla-kqry
+  # recorded 12.8 on 2026-10-08, so this row has been climbing and the move is
+  # not attributed to a named change.
+  "slow|14.4|TLC verdict channel|./harness/test-verdict.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 9.7 / 9.8 / 9.8 s, so 9.8 and down from 11.7. Unexplained;
+  # scripts/test-verify-puzzle.sh has not been rewritten since tla-syn. It is
+  # still a model-checking suite, so its tier does not move on a wall clock.
+  "slow|9.8|verify-puzzle.sh regressions (v1)|bash scripts/test-verify-puzzle.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 8.3 / 9.0 / 8.8 s, so 9.0 and down from 13.6. A 34% drop,
+  # unexplained, and recorded as the measurement rather than reasoned away.
+  "slow|9.0|chapter snippets|bash chapter/snippets/run-all.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
+  # drop, unexplained.
+  "slow|12.9|refinement harness|bash harness/fixtures/refinement/selftest.sh"
   # Re-measured 2026-09-04 for bead tla-29m4: 80.6 s in-suite. It is now the
   # slowest suite in the gate, ahead of the grader, and the whole run is about
   # 250 s. The jump is probe 6, one TLC run per --observe fixture across a
@@ -322,8 +534,22 @@ SUITES=(
   # a source grep would then decide whether a correctness probe runs, and a
   # spec can be unsatisfiable without any fairness at all. If this suite gets
   # tight, the honest lever is the fixture count, never the coverage.
-  "slow|80.6|vacuity gate|./harness/test-vacuity.sh"
-  "slow|46.9|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 55.6 / 60.0 / 59.9 s, so 60.0 and DOWN from 80.6. The
+  # number is recorded and nothing else about this row is touched: the refused
+  # trims below belong to bead tla-ahxl, which is Frank's call per item.
+  # Unattributed. harness/test-vacuity.sh has not changed since the 80.6
+  # reading of 2026-09-04; harness/vacuity.sh moved in 3f6d845, which is a
+  # candidate and was not verified. It is no longer the slowest suite in the
+  # gate — the grader is, at 99.0 s.
+  "slow|60.0|vacuity gate|./harness/test-vacuity.sh"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 56.0 / 57.3 / 57.8 s, so 57.8 and up from 46.9. The move
+  # is attributed: the liveness pair tla-r2ih added took it to 48.1, then
+  # 50.8 by the time tla-kqry read it on 2026-10-08. The number is recorded
+  # and nothing else about this row is touched — its optimizations belong to
+  # bead tla-ahxl, which is Frank's call per item.
+  "slow|57.8|seeded-bug matrix|bash harness/fixtures/seeded-bugs/selftest.sh"
   # Re-measured 2026-08-28 for bead tla-x8s: 56.6 / 56.8 / 59.1 s over three
   # serial runs, up from 19.7. The jump is the chaos probe, which grade.sh now
   # runs against the problem package on every invocation, so the selftest's
@@ -331,7 +557,19 @@ SUITES=(
   # unchanged. Two ways to buy some of it back if it starts to hurt: probe the
   # Req_* set as a single conjoined invariant rather than one run per member,
   # or cache the probe verdict per reference package.
-  "slow|59.1|grader|bash harness/grade.sh --selftest"
+  # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
+  # full gate runs: 99.0 / 98.8 / 98.9 s, so 99.0 and up from 59.1. A 0.2%
+  # spread, which is the tightest in the registry and is what bounds how much
+  # the box's background load could have cost the rest of this sweep.
+  #
+  # Attributed: tla-8kgj added 26 fixture files, which tla-kqry measured at
+  # 90.4 on 2026-10-08 and noted as 1.53x — under the nudge's 3.0x, so a suite
+  # grew by 31 seconds without a word. It has since grown another 9. THIS IS
+  # NOW THE SLOWEST SUITE IN THE GATE, ahead of vacuity, and 28% of the whole
+  # registry's wall clock on its own. The number is recorded and nothing else
+  # about this row is touched: the two ways to buy it back below belong to
+  # bead tla-ahxl, which is Frank's call per item.
+  "slow|99.0|grader|bash harness/grade.sh --selftest"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

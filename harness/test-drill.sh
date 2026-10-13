@@ -27,16 +27,51 @@
 # PART 2  controls the other way: shapes that LOOK wrong and must not fire
 # PART 3  the real drill/ tree
 #
-# Usage:  harness/test-drill.sh
+# Usage:  harness/test-drill.sh [--static | --full-sweep]
 # Exit:   0 if all assertions hold, 1 otherwise.
 #
 # ---------------------------------------------------------------------------
-# WHY THIS IS A SLOW-TIER SUITE. It drives harness/verdict.sh against real
-# fixtures, so it runs TLC's MODEL CHECKER. By the rule in scripts/test's
-# header the boundary is the model checker and not the JVM, so this belongs in
-# slow whatever it costs today. Four of its TLC runs are in part 1; every
-# other fixture runs under --no-tlc, which is also what keeps the suite's cost
-# flat as the fixture count grows.
+# THREE INVOCATIONS, ONE PER TIER, AND EACH ANSWERS ITS OWN QUESTION.
+#
+#   invocation     parts run          part 3 asks the real tree          caller
+#   -------------  -----------------  ---------------------------------  ------
+#   --static       3 only             is the corpus STRUCTURALLY sound   test
+#                                     (--static-only)                    --fast
+#   (unflagged)    1, 2, 2b-2e, 3     did anything I just changed stop   test
+#                                     reproducing (--changed-only -P8)   default
+#   --full-sweep   3 only             does EVERY recorded rc still       cibuild
+#                                     reproduce on this build (-P8)
+#
+# THE FLAGS ARE NOT A VOLUME KNOB ON ONE GATE. Each invocation exits 0 only if
+# its own question is answered yes, and each states what it did not ask — the
+# static arm asserts the gate printed the count of rcs it did not reproduce,
+# and the changed-only arm asserts it printed what came from cache. A tier
+# that is silent about its own altitude is the batch-1 grading defect arriving
+# again (bd memory the-batch-1-grading-round-closed-2026-09): a capability
+# that existed and was optional, so the gate's strength was whatever the
+# caller happened to pass.
+#
+# WHAT --static DOES NOT COVER, and the row's comment in scripts/test says so
+# too. Parts 1, 2, 2b and 2c to 2e are this INSTRUMENT's own controls, and
+# four of their fixtures run real TLC, so they stay in the slow tier. The fast
+# row therefore asserts a property of the corpus using an instrument whose
+# controls ran elsewhere. That is not a weakening — the whole suite is slow
+# today and the fast tier asserts nothing at all about drill/ — but it is the
+# kind of thing that has to be written down rather than noticed later.
+#
+# AN UNKNOWN OPTION IS A USAGE ERROR, rc 2, and that matters more than it
+# looks. This file took no arguments at all until bead tla-0eis.3, so a
+# mistyped `--statc` in scripts/test would have been IGNORED and run the whole
+# slow suite inside the fast tier, where the only symptom is a budget nudge
+# nobody reads as a wiring bug.
+#
+# ---------------------------------------------------------------------------
+# WHY THIS IS A SLOW-TIER SUITE, unflagged. It drives harness/verdict.sh
+# against real fixtures, so it runs TLC's MODEL CHECKER. By the rule in
+# scripts/test's header the boundary is the model checker and not the JVM, so
+# this belongs in slow whatever it costs today. Four of its TLC runs are in
+# part 1; every other fixture runs under --no-tlc, which is also what keeps
+# the suite's cost flat as the fixture count grows.
 #
 # ITS COST TRACKS THE CORPUS, not this file. Part 3 verifies every checkable
 # module of every real item, so the budget recorded in scripts/test grows as
@@ -50,6 +85,37 @@ REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
 GATE="${REPO_ROOT}/harness/drill-gate.sh"
+
+# How many ways part 3 runs check 2's TLC queue in the two modes that have
+# one. Eight, measured rather than picked: the tla-0eis.2 worker read 39.8 s
+# at -P8 against 81.1 s serial over the 32-item tree, which is 2.0x and not
+# 8x, because each TLC already runs about three cores wide. Raising it buys
+# very little and costs the box.
+JOBS=8
+
+# SUITE_MODE picks which parts run and which question part 3 puts to the real
+# tree. See THREE INVOCATIONS in the header. The default is the whole suite.
+SUITE_MODE="controls"
+case "${1:-}" in
+  "") ;;
+  --static)     SUITE_MODE="static" ;;
+  --full-sweep) SUITE_MODE="full" ;;
+  -h|--help)
+    # Print the header block, stopping at the first line of code, the same way
+    # scripts/test --help does rather than at a line number that drifts.
+    awk 'NR > 1 && /^set -uo pipefail$/ { exit } NR > 1' "${BASH_SOURCE[0]}"
+    exit 0
+    ;;
+  *)
+    echo "test-drill.sh: unknown option '$1' (try --help)" >&2
+    echo "  Expected one of: --static, --full-sweep, or no argument." >&2
+    exit 2
+    ;;
+esac
+if [ "$#" -gt 1 ]; then
+  echo "test-drill.sh: takes at most one option, got $# ($*)" >&2
+  exit 2
+fi
 
 pass_count=0
 fail_count=0
@@ -214,6 +280,153 @@ SPECIFICATION Spec
 PROPERTY Served
 CFG
 }
+
+# ===========================================================================
+# PART 3, AS A FUNCTION, because two of the three invocations run it ALONE.
+#
+# It is defined up here and called at the bottom of the file, where part 3
+# reads in sequence. The definition has to precede the --static and
+# --full-sweep dispatch, which runs this arm and exits before part 1 builds a
+# single fixture — that early exit is the whole reason the fast row is 1.4 s
+# and not 106 s.
+#
+# THREE STATES, AND ONLY THE THIRD CAN FAIL, in every mode. The distinction is
+# what keeps this suite from going red on a corpus that is simply not written
+# yet, while still biting the moment a real item lands with a defect.
+#
+#   drill/ absent       — nothing to guarantee. Reported, never failed.
+#   drill/ with 0 items — a corpus under construction. The inventory may
+#                         already be there and the authors are mid-flight.
+#                         The gate returns 99 over it, correctly, because it
+#                         was asked to check items and found none. That is a
+#                         true statement about the instrument and NOT a
+#                         defect in the tree, so it is reported and not
+#                         failed. The coverage audit still prints.
+#   drill/ with items   — gated, hard. rc 0 or this suite is red.
+#
+# The middle state is the one worth being deliberate about. Six authors are
+# writing into drill/ right now, so a suite that failed the moment the
+# directory appeared would be red for every other agent in the repo over
+# work that is proceeding normally. It is also why --static goes through this
+# suite rather than straight at the gate from scripts/test: wired to the gate,
+# the fast row would be red on every tree without items, since the gate
+# correctly returns 99 over an empty root.
+#
+# STATES 1 AND 2 DO NOT VARY BY MODE. Neither can fail, so the question the
+# mode asks has no answer to give there, and state 2 keeps --no-tlc because
+# what it is for is printing the coverage audit.
+real_tree_arm() {
+  local DRILL_ITEMS=0
+  if [ -d "${REPO_ROOT}/drill" ]; then
+    # The hidden-dir predicate is anchored at the drill root. `-not -path
+    # '*/.*'` would match REPO_ROOT itself, since every worker here runs under
+    # .claude/worktrees/agent-*, and the count would be 0 on any real tree.
+    DRILL_ITEMS="$(find "${REPO_ROOT}/drill" -mindepth 2 -maxdepth 2 -type d \
+      ! -name '.*' ! -path "${REPO_ROOT}/drill/.*" | wc -l)"
+  fi
+
+  if [ ! -d "${REPO_ROOT}/drill" ]; then
+    ok "real tree: drill/ does not exist yet — nothing to guarantee, and that is reported rather than passed over"
+    echo "        The gate bites the moment an item lands. Until then this row is a"
+    echo "        statement about the tree, not a check that ran."
+    return 0
+  fi
+
+  if [ "$DRILL_ITEMS" -eq 0 ]; then
+    run_gate --no-tlc "${REPO_ROOT}/drill"
+    ok "real tree: drill/ exists and holds no item yet — the coverage audit below is the aim for the next wave"
+    printf '%s\n' "$GATE_OUT" | sed 's/^/        /'
+    echo "        rc=${GATE_RC} from the gate, and NOT a failure here. It was asked to check"
+    echo "        items and found none, which is a fact about the instrument rather than a"
+    echo "        defect in the tree. This row gates as soon as one item exists."
+    return 0
+  fi
+
+  # State 3, and the mode decides WHICH question gets put to the tree.
+  local -a gate_args=()
+  local what=""
+  case "$SUITE_MODE" in
+    static)
+      gate_args=(--static-only)
+      what="static sweep"
+      ;;
+    full)
+      gate_args=(-P "$JOBS")
+      what="full sweep at -P${JOBS}"
+      ;;
+    *)
+      gate_args=(--changed-only -P "$JOBS")
+      what="changed-only at -P${JOBS}"
+      ;;
+  esac
+
+  run_gate "${gate_args[@]}" "${REPO_ROOT}/drill"
+  if [ "$GATE_RC" = "0" ]; then
+    ok "real tree, ${what}: ${DRILL_ITEMS} item(s), clean"
+  else
+    nope "real tree, ${what}: drill-gate.sh returned rc=${GATE_RC} over drill/ (${DRILL_ITEMS} items)"
+    printf '%s\n' "$GATE_OUT" | sed 's/^/        /'
+    echo "        rc 1 is a finding to fix. rc 99 means a check COULD NOT RUN over an"
+    echo "        item that exists — most likely drill/INVENTORY.md is missing, which"
+    echo "        leaves check 3 unable to say anything about construct coverage."
+  fi
+
+  # THE MODE BLOCK IS PART OF THE CONTRACT, not decoration, so it is asserted
+  # and not merely echoed. A tier that drops 237 TLC runs and then prints
+  # VERDICT OK, saying nothing about the 237, reads as a full verification to
+  # anyone who did not pass the flag. If the gate ever stops printing the
+  # count, the row that relies on it goes red here rather than going quiet.
+  case "$SUITE_MODE" in
+    static)
+      has "real tree, static sweep: names the count of recorded rcs it did not reproduce" \
+          "recorded rc(s) not reproduced, no TLC ran."
+      has "real tree, static sweep: and says what it did NOT check" \
+          "NOT CHECKED HERE: whether any recorded rc still reproduces"
+      ;;
+    full)
+      # A full sweep leaves no rc unasked, so it has no skipped count to
+      # state. The one thing it still does not GATE is check 3, which reports
+      # by design and can never redden the gate at any construct count, so
+      # that is what this arm asserts it said. Without it the cibuild phase
+      # would print one PASS line and nothing about its own altitude.
+      has "real tree, full sweep: says that coverage is audited and never gated" \
+          "AUDIT ONLY, never a failure"
+      ;;
+    *)
+      has "real tree, changed-only: names what ran, what came from cache and what was stale" \
+          "job(s) verified, "
+      has "real tree, changed-only: and says that a cached job is verified rather than skipped" \
+          "A CACHED JOB IS VERIFIED, not skipped"
+      ;;
+  esac
+
+  # Echo the gate's own closing block into this suite's output, so the log a
+  # reader reaches for carries the honesty statement rather than only the
+  # assertion labels above. awk over a here-string, never a live pipe into an
+  # early-exiting consumer (bead tla-kr9).
+  awk '/^drill-gate\.sh: (--static-only|--changed-only)\./ { f = 1 } f { print "        " $0 }' \
+    <<<"$GATE_OUT"
+}
+
+# summary_and_exit: the verdict line every invocation ends on.
+summary_and_exit() {
+  echo
+  echo "test-drill.sh: ${pass_count} passed, ${fail_count} failed"
+  [ "$fail_count" -eq 0 ]
+  exit $?
+}
+
+# THE EARLY DISPATCH. --static and --full-sweep run the real-tree arm and
+# nothing else, so no fixture is built and no control runs. Parts 1 and 2 are
+# the instrument's controls and they belong to the unflagged invocation.
+if [ "$SUITE_MODE" != "controls" ]; then
+  echo "== part 3 only (${SUITE_MODE}): the real drill/ tree =="
+  echo "   Parts 1, 2, 2b and 2c to 2e did NOT run here. They are this instrument's"
+  echo "   own controls, four of their fixtures run real TLC, and the unflagged"
+  echo "   invocation in scripts/test's slow tier is what runs them."
+  real_tree_arm
+  summary_and_exit
+fi
 
 # ===========================================================================
 echo "== part 1a: the baseline item passes all three checks =="
@@ -1165,58 +1378,12 @@ fi
 echo
 echo "== part 3: the real drill/ tree =="
 # ===========================================================================
-# THREE STATES, AND ONLY THE THIRD CAN FAIL. The distinction is what keeps
-# this suite from going red on a corpus that is simply not written yet, while
-# still biting the moment a real item lands with a defect.
-#
-#   drill/ absent       — nothing to guarantee. Reported, never failed.
-#   drill/ with 0 items — a corpus under construction. The inventory may
-#                         already be there and the authors are mid-flight.
-#                         The gate returns 99 over it, correctly, because it
-#                         was asked to check items and found none. That is a
-#                         true statement about the instrument and NOT a
-#                         defect in the tree, so it is reported and not
-#                         failed. The coverage audit still prints.
-#   drill/ with items   — gated, hard. rc 0 or this suite is red.
-#
-# The middle state is the one worth being deliberate about. Six authors are
-# writing into drill/ right now, so a suite that failed the moment the
-# directory appeared would be red for every other agent in the repo over
-# work that is proceeding normally.
-DRILL_ITEMS=0
-if [ -d "${REPO_ROOT}/drill" ]; then
-  # The hidden-dir predicate is anchored at the drill root. `-not -path
-  # '*/.*'` would match REPO_ROOT itself, since every worker here runs under
-  # .claude/worktrees/agent-*, and the count would be 0 on any real tree.
-  DRILL_ITEMS="$(find "${REPO_ROOT}/drill" -mindepth 2 -maxdepth 2 -type d \
-    ! -name '.*' ! -path "${REPO_ROOT}/drill/.*" | wc -l)"
-fi
-
-if [ ! -d "${REPO_ROOT}/drill" ]; then
-  ok "real tree: drill/ does not exist yet — nothing to guarantee, and that is reported rather than passed over"
-  echo "        The gate bites the moment an item lands. Until then this row is a"
-  echo "        statement about the tree, not a check that ran."
-elif [ "$DRILL_ITEMS" -eq 0 ]; then
-  run_gate --no-tlc "${REPO_ROOT}/drill"
-  ok "real tree: drill/ exists and holds no item yet — the coverage audit below is the aim for the next wave"
-  printf '%s\n' "$GATE_OUT" | sed 's/^/        /'
-  echo "        rc=${GATE_RC} from the gate, and NOT a failure here. It was asked to check"
-  echo "        items and found none, which is a fact about the instrument rather than a"
-  echo "        defect in the tree. This row gates as soon as one item exists."
-else
-  run_gate "${REPO_ROOT}/drill"
-  if [ "$GATE_RC" = "0" ]; then
-    ok "real tree: ${DRILL_ITEMS} item(s), clean on both gating checks"
-  else
-    nope "real tree: drill-gate.sh returned rc=${GATE_RC} over drill/ (${DRILL_ITEMS} items)"
-    printf '%s\n' "$GATE_OUT" | sed 's/^/        /'
-    echo "        rc 1 is a finding to fix. rc 99 means a check COULD NOT RUN over an"
-    echo "        item that exists — most likely drill/INVENTORY.md is missing, which"
-    echo "        leaves check 3 unable to say anything about construct coverage."
-  fi
-fi
+# The arm itself, and the three states it handles, are defined as
+# real_tree_arm() above the fixture section, because --static and --full-sweep
+# call it on its own. Unflagged, it puts the --changed-only question to the
+# tree, so the per-commit cost is proportional to what changed rather than to
+# the size of the corpus. scripts/cibuild runs --full-sweep.
+real_tree_arm
 
 # ===========================================================================
-echo
-echo "test-drill.sh: ${pass_count} passed, ${fail_count} failed"
-[ "$fail_count" -eq 0 ]
+summary_and_exit

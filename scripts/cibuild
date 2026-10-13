@@ -3,7 +3,7 @@
 # checks that only make sense with a full checkout and a pinned toolchain.
 #
 # Usage:
-#   bash scripts/cibuild                 # all five phases
+#   bash scripts/cibuild                 # every phase (--list prints them)
 #   bash scripts/cibuild --skip-corpus   # skip the puzzles/ sweep (the slow one)
 #   bash scripts/cibuild --skip-docs     # skip the mkdocs build
 #   bash scripts/cibuild --list          # print the phase list and exit
@@ -22,7 +22,10 @@
 #                         build-docs.sh derives rather than copies it, and
 #                         the installed tlc actually reports it
 #   2. scripts/lint       shellcheck over scripts/ + harness/
-#   3. scripts/test       all ten suites — 292 harness assertions, ~121 s
+#   3. scripts/test       every suite in the registry — `scripts/test --list`
+#                         is the authority on how many and what they cost
+#  3b. drill full sweep   harness/test-drill.sh --full-sweep: every recorded
+#                         rc in drill/ reproduced on THIS TLC build, at -P8
 #   4. docs build         scripts/build-docs.sh + mkdocs build
 #   5. puzzle corpus      scripts/verify-puzzle.sh over every puzzles/*/ that
 #                         ships a solution/
@@ -36,6 +39,48 @@
 #
 # pages.yml stays deploy-only. It builds the same docs as phase 4, and putting
 # the corpus in front of a docs deploy would buy nothing.
+#
+# ---------------------------------------------------------------------------
+# WHY THE DRILL FULL SWEEP IS A PHASE OF ITS OWN, AND WHY IT IS HERE
+#
+# Added by bead tla-0eis.3. The drill gate answers three different questions
+# and they are not one gate with a volume knob on it:
+#
+#   is the corpus structurally sound          --static        scripts/test --fast
+#   did anything I changed stop reproducing   --changed-only  scripts/test
+#   does EVERY recorded rc still reproduce    full sweep      THIS SCRIPT
+#
+# Only the third one can tell you that a verdict recorded weeks ago still
+# holds on the TLC build in front of you, and it is the one nobody will run by
+# hand, because it is linear in a corpus whose whole purpose is to grow.
+#
+# IT RUNS THE FULL SWEEP EXPLICITLY AND NEVER LEANS ON A COLD CACHE.
+# .drill-gate-state is gitignored, so a fresh CI checkout has no state file
+# and --changed-only there happens to walk every job anyway. Wiring it that
+# way would work today and break silently: the first person to add a cache
+# restore step turns the full sweep off, and nothing reports it. The guarantee
+# has to rest on the flag rather than on the absence of a file.
+#
+# PLACED RIGHT AFTER PHASE 3, before docs and before the v1 corpus, for the
+# fail-fast reason above. It measures 36.3 s at -P8 over 32 items against
+# about 81 s serial, and the v1 corpus phase is minutes, so a drill item whose
+# verdict stopped reproducing stops the run before CI pays for the expensive
+# half.
+#
+# AND IT IS NUMBERED 3b RATHER THAN 4. Inserting a phase 4 would renumber the
+# docs build to 5 and the corpus to 6, and five files outside this one name
+# "cibuild phase 4" meaning the docs build:
+#
+#   scripts/build-docs.sh:1049          .claude/project-constitution.md:49
+#   .claude/rules/dispatched-agents.md:163   .github/workflows/pages.yml:4
+#   .github/workflows/verify-puzzles.yml:16
+#
+# Every one would have become stale prose on the spot, and two of them are
+# outside the footprint of the bead that added this phase, so they would have
+# stayed stale. That is the drift this repo keeps paying to remove. A
+# letter-suffixed sub-phase keeps the ordering the fail-fast rule wants and
+# leaves all five references true. The convention is already in the tree —
+# harness/test-drill.sh runs parts 1a through 2e the same way.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -67,8 +112,24 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --skip-corpus) DO_CORPUS=0 ;;
     --skip-docs)   DO_DOCS=0 ;;
-    --list)        sed -n '19,38p' "${BASH_SOURCE[0]}"; exit 0 ;;
-    -h|--help)     sed -n '2,10p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    # Both of these read to a MARKER rather than to a line number. They used
+    # to be `sed -n '19,38p'` and `sed -n '2,10p'`, and bead tla-0eis.3 grew
+    # the header by two phases and a rationale block, which silently moved
+    # both windows onto the wrong text. That is the same drift shape
+    # scripts/test fixed in its own --help, and a help text that quietly
+    # truncates is worse than one that is merely long.
+    --list)
+      awk '/^# PHASES$/ { f = 1; next }
+           f && /^# -{10,}/ { exit }
+           f { sub(/^#[[:space:]]?/, ""); print }' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
+    -h|--help)
+      awk 'NR == 1 { next }
+           /^# -{10,}/ { exit }
+           { sub(/^#[[:space:]]?/, ""); print }' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
     *) echo "scripts/cibuild: unknown option '$1' (try --help)" >&2; exit 2 ;;
   esac
   shift
@@ -187,6 +248,19 @@ bash scripts/lint
 # --- phase 3: tests --------------------------------------------------------
 phase 3 "scripts/test (all suites)"
 bash scripts/test
+
+# --- phase 3b: the drill corpus's full verdict sweep ------------------------
+# See WHY THE DRILL FULL SWEEP IS A PHASE OF ITS OWN in this script's header.
+# NO --changed-only HERE, deliberately: the guarantee rests on the flag and
+# not on a fresh checkout happening to have no .drill-gate-state.
+#
+# It goes through harness/test-drill.sh rather than straight at
+# harness/drill-gate.sh so that part 3's three-state logic covers this caller
+# too — drill/ absent and drill/ with zero items are reported rather than
+# failed, and the gate's own rc 99 over an empty root does not redden CI over
+# a corpus between waves.
+phase 3b "drill corpus full sweep (every recorded rc, at -P8)"
+bash harness/test-drill.sh --full-sweep
 
 # --- phase 4: docs ---------------------------------------------------------
 if [ "$DO_DOCS" = "1" ]; then
