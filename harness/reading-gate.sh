@@ -54,19 +54,22 @@
 #   exactly 40 lines for one variable, one label, one property and no type
 #   invariant, so 40 admitted no PlusCal item worth reading.
 #
-#   MAX_COLS=64 is A GUESS AND STILL A GUESS. It is INFERRED as the width
-#   where a mkdocs-material code block stops scrolling sideways on a roughly
-#   390px viewport, from the theme's code font size rather than from a
-#   measurement on the device. Treat it as the weaker of the two.
+#   MAX_COLS=77 IS FRANK'S NUMBER, set 2026-10-13: "77 is fine, no stress."
+#   It replaced a guess of 64 that this gate shipped with. That guess came
+#   from the mkdocs-material code font size at a roughly 390px viewport,
+#   never from the device.
 #
-#   AND IT IS NARROWER THAN PUBLISHED PRACTICE. Measured 2026-10-12 against
-#   the Community Specifications on https://learning.tlapl.us, which is the
-#   calibration target Frank named: CoffeeCan 77 columns, DieHard 78, Stones
-#   77, TeachingConcurrency/Simple 96, SimpleRegular 77. Not one of the five
-#   fits 64. So a reading item that passes this check is TIGHTER than every
-#   spec on that site. That may be right for a phone and it is not the
-#   practice being modelled, and the gap is the reason this constant is
-#   called out rather than buried.
+#   77 IS WHAT PUBLISHED PRACTICE READS. Measured 2026-10-12 against the
+#   Community Specifications on https://learning.tlapl.us, the calibration
+#   target Frank named: CoffeeCan 77 columns, DieHard 78, Stones 77,
+#   TeachingConcurrency/Simple 96, SimpleRegular 77. Not one of the five fit
+#   the old 64, so every reading item was tighter than every spec on the site
+#   it calibrates against. At 77 four of the five fit.
+#
+#   pcal's widest generated line is 74, the BEGIN TRANSLATION marker carrying
+#   its checksums. That fits 77, so the translation exemption below is now
+#   insurance rather than necessity. It stays: the author cannot narrow that
+#   line, and three assertions hold the exemption to comment-only lines.
 #
 # AMEND EITHER BY EDITING ITS ONE LINE BELOW. That is the whole edit.
 #
@@ -147,14 +150,14 @@ set -uo pipefail
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 VERDICT="${REPO_ROOT}/harness/verdict.sh"
 
-# --- THE PHONE BOUND. One constant each; amending one is a one-line edit. --
+# --- THE PHONE BOUND. One constant each, and amending one is a one-line edit.
 # Lines in the .tla, header and footer included. DERIVED from Frank's "3
 # screens of scroll" (2026-10-12). Was 40, which measurement killed.
 MAX_LINES=60
-# Columns in the widest line of the .tla. A GUESS: inferred from the
-# mkdocs-material code font size at a ~390px viewport, never measured on the
-# device, and narrower than all five calibration specs (77 to 96).
-MAX_COLS=64
+# Columns in the widest line of the .tla. FRANK'S NUMBER, 2026-10-13: "77 is
+# fine, no stress." Was 64, a guess from the mkdocs-material code font size
+# that nobody checked on a device. Four of the five calibration specs fit 77.
+MAX_COLS=77
 
 NO_TLC=0
 TIMEOUT=120

@@ -220,12 +220,12 @@ rc_is "1b phone: rc 1 on too wide" 1
 
 # ONE COLUMN OVER MUST FIRE. A bound checked with `>=` somewhere would pass
 # this and nobody would see it on the six real items, which are all well
-# clear of 64.
+# clear of 77.
 R="${TMP}/phone-edge"
 D="$(mk_item "$R")"
-wide_line 65 >>"${D}/Base.tla"
+wide_line 78 >>"${D}/Base.tla"
 run_gate --no-tlc "$R"
-has   "1b phone: 65 columns, one over, fires" "PHONE-TOO-WIDE"
+has   "1b phone: 78 columns, one over, fires" "PHONE-TOO-WIDE"
 rc_is "1b phone: rc 1 at one column over" 1
 
 # --- 1c: check 3, THE RECORDED rc -----------------------------------------
@@ -333,16 +333,21 @@ rc_is "2b telegraph: rc 0" 0
 # --- 2c: the generated translation block's wide comments are exempt -------
 # pcal writes two comment lines nobody can narrow, and `-lineWidth` has a
 # floor of 60 and does not touch either. Without the exemption no item with
-# a committed translation can ever pass. See CHECK 2 in the gate's header.
+# a committed translation could pass a bound under 75. The 90-column line is
+# why this test still discriminates: pcal's real widths are 74 and 67, which
+# both FIT the 77 bound, so a fixture carrying only those two would pass with
+# the exemption removed and prove nothing.
+# See CHECK 2 in the gate's header.
 R="${TMP}/tr-exempt"
 D="$(mk_item "$R")"
 {
   printf '\\* BEGIN TRANSLATION (chksum(pcal) = "b18ee4" /\\ chksum(tla) = "5c58e758")\n'
   printf '(* Allow infinite stuttering to prevent deadlock on termination. *)\n'
+  wide_line 90
   printf '\\* END TRANSLATION \n'
 } >>"${D}/Base.tla"
 run_gate --no-tlc "$R"
-hasnt "2c translation: pcal's wide generated comments are exempt" "PHONE-TOO-WIDE"
+hasnt "2c translation: a generated comment past the bound is exempt" "PHONE-TOO-WIDE"
 
 # AND THE EXEMPTION IS NARROW. A wide comment OUTSIDE the block still fires,
 # so an author cannot park one anywhere and call it generated.
@@ -362,7 +367,7 @@ R="${TMP}/tr-narrow-formula"
 D="$(mk_item "$R")"
 {
   printf '\\* BEGIN TRANSLATION (chksum(pcal) = "b18ee4")\n'
-  printf 'Widest == n = 0 \\/ n = 1 \\/ n = 2 \\/ n = 3 \\/ n = 4 \\/ n = 5 \\/ n = 6\n'
+  printf 'Widest == n = 0 \\/ n = 1 \\/ n = 2 \\/ n = 3 \\/ n = 4 \\/ n = 5 \\/ n = 6 \\/ n = 7 \\/ n = 8\n'
   printf '\\* END TRANSLATION \n'
 } >>"${D}/Base.tla"
 run_gate --no-tlc "$R"
