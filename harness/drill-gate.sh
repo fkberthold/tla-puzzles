@@ -21,7 +21,8 @@
 #   -P N, --jobs N     run check 2's TLC queue N ways in parallel (default 1)
 #   --changed-only     run only the queue jobs whose cache key is absent from
 #                      the state file, and record a key for every job that ran
-#                      and matched
+#                      and matched. With no resolvable TLC build it runs every
+#                      job, records none, and says so without escalating
 #   --state FILE       the --changed-only state file
 #                      (default: <repo-root>/.drill-gate-state)
 #   --timeout SECS     per-module TLC budget, passed to verdict.sh (default 60)
@@ -59,6 +60,9 @@
 # OUTPUT — three machine-readable line shapes, then a human block.
 #   FINDING   <code> <item> <detail>      a defect. Exits 1.
 #   UNCHECKED <check> <subject> <detail>  a check that could not run. Exits 99.
+#   DECLARED  <kind> <where> <why>        a check outside what this gate can
+#                                         run at all. Prints, and leaves the
+#                                         exit code to the other lines.
 #   COVERAGE  <count> <freq> <family> <construct>
 #   WAIVER    <item> <token> <reason>     a per-item telegraph waiver, echoed
 #                                         so waivers cannot accumulate unseen.
@@ -420,6 +424,16 @@ unchecked() { printf 'UNCHECKED %-28s %-44s %s\n' "$1" "$2" "$3"; unchecked_n=$(
 # refutation-coverage gate drew the same line this morning, between a
 # traces/NONE.md that declares and explains an absence and a directory nobody
 # has filled yet.
+#
+# THE SECOND CALLER IS NOT AN ITEM CLAIM AT ALL, and bead tla-dnwi is why it
+# is here. --changed-only reports through this when it cannot resolve the TLC
+# build out of the `tlc` wrapper on PATH. A wrapper is fixable, so that reads
+# at first like today's breakage rather than a category. The category test is
+# what claim went unanswered, and the answer is none: every job ran and every
+# recorded rc was reproduced against the build on PATH. What the run declined
+# was the cache, and no check named `verify-cache` exists whose failure leaves
+# the corpus unverified. So the honest report is one that prints and counts
+# without escalating, which is this one.
 declared_n=0
 declared() { printf 'DECLARED  %-28s %-44s %s\n' "$1" "$2" "$3"; declared_n=$((declared_n + 1)); }
 
@@ -544,28 +558,70 @@ sha_of_file() {
 
 # resolve_jar: sets JAR_PATH to the jar the pinned `tlc` wrapper runs.
 #
-# RESOLVED FROM THE WRAPPER, NEVER HARDCODED. ~/bin/tlc is written by
-# scripts/setup and names the jar in one `JAR=` line; reading it is what makes
-# the key follow a toolchain change rather than a path somebody typed here. If
-# the wrapper is not the pinned shape, or the jar it names is missing, the
-# caller reports UNCHECKED and runs every job — caching against an unknown
-# build is the one failure this cache must not have.
+# RESOLVED FROM THE WRAPPER, NEVER HARDCODED. Reading the wrapper is what
+# makes the key follow a toolchain change rather than a path somebody typed
+# here. The jar sits at the same place on both boxes today, so a typed path
+# would work, and it would go on working while naming a build nobody runs.
+#
+# TWO WRAPPER SHAPES ARE IN USE AND BOTH ARE READ. scripts/setup:208 writes a
+# `JAR=` line. The CI workflow writes its own wrapper inline at
+# .github/workflows/verify-puzzles.yml:130-132 and puts the jar straight into
+# `-cp`, with no `JAR=` line at all. Reading only the first shape is bead
+# tla-dnwi: this returned 1 on every CI run, and the nine --changed-only rows
+# of harness/test-drill.sh passed locally and returned 99 in CI.
+#
+# THE SHAPES ARE TRIED IN ORDER, `JAR=` first, and the first candidate that is
+# a readable file wins. The order carries weight because the local wrapper
+# holds both. Its `-cp "$JAR"` is a shell variable this function cannot
+# expand, so a `-cp`-first pass would take `$JAR` for a path and decline.
+#
+# A CLASSPATH OF MORE THAN ONE ENTRY IS NOT SPLIT ON `:`. Which entry is then
+# the TLC build is a question the key cannot answer, so a wrapper like that
+# resolves to nothing and the caller declines to cache. That is the safe
+# direction, and the caller says out loud that it took it.
+#
+# When nothing resolves, the caller reports DECLARED and runs every job.
+# Caching against an unknown build is the one failure this cache must not
+# have, and declining to cache is not a failure to check.
 JAR_PATH=""
 resolve_jar() {
   JAR_PATH=""
-  local w v
+  local w line v
+  local -a cands=()
   w="$(command -v tlc 2>/dev/null)" || return 1
   [ -n "$w" ] || return 1
   [ -f "$w" ] || return 1
-  v="$(awk -F= '/^[[:space:]]*JAR=/ { sub(/^[^=]*=/, "", $0); print; exit }' "$w")"
-  [ -n "$v" ] || return 1
-  v="${v%\"}"
-  v="${v#\"}"
-  v="${v/\$\{HOME\}/$HOME}"
-  v="${v/\$HOME/$HOME}"
-  v="${v/#\~/$HOME}"
-  [ -f "$v" ] || return 1
-  JAR_PATH="$v"
+
+  # PURE BASH, and two passes over a ten-line file rather than one pass into
+  # two arrays. The two-array form needs `${a[@]+"${a[@]}"}` to survive an
+  # empty array under `set -u`, and a second `read` loop is cheaper to read
+  # than that is. Neither pass forks, where the awk this replaced forked once.
+  while IFS= read -r line; do
+    if [[ $line =~ ^[[:space:]]*JAR=(.*)$ ]]; then
+      cands+=("${BASH_REMATCH[1]}")
+    fi
+  done <"$w"
+  while IFS= read -r line; do
+    if [[ $line =~ (^|[[:space:]])-(cp|classpath)[[:space:]]+([^[:space:]]+) ]]; then
+      cands+=("${BASH_REMATCH[3]}")
+    fi
+  done <"$w"
+
+  [ "${#cands[@]}" -gt 0 ] || return 1
+  for v in "${cands[@]}"; do
+    v="${v%\"}"
+    v="${v#\"}"
+    v="${v%\'}"
+    v="${v#\'}"
+    v="${v/\$\{HOME\}/$HOME}"
+    v="${v/\$HOME/$HOME}"
+    v="${v/#\~/$HOME}"
+    [ -n "$v" ] || continue
+    [ -f "$v" ] || continue
+    JAR_PATH="$v"
+    return 0
+  done
+  return 1
 }
 
 # verify_tree_digest <dir>: sets TREE_DIGEST over every file under <dir>,
@@ -1247,10 +1303,19 @@ echo
 # The jar is 4.5 MB and hashing it costs 6 ms, so it is hashed once here and
 # never per job. Same for verdict.sh. Neither is touched unless the caller
 # asked for the cache.
+#
+# A WRAPPER THIS GATE CANNOT READ IS DECLARED, NOT UNCHECKED, and the whole of
+# bead tla-dnwi's second defect is in that one word. UNCHECKED escalates to rc
+# 99, CHECK_DID_NOT_RUN, which says the caller asked for a check and got
+# nothing. On a run that cannot resolve the jar, every job still runs and
+# every recorded rc is still reproduced. The one thing lost is the cache, and
+# the cache is an optimization rather than a check, so there is no check here
+# to have skipped. DECLARED prints the reason, counts, and lets the run's own
+# findings pick the exit code.
 if [ "$CACHE_ACTIVE" = "1" ]; then
   if ! resolve_jar; then
-    unchecked "verify-cache" "tlc" \
-      "cannot resolve the jar the pinned tlc wrapper runs, so a key would be computed against an unknown build; every job will run and nothing will be cached"
+    declared "verify-cache" "tlc" \
+      "the pinned tlc wrapper names no readable jar, so a key would be computed against an unknown build. Every job ran and nothing was cached, which is a cache this gate declined rather than a check it skipped."
   else
     jar_sha=""
     verdict_sha=""
@@ -1934,7 +1999,9 @@ if [ "$CHANGED_ONLY" = "1" ]; then
     echo "is a record of runs that happened, so a tier that runs nothing records nothing."
   elif [ -z "$CACHE_BASE" ]; then
     echo "NO CACHE WAS CONSULTED: the TLC build could not be resolved, so every job ran"
-    echo "and nothing was recorded. The UNCHECKED line above says why."
+    echo "and nothing was recorded. The verify-cache line above says why. Every job in"
+    echo "this run was verified against the build on PATH, so the run's own findings"
+    echo "decide its exit code and a missing cache escalates nothing."
   elif [ "$STATE_PRESENT" = "0" ]; then
     echo "NO STATE FILE EXISTED at ${STATE_FILE}, so nothing was cached and every job ran."
     echo "That is correct for a fresh checkout. The next run reads what this one recorded."

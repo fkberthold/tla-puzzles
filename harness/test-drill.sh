@@ -142,6 +142,20 @@ run_gate() {
   GATE_RC=$?
 }
 
+# run_gate_with_tlc <bindir> <args...>: the same run with <bindir> ahead of
+# PATH, so `command -v tlc` inside the gate finds the fixture wrapper there.
+#
+# harness/verdict.sh calls `tlc` by name too, so the fixture serves every TLC
+# the corpus needs and not just the gate's key. That is why each fixture
+# wrapper in part 2e has to work rather than only parse. A wrapper that
+# refused to run would turn those rows into a question about findings.
+run_gate_with_tlc() {
+  local bindir="$1"
+  shift
+  GATE_OUT="$(PATH="${bindir}:${PATH}" bash "$GATE" "$@" 2>&1)"
+  GATE_RC=$?
+}
+
 # Assertions read GATE_OUT through a HERE-STRING, never a pipe. A pipe into
 # `grep -q` returns 141 under pipefail, which inside an `if` reads as "pattern
 # absent" — so a present finding would report as missing and the control would
@@ -1372,6 +1386,144 @@ if [ ! -f "$ST_CH" ]; then
   ok "--static-only computes no cache key and writes no state file"
 else
   nope "--static-only wrote ${ST_CH}, so it computed keys on the static path"
+fi
+
+# ---------------------------------------------------------------------------
+# THE WRAPPER SHAPE THE JAR IS READ OUT OF, and the four rows under it.
+#
+# The key covers the TLC build, and the build comes out of the `tlc` wrapper on
+# PATH. TWO WRAPPER SHAPES ARE IN USE and the gate read one of them.
+# scripts/setup:208 writes a `JAR=` line. The CI workflow writes its own
+# wrapper inline at .github/workflows/verify-puzzles.yml:130-132, puts the jar
+# straight into `-cp`, and carries no `JAR=` line at all. Its heredoc is
+# unquoted, so `$HOME` is already expanded in the file.
+#
+# So every --changed-only row above passed on the author's box and returned 99
+# in CI. Nine rows, twice in one session, which is bead tla-dnwi.
+#
+# THE SECOND DEFECT IS THE ONE ROWS 2 AND 3 PIN. Failing to resolve the jar
+# used to report UNCHECKED, and UNCHECKED escalates to rc 99,
+# CHECK_DID_NOT_RUN. Declining to cache is not a failure to check: every job
+# ran and every recorded rc reproduced. So those rows want rc 0 and a DECLARED
+# line, which prints and does not escalate.
+#
+# ROW 4 IS WHAT STOPS THE FIX FROM TURNING THE CACHE'S SOUNDNESS OFF. The jar
+# still has to enter the key, or the gate carries a verdict across a build
+# change, and that is the worse of the two failures here.
+R_JAR="${TMP}/jarshape"
+mkdir -p "$R_JAR"
+mk_inventory "$R_JAR"
+mk_item "$R_JAR" "liveness/01-served"
+ST_JAR="${TMP}/jarshape.state"
+
+# The jar every pinned wrapper names, at the one path scripts/setup:70-72 and
+# .github/workflows/verify-puzzles.yml:121 both write it to. The rows below
+# need a working jar to point a fixture `-cp` at, and reading the path out of
+# the live wrapper would test resolve_jar with resolve_jar.
+REAL_JAR="${HOME}/lib/tla2tools.jar"
+REAL_TLC="$(command -v tlc 2>/dev/null || true)"
+
+if [ ! -f "$REAL_JAR" ] || [ ! -x "$REAL_TLC" ]; then
+  nope "wrapper shapes: ${REAL_JAR} or the pinned tlc wrapper is missing, so the four wrapper rows did not run"
+else
+  # ROW 1. The CI workflow's line, with $HOME expanded the way its unquoted
+  # heredoc expands it, and no `JAR=` line anywhere in the file.
+  mkdir -p "${TMP}/bin-cp"
+  cat >"${TMP}/bin-cp/tlc" <<EOF
+#!/usr/bin/env bash
+exec java -XX:+UseParallelGC -cp "${REAL_JAR}" tlc2.TLC "\$@"
+EOF
+  chmod +x "${TMP}/bin-cp/tlc"
+
+  run_gate_with_tlc "${TMP}/bin-cp" --changed-only --state "$ST_JAR" "$R_JAR"
+  rc_is "a wrapper with the jar in -cp and no JAR= line: rc 0" 0
+  has   "a wrapper with the jar in -cp and no JAR= line: the jar resolved, so the run cached" \
+        "2 job(s) verified, 0 from cache, 0 stale"
+  hasnt "a wrapper with the jar in -cp and no JAR= line: nothing reports a check that could not run" \
+        "UNCHECKED verify-cache"
+  run_gate_with_tlc "${TMP}/bin-cp" --changed-only --state "$ST_JAR" "$R_JAR"
+  has   "a wrapper with the jar in -cp and no JAR= line: the next run reads the key back" \
+        "0 job(s) verified, 2 from cache, 0 stale"
+
+  # ROW 4, run here because it needs row 1's state file. Same corpus, same
+  # wrapper shape, same state file, and only the jar's bytes differ. Without
+  # the jar in the key this reads as fully cached, which is a verdict carried
+  # across a build change. One appended byte is enough and the copy still
+  # runs: a jar is a zip, and java finds the central directory by scanning
+  # back from the end.
+  mkdir -p "${TMP}/altjar" "${TMP}/bin-altjar"
+  cp "$REAL_JAR" "${TMP}/altjar/tla2tools.jar"
+  printf 'x' >>"${TMP}/altjar/tla2tools.jar"
+  cat >"${TMP}/bin-altjar/tlc" <<EOF
+#!/usr/bin/env bash
+exec java -XX:+UseParallelGC -cp "${TMP}/altjar/tla2tools.jar" tlc2.TLC "\$@"
+EOF
+  chmod +x "${TMP}/bin-altjar/tlc"
+
+  run_gate_with_tlc "${TMP}/bin-altjar" --changed-only --state "$ST_JAR" "$R_JAR"
+  rc_is "a different jar: rc 0" 0
+  has   "a different jar changes the key, so the jobs run again rather than coming from cache" \
+        "2 job(s) verified, 0 from cache, 2 stale"
+
+  # ROW 2. A wrapper that names no jar this gate can read. It delegates to the
+  # pinned wrapper, so the corpus still verifies and the key is the only thing
+  # missing.
+  mkdir -p "${TMP}/bin-nojar"
+  cat >"${TMP}/bin-nojar/tlc" <<EOF
+#!/usr/bin/env bash
+exec "${REAL_TLC}" "\$@"
+EOF
+  chmod +x "${TMP}/bin-nojar/tlc"
+
+  rm -f "$ST_JAR"
+  run_gate_with_tlc "${TMP}/bin-nojar" --changed-only --state "$ST_JAR" "$R_JAR"
+  rc_is "a wrapper naming no jar: rc 0 over a clean corpus" 0
+  has   "a wrapper naming no jar: the run says the cache is off" \
+        "NO CACHE WAS CONSULTED"
+  has   "a wrapper naming no jar: and says why as a DECLARED line, which does not escalate" \
+        "DECLARED  verify-cache"
+  hasnt "a wrapper naming no jar: never as UNCHECKED, which exits 99" \
+        "UNCHECKED verify-cache"
+  has   "a wrapper naming no jar: every job still ran" \
+        "2 job(s) verified, 0 from cache, 0 stale"
+  if [ ! -f "$ST_JAR" ]; then
+    ok "a wrapper naming no jar writes no state file"
+  else
+    nope "a wrapper naming no jar wrote ${ST_JAR}, so it cached against an unknown build"
+  fi
+
+  # ROW 3. Both shapes resolve_jar reads, both naming a jar that is not there.
+  # The `-cp` repeats the path rather than using `$JAR`, so the row covers the
+  # shape CI writes as well as the one scripts/setup writes. The guard keeps
+  # the branch live code: resolve_jar reads text and would parse a commented
+  # line just the same.
+  mkdir -p "${TMP}/bin-gonejar"
+  cat >"${TMP}/bin-gonejar/tlc" <<EOF
+#!/usr/bin/env bash
+JAR="${TMP}/gone/tla2tools.jar"
+if [ -f "\$JAR" ]; then
+  exec java -XX:+UseParallelGC -cp "${TMP}/gone/tla2tools.jar" tlc2.TLC "\$@"
+fi
+exec "${REAL_TLC}" "\$@"
+EOF
+  chmod +x "${TMP}/bin-gonejar/tlc"
+
+  rm -f "$ST_JAR"
+  run_gate_with_tlc "${TMP}/bin-gonejar" --changed-only --state "$ST_JAR" "$R_JAR"
+  rc_is "a wrapper naming a jar that is not there: rc 0 over a clean corpus" 0
+  has   "a wrapper naming a jar that is not there: the run says the cache is off" \
+        "NO CACHE WAS CONSULTED"
+  has   "a wrapper naming a jar that is not there: and says why as a DECLARED line" \
+        "DECLARED  verify-cache"
+  hasnt "a wrapper naming a jar that is not there: never as UNCHECKED" \
+        "UNCHECKED verify-cache"
+  has   "a wrapper naming a jar that is not there: every job still ran" \
+        "2 job(s) verified, 0 from cache, 0 stale"
+  if [ ! -f "$ST_JAR" ]; then
+    ok "a wrapper naming a jar that is not there writes no state file"
+  else
+    nope "a wrapper naming a jar that is not there wrote ${ST_JAR}"
+  fi
 fi
 
 # ===========================================================================
