@@ -938,6 +938,219 @@ if [ "${#CHAPTER_PAGES[@]}" -gt 0 ]; then
   } > "$DOCS/chapter/.pages"
 fi
 
+# ===========================================================================
+# THE READING CORPUS: reading/ AS ITS OWN SECTION
+#
+# Bead tla-fwkz.1. A reading item is a COMPLETE, CORRECT, SMALL SPEC WITH
+# REAL PROPERTIES plus one line naming its constructs. There is no question
+# and no answer key: it is read and moved on from. Design drawer
+# drawer_tla_puzzles_decisions_eb788dc4f6f90f072aced527.
+#
+# PHONE-FIRST, AND THAT IS WHY IT IS A PAGE RATHER THAN A PDF. Frank asked
+# for "a PDF to flip through, or a page on the repo" (2026-10-12) and the
+# page won on three checkable grounds: the site already exists and is
+# published (mkdocs.yml:3), mkdocs-material is responsive, and a PDF is a
+# snapshot that cannot be repaired after delivery — bead tla-oa0m is open
+# about exactly that failure on a delivered chapter.
+#
+# THE PUBLISHED SPEC IS COPIED FROM THE VERIFIED .tla, NEVER RE-TYPED. That
+# is what makes this page and the artifact harness/reading-gate.sh checked
+# the same thing. Every block below is a `cat`, so a published spec cannot
+# drift from the one TLC ran. The same rule governs chapter/ above, for the
+# reason recorded there.
+#
+# ONE PAGE PER FAMILY, each item one section. A page per item would put six
+# taps between Frank and six models; a page per family means one tap and a
+# scroll, which is the gesture the format is for.
+#
+# THE FAMILY AND ITEM LISTS ARE DERIVED FROM THE TREE, never written here.
+# Same rule the exercise sets and the chapters follow, for the reason bead
+# tla-i3zu measured: a hand-kept list is right until somebody adds an item,
+# and then it is silently wrong with every gate still green.
+# ===========================================================================
+
+# ---- helper: a reading family's nav label ----
+# The slug is the directory name, which matches drill/INVENTORY.md's family
+# column. Anything unlisted falls through to the slug itself, which is a
+# readable label rather than an empty one — so a new family publishes on the
+# day it lands instead of waiting for this case arm.
+reading_family_label() {
+  case "$1" in
+    core)              echo "Core" ;;
+    functions-records) echo "Functions and records" ;;
+    modules)           echo "Modules" ;;
+    pluscal)           echo "PlusCal" ;;
+    sequences)         echo "Sequences" ;;
+    sets)              echo "Sets" ;;
+    state-space)       echo "State space" ;;
+    temporal)          echo "Temporal" ;;
+    *)                 echo "$1" ;;
+  esac
+}
+
+# ---- helper: the Subject paragraph of a USES.md ----
+# `Subject:` through the next blank line, joined into one paragraph. Anchored
+# at the line start so the word in prose elsewhere cannot be picked up.
+# Prints nothing when there is none, and the caller warns.
+reading_subject() {
+  awk '
+    /^Subject:/ { on = 1; sub(/^Subject:[[:space:]]*/, ""); }
+    on && /^[[:space:]]*$/ { exit }
+    on { printf "%s%s", sep, $0; sep = " " }
+    END { if (on) printf "\n" }
+  ' "$1"
+}
+
+# ---- helper: the construct lists of a USES.md ----
+# Everything from its first `## ` heading to the end. The headings are
+# demoted by two levels, because an item is already an H2 on the family page
+# and a bare `##` would break the page's heading order.
+reading_constructs() {
+  awk '/^## / { on = 1 } on { print }' "$1" | sed 's/^## /#### /'
+}
+
+if [ -d reading ]; then
+  mkdir -p "$DOCS/reading"
+
+  READING_FAMILIES=()
+  for fam_dir in reading/*/; do
+    [ -d "$fam_dir" ] || continue
+    fam="${fam_dir%/}"
+    fam="${fam##*/}"
+    # A family with no item publishes no page. An empty directory is not a
+    # content decision, and a nav entry pointing at an empty page is worse
+    # than no entry.
+    found=0
+    for probe in "reading/$fam"/*/; do
+      [ -d "$probe" ] && found=1
+    done
+    [ "$found" = "1" ] || continue
+    READING_FAMILIES+=("$fam")
+  done
+
+  for fam in "${READING_FAMILIES[@]+"${READING_FAMILIES[@]}"}"; do
+    label="$(reading_family_label "$fam")"
+    {
+      echo "# $label"
+      echo ""
+      echo "Complete specs with their properties. Nothing here asks you"
+      echo "anything: read one, work out why its properties hold, move on."
+      echo ""
+      for item_dir in "reading/$fam"/*/; do
+        [ -d "$item_dir" ] || continue
+        item="${item_dir%/}"
+
+        # One .tla per item, which harness/reading-gate.sh's check 1 gates.
+        # The loop takes the last match rather than assuming one, so a tree
+        # that has drifted publishes something instead of nothing — and the
+        # gate is what says it drifted.
+        modfile=""
+        for t in "$item"/*.tla; do
+          [ -f "$t" ] && modfile="$t"
+        done
+        if [ -z "$modfile" ]; then
+          echo "build-docs.sh: $item has no .tla; publishing no section for it." >&2
+          continue
+        fi
+        name="$(basename "$modfile" .tla)"
+        cfgfile="${item}/${name}.cfg"
+        usesfile="${item}/USES.md"
+
+        echo "## $name"
+        echo ""
+
+        if [ -f "$usesfile" ]; then
+          subject="$(reading_subject "$usesfile")"
+          if [ -n "$subject" ]; then
+            echo "$subject"
+            echo ""
+          else
+            echo "build-docs.sh: $usesfile has no Subject: line." >&2
+          fi
+        fi
+
+        # THE SPEC, COPIED. Never re-typed, never reflowed.
+        echo '```tla'
+        cat "$modfile"
+        echo '```'
+        echo ""
+
+        if [ -f "$cfgfile" ]; then
+          echo "??? note \"\`${name}.cfg\` — what TLC is told to check\""
+          echo ""
+          sed 's/^/    /' <<'CFGFENCE'
+```
+CFGFENCE
+          sed 's/^/    /' "$cfgfile"
+          sed 's/^/    /' <<'CFGFENCE'
+```
+CFGFENCE
+          echo ""
+        fi
+
+        if [ -f "$usesfile" ]; then
+          rc="$(sed -n 's/^[-*[:space:]]*rc:[[:space:]]*\([0-9][0-9]*\)[[:space:]]*$/\1/p' "$usesfile" | sed -n 1p)"
+          echo "??? note \"Constructs, and the recorded exit code\""
+          echo ""
+          if [ -n "$rc" ]; then
+            echo "    TLC exit code ${rc}, reproduced by \`harness/reading-gate.sh\`."
+            echo ""
+          fi
+          reading_constructs "$usesfile" | sed 's/^/    /'
+          echo ""
+        fi
+
+        echo "[\`$item/\`]($GH_TREE/$item)"
+        echo ""
+      done
+    } > "$DOCS/reading/${fam}.md"
+  done
+
+  # ---- the reading index ----
+  {
+    echo "# Reading"
+    echo ""
+    echo "Small, complete, checked specifications to read rather than write."
+    echo ""
+    echo "Each one does something worth working out and carries properties"
+    echo "worth reading. There is no question and no answer key. Every module"
+    echo "on these pages is checked by TLC at the exit code its item records,"
+    echo "and [\`harness/reading-gate.sh\`]($GH_BLOB/harness/reading-gate.sh)"
+    echo "reproduces that exit code, holds each module to the phone bound, and"
+    echo "refuses an item whose config declares no property."
+    echo ""
+    echo "To run one yourself:"
+    echo ""
+    echo '```bash'
+    echo "git clone $GH_REPO"
+    echo "cd tla-puzzles"
+    echo "harness/verdict.sh -c reading/sequences/01-brackets/Brackets.cfg \\"
+    echo "    reading/sequences/01-brackets/Brackets.tla"
+    echo '```'
+    echo ""
+    echo "## The families"
+    echo ""
+    for fam in "${READING_FAMILIES[@]+"${READING_FAMILIES[@]}"}"; do
+      n=0
+      for item_dir in "reading/$fam"/*/; do
+        [ -d "$item_dir" ] && n=$((n + 1))
+      done
+      echo "- [$(reading_family_label "$fam")](${fam}.md) — $n"
+    done
+  } > "$DOCS/reading/index.md"
+
+  # ---- reading dir nav order (awesome-pages) ----
+  # Titles are quoted so a label carrying a colon stays one YAML key.
+  {
+    echo "title: Reading"
+    echo "nav:"
+    echo "  - index.md"
+    for fam in "${READING_FAMILIES[@]+"${READING_FAMILIES[@]}"}"; do
+      echo "  - \"$(reading_family_label "$fam")\": ${fam}.md"
+    done
+  } > "$DOCS/reading/.pages"
+fi
+
 # ---- getting-started ----
 cat > "$DOCS/getting-started.md" <<'EOF'
 # Getting Started
@@ -1141,6 +1354,14 @@ EOF
   fi
   if [ -d "$DOCS/exercises" ]; then
     echo "  - exercises"
+  fi
+  # reading sits after exercises because that is the reading order of the
+  # three fluency channels: the exercise sets ask you to write, and the
+  # reading corpus is the recognition channel that makes the shape familiar
+  # first. Where it belongs in the nav is Frank's call, same as the two
+  # entries above it, and moving this line is the whole change.
+  if [ -d "$DOCS/reading" ]; then
+    echo "  - reading"
   fi
   echo "  - reference"
   echo "  - about"
