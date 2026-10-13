@@ -15,9 +15,46 @@
 #   --inventory FILE   construct inventory (default: <drill-root>/INVENTORY.md)
 #   --no-tlc           skip every TLC run in check 2. The static checks still
 #                      run. This mode can NEVER exit 0 — see EXIT CODES.
+#   --static-only      run check 1, check 3 and the STRUCTURAL half of check 2,
+#                      and no TLC at all. A clean run exits 0 — see THE THREE
+#                      TIERS below for why this is not --no-tlc.
+#   -P N, --jobs N     run check 2's TLC queue N ways in parallel (default 1)
+#   --changed-only     run only the queue jobs whose cache key is absent from
+#                      the state file, and record a key for every job that ran
+#                      and matched
+#   --state FILE       the --changed-only state file
+#                      (default: <repo-root>/.drill-gate-state)
 #   --timeout SECS     per-module TLC budget, passed to verdict.sh (default 60)
 #   -q, --quiet        suppress the per-item PASS lines; findings still print
 #   -h, --help         this text
+#
+# ===========================================================================
+# THE THREE TIERS — three questions, three exit codes, and ONE of them is not
+# a volume knob on the others.
+#
+#   --static-only   is the corpus STRUCTURALLY sound?          clean run -> 0
+#   --changed-only  did anything I just changed stop
+#                   reproducing?                               clean run -> 0
+#   (unflagged)     does EVERY recorded rc still reproduce
+#                   on this TLC build?                         clean run -> 0
+#   --no-tlc        I asked you to verify and you could not.   always 99
+#
+# --static-only AND --no-tlc ARE DIFFERENT QUESTIONS, WHICH IS WHY THEY HAVE
+# DIFFERENT EXIT CODES. DO NOT MERGE THEM.
+#
+# `--no-tlc` means the gate was asked to reproduce the recorded rcs and did
+# not, so it carries that forward as CHECK_DID_NOT_RUN for every skipped run
+# and can never report success. `--static-only` means it was asked for the
+# static checks ONLY, and a clean run answers that question completely — so it
+# emits no UNCHECKED line for the runs it never promised to make, and exits 0.
+# It states the count it did not reproduce instead, because a mode that exits
+# 0 without saying what it skipped is the defect this distinction exists to
+# avoid. harness/test-drill.sh pins both halves: "--no-tlc: rc 99 even on the
+# baseline that passes", and "--static-only: rc 0 on the baseline that
+# passes".
+#
+# Passing both is a usage error. They are two different questions and the gate
+# will not guess which one was meant.
 #
 # OUTPUT — three machine-readable line shapes, then a human block.
 #   FINDING   <code> <item> <detail>      a defect. Exits 1.
@@ -27,7 +64,9 @@
 #                                         so waivers cannot accumulate unseen.
 #
 # EXIT CODES
-#     0  every check ran and every check passed
+#     0  every check THIS RUN ASKED FOR ran and passed. Under --static-only
+#        that is checks 1 and 3 plus check 2's structural half, and the run
+#        prints the count of recorded rcs it did not reproduce
 #     1  at least one FINDING. Findings outrank unchecked: a run with both
 #        exits 1, because the finding is the actionable half
 #    99  no findings, but at least one check COULD NOT RUN. The project-wide
@@ -268,16 +307,28 @@ LAYER_A_SYMBOLS=(
 
 INVENTORY=""
 NO_TLC=0
+STATIC_ONLY=0
+CHANGED_ONLY=0
+JOBS=1
+STATE_FILE=""
 TIMEOUT=60
 QUIET=0
 ROOT=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --inventory) INVENTORY="${2:-}"; shift ;;
-    --no-tlc)    NO_TLC=1 ;;
-    --timeout)   TIMEOUT="${2:-60}"; shift ;;
-    -q|--quiet)  QUIET=1 ;;
+    --inventory)   INVENTORY="${2:-}"; shift ;;
+    --no-tlc)      NO_TLC=1 ;;
+    --static-only) STATIC_ONLY=1 ;;
+    --changed-only) CHANGED_ONLY=1 ;;
+    --state)       STATE_FILE="${2:-}"; shift ;;
+    --jobs)        JOBS="${2:-1}"; shift ;;
+    -P)            JOBS="${2:-1}"; shift ;;
+    # `-P8` as well as `-P 8`. This arm must stay AHEAD of the `-*` catch-all
+    # below, since a case statement takes the first matching pattern.
+    -P*)           JOBS="${1#-P}" ;;
+    --timeout)     TIMEOUT="${2:-60}"; shift ;;
+    -q|--quiet)    QUIET=1 ;;
     -h|--help)
       awk 'NR > 1 && /^set -uo pipefail$/ { exit } NR > 1' "${BASH_SOURCE[0]}"
       exit 0
@@ -306,12 +357,40 @@ if [ ! -d "$ROOT" ]; then
   exit 2
 fi
 [ -n "$INVENTORY" ] || INVENTORY="${ROOT}/INVENTORY.md"
+[ -n "$STATE_FILE" ] || STATE_FILE="${REPO_ROOT}/.drill-gate-state"
+
+case "$JOBS" in
+  ''|*[!0-9]*)
+    echo "drill-gate.sh: --jobs/-P wants a positive integer, got '$JOBS'" >&2
+    exit 2
+    ;;
+esac
+if [ "$JOBS" -lt 1 ]; then
+  echo "drill-gate.sh: --jobs/-P wants a positive integer, got '$JOBS'" >&2
+  exit 2
+fi
+
+# The two modes answer different questions and have different exit codes, so
+# the gate refuses to guess which one a caller meant. See THE THREE TIERS.
+if [ "$NO_TLC" = "1" ] && [ "$STATIC_ONLY" = "1" ]; then
+  echo "drill-gate.sh: --no-tlc and --static-only are different questions with different exit codes; pass one" >&2
+  exit 2
+fi
 
 finding_n=0
 unchecked_n=0
 item_n=0
 LAYERA_COVERED=0
 LAYERA_NOTOK=0
+
+# --static-only's honesty counter: how many recorded rcs this run reached and
+# deliberately did not reproduce. A mode that exits 0 has to say this number.
+static_n=0
+
+# --changed-only's three counters, in the order its header reports them.
+verified_n=0
+cached_n=0
+stale_n=0
 
 # One scratch dir for the whole run. SYMFILE holds LAYER_A_SYMBOLS one per
 # line so construct_tokens can match them all in a single grep.
@@ -343,6 +422,168 @@ unchecked() { printf 'UNCHECKED %-28s %-44s %s\n' "$1" "$2" "$3"; unchecked_n=$(
 # has filled yet.
 declared_n=0
 declared() { printf 'DECLARED  %-28s %-44s %s\n' "$1" "$2" "$3"; declared_n=$((declared_n + 1)); }
+
+# ===========================================================================
+# CHECK 2's TLC QUEUE — two phases, and the split exists for ONE reason.
+#
+# A COUNTER INCREMENTED IN A SUBSHELL IS SILENTLY LOST. `finding()` and
+# `unchecked()` both increment, and a parallel job runs in a child process, so
+# a job that called either would print its line and lose the count. The run
+# would then end with `finding_n` at 0 and exit 0 while FINDING lines sat in
+# its own output. That is a FALSE PASS on this gate's only correctness check,
+# and it is the whole reason check 2 is not simply wrapped in `xargs -P`.
+#
+# So PHASE A, inside the item sweep, does every static check exactly where it
+# did before and ENQUEUES the TLC run instead of making it. PHASE B, after the
+# sweep, dispatches the queue and then THE PARENT reads the outcomes and emits
+# every FINDING and OK line itself. No child ever touches a counter.
+#
+# WHAT THIS CHANGES ABOUT THE OUTPUT, and it is deliberate. The OK lines used
+# to interleave with each item. They now arrive as one block after the sweep,
+# in item-then-module order, under their own header. The order is stable
+# because the job files are named with a zero-padded sequence and the parent
+# walks them in that order, whatever order the runs finished in.
+#
+# A JOB IS A FILE, ONE FIELD PER LINE, read back with `mapfile`. Fields, in
+# order:
+#
+#   0 rel   1 modbase   2 module path   3 cfg path   4 want   5 deadlock 0|1
+#   6 cache key, or the literal "-"
+#
+# ONE FIELD PER LINE AND NOT A TSV. `IFS=$'\t' read -r a b c` does not
+# preserve an empty field: tab is an IFS *whitespace* character, so a run of
+# tabs collapses into one delimiter and every later field shifts left. That
+# has bitten this repo twice — see the note above parse_inventory_tab, where
+# an empty field 8 slid the sentinel and made a 105-row inventory read as
+# fully covered. A literal "-" stands in for an empty field here so that no
+# line is lost either way.
+# ===========================================================================
+JOB_SEQ=0
+declare -a JOB_FILES=() JOB_CACHED=()
+JOBLIST="${SCRATCH}/joblist"
+RUNLIST="${SCRATCH}/runlist"
+RUNONE="${SCRATCH}/run-one.sh"
+: >"$JOBLIST"
+: >"$RUNLIST"
+
+# Job files live directly in SCRATCH rather than in a subdirectory of it, so
+# that enqueueing costs no `mkdir` fork. The static tiers never enqueue, and
+# part 2b of harness/test-drill.sh holds the static pass to a fork ceiling.
+enqueue_job() {
+  JOB_SEQ=$((JOB_SEQ + 1))
+  local jf
+  # `printf -v` is a builtin, where `jf=$(printf ...)` would fork a subshell
+  # per job. Same reasoning as normalize's.
+  printf -v jf '%s/job-%06d' "$SCRATCH" "$JOB_SEQ"
+  printf '%s\n' "$1" "$2" "$3" "$4" "$5" "$6" "$7" >"$jf"
+  printf '%s\n' "$jf" >>"$JOBLIST"
+  JOB_FILES+=("$jf")
+  JOB_CACHED+=(0)
+}
+
+# ---------------------------------------------------------------------------
+# --changed-only's cache key.
+#
+#   sha256( jar_sha | verdict_sh_sha | rel | modbase | want | deadlock
+#           | timeout | verify_tree_digest )
+#
+# EVERY ONE OF THOSE EIGHT CHANGES THE VERDICT, which is why none is dropped.
+# A key over the module's own bytes alone would cache a verdict across a TLC
+# upgrade, a verdict.sh change, a cfg edit or a different timeout, and report
+# a stale number as verified.
+#
+# verify_tree_digest COVERS EVERY FILE UNDER THE ITEM'S verify/, not the
+# module and its cfg. A module can EXTENDS a sibling helper, so a key over the
+# pair alone misses a helper edit — and a helper edit changes what TLC checks
+# while leaving the module byte-identical. That is one step further than the
+# parent bead's caution against keying on the module hash, and it is the step
+# that makes the cache sound rather than merely cheap.
+#
+# KEYS ARE COMPUTED ONLY UNDER --changed-only. The static tiers compute none,
+# because a sha256 is a fork per job and the fork ceiling in part 2b of
+# harness/test-drill.sh is what keeps the static pass off that path. If that
+# row goes red, key computation has leaked onto the static path.
+# ---------------------------------------------------------------------------
+CACHE_BASE=""
+declare -A STATE_KEY=() STATE_ID=()
+declare -a NEW_KEYS=() NEW_IDS=()
+STATE_PRESENT=0
+
+# CACHE_ACTIVE — --changed-only has nothing to do when no job can reach the
+# queue. --static-only and --no-tlc both stop before the enqueue, so under
+# either of them the cache base is never resolved, no key is ever computed and
+# the state file is never written. Found by the control in part 2e of
+# harness/test-drill.sh, which caught `--static-only --changed-only` creating
+# an empty state file: no key had been computed, but the writer ran anyway and
+# left a file behind on a path that is supposed to touch nothing.
+#
+# The header still prints under --changed-only and says a static tier reached
+# no job, because a run that silently consulted nothing is the thing these
+# blocks exist to prevent.
+CACHE_ACTIVE=0
+if [ "$CHANGED_ONLY" = "1" ] && [ "$NO_TLC" = "0" ] && [ "$STATIC_ONLY" = "0" ]; then
+  CACHE_ACTIVE=1
+fi
+
+# sha_of_string <s>: sets SHA to the sha256 of the string, with no trailing
+# newline distinction that matters — a here-string always appends one, and it
+# appends the same one every run.
+SHA=""
+sha_of_string() {
+  SHA="$(sha256sum <<<"$1")"
+  SHA="${SHA%% *}"
+}
+
+# sha_of_file <path>: sets SHA, or empty when the file is unreadable.
+sha_of_file() {
+  SHA=""
+  [ -f "$1" ] || return 1
+  SHA="$(sha256sum -- "$1")"
+  SHA="${SHA%% *}"
+}
+
+# resolve_jar: sets JAR_PATH to the jar the pinned `tlc` wrapper runs.
+#
+# RESOLVED FROM THE WRAPPER, NEVER HARDCODED. ~/bin/tlc is written by
+# scripts/setup and names the jar in one `JAR=` line; reading it is what makes
+# the key follow a toolchain change rather than a path somebody typed here. If
+# the wrapper is not the pinned shape, or the jar it names is missing, the
+# caller reports UNCHECKED and runs every job — caching against an unknown
+# build is the one failure this cache must not have.
+JAR_PATH=""
+resolve_jar() {
+  JAR_PATH=""
+  local w v
+  w="$(command -v tlc 2>/dev/null)" || return 1
+  [ -n "$w" ] || return 1
+  [ -f "$w" ] || return 1
+  v="$(awk -F= '/^[[:space:]]*JAR=/ { sub(/^[^=]*=/, "", $0); print; exit }' "$w")"
+  [ -n "$v" ] || return 1
+  v="${v%\"}"
+  v="${v#\"}"
+  v="${v/\$\{HOME\}/$HOME}"
+  v="${v/\$HOME/$HOME}"
+  v="${v/#\~/$HOME}"
+  [ -f "$v" ] || return 1
+  JAR_PATH="$v"
+}
+
+# verify_tree_digest <dir>: sets TREE_DIGEST over every file under <dir>,
+# content AND relative name, independent of where the repo is checked out.
+#
+# The `cd` makes find emit `./Good.tla` rather than an absolute path, so the
+# digest does not change when the tree moves — a worktree would otherwise
+# invalidate the whole cache on every dispatch. Sorting before the outer hash
+# makes it independent of find's directory order too.
+TREE_DIGEST=""
+verify_tree_digest() {
+  TREE_DIGEST=""
+  [ -d "$1" ] || return 1
+  local lines
+  lines="$(cd -- "$1" && find . -type f -exec sha256sum -- {} + 2>/dev/null | LC_ALL=C sort)"
+  sha_of_string "$lines"
+  TREE_DIGEST="$SHA"
+}
 
 # ---------------------------------------------------------------------------
 # normalize <text>: the form constructs are MATCHED in. Lowercased, backticks
@@ -993,8 +1234,53 @@ inv_index() {
 # ===========================================================================
 # THE SWEEP
 # ===========================================================================
-echo "drill-gate.sh: root=${ROOT} inventory=${INVENTORY}$([ "$NO_TLC" = "1" ] && printf ' (--no-tlc)')"
+MODE_TAG=""
+[ "$NO_TLC" = "1" ] && MODE_TAG="${MODE_TAG} (--no-tlc)"
+[ "$STATIC_ONLY" = "1" ] && MODE_TAG="${MODE_TAG} (--static-only)"
+[ "$CHANGED_ONLY" = "1" ] && MODE_TAG="${MODE_TAG} (--changed-only)"
+[ "$JOBS" = "1" ] || MODE_TAG="${MODE_TAG} (-P${JOBS})"
+echo "drill-gate.sh: root=${ROOT} inventory=${INVENTORY}${MODE_TAG}"
 echo
+
+# --- the cache base, computed ONCE per run ---------------------------------
+#
+# The jar is 4.5 MB and hashing it costs 6 ms, so it is hashed once here and
+# never per job. Same for verdict.sh. Neither is touched unless the caller
+# asked for the cache.
+if [ "$CACHE_ACTIVE" = "1" ]; then
+  if ! resolve_jar; then
+    unchecked "verify-cache" "tlc" \
+      "cannot resolve the jar the pinned tlc wrapper runs, so a key would be computed against an unknown build; every job will run and nothing will be cached"
+  else
+    jar_sha=""
+    verdict_sha=""
+    sha_of_file "$JAR_PATH" && jar_sha="$SHA"
+    sha_of_file "$VERDICT" && verdict_sha="$SHA"
+    if [ -z "$jar_sha" ] || [ -z "$verdict_sha" ]; then
+      unchecked "verify-cache" "tlc" \
+        "cannot hash ${JAR_PATH} or ${VERDICT}; every job will run and nothing will be cached"
+    else
+      CACHE_BASE="${jar_sha}|${verdict_sha}"
+    fi
+  fi
+
+  # The state file is one line per verified job: the key, a space, then the
+  # job's identity as `<rel>|<modbase>`. The identity is what makes "stale"
+  # mean something: a job whose identity is in the file under a DIFFERENT key
+  # was verified before and its inputs have since changed.
+  #
+  # The key is read with a plain `read -r k id`, so the identity takes the
+  # whole rest of the line and a path with a space in it still round-trips.
+  if [ -f "$STATE_FILE" ]; then
+    STATE_PRESENT=1
+    while read -r _k _id; do
+      [ -n "$_k" ] || continue
+      STATE_KEY["$_k"]=1
+      [ -z "$_id" ] || STATE_ID["$_id"]="$_k"
+    done <"$STATE_FILE"
+    unset _k _id
+  fi
+fi
 
 if [ "$INV_OK" = "1" ]; then
   say "inventory: ${#INV_NORM[@]} construct(s) parsed from ${INVENTORY} (${INV_SHAPE})"
@@ -1228,6 +1514,14 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
   done
   rc_claims "$answer" "${STEMS[@]+"${STEMS[@]}"}"
 
+  # ONE DIGEST PER ITEM, not one per module. Every module of an item shares
+  # the same verify/ tree, so hashing it per module would multiply the cost by
+  # the module count — and temporal/05-flaky-link carries 27 of them.
+  item_tree=""
+  if [ "$CACHE_ACTIVE" = "1" ] && [ -n "$CACHE_BASE" ] && [ "${#MODS[@]}" -gt 0 ]; then
+    verify_tree_digest "$verify" && item_tree="$TREE_DIGEST"
+  fi
+
   saw_pass=0
   saw_refutation=0
   checkable=0
@@ -1274,6 +1568,42 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
       continue
     fi
 
+    # --static-only STOPS HERE, AND EMITS NOTHING. The recorded rc reached a
+    # structural check and passed it; reproducing it was never asked for, so
+    # there is no UNCHECKED line to carry and nothing to escalate. The count
+    # is reported in one block at the end of the run, which is the whole
+    # difference between this mode and a gate that exits 0 quietly.
+    if [ "$STATIC_ONLY" = "1" ]; then
+      static_n=$((static_n + 1))
+      continue
+    fi
+
+    # A RECORDED rc 99 IS NOT A MODULE PROPERTY, so this gate cannot verify it.
+    # 99 is CHECK_DID_NOT_RUN (bead tla-hl96): it means the caller asked for a
+    # check its configuration did not permit, so it is a fact about an
+    # INVOCATION rather than about a module. This gate runs every module under
+    # ONE convention, and since the deadlock fix below it always agrees with
+    # the .cfg, so it can never produce the disagreement a 99 reports.
+    #
+    # state-space/04-clean-run-colleague-deadlock is the item that needs this:
+    # its six-cell table demonstrates the deadlock AND across the keyword and
+    # the flag, and the 99 cell is the one where caller and .cfg disagree.
+    # The item is right and the gate is right, so the gate says it cannot see
+    # this one rather than calling a correct item a mismatch. The item carries
+    # its own measurement for that cell.
+    #
+    # THIS CHECK USED TO SIT AFTER THE RUN, which ran TLC and then threw the
+    # result away: the comparison below was never reached. Asking the question
+    # before the enqueue produces identical output and saves one JVM start per
+    # recorded 99. It stays BELOW the --no-tlc branch above, because under
+    # --no-tlc the rc is unreproduced like every other and reporting it as
+    # DECLARED instead would change that mode's output.
+    if [ "$want" = "99" ]; then
+      declared "verify-rc" "$rel" \
+        "${modbase} records rc 99, CHECK_DID_NOT_RUN, which is a claim about an invocation rather than about the module. This gate uses one convention and cannot reproduce a refusal it never triggers."
+      continue
+    fi
+
     # TLC's deadlock checking is an AND across the .cfg's CHECK_DEADLOCK
     # keyword and verdict.sh's -d flag, and verdict.sh defaults -d OFF
     # (harness/verdict.sh:25, :189-195). So an item whose cfg says
@@ -1289,42 +1619,18 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     # statement that its terminal state is the subject. Bead tla-eafx reserved
     # rc 99 for exactly this, and tla-pmm2's control-state author kept its
     # keywords on purpose.
-    deadlock_args=()
+    deadlock_flag=0
     if grep -qE '^[[:space:]]*CHECK_DEADLOCK[[:space:]]+TRUE' "$cfg"; then
-      deadlock_args=(-d)
+      deadlock_flag=1
     fi
 
-    got=0
-    set +e
-    "$VERDICT" --timeout "$TIMEOUT" -q "${deadlock_args[@]+"${deadlock_args[@]}"}" -c "$cfg" "$mod" >/dev/null 2>&1
-    got=$?
-    set -e
-
-    # A RECORDED rc 99 IS NOT A MODULE PROPERTY, so this gate cannot verify it.
-    # 99 is CHECK_DID_NOT_RUN (bead tla-hl96): it means the caller asked for a
-    # check its configuration did not permit, so it is a fact about an
-    # INVOCATION rather than about a module. This gate runs every module under
-    # ONE convention, and since the deadlock fix above it always agrees with
-    # the .cfg, so it can never produce the disagreement a 99 reports.
-    #
-    # state-space/04-clean-run-colleague-deadlock is the item that needs this:
-    # its six-cell table demonstrates the deadlock AND across the keyword and
-    # the flag, and the 99 cell is the one where caller and .cfg disagree.
-    # The item is right and the gate is right, so the gate says it cannot see
-    # this one rather than calling a correct item a mismatch. The item carries
-    # its own measurement for that cell.
-    if [ "$want" = "99" ]; then
-      declared "verify-rc" "$rel" \
-        "${modbase} records rc 99, CHECK_DID_NOT_RUN, which is a claim about an invocation rather than about the module. This gate uses one convention and cannot reproduce a refusal it never triggers."
-      continue
+    job_key="-"
+    if [ -n "$item_tree" ]; then
+      sha_of_string "${CACHE_BASE}|${rel}|${modbase}|${want}|${deadlock_flag}|${TIMEOUT}|${item_tree}"
+      job_key="$SHA"
     fi
 
-    if [ "$got" != "$want" ]; then
-      finding "VERIFY-RC-MISMATCH" "$rel" \
-        "${modbase}: ANSWER.md records rc ${want}, TLC returned ${got}"
-    else
-      say "  OK    ${rel}  ${modbase} rc=${got}"
-    fi
+    enqueue_job "$rel" "$modbase" "$mod" "$cfg" "$want" "$deadlock_flag" "$job_key"
   done
 
   if [ "$checkable" -gt 0 ]; then
@@ -1339,6 +1645,172 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
 
   unset WAIVED DECLARED MODS STEMS
 done
+
+# ===========================================================================
+# CHECK 2, PHASE B — dispatch the queue, then READ THE OUTCOMES IN THE PARENT.
+#
+# Two rules here and the second is the one that matters.
+#
+# READ THE JOB LIST FROM A FILE, not from a pipe. `xargs` consumes all of its
+# input so it is not an early-exiting consumer, but the file form does not
+# raise the question at all. harness/test-pipefail.sh bans `| grep -q`,
+# `| grep -m` and `| head` outright, and the reasoning there (bead tla-kr9) is
+# why no pipe feeds a consumer in this block.
+#
+# EVERY FINDING AND OK LINE IS PRINTED BY THE PARENT. A child that called
+# `finding()` would print its line and lose the increment with the subshell,
+# so the run would end at `finding_n` 0 and exit 0 with FINDING lines in its
+# own output — a false PASS on this gate's only correctness check. So a job
+# writes one rc to one file and nothing else, and the loop below is what turns
+# those into output. harness/test-drill.sh part 2c is the control: -P8 must
+# produce the same findings, the same count and the same rc as -P1 over a
+# fixture with a planted mismatch.
+#
+# NO LOCKING AND NO PER-JOB DIRECTORY COPIES, checked before this was built.
+# harness/verdict.sh isolates every invocation on its own: a fresh mktemp
+# scratch per call unless the caller passes --scratch (verdict.sh:491-493),
+# -metadir under that scratch (:529), -noGenerateSpecTE to suppress the
+# *_TTrace_*.tla spillage (:513), and TRACE and LOG both under it (:507-508).
+# So two TLC runs over two modules in the SAME verify/ directory write nothing
+# into it and cannot collide. DO NOT pass --scratch from here: that would hand
+# every parallel job one shared directory and create the collision this note
+# says does not exist.
+# ===========================================================================
+if [ "${#JOB_FILES[@]}" -gt 0 ]; then
+  run_n=0
+  for ((_ji = 0; _ji < ${#JOB_FILES[@]}; _ji++)); do
+    _jf="${JOB_FILES[$_ji]}"
+    mapfile -t _F <"$_jf"
+    _key="${_F[6]}"
+    _ident="${_F[0]}|${_F[1]}"
+    if [ "$CACHE_ACTIVE" = "1" ] && [ "$_key" != "-" ] && [ -n "${STATE_KEY[$_key]-}" ]; then
+      JOB_CACHED[_ji]=1
+      cached_n=$((cached_n + 1))
+      continue
+    fi
+    # A job whose identity is in the state file under a DIFFERENT key was
+    # verified before and one of its eight inputs has since changed. That is
+    # what --changed-only exists to catch, and counting it is what makes the
+    # header's third number mean something.
+    if [ "$CACHE_ACTIVE" = "1" ] && [ -n "${STATE_ID[$_ident]-}" ]; then
+      stale_n=$((stale_n + 1))
+    fi
+    printf '%s\n' "$_jf" >>"$RUNLIST"
+    run_n=$((run_n + 1))
+  done
+
+  if [ "$run_n" -gt 0 ]; then
+    # The runner, written here rather than shipped as a file, so that the
+    # static tiers never read it and it cannot drift from its one caller. It
+    # runs verdict.sh and writes ONE rc to ONE file. It exits 0 whatever TLC
+    # returned, because a non-zero exit would make xargs report 123 and say
+    # nothing about which job it was.
+    cat >"$RUNONE" <<'RUNONE_SH'
+#!/usr/bin/env bash
+# Generated by harness/drill-gate.sh. One TLC run, one rc, one file.
+set -uo pipefail
+job="$1"
+mapfile -t F <"$job"
+args=()
+[ "${F[5]}" = "1" ] && args=(-d)
+"$DG_VERDICT" --timeout "$DG_TIMEOUT" -q "${args[@]+"${args[@]}"}" -c "${F[3]}" "${F[2]}" >/dev/null 2>&1
+rc=$?
+printf '%s\n' "$rc" >"${job}.rc"
+exit 0
+RUNONE_SH
+    export DG_VERDICT="$VERDICT"
+    export DG_TIMEOUT="$TIMEOUT"
+    # `-d '\n'` so one line is one argument. The default splitting also treats
+    # quotes and backslashes as syntax, which a scratch path cannot carry
+    # today and which nothing in the format promises it never will.
+    #
+    # `|| true` because xargs reports 123 when any child exited non-zero, and
+    # a 123 here says nothing about which job it was. The runner exits 0
+    # whatever TLC returned, so the rc that matters is in the outcome file,
+    # and a job with no outcome file is reported as UNCHECKED below.
+    xargs -d '\n' -P "$JOBS" -n 1 bash "$RUNONE" <"$RUNLIST" || true
+  fi
+
+  echo
+  echo "== check 2: the TLC queue — ${#JOB_FILES[@]} job(s), ${run_n} run at -P${JOBS} =="
+  echo "   These lines arrive after the item sweep rather than interleaved with it,"
+  echo "   because every run is dispatched as one batch. The order is item-then-module"
+  echo "   whatever order the runs finished in."
+  for ((_ji = 0; _ji < ${#JOB_FILES[@]}; _ji++)); do
+    _jf="${JOB_FILES[$_ji]}"
+    mapfile -t _F <"$_jf"
+    _rel="${_F[0]}"
+    _modbase="${_F[1]}"
+    _want="${_F[4]}"
+    _key="${_F[6]}"
+    _ident="${_rel}|${_modbase}"
+
+    if [ "${JOB_CACHED[$_ji]}" = "1" ]; then
+      say "  CACHED  ${_rel}  ${_modbase} rc=${_want}"
+      NEW_KEYS+=("$_key")
+      NEW_IDS+=("$_ident")
+      continue
+    fi
+
+    # No outcome file means the runner never completed for this job. That is
+    # the instrument failing rather than the item, so it is UNCHECKED and
+    # escalates — never a quiet pass.
+    if [ ! -f "${_jf}.rc" ]; then
+      unchecked "verify-rc" "$_rel" \
+        "${_modbase}: the TLC runner wrote no outcome, so the recorded rc ${_want} was not reproduced"
+      continue
+    fi
+    _got="$(<"${_jf}.rc")"
+
+    if [ "$_got" != "$_want" ]; then
+      finding "VERIFY-RC-MISMATCH" "$_rel" \
+        "${_modbase}: ANSWER.md records rc ${_want}, TLC returned ${_got}"
+    else
+      say "  OK    ${_rel}  ${_modbase} rc=${_got}"
+      verified_n=$((verified_n + 1))
+      # A KEY IS RECORDED ONLY WHEN THE JOB RAN AND ITS rc MATCHED. A mismatch
+      # records nothing, so the next --changed-only run re-runs it rather than
+      # caching a failure as verified.
+      if [ "$_key" != "-" ]; then
+        NEW_KEYS+=("$_key")
+        NEW_IDS+=("$_ident")
+      fi
+    fi
+  done
+  unset _ji _jf _F _rel _modbase _want _key _got _ident
+fi
+
+# --- the state file is written only by the mode that was asked to cache ----
+#
+# A run that was not asked for the cache does not write one. That keeps the
+# default and static tiers free of a side effect in the repo root, and it
+# keeps the first --changed-only run honest: it finds nothing cached, runs
+# everything, and records what it verified.
+if [ "$CACHE_ACTIVE" = "1" ] && [ -n "$CACHE_BASE" ] && [ "${#JOB_FILES[@]}" -gt 0 ]; then
+  _tmpstate="${SCRATCH}/state.new"
+  : >"$_tmpstate"
+  # The identities this run spoke for, so an identity's superseded key is
+  # replaced rather than accumulated. Every other line of the old file is
+  # carried through untouched — the state file is shared across drill roots,
+  # and pruning a key this run never saw would delete another root's work.
+  declare -A _MINE=()
+  for ((_i = 0; _i < ${#NEW_IDS[@]}; _i++)); do _MINE["${NEW_IDS[$_i]}"]=1; done
+  if [ -f "$STATE_FILE" ]; then
+    while read -r _k _id; do
+      [ -n "$_k" ] || continue
+      [ -z "${_MINE[$_id]-}" ] || continue
+      printf '%s %s\n' "$_k" "$_id" >>"$_tmpstate"
+    done <"$STATE_FILE"
+  fi
+  for ((_i = 0; _i < ${#NEW_KEYS[@]}; _i++)); do
+    printf '%s %s\n' "${NEW_KEYS[$_i]}" "${NEW_IDS[$_i]}" >>"$_tmpstate"
+  done
+  if ! mv -f "$_tmpstate" "$STATE_FILE" 2>/dev/null; then
+    unchecked "verify-cache" "$STATE_FILE" \
+      "cannot write the state file, so this run verified ${verified_n} job(s) and recorded none of them"
+  fi
+  unset _tmpstate _MINE _i _k _id
+fi
 
 # ===========================================================================
 # CHECK 3 — the corpus-level AUDIT. It prints. It never fails.
@@ -1410,6 +1882,49 @@ if [ "$INV_OK" = "1" ]; then
     echo "  Printed, not failed. INVENTORY.md is a file that is still being written, and"
     echo "  the gate does not get a vote on its shape."
   fi
+fi
+
+# ===========================================================================
+# THE MODE BLOCKS — what a tier that exits 0 did NOT check.
+#
+# A MODE THAT EXITS 0 WITHOUT SAYING WHAT IT SKIPPED IS THE DEFECT. These
+# blocks are the half of --static-only and --changed-only that makes a clean
+# run readable rather than merely green.
+#
+# PRINTED AT THE END AND NOT AT THE TOP, and the brief called this a header.
+# The count is the whole point of the block, and it does not exist until the
+# sweep has walked every item — so a block at the top would either carry no
+# number or carry a guess. The mode is announced in the banner at the top,
+# where a reader looks for it, and the count is stated here, where it is true.
+# These print through `echo` rather than `say`, so `-q` cannot suppress them:
+# the honesty statement is not a per-item PASS line.
+# ===========================================================================
+if [ "$STATIC_ONLY" = "1" ]; then
+  echo
+  echo "drill-gate.sh: --static-only. ${static_n} recorded rc(s) not reproduced, no TLC ran."
+  echo "NOT CHECKED HERE: whether any recorded rc still reproduces on this TLC build."
+  echo "The slow row of harness/test-drill.sh and scripts/cibuild run that."
+  echo "This run answers whether the corpus is STRUCTURALLY sound and nothing more."
+fi
+
+if [ "$CHANGED_ONLY" = "1" ]; then
+  echo
+  echo "drill-gate.sh: --changed-only. ${verified_n} job(s) verified, ${cached_n} from cache, ${stale_n} stale."
+  if [ "$CACHE_ACTIVE" = "0" ]; then
+    echo "NO JOB REACHED THE QUEUE: a static tier was asked for as well, so no TLC ran,"
+    echo "no key was computed and the state file was neither read nor written. The cache"
+    echo "is a record of runs that happened, so a tier that runs nothing records nothing."
+  elif [ -z "$CACHE_BASE" ]; then
+    echo "NO CACHE WAS CONSULTED: the TLC build could not be resolved, so every job ran"
+    echo "and nothing was recorded. The UNCHECKED line above says why."
+  elif [ "$STATE_PRESENT" = "0" ]; then
+    echo "NO STATE FILE EXISTED at ${STATE_FILE}, so nothing was cached and every job ran."
+    echo "That is correct for a fresh checkout. The next run reads what this one recorded."
+  fi
+  echo "A CACHED JOB IS VERIFIED, not skipped: same TLC build, same verdict.sh, same"
+  echo "verify/ bytes, same flags, same timeout, same box. Any one of those changing"
+  echo "changes the key, and the job runs again. 'stale' counts the jobs whose identity"
+  echo "was in the state file under a different key, which is a change this run caught."
 fi
 
 # ===========================================================================

@@ -911,6 +911,258 @@ fi
 
 # ===========================================================================
 echo
+echo "== part 2c: --static-only — a tier that exits 0 and says what it skipped =="
+# ===========================================================================
+# WHY THIS MODE EXISTS AND --no-tlc DOES NOT COVER IT. --no-tlc can never exit
+# 0, by construction and on purpose: it means the gate was asked to reproduce
+# the recorded rcs and did not, so it carries CHECK_DID_NOT_RUN forward for
+# every skipped run. Wiring that into a fast tier gives a tier that is red on
+# every run. --static-only asks a DIFFERENT question — is the corpus
+# structurally sound — and a clean run answers it completely.
+#
+# THE DEFECT THIS PART GUARDS AGAINST is a mode that exits 0 quietly. A tier
+# that drops 237 TLC runs and then says VERDICT OK, with nothing about the 237,
+# reads as a full verification to anyone who did not pass the flag. So the
+# count is part of the contract and is asserted here, not just the exit code.
+run_gate --static-only "$R_GOOD"
+rc_is "--static-only: rc 0 on the baseline that passes" 0
+has   "--static-only: verdict OK" "VERDICT OK"
+has   "--static-only: names the count of recorded rcs it did not reproduce" \
+      "--static-only. 2 recorded rc(s) not reproduced, no TLC ran."
+has   "--static-only: and says what it did NOT check" \
+      "NOT CHECKED HERE: whether any recorded rc still reproduces"
+has   "--static-only: and names who does run that" "scripts/cibuild run that"
+hasnt "--static-only: emits no UNCHECKED line for a run it never promised to make" \
+      "UNCHECKED verify-rc"
+hasnt "--static-only: so it does not escalate to CHECK_DID_NOT_RUN" "VERDICT CHECK_DID_NOT_RUN"
+hasnt "--static-only: and runs no TLC, so there is no queue" "the TLC queue"
+
+# THE CONTRAST, asserted side by side on purpose. The same root, the same
+# clean item, two modes, two exit codes. The standalone form of this is the
+# "--no-tlc: rc 99 even on the baseline that passes" row in part 1e; this
+# duplicate is here because the pair is the thing worth reading, and a reader
+# who sees only the rc 0 above would have no reason to keep the two modes
+# apart.
+run_gate --no-tlc "$R_GOOD"
+rc_is "--no-tlc on the SAME baseline is still 99 — the modes are not merged" 99
+
+# Passing both is a usage error. Two different questions with two different
+# exit codes, and the gate does not guess which was meant.
+#
+# THE rc ALONE IS NOT DISCRIMINATING HERE, and the message is. Any unknown
+# option exits 2, so a gate that had never heard of --static-only would pass
+# the rc check for the wrong reason. The second assertion is what distinguishes
+# "refused because the pair is incoherent" from "refused because the flag does
+# not exist".
+run_gate --no-tlc --static-only "$R_GOOD"
+rc_is "--no-tlc with --static-only is a usage error, not a quiet merge" 2
+has   "--no-tlc with --static-only: refused for the pair, not for an unknown flag" \
+      "different questions with different exit codes"
+
+# The structural half of check 2 still bites, which is the half --static-only
+# keeps. Without these the mode would be indistinguishable from skipping
+# check 2 altogether.
+run_gate --static-only "$R_V"
+rc_is "--static-only: rc 1 on the structural check-2 fixture" 1
+has   "--static-only: a .cfg with no recorded rc is still a finding" "VERIFY-NO-RC"
+has   "--static-only: an rc outside verdict.sh's table is still a finding" "VERIFY-RC-NOT-IN-TABLE"
+has   "--static-only: no recorded rc 0 is still a finding" "VERIFY-NO-PASS"
+has   "--static-only: every recorded rc 0 is still a finding" "VERIFY-NO-REFUTATION"
+has   "--static-only: a verify/ with no module is still a finding" "VERIFY-NO-MODULES"
+
+# And check 1 still bites, so a planted telegraph reddens the fast tier.
+run_gate --static-only "$R_TEL"
+rc_is "--static-only: rc 1 on a planted telegraph finding" 1
+has   "--static-only: the telegraph finding still fires" "TELEGRAPH-DECLARED"
+
+# ===========================================================================
+echo
+echo "== part 2d: -P N — the parallel queue, and the counter that could be lost =="
+# ===========================================================================
+# THE FAILURE THIS CATCHES, and it is a FALSE PASS on this gate's only
+# correctness check. `finding()` increments `finding_n`. A parallel job runs in
+# a child process, so a job that called it would print its FINDING line and
+# lose the increment with the subshell. The run would then end at `finding_n`
+# 0 and exit 0 with FINDING lines sitting in its own output — and the caller
+# that reads the exit code, which is every caller, would see a pass.
+#
+# So the assertion is not "-P8 finds something". It is that -P8 produces the
+# SAME finding lines, the SAME count in the summary, and the SAME exit code as
+# -P1 over a fixture with planted mismatches. The count is the discriminating
+# one: a lost increment leaves the lines intact and the number wrong.
+#
+# FOUR ITEMS AND TWO PLANTED MISMATCHES, not one of each. A single job cannot
+# tell a queue that dispatches in order from one that drops everything after
+# the first, and a single finding cannot tell a count of 1 from a count that
+# happened to survive once.
+R_PAR="${TMP}/parallel"
+mkdir -p "$R_PAR"
+mk_inventory "$R_PAR"
+for pi in 1 2 3 4; do
+  mk_item "$R_PAR" "liveness/0${pi}-served"
+done
+# ANSWER.md records 12 where TLC returns 13 — the exact mistake an author
+# makes by reasoning from the .cfg keyword instead of the shape of the
+# formula (harness/verdict.sh:81-91).
+for pi in 2 4; do
+  D="${R_PAR}/liveness/0${pi}-served"
+  sed -e 's/| Wrong | Wrong.cfg | 13 |/| Wrong | Wrong.cfg | 12 |/' \
+    "${D}/ANSWER.md" >"${D}/A.new" && mv "${D}/A.new" "${D}/ANSWER.md"
+done
+
+# Captured through here-strings, never a pipe into an early-exiting consumer.
+# `sort` reads all of its input so it is safe behind one, and the `|| true`
+# is there because grep exits 1 on no match (bead tla-kr9).
+run_gate -P 1 "$R_PAR"
+P1_RC="$GATE_RC"
+P1_FINDINGS="$(grep -F 'FINDING' <<<"$GATE_OUT" | LC_ALL=C sort || true)"
+P1_OK="$(grep -F '  OK  ' <<<"$GATE_OUT" | LC_ALL=C sort || true)"
+P1_SUMMARY="$(grep -F 'item(s),' <<<"$GATE_OUT" || true)"
+
+run_gate -P8 "$R_PAR"
+P8_RC="$GATE_RC"
+P8_FINDINGS="$(grep -F 'FINDING' <<<"$GATE_OUT" | LC_ALL=C sort || true)"
+P8_OK="$(grep -F '  OK  ' <<<"$GATE_OUT" | LC_ALL=C sort || true)"
+P8_SUMMARY="$(grep -F 'item(s),' <<<"$GATE_OUT" || true)"
+
+has "-P8: the whole queue is dispatched" "8 job(s), 8 run at -P8"
+
+if [ -n "$P1_FINDINGS" ] && [ "$P1_FINDINGS" = "$P8_FINDINGS" ]; then
+  ok "-P8 produces the same FINDING lines as -P1 over two planted mismatches"
+else
+  nope "-P8 and -P1 disagree on the findings"
+  printf '        -P1:\n%s\n        -P8:\n%s\n' "$P1_FINDINGS" "$P8_FINDINGS"
+fi
+
+# THE DISCRIMINATING ASSERTION. A counter lost in a child leaves every FINDING
+# line in place and reports the count as 0.
+if [ -n "$P1_SUMMARY" ] && [ "$P1_SUMMARY" = "$P8_SUMMARY" ]; then
+  ok "-P8 reports the same finding COUNT as -P1 — no counter was lost in a child"
+else
+  nope "-P8 and -P1 disagree on the summary counts"
+  printf '        -P1: %s\n        -P8: %s\n' "$P1_SUMMARY" "$P8_SUMMARY"
+fi
+
+if [ "$P1_RC" = "1" ] && [ "$P8_RC" = "1" ]; then
+  ok "-P8 exits 1 like -P1, so the parallel run is still gating"
+else
+  nope "-P1 rc=${P1_RC}, -P8 rc=${P8_RC}, wanted 1 and 1"
+fi
+
+if [ -n "$P1_OK" ] && [ "$P1_OK" = "$P8_OK" ]; then
+  ok "-P8 reports the same OK lines as -P1 — no job's outcome went missing"
+else
+  nope "-P8 and -P1 disagree on the OK lines"
+  printf '        -P1:\n%s\n        -P8:\n%s\n' "$P1_OK" "$P8_OK"
+fi
+
+# ===========================================================================
+echo
+echo "== part 2e: --changed-only — a cache that cannot report a stale verdict =="
+# ===========================================================================
+# THE WORSE OF THE TWO DEFECTS, in the parent bead's words: a mode that exits 0
+# without saying what it did not verify is the defect, and a mode that caches a
+# verdict across a TLC build change is the worse one. So the key covers all
+# eight inputs that decide a verdict — the jar, verdict.sh, the item, the
+# module, the recorded rc, the deadlock flag, the timeout, and the item's whole
+# verify/ tree — and these controls pin the two that an obvious implementation
+# would drop.
+#
+# EVERY RUN HERE PASSES --state. The default is <repo-root>/.drill-gate-state,
+# and a suite that wrote there would leave a file behind on every invocation
+# and share one cache with the real tree.
+R_CH="${TMP}/changed"
+mkdir -p "$R_CH"
+mk_inventory "$R_CH"
+mk_item "$R_CH" "liveness/01-served"
+ST_CH="${TMP}/changed.state"
+
+run_gate --changed-only --state "$ST_CH" "$R_CH"
+rc_is "--changed-only: rc 0 on the first run" 0
+has   "--changed-only: with no state file every job runs" \
+      "2 job(s) verified, 0 from cache, 0 stale"
+has   "--changed-only: and the run says the state file did not exist" "NO STATE FILE EXISTED"
+has   "--changed-only: the first run actually ran the job" "Good.tla rc=0"
+
+run_gate --changed-only --state "$ST_CH" "$R_CH"
+rc_is "--changed-only: rc 0 on the second run" 0
+has   "--changed-only: the second run takes both jobs from cache" \
+      "0 job(s) verified, 2 from cache, 0 stale"
+has   "--changed-only: and names each cached job" "CACHED  liveness/01-served  Good.tla rc=0"
+hasnt "--changed-only: a cached job runs no TLC, so it prints no OK line" \
+      "  OK    liveness/01-served  Good.tla"
+has   "--changed-only: and the header says a cached job is verified, not skipped" \
+      "A CACHED JOB IS VERIFIED, not skipped"
+
+# The module's bytes change and the verdict does not. The job must run again
+# anyway: the cache answers "has anything that decides this verdict changed",
+# never "did the answer change", which it cannot know without running.
+printf '\\* a comment: new bytes, same verdict\n' >>"${R_CH}/liveness/01-served/verify/Good.tla"
+run_gate --changed-only --state "$ST_CH" "$R_CH"
+has   "--changed-only: a module byte change re-runs that item's jobs" \
+      "2 job(s) verified, 0 from cache, 2 stale"
+has   "--changed-only: and the re-run reports OK rather than cached" "Good.tla rc=0"
+
+# THE TREE-DIGEST DECISION, and this is the control that pins it. The file
+# below is neither a module nor a .cfg, so a key over the module-and-cfg pair
+# would report this run as fully cached. A module can EXTENDS a sibling
+# helper, so a helper edit changes what TLC checks while leaving the module
+# byte-identical — and a cache that missed it would report a stale verdict as
+# verified, which is the one failure this cache must not have.
+printf 'Helper == TRUE\n' >"${R_CH}/liveness/01-served/verify/sibling.txt"
+run_gate --changed-only --state "$ST_CH" "$R_CH"
+has "--changed-only: a change to a NON-module file under verify/ re-runs the jobs" \
+    "2 job(s) verified, 0 from cache, 2 stale"
+
+# A mismatch records nothing, so the next run re-runs it rather than caching a
+# failure as verified.
+sed -e 's/| Wrong | Wrong.cfg | 13 |/| Wrong | Wrong.cfg | 12 |/' \
+  "${R_CH}/liveness/01-served/ANSWER.md" >"${R_CH}/liveness/01-served/A.new"
+mv "${R_CH}/liveness/01-served/A.new" "${R_CH}/liveness/01-served/ANSWER.md"
+run_gate --changed-only --state "$ST_CH" "$R_CH"
+rc_is "--changed-only: a mismatch still exits 1" 1
+run_gate --changed-only --state "$ST_CH" "$R_CH"
+has "--changed-only: a job that did NOT match is not cached as verified" \
+    "Wrong.tla: ANSWER.md records rc 12, TLC returned 13"
+
+# ONLY the mode that was asked to cache writes the state file. Otherwise the
+# default and static tiers would leave a file in the repo root on every run.
+rm -f "$ST_CH"
+run_gate --state "$ST_CH" "$R_CH"
+if [ ! -f "$ST_CH" ]; then
+  ok "a run without --changed-only writes no state file"
+else
+  nope "a run without --changed-only wrote ${ST_CH}"
+fi
+
+# AND THE STATIC TIERS COMPUTE NO KEY AT ALL. This is the fork-budget
+# guarantee made visible: a sha256 is a fork per job, and part 2b holds the
+# static pass to a ceiling. If this row goes red, key computation has moved
+# onto the static path.
+#
+# rc 0 AND NOT 1 HERE, which is the mode doing its job rather than missing
+# the mismatch. The fixture above records rc 12 for Wrong.tla where TLC
+# returns 13, and 12 IS a row of verdict.sh's table — so there is nothing
+# structurally wrong with the item and the only way to catch it is to run TLC.
+# That is precisely what --static-only says it did not do, and the count in
+# its block is where it says so.
+rm -f "$ST_CH"
+run_gate --static-only --changed-only --state "$ST_CH" "$R_CH"
+rc_is "--static-only with --changed-only: rc 0, since an in-table rc is structurally sound" 0
+has "--static-only with --changed-only verifies and caches nothing" \
+    "0 job(s) verified, 0 from cache, 0 stale"
+has "--static-only with --changed-only says why nothing was consulted" \
+    "NO JOB REACHED THE QUEUE"
+has "--static-only still names the rcs it did not reproduce" \
+    "2 recorded rc(s) not reproduced, no TLC ran."
+if [ ! -f "$ST_CH" ]; then
+  ok "--static-only computes no cache key and writes no state file"
+else
+  nope "--static-only wrote ${ST_CH}, so it computed keys on the static path"
+fi
+
+# ===========================================================================
+echo
 echo "== part 3: the real drill/ tree =="
 # ===========================================================================
 # THREE STATES, AND ONLY THE THIRD CAN FAIL. The distinction is what keeps
