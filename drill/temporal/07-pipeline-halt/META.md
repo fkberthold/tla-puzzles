@@ -21,8 +21,8 @@ what the answer and its property form use.
 | K093 | `ENABLED` | answer |
 | K063 | `[] (always)` | property form |
 | K083 | `Init / Next / Spec (the pure-TLA+ spec skeleton)` | `Next` as the operand |
-| K069 | `[]<> (always eventually)` | neighbour, not declared |
-| K067 | `<> (eventually)` | neighbour, not declared |
+| K069 | `[]<> (always eventually)` | neighbor, not declared |
+| K067 | `<> (eventually)` | neighbor, not declared |
 
 Cross-family, touched and not claimed: K059 `deadlock (checking)` and K034
 `Invariant`, both in `state-space`.

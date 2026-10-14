@@ -1,5 +1,5 @@
 ---- MODULE UndoTailPop ----
-\* Wrong neighbour: undo written with the one removal operator the module
+\* Wrong neighbor: undo written with the one removal operator the module
 \* hands you, which takes from the front. It undoes the oldest edit. The
 \* type invariant cannot see it. Row 5 of the table can.
 EXTENDS Naturals, Sequences

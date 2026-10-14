@@ -58,7 +58,7 @@ filter, and `SelectSeq` is the one operator in the module that reaches
 into the middle of a list without an index. It takes the list and a test,
 and keeps every element the test passes. So the test is "not from `d`",
 written as a `LAMBDA` in place. Reverse the test and you keep the calls
-you meant to strike, which is the second wrong neighbour below.
+you meant to strike, which is the second wrong neighbor below.
 
 The rule is a membership check at every index. There's no "contains" for
 lists, so the quantifier over `DOMAIN calls` is how you say it.
@@ -78,9 +78,9 @@ a subset of three districts and bounds itself.
 - `Reopen` dropped. The model then runs down to all districts closed and
   stops, which wants `CHECK_DEADLOCK FALSE` or a guard. Fewer states.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | strike the first call from the district and leave the rest | `DispatchFirstOnly` | the rule, with two calls from one district on the board when it closes | rc 12 |
 | the test the wrong way round, keeping the district's calls | `DispatchKeeps` | the rule, on the first closure with any other call on the board | rc 12 |

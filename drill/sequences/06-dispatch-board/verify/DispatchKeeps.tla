@@ -1,5 +1,5 @@
 ---- MODULE DispatchKeeps ----
-\* Wrong neighbour: the filter test written the wrong way round. It keeps
+\* Wrong neighbor: the filter test written the wrong way round. It keeps
 \* the calls from the closed district and strikes everything else.
 EXTENDS Naturals, Sequences
 

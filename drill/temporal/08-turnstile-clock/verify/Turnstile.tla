@@ -39,7 +39,7 @@ Spec == Init /\ [][Advance]_vars /\ WF_vars(Advance)
 Answer == [][count' = count + 1]_count
 V1 == [][count' = count + 1]_<<count>>
 
-\* Neighbours.
+\* Neighbors.
 N1 == [][count' = count + 1]_<<count, clock>>
 N2 == [][count' >= count]_count
 N3 == [][count' \in {count - 1, count + 1}]_count

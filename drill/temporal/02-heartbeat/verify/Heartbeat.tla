@@ -1,5 +1,5 @@
 ---- MODULE Heartbeat ----
-\* Trace spec for drill item 02-heartbeat. Each row of Table is one behaviour
+\* Trace spec for drill item 02-heartbeat. Each row of Table is one behavior
 \* from the prompt: a finite list of values of last and the index the tail
 \* loops back to. loop = Len(s) is "then forever"; loop = 1 cycles the whole
 \* list; a loop into the middle cycles a suffix.
@@ -43,7 +43,7 @@ V1 == []<><<BeatNext>>_last
 BeatE == last' \in (0..2) \ {last}
 V2 == WF_last(BeatE)
 
-\* Neighbours the elimination table kills by a row. N1 is the natural spelling
+\* Neighbors the elimination table kills by a row. N1 is the natural spelling
 \* of "eventually one beat"; TLC refuses it as a property, so N1b is its
 \* state-level stand-in on this table, where every row starts at 0.
 N1  == <><<Beat>>_last

@@ -37,7 +37,7 @@ Spec == Init /\ [][Next]_vars
 
 \* Every move in the record is to a cell that shares a side with the one
 \* before it. The range stops one short of the end on purpose.
-NeighboursOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
+NeighborsOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
 
 NoCellTwice == \A i, j \in DOMAIN path : i /= j => path[i] /= path[j]
 ====

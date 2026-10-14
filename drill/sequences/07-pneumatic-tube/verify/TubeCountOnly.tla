@@ -1,5 +1,5 @@
 ---- MODULE TubeCountOnly ----
-\* Wrong neighbour of a different kind: the module is the queue from the
+\* Wrong neighbor of a different kind: the module is the queue from the
 \* reference, but the rule records only how many went in and came out.
 \* It is true of the stack and the queue alike, so it says nothing about
 \* order. Paired with the stack's Receive here to show it passing.

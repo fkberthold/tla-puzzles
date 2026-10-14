@@ -74,9 +74,9 @@ constraint. Take the drop away and the bound is the first thing to fail.
 The first three rows are measured below. Row 2 is measured against the
 newest-first editor. Row 6 isn't measured against a module.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | undo as `Tail`, full model | `UndoTailPop` | nothing. The bound holds | rc 0 |
 | undo as `Tail`, against the table | `UndoTailPopAdmits` | row 5 | rc 13 |
@@ -92,7 +92,7 @@ The last pair wasn't planned. I wrote the newest-first editor with
 `SubSeq(<<e>> \o hist, 1, 3)` and TLC refused it: "The third argument of
 SubSeq must be in the domain of its first argument". A slice past the end
 of a list doesn't give you the list. It gives you an exception, exit 255,
-and I think that's worth more than the neighbour I meant to write.
+and I think that's worth more than the neighbor I meant to write.
 
 ## Measured
 

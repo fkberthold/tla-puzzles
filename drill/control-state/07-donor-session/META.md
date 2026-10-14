@@ -1,10 +1,10 @@
 # 07 donor-session
 
 - family: control-state
-- shape: prose situation with a six-step procedure, two rules, a four-row behaviour table, and a closing question that invites the helper
+- shape: prose situation with a six-step procedure, two rules, a four-row behavior table, and a closing question that invites the helper
 - time: 10 minutes
 - shows TLA+ in the prompt: no
-- two encodings measured: the spec (rc 0, 199 states) and the neighbour without the nurse guard (rc 12)
+- two encodings measured: the spec (rc 0, 199 states) and the neighbor without the nurse guard (rc 12)
 
 ## Constructs exercised
 

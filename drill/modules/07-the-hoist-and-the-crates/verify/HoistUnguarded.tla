@@ -1,5 +1,5 @@
 --------------------------- MODULE HoistUnguarded ---------------------------
-\* The other wrong neighbour: the sum is right and nothing consults it
+\* The other wrong neighbor: the sum is right and nothing consults it
 \* before a crate boards.
 EXTENDS Naturals
 

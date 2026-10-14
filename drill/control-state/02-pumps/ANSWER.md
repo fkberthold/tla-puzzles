@@ -63,7 +63,7 @@ Nothing else about a pump needed recording, because a pump with its inlet
 open and its motor off is the same pump whether the operator is on the way
 up or on the way down.
 
-## The neighbour answer: a label per pump
+## The neighbor answer: a label per pump
 
 `verify/Phases.tla`. The handbook reads as four steps, so the first
 instinct after a year of PlusCal is four labels. `Offline`, `GoingUp`,
@@ -119,14 +119,14 @@ label is carrying history the data does not, and it earns its place.
   motor: BOOLEAN]]`. Same 26 states, same verdicts. A matter of taste.
 - **A `Phase(p)` operator that derives the label** from the switches, for
   readability in traces, without storing it. This is the honest version of
-  the neighbour: it gives you the handbook's words in the trace at no
+  the neighbor: it gives you the handbook's words in the trace at no
   cost in states.
 - **Two pumps instead of three.** 8 states against 15. The lesson is the
   same, but with three pumps the budget rule has something to do.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | one site-wide position in the procedure (the operator does one pump at a time) | row 2: two pumps mid-start at once. A single label cannot hold both. |
 | a strict four-step cycle per pump, `Offline -> GoingUp -> Online -> GoingDown -> Offline` | row 3: open then close with no start. The cycle has no edge from `GoingUp` back to `Offline`. Row 4 kills it a second time: no edge from `GoingDown` to `Online`. |

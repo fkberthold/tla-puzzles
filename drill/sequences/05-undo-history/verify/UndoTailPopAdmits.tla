@@ -1,5 +1,5 @@
 ---- MODULE UndoTailPopAdmits ----
-\* The front-pop neighbour against the table.
+\* The front-pop neighbor against the table.
 EXTENDS UndoTailPop, UndoRows
 
 TInit == hist = Rows[1][1]

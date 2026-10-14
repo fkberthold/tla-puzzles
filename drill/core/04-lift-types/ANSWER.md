@@ -118,9 +118,9 @@ door open is unreachable, which is what the safety rule says.
 - `door` as a Boolean `open`. The rule becomes `moving => ~open`.
 - `Bottom` and `Top` both as definitions, no constants. Passes, and the config has nothing to set.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | `floor \in Nat` | `TypeOK` red at floor -1 |
 | a negative literal in the config | the config parser, before the module is read |

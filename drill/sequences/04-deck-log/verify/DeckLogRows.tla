@@ -1,5 +1,5 @@
 ---- MODULE DeckLogRows ----
-\* The behaviour table from PROMPT.md as data. One pair per step: the
+\* The behavior table from PROMPT.md as data. One pair per step: the
 \* (log, archive) state before and after. The entry counter is implied by
 \* the two lists and the *Admits modules derive it. No cfg, so the drill
 \* gate reads this as a helper.

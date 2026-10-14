@@ -8,7 +8,7 @@ A goods hoist with a weight limit. Crates wait on the floor. A crate
 boards if it's not already aboard and the load with it would still be
 within the limit. A crate leaves whenever. The load is the total weight
 of what's aboard. Crates are told apart by their weight, so no two weigh
-the same, and that's a modelling choice you should state.
+the same, and that's a modeling choice you should state.
 
 The total has to be computed from a set, inside the spec, with no
 library beyond the arithmetic one. Keep the summing definition local to

@@ -67,7 +67,7 @@ enumerate it by hand.
 
 ## The merge has a side
 
-Two neighbours, each with one merge turned round.
+Two neighbors, each with one merge turned round.
 
 `DepotCoverDefaultsWin` writes `Roster == Default @@ cover`. Now the
 default driver wins on every route the list names, and the list is
@@ -106,7 +106,7 @@ caveat below.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | the roster merge with the defaults on the left | row 1. rc 12, measured |
 | the sick-day merge with the old list on the left | row 2. rc 12, measured |

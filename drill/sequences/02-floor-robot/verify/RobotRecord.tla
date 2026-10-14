@@ -35,7 +35,7 @@ Next == Step \/ Lift
 
 Spec == Init /\ [][Next]_vars
 
-NeighboursOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
+NeighborsOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
 
 NoCellTwice == \A i, j \in DOMAIN path : i /= j => path[i] /= path[j]
 ====

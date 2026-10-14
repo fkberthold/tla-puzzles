@@ -37,7 +37,7 @@ Next == Step \/ Lift
 
 Spec == Init /\ [][Next]_vars
 
-NeighboursOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
+NeighborsOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
 
 NoTileTwice == \A i, j \in DOMAIN path : i /= j => path[i] /= path[j]
 ====
@@ -47,7 +47,7 @@ NoTileTwice == \A i, j \in DOMAIN path : i /= j => path[i] /= path[j]
 SPECIFICATION Spec
 INVARIANTS
   TypeOK
-  NeighboursOnly
+  NeighborsOnly
   NoTileTwice
 ```
 
@@ -61,9 +61,9 @@ The robot is wherever the record ends, so there's no second variable for
 its position. `Here` is `path[Len(path)]`, the last index, which is the one
 place a 1-based list differs from what a programmer's hand types.
 
-`NeighboursOnly` runs `i` from 1 to one short of the end, because it looks
+`NeighborsOnly` runs `i` from 1 to one short of the end, because it looks
 at `path[i + 1]`. Run it over the whole domain and the last index asks for
-an element that isn't there. That's the first wrong neighbour below, and
+an element that isn't there. That's the first wrong neighbor below, and
 it isn't a violated invariant. It's an invariant TLC couldn't evaluate.
 
 The no-revisit guard is what bounds the model. Without it the record would
@@ -82,9 +82,9 @@ nine tiles, so a record of at most nine.
   the list, then membership.
 - `Lift` restricted to one home tile, or dropped. Fewer states, same rules.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | the adjacency rule quantified over the whole domain | `RobotDomainEdge` | the first state, where the rule asks for index 2 of a one-element record | rc 75 |
 | the move checked against the first tile in the record, not the last | `RobotFromStart` | the adjacency rule, on the second move | rc 12 |

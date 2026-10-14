@@ -1,5 +1,5 @@
 ---- MODULE DeckLogOffByOneAdmits ----
-\* The slice-starts-at-k neighbour against the table.
+\* The slice-starts-at-k neighbor against the table.
 EXTENDS DeckLogOffByOne, DeckLogRows
 
 TInit ==

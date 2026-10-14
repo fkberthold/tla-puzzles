@@ -1,6 +1,6 @@
 ------------------------------ MODULE Ticker ------------------------------
 \* The fine machine. A counter from 0 to 5 that wraps, and a reading of it
-\* as a colour. The reading is the refinement mapping.
+\* as a color. The reading is the refinement mapping.
 EXTENDS Naturals
 
 VARIABLE tick
@@ -16,7 +16,7 @@ Shown ==
     ELSE IF tick < 5 THEN "green"
     ELSE "amber"
 
-S == INSTANCE Signal WITH colour <- Shown
+S == INSTANCE Signal WITH color <- Shown
 
 Refinement == S!Spec
 

@@ -1,14 +1,14 @@
 ------------------------------ MODULE Signal ------------------------------
-\* The coarse machine. Three colours in a fixed cycle, nothing else.
-VARIABLE colour
+\* The coarse machine. Three colors in a fixed cycle, nothing else.
+VARIABLE color
 
-Init == colour = "red"
+Init == color = "red"
 
 Next ==
-    \/ colour = "red"   /\ colour' = "green"
-    \/ colour = "green" /\ colour' = "amber"
-    \/ colour = "amber" /\ colour' = "red"
+    \/ color = "red"   /\ color' = "green"
+    \/ color = "green" /\ color' = "amber"
+    \/ color = "amber" /\ color' = "red"
 
-Spec == Init /\ [][Next]_colour
+Spec == Init /\ [][Next]_color
 
 =============================================================================

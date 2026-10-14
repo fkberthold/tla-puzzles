@@ -1,10 +1,10 @@
 # 02 pumps
 
 - family: control-state
-- shape: a handbook extract, two rules, a four-row behaviour table with two foreclosing rows, and a closing question about what records the position in the procedure
+- shape: a handbook extract, two rules, a four-row behavior table with two foreclosing rows, and a closing question about what records the position in the procedure
 - time: 10 minutes
 - shows TLA+ in the prompt: no
-- two encodings measured: yes, switches only (rc 0, 26 states) and a label per pump (rc 0, 63 states), plus the switches-only neighbour with a guard dropped (rc 12)
+- two encodings measured: yes, switches only (rc 0, 26 states) and a label per pump (rc 0, 63 states), plus the switches-only neighbor with a guard dropped (rc 12)
 
 ## Constructs exercised
 

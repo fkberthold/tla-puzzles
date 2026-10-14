@@ -1,5 +1,5 @@
 -------------------------- MODULE SortingLineExpr --------------------------
-\* The wrong neighbour: a boolean expression where an operator is wanted.
+\* The wrong neighbor: a boolean expression where an operator is wanted.
 EXTENDS Naturals
 
 CONSTANTS Parcels, Small

@@ -94,7 +94,7 @@ Here `Deliver` touches both columns of one row, so I'd tend to go with
 rows. The flat form is what I'd write if the two columns had nothing to do
 with each other, and the rule says they do.
 
-## The neighbour that crosses the paths
+## The neighbor that crosses the paths
 
 `StockCrossPath` lays the board out by columns and reads it by rows:
 `board[l].promised` on a record of functions. rc 75 on the first state,
@@ -116,7 +116,7 @@ states in.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | the row path on a column layout | rc 75 on the first state, measured |
 | the column path on a row layout | the same message with the roles swapped. Not measured |

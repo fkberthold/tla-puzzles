@@ -1,5 +1,5 @@
 ---- MODULE Document ----
-\* The answer to drill item 04-revision-freeze, plus the wrong neighbours as
+\* The answer to drill item 04-revision-freeze, plus the wrong neighbors as
 \* named alternatives. Steps.tla instantiates this module and checks each
 \* formula against the step table from the prompt.
 EXTENDS Naturals
@@ -24,10 +24,10 @@ Next == Edit \/ Publish
 Spec == Init /\ [][Next]_vars
 
 \* The two halves of Spec, checked separately against the table: the init
-\* rows are one-state behaviours and the step rows start mid-history.
+\* rows are one-state behaviors and the step rows start mid-history.
 NextBox == [][Next]_vars
 
-\* Neighbours. Each is the answer with one thing wrong.
+\* Neighbors. Each is the answer with one thing wrong.
 EditNoGuard     == rev' = rev + 1 /\ UNCHANGED published
 EditNoUnchanged == ~published /\ rev' = rev + 1
 EditGt          == ~published /\ rev' > rev /\ UNCHANGED published

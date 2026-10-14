@@ -25,7 +25,7 @@ type in.
 | 5 | clean | 811 | 8 | 0.3 s |
 | 6 | clean | 4,888 | 9 | 0.4 s |
 
-The system I'm modelling this for has forty workers.
+The system I'm modeling this for has forty workers.
 
 A colleague's fix was to cap the queue at two waiters. At five workers
 that came back clean at 211 states.

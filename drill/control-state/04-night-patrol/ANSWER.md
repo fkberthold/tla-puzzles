@@ -80,7 +80,7 @@ step eventually happens, and `<<A>>_v` means "an `A` step that changes
 not an `<<A>>_v` step, so the promise says nothing about it. `Log` in state
 2 was forced, because it changes `logged`. `Walk` in state 2 was taken only
 because TLC explored it. In state 4 TLC is allowed to explore the
-behaviour that stutters forever, and that behaviour satisfies the slipped
+behavior that stutters forever, and that behavior satisfies the slipped
 spec and fails the property.
 
 The corpus figure behind this: a box-action subscript covers the tuple of
@@ -114,7 +114,7 @@ advance is optional.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | `vars` without `pos` | the trace above: rc 13, stuttering at checkpoint 2. |
 | `Walk` with no guard (the guard may walk on before logging) | `WholeRound` fails with a lasso, not a stutter: the guard can circle forever without logging, and `WF_vars(Next)` is satisfied by the circling (INFERRED from the definition, and an authoring probe of exactly this shape gave rc 13 with "Back to state 3", and was not kept). |

@@ -92,7 +92,7 @@ count. I've written 1 for the one state in the trace.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | rule only in the actions, not in `Init` | the first unbalanced draw | 12 |
 | `Fill` without the rule on the result | two fills down one side | 12 |

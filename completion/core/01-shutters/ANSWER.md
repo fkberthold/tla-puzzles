@@ -91,7 +91,7 @@ places and the even places separately.
 
 Those invariants are false here, measured rather than argued. Claim 1 set to
 the cups shape, `Cardinality({i \in open : i % 2 = 1}) % 2 = 0`, gives exit
-code 12 on `Shutters` at 2 distinct states. Neighbouring flips mix the two
+code 12 on `Shutters` at 2 distinct states. Neighboring flips mix the two
 place classes, which is the whole difference between the two machines. So the
 page tells you flips are worth counting modulo something, and it hands over
 neither claim.

@@ -117,9 +117,9 @@ operator". The types have to be inline for the silent version to exist at all.
 The one-coin form should reach the same 12 states here, since every credit is
 reachable in single steps, but I didn't measure it.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | no `UNCHANGED` at all in `Insert` | rc 75 on the first step, naming `sold, stock` |
 | types in place of `UNCHANGED` | rc 12, on a variable the action never mentions |

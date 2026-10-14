@@ -1,5 +1,5 @@
 ----------------------------- MODULE HoistNoRec -----------------------------
-\* The wrong neighbour: the same sum with no declaration ahead of it.
+\* The wrong neighbor: the same sum with no declaration ahead of it.
 EXTENDS Naturals
 
 CONSTANTS Crates, Limit

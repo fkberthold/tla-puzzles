@@ -1,5 +1,5 @@
 ---- MODULE PortsFlatMgmt ----
-\* Wrong neighbour on the broken model. The management guard is gone from
+\* Wrong neighbor on the broken model. The management guard is gone from
 \* Add and Open is unflattened, with only rule 1 in the config. Whether a
 \* number is ever found in a set of intervals decides what TLC reports.
 EXTENDS Naturals, FiniteSets

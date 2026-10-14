@@ -6,11 +6,11 @@ While at the counter, the clerk may serve the waiting customer, who leaves
 in the same step.
 
 The specifier has decided what the clerk owes a waiting customer, and no
-more. Below are three behaviours, written as (customer, clerk) over time.
+more. Below are three behaviors, written as (customer, clerk) over time.
 "Then forever" means the last state repeats without end. "Cycling" means
 the bracketed run repeats without end.
 
-| # | behaviour | verdict |
+| # | behavior | verdict |
 |---|---|---|
 | L1 | (waiting, present), then (waiting, present) forever | forbidden |
 | L2 | ((waiting, present), (waiting, absent)) cycling | allowed |

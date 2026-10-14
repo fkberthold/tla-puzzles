@@ -1,5 +1,5 @@
 ---- MODULE BallastBinary ----
-\* Wrong neighbour. The powerset keyword used as if it were a subset test
+\* Wrong neighbor. The powerset keyword used as if it were a subset test
 \* between two sets. It's a prefix operator with one operand, so this
 \* doesn't parse.
 EXTENDS Naturals, FiniteSets

@@ -1,5 +1,5 @@
 ---- MODULE PileOffByOne ----
-\* Wrong neighbour: the mirror index written as k - i. At i = k that is
+\* Wrong neighbor: the mirror index written as k - i. At i = k that is
 \* index 0, which no list has, and TLC stops in the first flip.
 EXTENDS Naturals, Sequences
 

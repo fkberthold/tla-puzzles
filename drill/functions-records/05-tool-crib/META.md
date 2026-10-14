@@ -1,7 +1,7 @@
 # META: functions-records/05-tool-crib
 
 - family: functions-records
-- shape: prose, one rule, a four-row behaviour table, a checkable count, and a closing question about the set of tools out
+- shape: prose, one rule, a four-row behavior table, a checkable count, and a closing question about the set of tools out
 - time: 10 min
 - lesson: a partial function whose domain is state, grown by a merge and shrunk by a rebuild, against a total function with a hole value
 - three layouts measured: yes, partial function, total function with a hole value, worker to set of tools, all rc 0 at 63

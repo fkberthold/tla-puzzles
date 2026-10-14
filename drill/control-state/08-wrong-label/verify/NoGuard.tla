@@ -1,5 +1,5 @@
 ---------------------------- MODULE NoGuard ---------------------------
-(* Neighbour A: Enter has no pc guard at all.                            *)
+(* Neighbor A: Enter has no pc guard at all.                             *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,
           Arrived, Paid, Washing, Gone,

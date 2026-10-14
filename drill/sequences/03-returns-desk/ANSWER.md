@@ -181,9 +181,9 @@ the desk, and a reader who gets 38 should be able to say so.
 - A list of records with a book field and a place field. More than the
   prompt needs.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | `Return` adds to the desk and forgets to take the book off the loan set | `DeskSeqStaysOut` | the rule, on the first return | rc 12 |
 

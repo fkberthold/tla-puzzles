@@ -134,7 +134,7 @@ at the bottom so the bundled config can run against them.
 | `SellUnrung` | `Sell` doesn't ring up at all | `Safe` violated | `TillMatchesSales` violated | rc 12, `TillMatchesSales`, 8 states |
 
 Five of five caught and named under three names. Five of five caught under the
-bundle, all labelled `Safe`. Three of five under two names, with the two oven
+bundle, all labeled `Safe`. Three of five under two names, with the two oven
 mutants passing green at 60 states. The oven name was worth two mutants.
 
 Two more things came out of the runs. The first draft had no `Bank` and
@@ -157,9 +157,9 @@ bound is a type bound on `loaves`. The no-room mutant then reports as `TypeOK`,
 which is a label, just a worse one. I'd still keep the shelf as its own name,
 because the owner asked about the shelf and not about types.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | `Safe == A /\ B /\ C`, one `INVARIANT` line | nothing in TLC. Every mutant says `Safe`. |
 | the three worries folded into `TypeOK` | same, and the type failures lose their label too |

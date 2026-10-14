@@ -1,5 +1,5 @@
 ---- MODULE TriageSelectAdmits ----
-\* The filter neighbour against the table.
+\* The filter neighbor against the table.
 EXTENDS TriageSelect, TriageRows
 
 TInit == board = Rows[1][1][1] /\ treated = Rows[1][1][2]

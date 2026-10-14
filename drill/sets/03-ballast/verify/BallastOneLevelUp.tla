@@ -1,5 +1,5 @@
 ---- MODULE BallastOneLevelUp ----
-\* Wrong neighbour. The type line says the full tanks are a subset of the
+\* Wrong neighbor. The type line says the full tanks are a subset of the
 \* powerset, one level up from what was meant. A tank isn't a set of tanks.
 EXTENDS Naturals, FiniteSets
 

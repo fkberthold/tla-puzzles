@@ -1,5 +1,5 @@
 ---- MODULE ConvoyCupSpelling ----
-\* Wrong neighbour. The binary union symbol used as if it flattened a
+\* Wrong neighbor. The binary union symbol used as if it flattened a
 \* collection. It takes two operands, so this doesn't parse, and the parser
 \* is the one reporting it rather than TLC.
 EXTENDS Naturals, FiniteSets

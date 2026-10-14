@@ -18,7 +18,7 @@ v2-r5	{5}	PROPERTY V2
 v3-allowed	{1,2,3}	PROPERTY V3
 v3-r4	{4}	PROPERTY V3
 v3-r5	{5}	PROPERTY V3
-# Each neighbour on the row that kills it.
+# Each neighbor on the row that kills it.
 n1-r2	{2}	PROPERTY N1
 n2-r3	{3}	PROPERTY N2
 n3-r3	{3}	PROPERTY N3

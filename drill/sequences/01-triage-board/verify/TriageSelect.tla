@@ -1,5 +1,5 @@
 ---- MODULE TriageSelect ----
-\* Wrong neighbour: the minimum is found and then every patient at that
+\* Wrong neighbor: the minimum is found and then every patient at that
 \* severity is removed at once by a filter. The rule cannot see this, since
 \* the one who was treated really was the most urgent. Row 9 of the table
 \* sees it: two patients at 4, one taken, one still waiting.

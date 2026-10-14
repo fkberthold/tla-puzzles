@@ -1,6 +1,6 @@
 # META: sequences/08-pancake-pile
 
-- shape: behaviour table, four flips of one list, then a rule
+- shape: behavior table, four flips of one list, then a rule
 - time: 8 min
 - lesson: a list is a function on 1..n, so an operation the module lacks is a function literal, and the mirror index is 1-based
 - shows TLA+ in the prompt: no

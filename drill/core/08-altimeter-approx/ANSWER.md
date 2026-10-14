@@ -99,9 +99,9 @@ them.
 - `fault' = (a' - b > Tol \/ b - a' > Tol)`. The negation pushed through.
 - `{d \in -1..1 : d /= 0}` for `{-1, 1}`. Same set, more work.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | a drift that leaves `fault` alone | `FaultIffDisagree` red, six states in |
 | `fault' = ~(a \approx b)`, unprimed `a` | the lamp reacts one step late. rc 12 (not measured) |

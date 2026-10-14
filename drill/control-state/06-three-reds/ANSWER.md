@@ -91,7 +91,7 @@ Note the state counts: 13 with `Terminating`, 13 with the config switch.
 The disjunct adds a self-loop at the two end states, which generates
 states TLC has already seen (17 generated against 13), and no new ones.
 
-## The off-by-one neighbour
+## The off-by-one neighbor
 
 `verify/OffByOne.tla` tests the count before bumping it:
 
@@ -130,7 +130,7 @@ equivalence and not as an implication.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | test-before-bump (`OffByOne.tla`) | rc 12, `ThreeRedsExactly` at state 10. Row 3 plus rule 1. |
 | escalate when `reds` reaches 3 at `CutPower` | not killed by the table. It is the `cycles` variant with a different name and is acceptable (INFERRED). |
@@ -146,10 +146,10 @@ records which step the technician is on, and whether the count of reds
 could have stood in for it", which says there is a thing recording the
 step and that it is not the count. A reader who takes that in before
 writing will reach for a label without the detour. The bullet list of
-light colours with "keep watching" for amber is also a hint that amber is
+light colors with "keep watching" for amber is also a hint that amber is
 a non-step, since it is the only outcome with no instruction attached.
 The table's third row carries "and nothing happens after", which is the
-`HandsOff` rule stated as a behaviour and a nudge toward an action
+`HandsOff` rule stated as a behavior and a nudge toward an action
 property.
 
 ## Measured runs

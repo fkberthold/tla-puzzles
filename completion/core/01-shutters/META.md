@@ -10,7 +10,7 @@
 
 Cups flips two cups with one cup between them, so the odd places and the even
 places never mix, and its two invariants are the parity of each class on its
-own. This item moves the catch to a neighbouring pair and adds a tally of how
+own. This item moves the catch to a neighboring pair and adds a tally of how
 many times one has been worked. Those two changes retire both of the sibling's
 facts and put two different ones in their place: the parity of the whole open
 count, and the parity of the tally on coming back to all shut. Cups' own

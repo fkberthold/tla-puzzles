@@ -1,5 +1,5 @@
 --------------------------- MODULE TankPairAnon ---------------------------
-\* The wrong neighbour: both instances anonymous. Every name from the
+\* The wrong neighbor: both instances anonymous. Every name from the
 \* second one lands on top of the first, and SANY only warns.
 EXTENDS Naturals
 

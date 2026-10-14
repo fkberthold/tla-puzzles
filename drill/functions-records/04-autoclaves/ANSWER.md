@@ -78,7 +78,7 @@ That's the reference.
 the record, the inner `@` is its pressure. `AutoclavesNested` writes
 `Heat` this way, rc 0 at 56.
 
-## The neighbours
+## The neighbors
 
 `AutoclavesAtDepth` writes `![a].pressure = @.pressure + 1`. The path goes
 into the field, and `@` is read as if it were still the record. rc 75 at
@@ -119,10 +119,10 @@ Budget`. Same meaning, not measured.
 
 ## Elimination table
 
-There's no behaviour table in this prompt. The neighbours above are the
+There's no behavior table in this prompt. The neighbors above are the
 elimination, each with its measured number.
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | `@.pressure` on the field path | rc 75, measured |
 | a one-field record at the key path | `TypeOK`, rc 12, measured |

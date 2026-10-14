@@ -24,7 +24,7 @@ what the answer uses.
 | id | construct | role |
 |---|---|---|
 | K081 | `VARIABLE / VARIABLES` | answer |
-| K082 | `vars (the all-variables tuple)` | answer, and the two subscript neighbours |
+| K082 | `vars (the all-variables tuple)` | answer, and the two subscript neighbors |
 | K083 | `Init / Next / Spec (the pure-TLA+ spec skeleton)` | answer |
 | K084 | `action (formal definition)` | answer |
 | K085 | `UNCHANGED` | answer |

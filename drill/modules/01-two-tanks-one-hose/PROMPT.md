@@ -24,7 +24,7 @@ The requirement: neither tank ever holds more than its capacity.
 | one tank alone, capacity 2 | clean | 3 | 3 |
 | the pair, capacities 2 and 3 | clean | 12 | 6 |
 | the pair, capacities 2 and 2 | clean | 9 | 5 |
-| the pair, both copies of the tank brought in without a name, the pair writing its own behaviour formula | refused: a definition the pair wrote was already there | | |
+| the pair, both copies of the tank brought in without a name, the pair writing its own behavior formula | refused: a definition the pair wrote was already there | | |
 | the pair, both copies brought in without a name, the pair writing nothing of its own | stopped on the first state, with one tank's level reported as null | | |
 | the pair, capacities given but levels not | refused: something the tank declares was never substituted | | |
 

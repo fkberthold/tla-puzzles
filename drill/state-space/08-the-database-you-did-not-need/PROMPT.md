@@ -19,7 +19,7 @@ so.
 
 ## What you built
 
-You modelled the database. Each row has a chain of versions, each
+You modeled the database. Each row has a chain of versions, each
 stamped with the commit time it became visible. There's a global
 timestamp counter that moves on every begin and every commit. A
 transaction records the counter when it begins, and reads the newest

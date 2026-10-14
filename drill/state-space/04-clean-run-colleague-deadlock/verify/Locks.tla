@@ -42,7 +42,7 @@ Next == \E w \in Workers : Acquire(w) \/ ReleaseAll(w)
 
 Spec == Init /\ [][Next]_vars
 
-\* The alternative to switching the check off: say in the behaviour
+\* The alternative to switching the check off: say in the behavior
 \* formula that finishing is allowed to go nowhere. Then the only state
 \* TLC can report is one that is stuck for some other reason.
 Terminating == AllDone /\ UNCHANGED vars

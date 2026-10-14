@@ -1,6 +1,6 @@
 # META: sequences/04-deck-log
 
-- shape: behaviour table, seven steps over two lists, then a rule about positions
+- shape: behavior table, seven steps over two lists, then a rule about positions
 - time: 10 min
 - lesson: a prefix moves as two slices and a join, and the split is at k and k plus one
 - shows TLA+ in the prompt: no
@@ -35,7 +35,7 @@ Named as `drill/INVENTORY.md` field 4 writes them, one per bullet.
 - `Seq(S)` in TypeOK
 - `s[i]` with its 1-based origin, in the rule
 - `DOMAIN` of a sequence
-- `Head` and `Tail`, in the one-per-step neighbour
+- `Head` and `Tail`, in the one-per-step neighbor
 - the empty sequence literal
 
 ## Verify

@@ -102,7 +102,7 @@ the trap, since a reader who skips the log sees a crash and not a reason.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | band check dropped from `Add` | rule 2, a rule reaching port 0 or 9 | 12 |
 | management check dropped from `Add` | rule 1, a rule spanning port 5 | 12 |

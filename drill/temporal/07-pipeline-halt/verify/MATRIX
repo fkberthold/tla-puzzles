@@ -6,7 +6,7 @@ answer-prop-buggy	-	SPECIFICATION Spec;PROPERTY AnswerProp
 answer-prop-fixed	-	SPECIFICATION SpecFixed;PROPERTY AnswerPropFixed
 # The hand-inlined guard, equal on this system.
 inlined-buggy	-	SPECIFICATION Spec;INVARIANT Inlined
-# Neighbours.
+# Neighbors.
 n1-fixed	-	SPECIFICATION SpecFixed;PROPERTY N1
 n2-fixed	-	SPECIFICATION SpecFixed;PROPERTY N2
 n3-buggy	-	\* MODULE: PipelineRefused;SPECIFICATION Spec;PROPERTY N3

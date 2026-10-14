@@ -1,5 +1,5 @@
 ---- MODULE TriageFifoAdmits ----
-\* The queue neighbour against the table.
+\* The queue neighbor against the table.
 EXTENDS TriageFifo, TriageRows
 
 TInit == board = Rows[1][1][1] /\ treated = Rows[1][1][2]

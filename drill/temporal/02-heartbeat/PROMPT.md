@@ -6,7 +6,7 @@ stores the number from the most recent heartbeat it received. It can miss
 heartbeats, so consecutive stored numbers need not be consecutive. A
 heartbeat counts as received when the stored number changes.
 
-Below are five behaviours of the stored number. "Then forever" means the
+Below are five behaviors of the stored number. "Then forever" means the
 last value repeats without end. "Cycling" means the bracketed run repeats
 without end.
 
@@ -19,5 +19,5 @@ without end.
 | 5 | 0, then (1, 2) cycling | allowed |
 
 Write the one temporal property that says the peer keeps sending
-heartbeats. It must admit every allowed behaviour and reject every
+heartbeats. It must admit every allowed behavior and reject every
 forbidden one.

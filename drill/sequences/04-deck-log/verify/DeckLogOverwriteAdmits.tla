@@ -1,5 +1,5 @@
 ---- MODULE DeckLogOverwriteAdmits ----
-\* The archive-replaced neighbour against the table.
+\* The archive-replaced neighbor against the table.
 EXTENDS DeckLogOverwrite, DeckLogRows
 
 TInit ==

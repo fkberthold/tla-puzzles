@@ -23,5 +23,5 @@ what the answer and its accepted variant use.
 | K079 | `' (prime, next-state value)` | answer |
 | K078 | `action property` | answer |
 | K063 | `[] (always)` | answer, the outer box |
-| K082 | `vars (the all-variables tuple)` | neighbour, killed by S2, and the reason the item exists, not declared |
-| K085 | `UNCHANGED` | neighbour, the spelled-out clock, not declared |
+| K082 | `vars (the all-variables tuple)` | neighbor, killed by S2, and the reason the item exists, not declared |
+| K085 | `UNCHANGED` | neighbor, the spelled-out clock, not declared |

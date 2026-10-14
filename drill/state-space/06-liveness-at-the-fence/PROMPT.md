@@ -29,7 +29,7 @@ The requirement: the message is eventually acknowledged.
 "Gives up" means I changed the sender so it won't resend a fourth time.
 
 The violation in the third row prints one state, the first one, and
-then says the behaviour stays there forever. The one in the fourth row
+then says the behavior stays there forever. The one in the fourth row
 ends with the counter at 3 and nothing in flight.
 
 ## The questions

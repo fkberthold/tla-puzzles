@@ -1,6 +1,6 @@
 # META: sequences/01-triage-board
 
-- shape: behaviour table, nine steps over two lists, then the rule as a property
+- shape: behavior table, nine steps over two lists, then the rule as a property
 - time: 10 to 12 min. The property is the part that runs over.
 - lesson: cutting an element out of the middle of a list, and a rule only an action formula can state
 - shows TLA+ in the prompt: no

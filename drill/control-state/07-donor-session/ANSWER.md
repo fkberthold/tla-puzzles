@@ -78,7 +78,7 @@ has read them. By hand they are a set-builder over `pc`, named once as
 **`ProcSet` is the domain of `pc` and the range of the quantifier in
 `Terminating`.** With one kind of process it equals `Donors`, and naming it
 anyway is the idiom the translator uses. It is here so the shape is
-recognisable, not because `Donors` would not do.
+recognizable, not because `Donors` would not do.
 
 ## The nurse guard is real
 
@@ -122,7 +122,7 @@ helper and worth knowing before the first long trace.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | `CallIn` without the nurse guard (`RushDesk.tla`) | rc 12 at state 3, above. |
 | `Sit` without the chair guard | `NoStandingDonors` fails once three donors are cleared and seated (INFERRED, not run). Row 2 is also unreachable, since nobody ever waits. |

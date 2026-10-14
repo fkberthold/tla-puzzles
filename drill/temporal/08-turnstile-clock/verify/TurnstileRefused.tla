@@ -1,5 +1,5 @@
 ---- MODULE TurnstileRefused ----
-\* A neighbour the tools refuse outright, kept apart from Turnstile so the
+\* A neighbor the tools refuse outright, kept apart from Turnstile so the
 \* rejection cannot fail the runs over there.
 EXTENDS Turnstile
 

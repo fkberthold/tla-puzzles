@@ -25,6 +25,6 @@ what the answer and the guarantee it buys use.
 | K097 | `fairness conjunct on Spec` | answer |
 | K069 | `[]<> (always eventually)` | the guarantee |
 | K067 | `<> (eventually)` | the guarantee |
-| K095 | `WF_v(A) (weak fairness)` | neighbour, killed by L2, not declared |
+| K095 | `WF_v(A) (weak fairness)` | neighbor, killed by L2, not declared |
 | K093 | `ENABLED` | implicit in what SF means, not declared |
 | K094 | `<<A>>_v (angle action formula)` | implicit in what SF means, not declared |

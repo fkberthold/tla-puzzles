@@ -1,5 +1,5 @@
 ---- MODULE ConvoyMergeFlat ----
-\* Wrong neighbour. Merge unions the two convoys into the collection
+\* Wrong neighbor. Merge unions the two convoys into the collection
 \* instead of adding their union as one element. The braces around the
 \* joined set are the whole difference, and without them the trucks
 \* themselves land in the set of convoys.

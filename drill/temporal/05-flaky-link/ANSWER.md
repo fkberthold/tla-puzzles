@@ -59,9 +59,9 @@ admitted.
 
 ## Elimination table
 
-| wrong neighbour | killed by | rc | why |
+| wrong neighbor | killed by | rc | why |
 |---|---|---|---|
-| no conjunct | L1 | 13 on `SysNoneRun` | L1 is a behaviour of the bare spec |
+| no conjunct | L1 | 13 on `SysNoneRun` | L1 is a behavior of the bare spec |
 | `WF_vars(Deliver)` | L2 | 0 on L2 | content with an action that's disabled infinitely often |
 | `WF_vars(Next)` | L2 | 0 on L2 | the link's flapping is `Next`, and it never stops, so the conjunct is satisfied while the message starves |
 | `SF_vars(Next)` | L3 | 13 on L3 | forces the link back up, which the rules said nothing can |

@@ -1,5 +1,5 @@
 ---------------------------- MODULE HallUnbound ----------------------------
-\* The wrong neighbour: the instance is written at module level, where the
+\* The wrong neighbor: the instance is written at module level, where the
 \* width it wants to substitute is not in scope.
 EXTENDS Naturals
 

@@ -1,5 +1,5 @@
 ---- MODULE ConvoyEmptySubseteq ----
-\* Wrong neighbour. Rule 3 written with the subset relation instead of
+\* Wrong neighbor. Rule 3 written with the subset relation instead of
 \* membership. The empty set is a subset of every set, so the negation is
 \* false in every state, starting with the first.
 EXTENDS Naturals, FiniteSets

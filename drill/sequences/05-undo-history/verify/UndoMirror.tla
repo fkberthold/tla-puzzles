@@ -1,5 +1,5 @@
 ---- MODULE UndoMirror ----
-\* Wrong neighbour: newest edit at the front, and the drop when full
+\* Wrong neighbor: newest edit at the front, and the drop when full
 \* written as a slice of the first three whether or not there are three.
 \* SubSeq past the end of a list is not a truncation in TLC. It is an
 \* error, and it fires on the first edit.

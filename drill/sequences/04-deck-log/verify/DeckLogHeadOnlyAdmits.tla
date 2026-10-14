@@ -1,5 +1,5 @@
 ---- MODULE DeckLogHeadOnlyAdmits ----
-\* The one-at-a-time neighbour against the table.
+\* The one-at-a-time neighbor against the table.
 EXTENDS DeckLogHeadOnly, DeckLogRows
 
 TInit ==

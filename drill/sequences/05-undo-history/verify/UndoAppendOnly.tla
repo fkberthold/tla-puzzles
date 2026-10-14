@@ -1,5 +1,5 @@
 ---- MODULE UndoAppendOnly ----
-\* Wrong neighbour: edits join at the back and nothing ever leaves the
+\* Wrong neighbor: edits join at the back and nothing ever leaves the
 \* front. The history is four long after four edits, and the bound fails.
 EXTENDS Naturals, Sequences
 

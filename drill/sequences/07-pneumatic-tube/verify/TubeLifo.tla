@@ -1,5 +1,5 @@
 ---- MODULE TubeLifo ----
-\* Wrong neighbour: the vault takes the capsule that went in last. The
+\* Wrong neighbor: the vault takes the capsule that went in last. The
 \* order rule fails as soon as two capsules are in the tube together.
 EXTENDS Naturals, Sequences
 

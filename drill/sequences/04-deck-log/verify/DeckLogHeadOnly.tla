@@ -1,5 +1,5 @@
 ---- MODULE DeckLogHeadOnly ----
-\* Wrong neighbour: one entry archived per step, from the front. Every
+\* Wrong neighbor: one entry archived per step, from the front. Every
 \* invariant holds, because nothing is lost or misnumbered. Only the table
 \* sees it, at the row where two entries move at once.
 EXTENDS Naturals, Sequences

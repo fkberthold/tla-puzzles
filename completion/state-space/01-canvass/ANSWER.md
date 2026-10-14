@@ -66,7 +66,7 @@ reason the run finishes. Measured: a copy of `Canvass.cfg` with the
 `CONSTRAINT Bounded` line deleted returns 124 under
 `harness/verdict.sh -t 20`.
 
-So rc 0 means no violation among the behaviours that stay under the bound,
+So rc 0 means no violation among the behaviors that stay under the bound,
 and the bound is a decision rather than a description. `reading/state-space/02-tickets`
 makes the same point and is worth reading next to this item.
 

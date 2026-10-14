@@ -60,16 +60,16 @@ fairness doesn't buy it. `NeverStops` is `[]<><<Next>>_vars`, and it's what
 `WF_vars(Next)` adds that nobody asked for: the shop can never go quiet.
 
 Unconditional `Served` fails under every candidate, including strong
-fairness, because a clerk who steps away and never returns is a behaviour
+fairness, because a clerk who steps away and never returns is a behavior
 of the spec. That's the same shape as L3 in `05-flaky-link`, and the same
 lesson: fairness on one action can't promise what the rest of the spec is
 free to prevent.
 
 ## Elimination table
 
-| wrong neighbour | killed by | rc | why |
+| wrong neighbor | killed by | rc | why |
 |---|---|---|---|
-| no conjunct | L1 | 13 on `SysNoneStaysRun` | L1 is a behaviour of the bare spec |
+| no conjunct | L1 | 13 on `SysNoneStaysRun` | L1 is a behavior of the bare spec |
 | `SF_vars(Serve)` | L2 | 13 on L2 | forbids the flapping clerk, which the specifier allowed |
 | `WF_vars(Next)` | L3 | 13 on L3 | `Arrive` and `StepAway` are enabled, so something must happen. A quiet shop is now illegal |
 | `WF_vars(Arrive)` | L3 | 13 on L3 | makes customers fair, which nobody asked for |

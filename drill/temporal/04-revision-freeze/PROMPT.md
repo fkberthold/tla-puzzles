@@ -2,7 +2,7 @@
 
 A document has a revision number and a published flag.
 
-- Every behaviour starts at revision 0, unpublished.
+- Every behavior starts at revision 0, unpublished.
 - An edit raises the revision by exactly one.
 - Edits are possible only while the document is unpublished.
 - Publishing sets the flag and leaves the revision alone.
@@ -25,5 +25,5 @@ step.
 | S6 | (3, no) | (5, no) | forbidden |
 | S7 | (3, yes) | (3, yes) | allowed |
 
-Write the complete module, header to end marker. Its behaviour formula must
+Write the complete module, header to end marker. Its behavior formula must
 admit every allowed start and step and reject every forbidden one.

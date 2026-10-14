@@ -13,7 +13,7 @@ The CONSTRAINT is doing the work. Comment it out and TLC doesn't finish,
 so `verdict.sh --timeout 20` returns 124. Raise the bound to 9 and the
 same run finds 127 distinct states instead of 79. The line sets the size
 of the search rather than describing it. So rc 0 means no violation
-among the behaviours that stay under the bound, and I think that's the
+among the behaviors that stay under the bound, and I think that's the
 part worth holding onto. A CONSTRAINT buys termination and charges
 coverage for it.
 

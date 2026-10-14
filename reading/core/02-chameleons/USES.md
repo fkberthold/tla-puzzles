@@ -1,17 +1,17 @@
 # USES: core/02-chameleons
 
-Subject: Six chameleons in three colours, starting one, two and three.
-Two of different colours meet and both take on the third, and they
+Subject: Six chameleons in three colors, starting one, two and three.
+Two of different colors meet and both take on the third, and they
 never all end up matching.
 
 rc: 0
 
 ## What the properties rest on
 
-`Spread` rests on the third colour gaining two rather than one.
+`Spread` rests on the third color gaining two rather than one.
 Changing that arm of the CASE to `count[k] + 1` gives rc 12.
-`NeverOneColour` rests on the starting counts, and `<<2, 2, 2>>` in
-place of `<<1, 2, 3>>` gives rc 12 with all six reaching one colour.
+`NeverOneColor` rests on the starting counts, and `<<2, 2, 2>>` in
+place of `<<1, 2, 3>>` gives rc 12 with all six reaching one color.
 
 Every reachable state has a successor, measured by rerunning with
 `--check-deadlock` at rc 0, so the .cfg carries no `CHECK_DEADLOCK`

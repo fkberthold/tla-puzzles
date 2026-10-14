@@ -32,10 +32,10 @@ TLC prints ends in a stuttering step.
 
 ## Elimination table
 
-Each neighbour is a plausible wrong answer. The row named is the one that
+Each neighbor is a plausible wrong answer. The row named is the one that
 kills it, and the rc is what TLC returned on that row alone.
 
-| wrong neighbour | row | rc | why that row |
+| wrong neighbor | row | rc | why that row |
 |---|---|---|---|
 | `<>Printed` | 4 | 0 | one print satisfies it forever, and the second job starves unseen |
 | `[]<>Printed` | 2 | 13 | a printer that never gets a job is fine, and this rejects it |
@@ -86,7 +86,7 @@ the rc column.
 
 ## Why not in prompt
 
-The prompt gives six behaviours and no operator. The rows pin the property
+The prompt gives six behaviors and no operator. The rows pin the property
 by what it admits, and retrieving the arrow as the name of that extension
 is the whole exercise. Any code in the prompt would carry the shape of the
 answer.

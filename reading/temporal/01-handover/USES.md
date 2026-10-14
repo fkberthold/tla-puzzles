@@ -21,7 +21,7 @@ true forever.
 `MovesOnlyWhenAsked` rests on Grant's `want` guard. Delete the guard and
 the run also gives rc 13, but reported as `Action property
 MovesOnlyWhenAsked is violated`. Both are rc 13 because a `~>` and a
-`[][A]_vars` both need an infinite behaviour, which is the split
+`[][A]_vars` both need an infinite behavior, which is the split
 `harness/verdict.sh` records between 12 and 13.
 
 The `ASSUME Cardinality(Site) > 1` is load-bearing rather than tidy.
