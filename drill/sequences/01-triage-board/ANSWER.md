@@ -127,7 +127,7 @@ asks whether every step is a step of the module it extends.
 1 + 4 + 16 + 64 = 85 values, the treated list under the constraint is the
 same, and every pair is reachable. A boxed action property that fails exits
 13 whatever the trace looks like, because TLC checks it through the
-implied-action channel (`harness/verdict.sh:81-91`).
+implied-action channel (`harness/verdict.sh:117-119`).
 
 ## Why not in prompt
 
