@@ -352,6 +352,30 @@ SUITES=(
   # of the tree rather than carrying a literal, so the row's cost tracks the
   # corpus while its assertions do not go stale as the 29 pending items land.
   "fast|0.7|drill delivery|./harness/test-deliver-drill.sh"
+  # Added 2026-10-13 by bead tla-z3ks, which built scripts/deliver-completion.sh.
+  # Measured standalone on the green tree over two sets of three back-to-back
+  # serial runs: 0.931 / 0.929 / 0.947 s, then 0.955 / 0.959 / 0.954 s. So 1.0
+  # is the slowest rounded up, and the spread across all six is 3.2%.
+  #
+  # The RED tree, with this row absent and one assertion failing, read
+  # 0.857 / 0.806 / 0.910 s. That is BELOW the green readings, which is what
+  # you want to see: a red-tree wall clock measures a suite stopping early, and
+  # this file has twice refused to re-base a budget on one. Here it only
+  # confirms that the green figure is not an artifact of a suite dying.
+  #
+  # It builds six fixture source roots out of mkdir and printf, runs the
+  # delivery script 19 times, and runs no TLC. One of those runs reads the real
+  # completion/ tree under --check, and it derives its expected file and
+  # withheld counts from a second walk of the tree rather than carrying a
+  # literal, so the row's cost tracks the corpus while its assertions do not go
+  # stale as items land.
+  #
+  # ITS COST WILL TRACK THE ITEM COUNT, and a completion item is bigger than a
+  # drill item: 01-clockface delivers 9 files against a drill item's 1, and
+  # work/ is walked recursively. One item exists today, so I would expect this
+  # row to move the first time a wave of them lands. Divide by the item count
+  # before calling that drift.
+  "fast|1.0|completion delivery|./harness/test-deliver-completion.sh"
   # Budget measured on the red tree, where the digest check does not exist yet
   # and part 1 stops at the first fetch: 0.2 s over two runs. Once the check
   # lands, part 1 copies a 4.5 MB stand-in jar twice over a file:// URL and
