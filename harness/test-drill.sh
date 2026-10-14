@@ -482,6 +482,16 @@ real_tree_arm() {
     echo "        leaves check 3 unable to say anything about construct coverage."
   fi
 
+  # THE COUNT CLAIM'S COVERAGE IS ASSERTED IN EVERY MODE, and it is asserted
+  # over the real tree rather than over a fixture because the number only
+  # means something against the corpus. Before bead tla-ywf4 the gate compared
+  # exit codes and nothing else, so every recorded state count across 64 items
+  # was an unguarded claim and no output said so. A gate that silently stopped
+  # parsing those claims would print the same VERDICT OK it prints now, so the
+  # line that names the number is what makes the regression visible.
+  has "real tree: states how many distinct-state claims it parsed and compared" \
+      "drill-gate.sh: count claims: "
+
   # THE MODE BLOCK IS PART OF THE CONTRACT, not decoration, so it is asserted
   # and not merely echoed. A tier that drops 237 TLC runs and then prints
   # VERDICT OK, saying nothing about the 237, reads as a full verification to
@@ -1077,6 +1087,139 @@ hasnt "tab shape: and is not reported as unlisted" "does not list"
 } >"${R_TAB}/INVENTORY.md"
 run_gate --no-tlc "$R_TAB"
 has "tab shape: field 8 ids are counted" "2  high         temporal             Leads-to (\`~>\`)"
+
+# ===========================================================================
+echo
+echo "== part 1h: check 2 — the DISTINCT-STATE COUNT, not only the rc =="
+# ===========================================================================
+# WHY THE COUNT NEEDS ITS OWN ROWS. Check 2 compared exit codes and nothing
+# else, so every recorded state count in the corpus was an unguarded claim.
+# The count is the half a learner checks their answer against: a prompt that
+# publishes "a correct model finds 129 distinct states" has handed the reader
+# a number to land on, and nothing was holding it. The two numbers also drift
+# differently. An rc is coarse and survives a small spec change, while a count
+# moves on any change to the constants, the state space or the initial
+# predicate, and it moves silently.
+#
+# THE FIXTURE ADDS ONE COLUMN AND CHANGES NOTHING ELSE. mk_item's table is
+# `| module | cfg | rc |` with no count column at all, which is the shape the
+# temporal family really has, so the baseline already covers "no claim". Each
+# row below appends a `distinct` column to that one table and mutates one
+# cell.
+R_CNT="${TMP}/count"
+mkdir -p "$R_CNT"
+mk_inventory "$R_CNT"
+mk_item "$R_CNT" "liveness/01-served"
+D="${R_CNT}/liveness/01-served"
+
+# A third module that CANNOT print a count: a parse error never reaches the
+# state graph. Measured on this build — rc 150, and the log carries no
+# `N distinct states` line at all.
+cat >"${D}/verify/Broken.tla" <<'TLA'
+---- MODULE Broken ----
+EXTENDS Naturals
+VARIABLE s
+Init == s = 0
+Up == s = 0 /\ s' = 1
+Next == Up
+Spec == Init /\ [][Next]_s
+Bad == s \in 0..1 /\
+====
+TLA
+cat >"${D}/verify/Broken.cfg" <<'CFG'
+SPECIFICATION Spec
+INVARIANT Bad
+CFG
+
+# The table, with a distinct column and the counts measured on this build:
+# Good 2, Wrong 2, Broken none. `Good` is given 7 on purpose.
+write_count_table() {
+  local good="$1" wrong="$2" broken="$3"
+  {
+    grep -v '^| module | cfg | rc |' "${D}/ANSWER.md" \
+      | grep -v '^|---|---|---|$' \
+      | grep -v '^| Good | Good.cfg | 0 |$' \
+      | grep -v '^| Wrong | Wrong.cfg | 13 |$'
+    printf '| module | cfg | rc | distinct |\n'
+    printf '|---|---|---|---|\n'
+    printf '| Good | Good.cfg | 0 | %s |\n' "$good"
+    printf '| Wrong | Wrong.cfg | 13 | %s |\n' "$wrong"
+    printf '| Broken | Broken.cfg | 150 | %s |\n' "$broken"
+  } >"${D}/A.new"
+  mv "${D}/A.new" "${D}/ANSWER.md"
+}
+
+# --- RED 1: a claim that disagrees with what TLC printed ------------------
+# Good's claim says 7 and the run prints 2. Broken is waived here so that
+# this row isolates the mismatch.
+write_count_table 7 2 1
+printf '\ncount-waiver: Broken -- a parse error never reaches the state graph, so TLC prints no count for this module.\n' >>"${D}/META.md"
+run_gate "$R_CNT"
+rc_is "count mismatch: rc 1" 1
+has   "count mismatch: the disagreement is caught" "VERIFY-COUNT-MISMATCH"
+has   "count mismatch: both numbers are reported" "distinct column records 7, TLC printed 2"
+has   "count mismatch: the module whose count agreed is reported OK" "Wrong.tla rc=13 distinct=2"
+has   "count mismatch: the rc half still reports, so the two halves are separable" "Good.tla rc=0"
+
+# --- RED 2: a claim whose run prints no count at all ---------------------
+# Same table, waiver removed. Broken's rc 150 reproduces and its count cannot,
+# so the claim is unverifiable and that is a finding rather than a quiet pass.
+grep -v 'count-waiver' "${D}/META.md" >"${D}/M.new" && mv "${D}/M.new" "${D}/META.md"
+write_count_table 2 2 1
+run_gate "$R_CNT"
+rc_is "count absent: rc 1" 1
+has   "count absent: a claim the run cannot reproduce is a finding" "VERIFY-COUNT-ABSENT"
+has   "count absent: the finding names the module and the claim" "Broken.tla: ANSWER.md's distinct column records 1"
+has   "count absent: and the rc itself still reproduced" "Broken.tla rc=150"
+
+# --- RED 3: the same item with a count-waiver in META.md -----------------
+printf '\ncount-waiver: Broken -- a parse error never reaches the state graph, so TLC prints no count for this module.\n' >>"${D}/META.md"
+run_gate "$R_CNT"
+rc_is "count waiver: rc 0" 0
+hasnt "count waiver: with one, the absent count stops being a finding" "VERIFY-COUNT-ABSENT"
+has   "count waiver: the waiver is echoed, so waivers cannot accumulate unseen" "count:Broken"
+has   "count waiver: the echo carries the reason" "never reaches the state graph"
+has   "count waiver: the waived module is reported, not skipped silently" "Broken.tla rc=150 distinct=waived"
+
+# --- RED 4: a count-waiver with no reason is itself a finding -------------
+grep -v 'count-waiver' "${D}/META.md" >"${D}/M.new" && mv "${D}/M.new" "${D}/META.md"
+printf '\ncount-waiver: Broken\n' >>"${D}/META.md"
+run_gate "$R_CNT"
+has "count waiver: one with no reason is itself a finding" "COUNT-WAIVER-NO-REASON"
+
+# --- RED 5: no claim at all is no check and no finding -------------------
+# The temporal family's case, and it must stay silent. The baseline item is
+# rebuilt so its table carries no distinct column.
+R_CNT0="${TMP}/count-none"
+mkdir -p "$R_CNT0"
+mk_inventory "$R_CNT0"
+mk_item "$R_CNT0" "liveness/01-served"
+run_gate "$R_CNT0"
+rc_is "no count claimed: rc 0" 0
+hasnt "no count claimed: no mismatch" "VERIFY-COUNT-MISMATCH"
+hasnt "no count claimed: and no absent-count finding either" "VERIFY-COUNT-ABSENT"
+has   "no count claimed: the coverage is stated rather than left silent" "count claims: 0 parsed"
+
+# --- RED 6: THE FILE IS HALF THE IDIOM -----------------------------------
+# A count-waiver planted in ANSWER.md must NOT be honoured. META.md is the
+# waiver file for both gates, and bead tla-o14p found the telegraph waiver
+# split live across the two: this gate read ANSWER.md while
+# harness/completion-gate.sh read META.md, so an author working both channels
+# could file a waiver one gate never saw. A waiver that is not found is
+# silence rather than a finding, so the plant below has to be ignored.
+grep -v 'count-waiver' "${D}/META.md" >"${D}/M.new" && mv "${D}/M.new" "${D}/META.md"
+printf '\ncount-waiver: Broken -- planted in the answer file on purpose, because only META.md is the waiver file.\n' >>"${D}/ANSWER.md"
+run_gate "$R_CNT"
+has   "count waiver in ANSWER.md: not honoured, so the absent count is still a finding" "VERIFY-COUNT-ABSENT"
+hasnt "count waiver in ANSWER.md: and nothing is echoed as a waiver" "count:Broken"
+
+# --- the structural half runs in the static tiers -------------------------
+# A waiver's reason floor is a property of the file, so it is checkable
+# without TLC. The comparison is not, and the static tier says so.
+printf '\ncount-waiver: Broken\n' >>"${D}/META.md"
+run_gate --static-only "$R_CNT"
+has "count waiver: the reason floor is checked with no TLC at all" "COUNT-WAIVER-NO-REASON"
+has "count waiver: and the static tier states that no count was compared" "0 compared"
 
 # ===========================================================================
 echo
