@@ -1061,12 +1061,12 @@ caveat_text() {
 }
 
 # ---------------------------------------------------------------------------
-# waivers <answer.md>: lines of the form
+# waivers <meta.md>: lines of the form
 #     telegraph-waiver: <token> -- <reason>
-# A waiver suppresses exactly one token for exactly one item. Every waiver is
-# echoed in the output, so a corpus cannot quietly fill up with them; a waiver
-# with no reason is itself a finding. This mirrors the per-site
-# `# shellcheck disable` with its reason above it that scripts/lint requires.
+# READ FROM THE ITEM'S META.md, never from ANSWER.md. META.md is where the
+# item declares its constructs, and harness/completion-gate.sh reads the same
+# keyword from the same file. A waiver covers one token for one item and is
+# echoed on every run. One that carries no reason is itself a finding.
 # ---------------------------------------------------------------------------
 waivers() {
   grep -iE '^[[:space:]]*[*_ ]*telegraph-waiver[*_ ]*:' "$1" 2>/dev/null || true
@@ -1428,7 +1428,7 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
 
   # Waivers first, so layers A and B can honour them. Echoed unconditionally.
   declare -a WAIVED=()
-  wv="$(waivers "$answer")"
+  wv="$(waivers "$meta")"
   if [ -n "$wv" ]; then
     while IFS= read -r wline; do
       [ -n "$wline" ] || continue

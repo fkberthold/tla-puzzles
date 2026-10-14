@@ -925,6 +925,10 @@ echo "== part 1f: the waiver, and why it cannot accumulate unseen =="
 # waiver is ECHOED. This is the per-site `# shellcheck disable` with its
 # reason above it that scripts/lint requires, in the same shape and for the
 # same reason: a blanket exemption turns a red gate into a green lie.
+#
+# It lives in the item's META.md, which is the file harness/completion-gate.sh
+# reads the same keyword from. The last fixture in this part is what holds the
+# gate to that file rather than to the keyword alone.
 R_W="${TMP}/waiver"
 mkdir -p "$R_W"
 mk_inventory "$R_W"
@@ -938,18 +942,32 @@ PROMPT
 run_gate --no-tlc "$R_W"
 has "waiver: without one, the token is a finding" "TELEGRAPH-DECLARED"
 
-A="${R_W}/liveness/01-served/ANSWER.md"
-printf '\ntelegraph-waiver: ~> -- the operator is given on purpose here; this item drills the two state predicates, not the operator.\n' >>"$A"
+M="${R_W}/liveness/01-served/META.md"
+printf '\ntelegraph-waiver: ~> -- the operator is given on purpose here; this item drills the two state predicates, not the operator.\n' >>"$M"
 run_gate --no-tlc "$R_W"
 hasnt "waiver: with one, that token stops being a finding" "TELEGRAPH-DECLARED"
 has   "waiver: the waiver is echoed, so it cannot accumulate unseen" "WAIVER"
 has   "waiver: the echo carries the reason" "drills the two state predicates"
 
 # A waiver with no reason is an exemption, and is itself a finding.
-grep -v 'telegraph-waiver' "$A" >"${A}.new" && mv "${A}.new" "$A"
-printf '\ntelegraph-waiver: ~>\n' >>"$A"
+grep -v 'telegraph-waiver' "$M" >"${M}.new" && mv "${M}.new" "$M"
+printf '\ntelegraph-waiver: ~>\n' >>"$M"
 run_gate --no-tlc "$R_W"
 has "waiver: one with no reason is itself a finding" "TELEGRAPH-WAIVER-NO-REASON"
+
+# THE FILE IS HALF THE IDIOM, and nothing above pins that half. The fixtures
+# prove the gate honours a waiver in whichever file it reads. Point it back
+# at ANSWER.md and every one of them stays green. Bead tla-o14p found that
+# split live: this gate read ANSWER.md while harness/completion-gate.sh read
+# META.md, so an author working both channels could file a waiver one gate
+# never saw. A waiver that is not found is silence rather than a finding, so
+# the plant below goes in ANSWER.md and has to be ignored.
+grep -v 'telegraph-waiver' "$M" >"${M}.new" && mv "${M}.new" "$M"
+A="${R_W}/liveness/01-served/ANSWER.md"
+printf '\ntelegraph-waiver: ~> -- planted in the answer file on purpose, because only META.md is the waiver file.\n' >>"$A"
+run_gate --no-tlc "$R_W"
+has   "waiver in ANSWER.md: not honoured, so the token is still a finding" "TELEGRAPH-DECLARED"
+hasnt "waiver in ANSWER.md: and nothing is echoed as a waiver" "WAIVER    liveness"
 
 # ===========================================================================
 echo
