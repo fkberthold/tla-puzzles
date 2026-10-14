@@ -3,11 +3,16 @@
 # without handing over the worked answer, the construct list, or the modules
 # that prove the answer checks.
 #
-# Usage:  scripts/deliver-drill.sh [--check] [dest-root]
+# Usage:  scripts/deliver-drill.sh [--check] [--refresh-prompts] [dest-root]
 #
-#   --check    resolve everything and print what would be delivered. Writes
-#              nothing.
-#   dest-root  where to deliver into (default: $HOME/tla-practice/drill)
+#   --check            resolve everything and print what would be delivered.
+#                      Writes nothing.
+#   --refresh-prompts  replace a delivered PROMPT.md whose content differs from
+#                      the source. OFF BY DEFAULT. A run without it reaches no
+#                      code that can overwrite a prompt, so a plain delivery
+#                      cannot replace one. Read "WHY --refresh-prompts EXISTS"
+#                      below before you reach for it.
+#   dest-root          where to deliver into (default: $HOME/tla-practice/drill)
 #
 # Env:    DELIVER_DRILL_SRC_ROOT   override the source repo root (default: the
 #                                  repo this script lives in)
@@ -92,6 +97,10 @@
 # THE RULE IS PER FILE CLASS NOW, AND THE RUNNER IS THE EXCEPTION. Read the
 # next section before you read this one as universal.
 #
+# A PROMPT CAN BE REPLACED, BUT ONLY WHEN THE RUN ASKS FOR IT BY NAME.
+# --refresh-prompts is the one route, it is off by default, and the section
+# after next is the whole argument for it.
+#
 # Nothing is removed, at any point, under any flag. This script has no delete
 # path at all.
 #
@@ -104,7 +113,8 @@
 # were two kinds of file. Frank ruled the split the same day, which is what
 # bead tla-emzu was blocked on.
 #
-#   PROMPT.md      NEVER overwritten. It is the learner's page. He works in
+#   PROMPT.md      NEVER overwritten unless the run asks for it with
+#                  --refresh-prompts. It is the learner's page. He works in
 #                  the directory it sits in, and by the time a second delivery
 #                  runs a prompt may carry his notes.
 #
@@ -134,6 +144,48 @@
 # A source tree with no drill.sh is NOT an error. The prompts still land and
 # the run reports that no runner was found. A corpus that predates the runner
 # is a tree that was fine yesterday, not a defect today.
+#
+# ---------------------------------------------------------------------------
+# WHY --refresh-prompts EXISTS, AND WHY IT IS A FLAG
+#
+# Never-overwrite kept the practice tree safe, it also kept it stale, and until
+# 2026-10-14 nobody had measured by how much. Against the repo that day: 15 of
+# 64 delivered prompts differed, 49 were byte for byte.
+#
+# Most of the 15 were a spelling normalization. Two were content fixes, and
+# they are why the flag exists:
+#
+#   sequences/07-pneumatic-tube          the delivered copy still carried a
+#                                        sentence that gave away the item's
+#                                        whole lesson, cut that morning and
+#                                        replaced by a published state count.
+#   modules/07-the-hoist-and-the-crates  the delivered copy still defined
+#                                        RECURSIVE in question 1, with only
+#                                        the keyword removed.
+#
+# So the tree served the telegraphed version of two drills whose telegraphs had
+# been cut, and under never-overwrite it always would. A drill that tells you
+# its own answer is not a blank page.
+#
+# WHY IT IS A FLAG RATHER THAN THE NEW DEFAULT. The never-overwrite rule is
+# there to protect work that has no git behind it, and a prompt is the one
+# delivered file he can annotate. The asymmetry the manifest section argues
+# about leaks applies here in the same direction: a stale prompt costs one more
+# run once somebody says so, and an annotation written over does not come back.
+# So the default stays never-overwrite, and a refresh has to be asked for by
+# name on the command line. I would not have taken this as a change in the
+# default even with the 15 in hand.
+#
+# IT REPLACES ONLY A FILE THAT DIFFERS, which cmp -s decides. A file that is
+# byte for byte is not opened at all, so its mtime does not move either. That
+# is about the report rather than about the copying: a run that replaces 15 of
+# 64 should say 15, and a run that rewrote all 64 to the same bytes would say
+# nothing worth reading.
+#
+# WHAT THE FLAG DOES NOT CHANGE. ANSWER.md, META.md and verify/ are withheld
+# under it exactly as they are without it. PROGRESS.tsv and LAST-SERVED are
+# still never written. There is still no delete path. --check composes with it
+# and reports what it would replace without writing anything.
 
 set -uo pipefail
 
@@ -142,10 +194,12 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<USAGE >&2
-Usage: $0 [--check] [dest-root]
+Usage: $0 [--check] [--refresh-prompts] [dest-root]
 
-  --check    print what would be delivered, and write nothing
-  dest-root  where to deliver into (default: \$HOME/tla-practice/drill)
+  --check            print what would be delivered, and write nothing
+  --refresh-prompts  replace a delivered PROMPT.md that differs from the
+                     source. Off by default, and nothing else is overwritten.
+  dest-root          where to deliver into (default: \$HOME/tla-practice/drill)
 
 Env:
   DELIVER_DRILL_SRC_ROOT   override the source repo root (default: $REPO_ROOT)
@@ -170,6 +224,7 @@ RUNNER_DEST_NAME="drill"
 LEARNER_RECORD_NAMES=("PROGRESS.tsv" "LAST-SERVED")
 
 CHECK_ONLY=0
+REFRESH_PROMPTS=0
 DEST_ROOT=""
 POSITIONAL=0
 
@@ -189,6 +244,10 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --check)
       CHECK_ONLY=1
+      shift
+      ;;
+    --refresh-prompts)
+      REFRESH_PROMPTS=1
       shift
       ;;
     --)
@@ -319,14 +378,29 @@ done
 
 if [ "$CHECK_ONLY" -eq 1 ]; then
   to_land=0
+  to_replace=0
   already=0
+  # Under --refresh-prompts this reads the destination's prompts to compare
+  # them. Reading is all it does: every arm below prints and counts, and the
+  # only two writing calls in this script sit past the exit at the bottom of
+  # this block.
   for rel in "${deliver_items[@]}"; do
-    if [ -e "$DEST_ROOT/$rel/$PROMPT_NAME" ]; then
-      echo "would skip (exists): $DEST_ROOT/$rel/$PROMPT_NAME"
+    dest_prompt="$DEST_ROOT/$rel/$PROMPT_NAME"
+    if [ ! -e "$dest_prompt" ]; then
+      echo "would deliver: $dest_prompt"
+      to_land=$((to_land + 1))
+    elif [ "$REFRESH_PROMPTS" -eq 0 ]; then
+      echo "would skip (exists): $dest_prompt"
+      already=$((already + 1))
+    elif [ ! -f "$dest_prompt" ]; then
+      echo "would leave alone (exists and is not a regular file): $dest_prompt"
+      already=$((already + 1))
+    elif cmp -s -- "$SRC_DRILL/$rel/$PROMPT_NAME" "$dest_prompt"; then
+      echo "would leave alone (identical to the source): $dest_prompt"
       already=$((already + 1))
     else
-      echo "would deliver: $DEST_ROOT/$rel/$PROMPT_NAME"
-      to_land=$((to_land + 1))
+      echo "would replace (the source differs): $dest_prompt"
+      to_replace=$((to_replace + 1))
     fi
   done
   # Says whether it would overwrite, because that is the one thing about the
@@ -338,7 +412,14 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
       echo "would deliver runner: $RUNNER_DEST"
     fi
   fi
-  echo "$to_land prompt(s) to land, $already already there, ${#withheld_paths[@]} path(s) withheld"
+  # Two counts lines, because the refresh has a third outcome and a plain run
+  # does not. A plain run that printed "0 replaced" would read as a run that
+  # considered replacing something, which is the one thing it cannot do.
+  if [ "$REFRESH_PROMPTS" -eq 1 ]; then
+    echo "$to_land prompt(s) to land, $to_replace to replace, $already left alone, ${#withheld_paths[@]} path(s) withheld"
+  else
+    echo "$to_land prompt(s) to land, $already already there, ${#withheld_paths[@]} path(s) withheld"
+  fi
   [ "${#missing_prompt[@]}" -eq 0 ] || exit 1
   exit 0
 fi
@@ -348,9 +429,13 @@ fi
 #
 # deliver_file <src> <dest>
 #
-# The one place the never-overwrite rule lives. Every file goes through here
-# one at a time, so an item the learner has already started is left alone
-# without holding back the items beside it.
+# The default path, and the one place the never-overwrite rule lives. Every
+# file goes through here one at a time, so an item the learner has already
+# started is left alone without holding back the items beside it.
+#
+# Returns 0 for a file that landed and 2 for one left alone. The caller counts
+# off those two codes, so a third outcome needs a third code rather than a
+# flag on either function.
 # ---------------------------------------------------------------------------
 
 deliver_file() {
@@ -361,6 +446,45 @@ deliver_file() {
   fi
   mkdir -p -- "$(dirname -- "$dest")" || return 1
   cp -- "$src" "$dest" || return 1
+}
+
+# refresh_prompt <src> <dest>
+#
+# What --refresh-prompts runs instead of deliver_file(), and the second of the
+# two overwriting paths in this script. Read "WHY --refresh-prompts EXISTS"
+# above for why it is a flag.
+#
+# It is a separate function for the same reason install_runner() is: a flag on
+# the function holding the never-overwrite rule is one typo away from
+# clobbering a prompt on an ordinary run, and two functions cannot be confused
+# that way. deliver_file() above still refuses, unconditionally, and nothing
+# below reaches it.
+#
+# Returns 0 for a file that landed, 2 for one left alone, 3 for one replaced.
+#
+# The cmp -s is what makes the report worth reading, and it is also the reason
+# an untouched file's mtime does not move. A destination entry that exists and
+# is not a regular file is left alone rather than copied onto: cp onto a
+# directory writes inside it, which would put a prompt somewhere nobody asked
+# for and report success.
+refresh_prompt() {
+  local src="$1" dest="$2"
+  if [ ! -e "$dest" ]; then
+    mkdir -p -- "$(dirname -- "$dest")" || return 1
+    cp -- "$src" "$dest" || return 1
+    return 0
+  fi
+  if [ ! -f "$dest" ]; then
+    echo "left alone (exists and is not a regular file): $dest"
+    return 2
+  fi
+  if cmp -s -- "$src" "$dest"; then
+    echo "left alone (identical to the source): $dest"
+    return 2
+  fi
+  cp -- "$src" "$dest" || return 1
+  echo "replaced (the source differs): $dest"
+  return 3
 }
 
 # install_runner <src> <dest>
@@ -392,12 +516,23 @@ install_runner() {
 rc=0
 landed=0
 skipped=0
+replaced=0
 
+# The outcome is captured into a variable rather than read off $? after the
+# fi, so which function ran and what it returned are two separate things a
+# reader can see.
 for rel in "${deliver_items[@]}"; do
-  deliver_file "$SRC_DRILL/$rel/$PROMPT_NAME" "$DEST_ROOT/$rel/$PROMPT_NAME"
-  case "$?" in
+  if [ "$REFRESH_PROMPTS" -eq 1 ]; then
+    refresh_prompt "$SRC_DRILL/$rel/$PROMPT_NAME" "$DEST_ROOT/$rel/$PROMPT_NAME"
+    outcome=$?
+  else
+    deliver_file "$SRC_DRILL/$rel/$PROMPT_NAME" "$DEST_ROOT/$rel/$PROMPT_NAME"
+    outcome=$?
+  fi
+  case "$outcome" in
     0) landed=$((landed + 1)) ;;
     2) skipped=$((skipped + 1)) ;;
+    3) replaced=$((replaced + 1)) ;;
     *)
       echo "$0: failed to deliver: $DEST_ROOT/$rel/$PROMPT_NAME" >&2
       rc=1
@@ -412,7 +547,11 @@ if [ "$HAVE_RUNNER" -eq 1 ]; then
   fi
 fi
 
-echo "$landed prompt(s) landed, $skipped skipped, ${#withheld_paths[@]} path(s) withheld"
+if [ "$REFRESH_PROMPTS" -eq 1 ]; then
+  echo "$landed prompt(s) landed, $replaced replaced, $skipped left alone, ${#withheld_paths[@]} path(s) withheld"
+else
+  echo "$landed prompt(s) landed, $skipped skipped, ${#withheld_paths[@]} path(s) withheld"
+fi
 
 [ "${#missing_prompt[@]}" -eq 0 ] || rc=1
 
