@@ -81,7 +81,7 @@
 #   fast   2.6 s  harness/test-corpus-manifest.sh
 #   fast   4.8 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
-#   slow   4.1 s  harness/test-reading.sh                 (added, bead tla-ocpw)
+#   slow  12.9 s  harness/test-reading.sh               (re-based, bead tla-8q8n)
 #   slow  10.7 s  harness/test-indeterminate.sh        (re-based, bead tla-ocpw)
 #   slow   9.0 s  chapter/snippets/run-all.sh
 #   slow   9.8 s  scripts/test-verify-puzzle.sh                        (v1)
@@ -95,8 +95,8 @@
 #   ----  ------
 #         30.1 s  fast tier, 19 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19 — see below)
-#        410.1 s  slow tier, 11 suites
-#        440.2 s  whole registry
+#        418.9 s  slow tier, 11 suites
+#        448.9 s  whole registry
 #
 # The two slow rows that moved are bead tla-ocpw's, 2026-10-13: the reading
 # corpus gate added at 4.1 s and the indeterminate gate re-based 7.4 -> 10.7.
@@ -170,14 +170,20 @@
 # JVM is the wrong test. What HAS moved is the gap either side of it. This
 # header used to read "the cut is at the 4.2x gap between 2.4 s and 10.2 s",
 # then "the 1.5x gap between 4.8 s and 7.4 s", and on 2026-10-13 bead
-# tla-ocpw took it past zero: the reading corpus gate is SLOW at 4.1 s, which
-# is cheaper than spike measurement, the most expensive FAST row at 4.8 s.
+# tla-ocpw took it past zero: the reading corpus gate was SLOW at 4.1 s, which
+# was cheaper than spike measurement, the most expensive FAST row at 4.8 s.
 #
-# Both numbers are the rule working. Spike measurement runs three real TLC
-# jobs against 3-by-3 fixtures and stays fast deliberately. The reading gate
-# model-checks six items and is slow for that reason and no other. A tier
-# split on the model checker was always free to invert on a wall clock, and
-# now it has, so nobody should read the tier column as a cost ordering.
+# THE INVERSION HAS SINCE CLOSED, and saying so is the point rather than an
+# erratum. That gate was 4.1 s over 6 items and is 12.9 s over 25, so it is
+# now dearer than every fast row and the two numbers no longer cross. Bead
+# tla-8q8n re-based it on 2026-10-14.
+#
+# The argument the inversion illustrated does not rest on it. Spike
+# measurement runs three real TLC jobs against 3-by-3 fixtures and stays fast
+# deliberately. The reading gate model-checks every item of a growing corpus
+# and is slow for that reason and no other. A tier split on the model checker
+# is free to invert on a wall clock whether or not it currently does, so
+# nobody should read the tier column as a cost ordering.
 #
 # That finishes off a stated justification further down this header: "A 3x
 # threshold therefore catches every possible tier crossing by construction."
@@ -632,7 +638,7 @@ SUITES=(
   #
   # Its cost tracks the item count: 6 items today, one TLC run each in part 3
   # plus the two in part 1c.
-  "slow|4.1|reading corpus gate|./harness/test-reading.sh"
+  "slow|12.9|reading corpus gate|./harness/test-reading.sh"
   # Measured 2026-10-12 on the green tree: 10.231 / 9.748 / 10.266 s over
   # three back-to-back serial runs, so 10.3 is the slowest rounded up.
   # Jitter 5.3%.
