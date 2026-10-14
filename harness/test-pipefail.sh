@@ -366,13 +366,21 @@ scan_for() {
   fi
 }
 
+# EVERY PATTERN OPENS WITH (^|[^|]), AND THAT PREFIX IS THE WHOLE POINT OF IT.
+# The second bar of a `||` is still a `|`, so a pattern anchored on a bare `\|`
+# reads `a || grep -q b` as a pipe into grep when there is no pipe in the line
+# at all. The prefix demands that the bar is either the first character of the
+# line or follows something that is not a bar. A real pipe always qualifies,
+# since it follows the producer. See the `||` control in part 3, which fails
+# without this.
+#
 # `grep -q` / `grep -m N` behind a pipe: exits on first match, SIGPIPEs the
 # producer. Use `grep -q ... <<<"$captured"`.
-PAT_GREP_Q='\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
-PAT_GREP_M='\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*m[[:space:]]*[0-9]'
+PAT_GREP_Q='(^|[^|])\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
+PAT_GREP_M='(^|[^|])\|[[:space:]]*grep([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*m[[:space:]]*[0-9]'
 # `head` behind a pipe: exits after N lines, SIGPIPEs the producer. Use
 # `head -n N <<<"$captured"`.
-PAT_HEAD='\|[[:space:]]*head([[:space:]]|$)'
+PAT_HEAD='(^|[^|])\|[[:space:]]*head([[:space:]]|$)'
 
 scan_for "no '| grep -q' anywhere under ${SCAN_ROOTS[*]}" "$PAT_GREP_Q"
 scan_for "no '| grep -m' anywhere under ${SCAN_ROOTS[*]}" "$PAT_GREP_M"
@@ -453,6 +461,34 @@ if [ "$commented_clean" -eq 1 ]; then
   ok "control: banned text inside whole-line comments does NOT trip the ban"
 else
   nope "control: a whole-line comment tripped the ban — the comment strip is broken and the gate now cries wolf on its own documentation"
+fi
+
+# The third direction, and it is the one the patterns got wrong. `a || grep -q
+# b` has no pipe in it. The second bar of a `||` is still a `|`, so a pattern
+# anchored on a bare `\|` matches it and reports a logical-or as a reintroduced
+# pipe. Found by the tla-n7dv author, whose first draft carried
+# `grep -qF A f || grep -qF B f` and was flagged for an idiom it does not use.
+# The direction is a false FAIL rather than a false PASS, so it cost an author a
+# rewrite rather than letting a 141 through. A gate that cries wolf still gets
+# switched off, which is the same argument the control above makes.
+ORED="$CONTROL_DIR/ored.sh"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'grep -qF A f || grep -qE MATCHME g\n'
+  printf 'grep -qF A f || grep -m1 MATCHME g\n'
+  printf 'grep -qF A f || head -n 3 g\n'
+  printf 'true\n'
+} >"$ORED"
+
+ored_clean=1
+for pat in "$PAT_GREP_Q" "$PAT_GREP_M" "$PAT_HEAD"; do
+  collect_offenders "$pat" "$ORED"
+  [ -n "$OFFENDERS" ] && ored_clean=0
+done
+if [ "$ored_clean" -eq 1 ]; then
+  ok "control: a '||' is NOT read as a pipe"
+else
+  nope "control: '||' tripped the ban — the second bar of a logical-or matches a pattern anchored on a bare pipe:$OFFENDERS"
 fi
 
 # --- workflow YAML ---------------------------------------------------------
