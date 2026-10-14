@@ -69,6 +69,7 @@
 #   fast   0.7 s  harness/test-deliver-drill.sh           (added, bead tla-s5iz)
 #   fast   0.9 s  harness/test-deliver-problems.sh
 #   fast   1.0 s  harness/test-build-docs-exercises.sh
+#   fast   1.0 s  harness/test-deliver-completion.sh     (added, bead tla-z3ks)
 #   fast   1.1 s  harness/test-printed-commands.sh
 #   fast   1.2 s  harness/test-drill.sh --static
 #   fast   1.3 s  harness/test-vector.sh
@@ -90,13 +91,17 @@
 #   slow  60.0 s  harness/test-vacuity.sh
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
-#         24.3 s  fast tier, 17 suites   (measured --fast total: 23.2 s at 16)
+#         25.3 s  fast tier, 18 suites   (measured --fast total: 26.9 s at 18)
 #        332.1 s  slow tier, 10 suites
-#        356.4 s  whole registry
+#        357.4 s  whole registry
 #
 # The two slow rows that moved are bead tla-ocpw's, 2026-10-13: the reading
 # corpus gate added at 4.1 s and the indeterminate gate re-based 7.4 -> 10.7.
-# The fast tier gained the drill delivery row the same day, bead tla-s5iz.
+# The fast tier gained the drill delivery row the same day, bead tla-s5iz, and
+# the completion delivery row at 1.0 s, bead tla-z3ks. That row's author
+# measured it standalone six times, 0.929 to 0.959 s, and in-suite at 0.8 to
+# 0.9 s. The red-tree readings sat BELOW the green ones, which is what rules
+# out a suite that stopped early.
 # Every other row is the 2026-10-13 tla-0eis.3 pass unchanged.
 #
 # The parenthesised --fast reading is the one from before that row landed, and
