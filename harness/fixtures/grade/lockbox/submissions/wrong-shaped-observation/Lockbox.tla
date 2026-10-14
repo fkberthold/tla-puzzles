@@ -21,17 +21,17 @@
 (***************************************************************************)
 EXTENDS Naturals
 
-VARIABLE colour
+VARIABLE color
 
-Init == colour = "red"
+Init == color = "red"
 
-Next == colour' \in {"red", "green"}
+Next == color' \in {"red", "green"}
 
-Spec == Init /\ [][Next]_colour
+Spec == Init /\ [][Next]_color
 
 (***************************************************************************)
 (* `hue`, not `level`. Everything the reference asks about is missing.      *)
 (***************************************************************************)
-Observe == [hue |-> colour]
+Observe == [hue |-> color]
 
 =============================================================================
