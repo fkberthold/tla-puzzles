@@ -6,6 +6,7 @@ she likes, and the vault clerk takes one out at his end whenever one has
 arrived. Capsules come out in the order they went in.
 
 Write the specification from an empty file. State the rule in the last
-sentence so that TLC can check it. You'll find the tube on its own doesn't
-hold enough to say it, and you'll have to add what it needs. Say how you
-kept the model finite.
+sentence so that TLC can check it. Keep to the two colours and stop the
+model once four capsules have gone in. Say how you held it there.
+
+Check it. A correct model finds 129 distinct states.
