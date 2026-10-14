@@ -8,7 +8,7 @@
 #     tag <TAB> Rows <TAB> cfg body
 #
 # The tag names the run. Rows is the TLC value bound to CONSTANT Rows, which
-# is which behaviours from the prompt the run explores, or "-" for a module
+# is which behaviors from the prompt the run explores, or "-" for a module
 # with no Rows constant. The body is one or more cfg lines joined by ";". A
 # body that names its own SPECIFICATION replaces the default
 # "SPECIFICATION Spec" line. A body line "\* MODULE: Name" picks which module

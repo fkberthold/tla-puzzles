@@ -56,7 +56,7 @@ re-run.
 
 ## Elimination table
 
-| wrong neighbour | row | rc | why |
+| wrong neighbor | row | rc | why |
 |---|---|---|---|
 | `<>Committed` | 2 | 13 | a transaction that stays pending is allowed, and this rejects it |
 | `Pending ~> Committed` | 3 | 13 | an abort is a legal outcome |

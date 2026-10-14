@@ -68,7 +68,7 @@ AnswerPropFixed == [](~Halted => ENABLED NextFixed)
 \* The guard, written out by hand. Equal to the answer on this system.
 Inlined == ~Halted => (stage = "testing" => (artifact = "present" \/ retries < MaxRetries))
 
-\* Neighbours.
+\* Neighbors.
 N1 == []<>Halted
 N2 == <>Halted
 N4 == ~Halted => ENABLED Next

@@ -98,9 +98,9 @@ element equal to the minimum fits every other row, and it fits the rule
 too. A filter removes every match, and a board can carry two patients at
 the same severity.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | the queue, front first | `TriageFifo` | the rule, on the first board holding two patients | rc 13 |
 | the queue, against the table | `TriageFifoAdmits` | row 4 | rc 13 |

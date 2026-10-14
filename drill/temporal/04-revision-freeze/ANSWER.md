@@ -39,7 +39,7 @@ or a stuttering step, and both are allowed. `rev = 0 /\ ~published` for
 ## Measured
 
 The rows are checked in two halves, because the step rows start mid-history
-and no behaviour of `Spec` begins at revision 3.
+and no behavior of `Spec` begins at revision 3.
 
 | run | checks | rows | rc |
 |---|---|---|---|
@@ -57,7 +57,7 @@ goes through the implied-action channel. Same table, same reason.
 
 ## Elimination table
 
-| wrong neighbour | row | rc | why |
+| wrong neighbor | row | rc | why |
 |---|---|---|---|
 | `Edit` without `UNCHANGED published` | S3 | 0 | a step may then change both at once |
 | `Edit` without the `~published` guard | S5 | 0 | edits after publishing |

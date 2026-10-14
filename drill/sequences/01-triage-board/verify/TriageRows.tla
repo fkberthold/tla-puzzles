@@ -1,5 +1,5 @@
 ---- MODULE TriageRows ----
-\* The behaviour table from PROMPT.md as data. One pair per step: the
+\* The behavior table from PROMPT.md as data. One pair per step: the
 \* (board, treated) state before and the state after. No cfg, so the drill
 \* gate reads this as a helper and the *Admits modules extend it.
 EXTENDS Sequences

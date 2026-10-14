@@ -94,7 +94,7 @@ the size it was written for, and a passing run is where it hides.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | the sum written out for three troughs | the four-trough run. rc 12, measured |
 | operator recursion with no declaration | rc 150, measured |

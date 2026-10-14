@@ -1,5 +1,5 @@
 ---- MODULE DispatchFirstOnly ----
-\* Wrong neighbour: closing strikes the first call from the district and
+\* Wrong neighbor: closing strikes the first call from the district and
 \* leaves any others. A second call from the same district survives the
 \* closure and the rule fails.
 EXTENDS Naturals, Sequences

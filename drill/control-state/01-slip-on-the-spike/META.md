@@ -1,7 +1,7 @@
 # 01 slip-on-the-spike
 
 - family: control-state
-- shape: prose situation, a four-row behaviour table with one foreclosing row, a stated property, and a follow-up question about a change to the workplace
+- shape: prose situation, a four-row behavior table with one foreclosing row, a stated property, and a follow-up question about a change to the workplace
 - time: 10 minutes
 - shows TLA+ in the prompt: no
 - two encodings measured: yes, two-step (rc 12, 9 states) and atomic (rc 0, 3 states)

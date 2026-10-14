@@ -1,5 +1,5 @@
 ---- MODULE DeskSeqStaysOut ----
-\* Wrong neighbour in the list encoding: Return puts the book on the desk
+\* Wrong neighbor in the list encoding: Return puts the book on the desk
 \* and forgets to take it off the loan set. The rule fails on the first
 \* return, and if it were not checked, the same book would be returned
 \* twice and the desk would hold it twice.

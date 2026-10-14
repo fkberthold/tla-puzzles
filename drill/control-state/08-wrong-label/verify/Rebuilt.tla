@@ -1,5 +1,5 @@
 ---------------------------- MODULE Rebuilt ---------------------------
-(* Neighbour B: Pay rebuilds pc for every customer instead of updating   *)
+(* Neighbor B: Pay rebuilds pc for every customer instead of updating    *)
 (* the payer's entry.                                                    *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,

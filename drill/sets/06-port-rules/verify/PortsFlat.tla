@@ -1,5 +1,5 @@
 ---- MODULE PortsFlat ----
-\* Wrong neighbour. Open is the set of intervals rather than the set of
+\* Wrong neighbor. Open is the set of intervals rather than the set of
 \* ports, because the flattening was left out. Both rules then compare a
 \* number against a set of sets, and what TLC does with that is measured
 \* in the answer rather than guessed.

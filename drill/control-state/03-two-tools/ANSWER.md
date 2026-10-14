@@ -150,7 +150,7 @@ three:
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | `CHECK_DEADLOCK FALSE` offered as the only treatment | the new hire: rc 0 on a real deadlock, measured in `RookieNoDL.cfg`. |
 | `Terminating` enabled whenever *anyone* is `Done` | not killed by the agreed order. On the new hire it still reports rc 11, because nobody is `Done` in the deadlocked state (INFERRED, not run). It is wrong for the other reason: a day on which `a` is done and `b` is stuck forever would be accepted. |

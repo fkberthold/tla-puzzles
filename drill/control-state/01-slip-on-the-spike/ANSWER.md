@@ -132,7 +132,7 @@ the expensive part. The extra label is the bug.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | atomic encoding offered as the model of the aisle as described | row 3 of the prompt's table: both have seen it, neither has reached the shelf. Unreachable in the atomic model (3 states, none with two pickers past Idle). |
 | two-step encoding where `Glance` has no guard on the spike | not killed by the table. The prose kills it: a picker who sees the spike empty "does nothing with it". Admits a picker walking to the shelf for nothing. Verdict is still rc 12, so TLC will not tell him. |
@@ -141,7 +141,7 @@ the expensive part. The extra label is the bug.
 
 ## why-not-in-prompt
 
-The prompt shows no TLA+. What it does show is a behaviour table whose
+The prompt shows no TLA+. What it does show is a behavior table whose
 third row names "seen" and "reached the shelf" as separable, which is most
 of the hint that there are two steps with a control point between them.
 That row is also the only thing that stops the atomic encoding being an

@@ -108,7 +108,7 @@ with no quota at all.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | free check dropped | rule 1, two grants of one resource | 12 |
 | quota check dropped | rule 2, three grants to one client | 12 |

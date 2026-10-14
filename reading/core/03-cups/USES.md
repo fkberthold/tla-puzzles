@@ -8,7 +8,7 @@ rc: 0
 ## What the properties rest on
 
 Both parity invariants rest on the gap being two rather than one.
-Turning over neighbours instead gives rc 12 against `OddPlaces`, and
+Turning over neighbors instead gives rc 12 against `OddPlaces`, and
 rc 12 against `NoMixedPair`, measured as two separate runs.
 
 `EvenAmong` is one law and the .cfg names its two instances separately,

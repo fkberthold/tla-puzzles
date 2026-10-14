@@ -88,7 +88,7 @@ are the same model with the state tuple drawn differently.
 Which to write by hand: the first. The union-domain `pc` exists because
 the translator has one `pc` and must put every process in it. Writing raw
 TLA+ there is no such constraint, and `crane = Parked` reads better than
-`pc[TheCrane] = Parked`. The union shape is worth recognising, since it is
+`pc[TheCrane] = Parked`. The union shape is worth recognizing, since it is
 what every translated multi-process spec he will read looks like, and
 worth not reproducing.
 
@@ -100,7 +100,7 @@ worth not reproducing.
 | one `pc` over `ProcSet` | `pc` (function over riggers and crane) | 12 | 0 |
 | one site-wide phase | `phase` (scalar) | 3 | 0, and cannot state the rule |
 
-The third row is `verify/SitePhase.tla`, the lazy neighbour measured for
+The third row is `verify/SitePhase.tla`, the lazy neighbor measured for
 completeness: `Rigging -> Rigged -> Lifting -> Rigging`. It passes TLC
 because its config has no invariant, and it has no invariant because the
 rule cannot be written: "a rigger is at the load" is not a state the model
@@ -139,7 +139,7 @@ state, which is the thing a per-process label is for.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | one site-wide phase (`SitePhase.tla`) | row 1 of the table, and the rule cannot be written at all. |
 | one label per rigger, no crane state, `Lift` as a pure guard check | row 3: "the crane is lifting while both riggers stand clear" is a state, and `Hook` must be disabled in it. Without a crane label there is nothing to disable it on. |

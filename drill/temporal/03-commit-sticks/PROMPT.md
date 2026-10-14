@@ -2,7 +2,7 @@
 
 A transaction has a status: pending, committed, or aborted.
 
-Below are five behaviours of the status. "Then forever" means the last
+Below are five behaviors of the status. "Then forever" means the last
 status repeats without end.
 
 | # | status, over time | verdict |
@@ -13,6 +13,6 @@ status repeats without end.
 | 4 | pending, committed, pending, then pending forever | forbidden |
 | 5 | pending, committed, aborted, then aborted forever | forbidden |
 
-Write the one temporal property that admits every allowed behaviour and
+Write the one temporal property that admits every allowed behavior and
 rejects every forbidden one. Then answer in one sentence: can a finite
-prefix of a behaviour refute your property?
+prefix of a behavior refute your property?

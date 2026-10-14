@@ -1,7 +1,7 @@
 # META: functions-records/02-charging-bays
 
 - family: functions-records
-- shape: prose, two rules, a four-row behaviour table, a checkable count, and a closing question about which rule came free
+- shape: prose, two rules, a four-row behavior table, a checkable count, and a closing question about which rule came free
 - time: 10 min
 - lesson: three layouts of the same state reach the same 37 states, and the layout decides which rule you owe
 - three encodings measured: yes, bay's side as two functions, bay's side as a function to records, van's side, all rc 0 at 37, plus both sides kept at once, also 37

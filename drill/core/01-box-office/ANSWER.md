@@ -120,9 +120,9 @@ The inline form ignores the house's request for two rules, and TLC can't tell.
 A reader who writes it has sidestepped the trap rather than learned it, which is
 fine for the check and not for the drill.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | `UNCHANGED` inside each half | 1 state. Deadlock with the check on, a clean exit with it off. |
 | a half placed in `Next` by itself | rc 75, "not completely specified", naming the variable |
@@ -140,5 +140,5 @@ The honest caveat: a reader who has been bitten by this before will read "two
 rules, one step" and know to leave the halves partial. That reader doesn't need
 this item. The expected state count is in the prompt on purpose. It's the
 foreclosing row, and under a channel with deadlock checking off it's the only
-row. Without it, "Deadlock reached" on one state reads like a modelling quirk
+row. Without it, "Deadlock reached" on one state reads like a modeling quirk
 rather than a wrong spec.

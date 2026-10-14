@@ -14,12 +14,12 @@ attempts and nothing in flight, sees the counter at 4, and drops it. So
 that state has no successor in the graph TLC checks. It's a dead end
 that the real system doesn't have.
 
-For liveness, TLC treats a dead end as a state the behaviour stutters in
+For liveness, TLC treats a dead end as a state the behavior stutters in
 forever. Whether that stutter is a counterexample depends on the
 fairness conjuncts. `Send` is enabled in that state (TLC evaluates
 `ENABLED` on the spec, not on the cut graph), and the spec has
-`WF_vars(Send)`, so a behaviour that sits there forever violates the
-sender's fairness. It isn't a behaviour of the spec, and TLC doesn't
+`WF_vars(Send)`, so a behavior that sits there forever violates the
+sender's fairness. It isn't a behavior of the spec, and TLC doesn't
 count it. No other dead end exists, so rc 0 at 10 states.
 
 I'd ship it, and I'd say why. The verdict is right for the uncut system
@@ -42,7 +42,7 @@ and it needs checking by hand every time.
 
 Real. `SpecNoSenderFairness` drops `WF_vars(Send)`, and the
 counterexample is the initial state followed by stuttering: the sender
-never sends. That's a behaviour of the uncut system too. TLC found the
+never sends. That's a behavior of the uncut system too. TLC found the
 same one on the uncut run, because it checks liveness on the graph so
 far at intervals: `UnboundedNoSenderFairness.cfg` exits 13 after about
 4 s with the identical trace. The state count at that point was
@@ -54,7 +54,7 @@ this violation. It made it affordable.
 
 Real for the system it checks. `BoundedSpec` has `BoundedSend == Send /\
 attempts < MaxAttempts`, so after three drops the sender stops, nothing
-is enabled, and the behaviour stutters with `acked = FALSE`. A sender
+is enabled, and the behavior stutters with `acked = FALSE`. A sender
 that gives up can fail to deliver. That's the system now, so the
 requirement has to say so:
 

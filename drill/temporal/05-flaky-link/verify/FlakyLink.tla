@@ -29,7 +29,7 @@ Spec == Init /\ [][Next]_vars
 \* The answer.
 SpecSF == Spec /\ SF_vars(Deliver)
 
-\* Neighbours.
+\* Neighbors.
 SpecWF         == Spec /\ WF_vars(Deliver)
 SpecWFNext     == Spec /\ WF_vars(Next)
 SpecSFNext     == Spec /\ SF_vars(Next)
@@ -37,7 +37,7 @@ SpecWFBoth     == Spec /\ WF_vars(LinkUp) /\ WF_vars(Deliver)
 SpecSFLinkFair == Spec /\ SF_vars(Deliver) /\ WF_vars(LinkUp)
 
 \* Unconditional delivery. No conjunct on Deliver alone buys this, because a
-\* link that stays down forever is a behaviour the prompt allows.
+\* link that stays down forever is a behavior the prompt allows.
 Delivered == (msg = "pending") ~> (msg = "delivered")
 
 \* What strong fairness on Deliver buys: delivery whenever the link keeps

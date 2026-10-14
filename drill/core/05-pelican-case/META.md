@@ -1,6 +1,6 @@
 # META: core/05-pelican-case
 
-- shape: behaviour table, the cycle with its dwell times
+- shape: behavior table, the cycle with its dwell times
 - time: 10 min
 - lesson: a phase successor and a dwell table, a name for the next phase, a Boolean reset on the primed side
 - shows TLA+ in the prompt: no

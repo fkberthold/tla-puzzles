@@ -99,9 +99,9 @@ The first and third of those are measured below. The one-per-step reading
 is the one I'd expect most, since `Head` and `Tail` are the operators a
 reader has to hand.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | the rest of the log sliced from `k`, keeping entry k | `DeckLogOffByOne` | the rule, on the first archive | rc 12 |
 | the same, against the table | `DeckLogOffByOneAdmits` | row 4 | rc 13 |

@@ -10,12 +10,12 @@ v1-r3	{3}	PROPERTY V1
 v2-allowed	{1,4,5}	PROPERTY V2
 v2-r2	{2}	PROPERTY V2
 v2-r3	{3}	PROPERTY V2
-# Each neighbour on the row that kills it.
+# Each neighbor on the row that kills it.
 n1-r2	{2}	PROPERTY N1
 n1b-r2	{2}	PROPERTY N1b
 n2-r5	{5}	PROPERTY N2
 n3-r4	{4}	PROPERTY N3
 n4-r3	{3}	PROPERTY N4
-# Neighbours the tools refuse, in their own module.
+# Neighbors the tools refuse, in their own module.
 n5-r1	{1}	\* MODULE: HeartbeatRefused;PROPERTY N5
 n6-r1	{1}	\* MODULE: HeartbeatRefused;PROPERTY N6

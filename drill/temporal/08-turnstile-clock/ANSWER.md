@@ -40,7 +40,7 @@ boxed action goes through the implied-action channel
 
 ## Elimination table
 
-| wrong neighbour | row | rc | why |
+| wrong neighbor | row | rc | why |
 |---|---|---|---|
 | `[][count' = count + 1]_<<count, clock>>` | S2 | 13 | the tick changes the tuple, so the action must hold, and the count didn't move |
 | `[][count' >= count]_count` | S3 | 0 | monotone is weaker than by-one |

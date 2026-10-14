@@ -71,7 +71,7 @@ Three ways to write the same step, all measured at 19:
 The nested form is what the two-clause form abbreviates. The rebuild is
 longest and says the same thing.
 
-## The neighbours
+## The neighbors
 
 `BallastTwoStep` is the programmer's pump. `Draw(a)` takes a unit into a
 hose variable, `Fill(b)` puts it in. rc 12 on `Conserved` at the second
@@ -109,7 +109,7 @@ integer) was applied as a function."
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | draw on one step, fill on the next | row four, 2, 2, 1. rc 12, measured |
 | no capacity guard on the destination | row three, 5, 1, 0. `TypeOK` would go red. Not measured |

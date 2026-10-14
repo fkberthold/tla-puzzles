@@ -100,9 +100,9 @@ The second misses the brief rather than the check, since the prompt asked for
 one definition. The fourth is the same thing as the answer with two more
 definitions, and if the names help the reader I'd take it.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | `RemoveRow` subtracting the row below | `CansMatchRule` red, six states in |
 | `Total` defined without the `RECURSIVE` line | `Total` isn't in scope inside its own body. Parse error, rc 150 (not measured) |

@@ -9,7 +9,7 @@ answerbox-allowed	{1,2,5}	PROPERTY AnswerBox
 answerbox-r3	{3}	PROPERTY AnswerBox
 answerbox-r4	{4}	PROPERTY AnswerBox
 answerbox-r6	{6}	PROPERTY AnswerBox
-# Each neighbour on the row that kills it.
+# Each neighbor on the row that kills it.
 n1-r4	{4}	PROPERTY N1
 n2-r2	{2}	PROPERTY N2
 n3-r5	{5}	PROPERTY N3

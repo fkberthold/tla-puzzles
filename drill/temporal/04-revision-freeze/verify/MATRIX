@@ -10,7 +10,7 @@ next-s3	{6}	PROPERTY AnswerNext
 next-s4	{7}	PROPERTY AnswerNext
 next-s5	{8}	PROPERTY AnswerNext
 next-s6	{9}	PROPERTY AnswerNext
-# Each neighbour on the row that kills it.
+# Each neighbor on the row that kills it.
 noguard-s5	{8}	PROPERTY NoGuard
 nounchanged-s3	{6}	PROPERTY NoUnchanged
 gt-s6	{9}	PROPERTY Gt

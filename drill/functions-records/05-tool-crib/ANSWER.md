@@ -105,7 +105,7 @@ this item doesn't carry one. I think that's the honest limit of the drill:
 a wrong merge direction is invisible to a state invariant when the guard is
 missing, and the guard is the fix in both cases.
 
-## The neighbours
+## The neighbors
 
 `ToolCribNoLimit` drops the count from `SignOut`. rc 12 on `WithinLimit`,
 34 states.
@@ -128,7 +128,7 @@ parses. rc 150, two errors.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | a set of tools that are out, no holder | the rule can't be written. Every row reads fine |
 | a tool's holder fixed once it's out | row 2 |

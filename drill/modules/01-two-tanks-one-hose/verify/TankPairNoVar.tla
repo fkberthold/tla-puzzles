@@ -1,5 +1,5 @@
 -------------------------- MODULE TankPairNoVar --------------------------
-\* The other wrong neighbour: the constant is substituted, the variable
+\* The other wrong neighbor: the constant is substituted, the variable
 \* is not, and the pair module has no variable called level to fall back on.
 EXTENDS Naturals
 

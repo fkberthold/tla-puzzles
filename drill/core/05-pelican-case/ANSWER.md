@@ -116,9 +116,9 @@ The first two can't fail the missing-arm way, because the last branch catches
 everything. That's the same property seen from the other side: a fifth phase
 goes silently to the last branch.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | a `CASE` with an arm missing | rc 75 at the first evaluation that needs it |
 | `Succ(phase)` written twice instead of `LET` | nothing. Passes. The `LET` is for the reader. |

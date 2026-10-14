@@ -1,5 +1,5 @@
 ---------------------------- MODULE OffByOne -------------------------
-(* The off-by-one neighbour: the count is tested before it is bumped, so  *)
+(* The off-by-one neighbor: the count is tested before it is bumped, so   *)
 (* escalation waits for a fourth red.                                     *)
 EXTENDS Naturals
 CONSTANTS Start, Waiting, Booting, Fixed, Escalated

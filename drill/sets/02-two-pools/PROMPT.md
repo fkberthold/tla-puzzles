@@ -1,6 +1,6 @@
 # Two pools
 
-A leisure centre has two bodies of water, the lanes and the leisure pool. Four
+A leisure center has two bodies of water, the lanes and the leisure pool. Four
 guards cover them, and one of the four is a trainee who qualified last month.
 
 A guard is at the lanes, at the leisure pool, or on a break. He can move from

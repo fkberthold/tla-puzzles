@@ -1,5 +1,5 @@
 ---- MODULE UndoRefuseFull ----
-\* Wrong neighbour: a fourth edit is refused rather than pushing the
+\* Wrong neighbor: a fourth edit is refused rather than pushing the
 \* oldest out. Sound as a spec, wrong for this editor. Row 4 kills it.
 EXTENDS Naturals, Sequences
 

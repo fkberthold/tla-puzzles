@@ -1,5 +1,5 @@
 ---- MODULE PileWhole ----
-\* Wrong neighbour: every flip turns the whole pile over, whatever k is.
+\* Wrong neighbor: every flip turns the whole pile over, whatever k is.
 \* The invariant holds. Row 1 of the table, a flip of the top two, does
 \* not.
 EXTENDS Naturals, Sequences

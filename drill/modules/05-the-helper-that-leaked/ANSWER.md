@@ -79,8 +79,8 @@ attributed to `Clockface`, a module the conveyor never mentions. That's
 what a leaked import looks like from the outside.
 
 The two marks are the same word in two places. `LOCAL Teeth == 4` keeps
-the definition from travelling. `LOCAL INSTANCE Clockface` keeps the
-whole import from travelling. The helper still sees both. Nothing that
+the definition from traveling. `LOCAL INSTANCE Clockface` keeps the
+whole import from traveling. The helper still sees both. Nothing that
 extends the helper does. `Sequences.tla` in the standard library does the
 second one to `Naturals` for the same reason.
 

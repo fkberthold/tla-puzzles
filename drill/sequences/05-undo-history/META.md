@@ -1,6 +1,6 @@
 # META: sequences/05-undo-history
 
-- shape: behaviour table, eight steps of one list, then a length bound
+- shape: behavior table, eight steps of one list, then a length bound
 - time: 8 min
 - lesson: a bounded history uses both ends of a list, and the module gives you an operator for only one of them
 - shows TLA+ in the prompt: no

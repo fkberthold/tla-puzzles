@@ -2,7 +2,7 @@
 
 Files in `verify/`. `HeaderTank.tla` is the shared tank. `TankPair.tla`
 is the pair. `TankPairAnon.tla` and `TankPairAnonInit.tla` are the two
-anonymous-copy neighbours, and `TankPairNoVar.tla` is the one that
+anonymous-copy neighbors, and `TankPairNoVar.tla` is the one that
 substitutes the capacity and forgets the level.
 
 Every number from `harness/verdict.sh` on TLC2 Version
@@ -176,7 +176,7 @@ State the requirement from the pair instead, as `a <= CapA /\ b <= CapB`.
 Same 12 states, and it reads fine. It also restates the tank's rule in
 the pair, which is the one thing the prompt asked you not to do, and
 nothing in the run says so. I think that's the quiet failure of this
-item, and it's the only one. All three of the wrong neighbours the prompt
+item, and it's the only one. All three of the wrong neighbors the prompt
 asks for are loud.
 
 Name one copy and leave the other anonymous. The named one is reachable
@@ -194,7 +194,7 @@ never worth a second file.
 | `Alone.cfg` | one tank alone, capacity 2 | 0 | 3 | 3 |
 | `Pair.cfg` | the pair, capacities 2 and 3 | 0 | 12 | 6 |
 | `Equal.cfg` | the pair, capacities 2 and 2 | 0 | 9 | 5 |
-| `G01Anon.cfg` | both copies unnamed, the pair writing its own behaviour formula | 150 | | |
+| `G01Anon.cfg` | both copies unnamed, the pair writing its own behavior formula | 150 | | |
 | `G01AnonInit.cfg` | both copies unnamed, the pair writing nothing of its own | 255 | | |
 | `G01NoVar.cfg` | both copies named, the capacity substituted and the level not | 150 | | |
 
@@ -209,7 +209,7 @@ returns.
 | `G01Alone.tla` | rc 0 | 3 | `Alone.cfg`, one tank alone, 3 states |
 | `G01Pair.tla` | rc 0 | 12 | `Pair.cfg`, the answer, 12 states |
 | `G01Equal.tla` | rc 0 | 9 | `Equal.cfg`, equal capacities, 9 states |
-| `G01Anon.tla` | rc 150 | - | the pair's own behaviour formula already defined |
+| `G01Anon.tla` | rc 150 | - | the pair's own behavior formula already defined |
 | `G01AnonInit.tla` | rc 255 | - | one level never constrained, reported as null |
 | `G01NoVar.tla` | rc 150 | - | the level never substituted |
 

@@ -74,9 +74,9 @@ have.
   one.
 - `Capsules` as model values rather than strings. Same count.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | the clerk takes the capsule that went in last | `TubeLifo` | the rule, once two capsules share the tube | rc 12 |
 | the teller puts capsules in at the clerk's end | `TubeSendFront` | the rule, on the second send | rc 12 |

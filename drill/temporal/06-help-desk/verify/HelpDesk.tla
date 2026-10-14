@@ -32,7 +32,7 @@ Spec == Init /\ [][Next]_vars
 \* The answer.
 SpecWFServe == Spec /\ WF_vars(Serve)
 
-\* Neighbours.
+\* Neighbors.
 SpecSFServe == Spec /\ SF_vars(Serve)
 SpecWFNext  == Spec /\ WF_vars(Next)
 

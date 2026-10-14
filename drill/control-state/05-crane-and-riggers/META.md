@@ -1,7 +1,7 @@
 # 05 crane-and-riggers
 
 - family: control-state
-- shape: prose situation with two kinds of process, one rule, a four-row behaviour table with one foreclosing row, and a closing question about how many control variables
+- shape: prose situation with two kinds of process, one rule, a four-row behavior table with one foreclosing row, and a closing question about how many control variables
 - time: 10 minutes
 - shows TLA+ in the prompt: no
 - two encodings measured: yes, a variable per kind (rc 0, 12 states) and one `pc` over the union of process identities (rc 0, 12 states), plus the site-wide phase (3 states, rule inexpressible) and the unguarded lift (rc 12)

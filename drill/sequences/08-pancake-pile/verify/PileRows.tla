@@ -1,5 +1,5 @@
 ---- MODULE PileRows ----
-\* The behaviour table from PROMPT.md as data: the pile before and after
+\* The behavior table from PROMPT.md as data: the pile before and after
 \* each flip, top pancake first. No cfg, so the drill gate reads this as a
 \* helper.
 EXTENDS Sequences

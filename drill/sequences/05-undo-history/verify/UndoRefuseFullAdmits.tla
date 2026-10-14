@@ -1,5 +1,5 @@
 ---- MODULE UndoRefuseFullAdmits ----
-\* The refuse-when-full neighbour against the table.
+\* The refuse-when-full neighbor against the table.
 EXTENDS UndoRefuseFull, UndoRows
 
 TInit == hist = Rows[1][1]

@@ -1,5 +1,5 @@
 ---- MODULE TriageFifo ----
-\* Wrong neighbour: the board as a queue. The doctor takes whoever has
+\* Wrong neighbor: the board as a queue. The doctor takes whoever has
 \* waited longest. Row 4 of the table kills it, and so does the rule.
 EXTENDS Naturals, Sequences
 

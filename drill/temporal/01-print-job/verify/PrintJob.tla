@@ -1,5 +1,5 @@
 ---- MODULE PrintJob ----
-\* Trace spec for drill item 01-print-job. Each row of Table is one behaviour
+\* Trace spec for drill item 01-print-job. Each row of Table is one behavior
 \* from the prompt: a finite list of states and the index the tail loops back
 \* to. loop = Len(s) is "then forever": the last state repeats.
 EXTENDS Naturals, Sequences
@@ -41,7 +41,7 @@ Printed == job = "printed"
 Answer    == Queued ~> Printed
 AnswerBox == [](Queued => <>Printed)
 
-\* The neighbours the elimination table kills.
+\* The neighbors the elimination table kills.
 N1 == <>Printed
 N2 == []<>Printed
 N3 == <>[]Printed

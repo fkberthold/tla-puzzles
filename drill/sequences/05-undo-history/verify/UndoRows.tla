@@ -1,5 +1,5 @@
 ---- MODULE UndoRows ----
-\* The behaviour table from PROMPT.md as data: the history before and
+\* The behavior table from PROMPT.md as data: the history before and
 \* after each step. No cfg, so the drill gate reads this as a helper.
 EXTENDS Sequences
 

@@ -1,5 +1,5 @@
 ------------------------- MODULE SortingLineCrossed -------------------------
-\* The other wrong neighbour: each rule wired to the other chute's variable.
+\* The other wrong neighbor: each rule wired to the other chute's variable.
 \* Every instance is happy with itself. Only a property written from
 \* outside the instances notices.
 EXTENDS Naturals

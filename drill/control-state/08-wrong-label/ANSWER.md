@@ -62,7 +62,7 @@ spec, the labels the trace never shows are the first thing to list.
 
 ## The other mistakes, and their traces
 
-Every neighbour is a one-line change to `CarWash.tla`, measured. The
+Every neighbor is a one-line change to `CarWash.tla`, measured. The
 config is shared, with `OneInTheBay` listed before `PaidFor`, so TLC
 reports the first rule when both fail in the same state.
 
@@ -92,7 +92,7 @@ The translator cannot write this bug. A PlusCal label's successor is the
 next label in the text, and the translator computes it. By hand, every
 `pc' = [pc EXCEPT ![c] = L]` names its successor explicitly, and a
 copy-paste from the entry action into the paying action leaves `Washing`
-where `Paid` should be. Neighbour `Rebuilt` is the other bug the translator
+where `Paid` should be. Neighbor `Rebuilt` is the other bug the translator
 cannot write: the function constructor in place of `EXCEPT`, which
 advances everyone. Both are raw-TLA+-only mistakes, and this item exists
 because the decision to write raw TLA+ makes them his.

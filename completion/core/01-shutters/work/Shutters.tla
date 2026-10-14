@@ -1,6 +1,6 @@
 ---- MODULE Shutters ----
 \* The real shopfront. Five shutters in a row, all shut to start with. One
-\* catch sits between each neighbouring pair, and working it flips both of
+\* catch sits between each neighboring pair, and working it flips both of
 \* that pair.
 EXTENDS Claims
 

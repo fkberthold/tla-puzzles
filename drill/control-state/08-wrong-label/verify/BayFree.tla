@@ -1,5 +1,5 @@
 ---------------------------- MODULE BayFree ---------------------------
-(* Neighbour C: Enter forgets to mark the bay busy.                      *)
+(* Neighbor C: Enter forgets to mark the bay busy.                       *)
 EXTENDS Naturals, FiniteSets
 CONSTANTS Customers,
           Arrived, Paid, Washing, Gone,

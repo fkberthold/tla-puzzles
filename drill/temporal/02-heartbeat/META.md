@@ -1,6 +1,6 @@
 # META
 
-- **shape**: behaviour table to one temporal formula
+- **shape**: behavior table to one temporal formula
 - **TLA+ in the prompt**: none
 - **time**: 6 to 10 minutes
 - **verify**: `bash drill/temporal/verify-item.sh drill/temporal/02-heartbeat`
@@ -23,6 +23,6 @@ what the answer and its accepted variants use.
 | K069 | `[]<> (always eventually)` | answer |
 | K079 | `' (prime, next-state value)` | answer |
 | K084 | `action (formal definition)` | answer, the Beat action |
-| K067 | `<> (eventually)` | neighbour, killed by row 2, not declared |
-| K080 | `[P]_x (box action formula)` | neighbour, killed by row 3, not declared |
+| K067 | `<> (eventually)` | neighbor, killed by row 2, not declared |
+| K080 | `[P]_x (box action formula)` | neighbor, killed by row 3, not declared |
 | K095 | `WF_v(A) (weak fairness)` | variant in the wrong register, not declared |

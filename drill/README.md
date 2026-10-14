@@ -56,6 +56,6 @@ Blank-page production is one of three, and the other two now exist.
   with its properties taken out, and three runs that say whether what you wrote
   holds and whether it says anything.
 
-The three are not a ladder. Reading asks you to recognise a shape, completion
+The three are not a ladder. Reading asks you to recognize a shape, completion
 asks you to state a property about a machine you were handed, and a drill asks
 you for both from nothing. Draw from whichever one you want.

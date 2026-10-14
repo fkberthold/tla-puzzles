@@ -23,7 +23,7 @@ and only the second has to finish.
 
 ## Question 2: two places for the cap
 
-**Inside the behaviour formula.** `MCHeartbeat.tla` defines
+**Inside the behavior formula.** `MCHeartbeat.tla` defines
 
 ```
 BoundedNext == Next /\ clock' <= MaxTime

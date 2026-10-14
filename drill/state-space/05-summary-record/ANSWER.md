@@ -127,5 +127,5 @@ reader commits to a number.
 The honest caveat: the measurements table in the prompt labels each row
 by what was done ("named as the thing to print"), which is the
 keyword's job in prose. I couldn't give four verdicts without saying
-which was which, and four unlabelled rows would be a guessing game
+which was which, and four unlabeled rows would be a guessing game
 rather than a drill.

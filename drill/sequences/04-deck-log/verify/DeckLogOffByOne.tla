@@ -1,5 +1,5 @@
 ---- MODULE DeckLogOffByOne ----
-\* Wrong neighbour: the log keeps entry k after archiving it. The slice
+\* Wrong neighbor: the log keeps entry k after archiving it. The slice
 \* starts at k rather than k + 1, and the numbering rule fails on the first
 \* archive.
 EXTENDS Naturals, Sequences

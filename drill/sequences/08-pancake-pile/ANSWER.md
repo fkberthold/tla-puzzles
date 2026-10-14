@@ -55,7 +55,7 @@ every initial state by construction and the flips have to keep it.
 
 The mirror index is where the item bites. `k + 1 - i` runs from `k` down to
 `1`. Write `k - i` and at `i = k` you ask for index 0, which no list has.
-That's the first wrong neighbour, and TLC's message for it is the 1-based
+That's the first wrong neighbor, and TLC's message for it is the 1-based
 origin stated plainly.
 
 ## Acceptable variants
@@ -78,12 +78,12 @@ origin stated plainly.
 | 2 | "only the top two" | three changed and the bottom one stayed |
 | 3 | any flip that leaves the bottom alone | all four moved |
 
-Row 1 is measured against the whole-pile neighbour below. The other two
+Row 1 is measured against the whole-pile neighbor below. The other two
 rows are read off the table and not measured against a module.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | module | killed by | rc |
+| neighbor | module | killed by | rc |
 |---|---|---|---|
 | the mirror index as `k - i` | `PileOffByOne` | the first flip, which asks for index 0 | rc 75 |
 | every move turns the whole pile | `PileWhole` | nothing in the rule. The pancakes are still the same four | rc 0 |

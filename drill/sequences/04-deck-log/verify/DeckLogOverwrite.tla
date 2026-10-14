@@ -1,5 +1,5 @@
 ---- MODULE DeckLogOverwrite ----
-\* Wrong neighbour: the batch replaces the archive instead of being joined
+\* Wrong neighbor: the batch replaces the archive instead of being joined
 \* onto it. The second archive loses the first.
 EXTENDS Naturals, Sequences
 

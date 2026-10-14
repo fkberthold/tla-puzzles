@@ -115,7 +115,7 @@ opposite. It reads "Two votes never look like half of four, nobody is ever
 committed, and the rule holds for the wrong reason", and the measurement is
 rc 12 on 17 distinct states with `OnePubAtMost` violated. The arithmetic above is
 why: at the half threshold, two truth values are enough and the map is loud. I've
-left the module alone and corrected the comment, since the module's behaviour is
+left the module alone and corrected the comment, since the module's behavior is
 the artifact and the comment was a claim about it. The pairing is sharper than
 the original note expected, because the same error is silent on one threshold and
 loud on the other.
@@ -151,7 +151,7 @@ rows stop early, which is what their counts are measuring.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | the map where the filter was meant | nothing. 256 states, same as the answer | 0 |
 | the same map at the half threshold | rule 2 after two votes, one per pub | 12 |

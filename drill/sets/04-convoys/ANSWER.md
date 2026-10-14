@@ -68,7 +68,7 @@ INVARIANTS
 
 A convoy is the set of trucks in it, so the convoys on the road are a set whose
 members are themselves sets. That one sentence is the whole item. Every operator
-below it follows from it, and every wrong neighbour is a reader who held a set of
+below it follows from it, and every wrong neighbor is a reader who held a set of
 sets and then handled it like a set of trucks.
 
 Two unions do two jobs here and they're easy to swap. `c \cup d` joins two
@@ -114,7 +114,7 @@ isn't a violation. It arrives 20 states in, after two trucks have left and merge
 
 ## The other three
 
-Each of the other wrong neighbours fails in a different channel, which is why all
+Each of the other wrong neighbors fails in a different channel, which is why all
 four are kept.
 
 The binary union used where the flattening was meant doesn't parse. It takes two
@@ -171,7 +171,7 @@ not a pattern. The columns tell them apart and nothing else does.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | the merge unions the trucks into the collection | type line can't evaluate, 20 states | 76 |
 | the binary union used to flatten a collection | the parser, before TLC runs | 150 |
@@ -192,4 +192,4 @@ arrives whole. A reader who merges on the way out of the depot writes a defensib
 system that comes in at a different count, and the prompt forecloses him by
 arithmetic rather than by saying so. That's the cost of putting a number in, and
 on this item I'd still pay it, because without it the merge-flattening error at
-rc 76 reads like a harness problem rather than a modelling one.
+rc 76 reads like a harness problem rather than a modeling one.

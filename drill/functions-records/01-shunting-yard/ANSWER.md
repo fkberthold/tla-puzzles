@@ -91,7 +91,7 @@ at the `Init` line above it. The comment in that module says the invariant
 is false on the first state, and I think that reading is wrong in a way
 worth keeping an eye on: TLC refused the question rather than answering it.
 
-## The fifth neighbour
+## The fifth neighbor
 
 `ShuntYardNoGuard` is a separate mistake and the only one in this item that
 has nothing to do with the two spellings. Both lines are right. The shunter
@@ -120,7 +120,7 @@ trace reads as track names rather than as arithmetic the item never uses.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | `=` where the set belongs | an evaluation failure, not a violated invariant |
 | the literal in either line | enumerability or a function applied as a set |
@@ -141,7 +141,7 @@ TLA+ has two bracket forms will pick the right one without reading this
 file, and that reader is not who the item is for.
 
 The 24 is in the prompt on purpose. It's the foreclosing row. Three of the
-five wrong neighbours exit 75 and announce themselves, so for those the
+five wrong neighbors exit 75 and announce themselves, so for those the
 count is redundant, but the readable one exits 12 on the first state and a
 reader could take that for a bad choice of model size. The count says the
 model size is not the problem.

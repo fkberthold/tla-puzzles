@@ -1,5 +1,5 @@
 ---- MODULE TubeSendFront ----
-\* Wrong neighbour: capsules are put in at the front and taken from the
+\* Wrong neighbor: capsules are put in at the front and taken from the
 \* front, which is a stack wearing a queue's name.
 EXTENDS Naturals, Sequences
 

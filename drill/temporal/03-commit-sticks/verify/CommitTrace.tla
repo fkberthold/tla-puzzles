@@ -1,6 +1,6 @@
 ---- MODULE CommitTrace ----
 \* Trace spec for drill item 03-commit-sticks. Each row of Table is one
-\* behaviour from the prompt: a finite list of status values and the index
+\* behavior from the prompt: a finite list of status values and the index
 \* the tail loops back to. loop = Len(s) is "then forever".
 EXTENDS Naturals, Sequences
 
@@ -44,7 +44,7 @@ V1 == [][(Committed => Committed')]_status
 V2 == [][(Committed => UNCHANGED status)]_status
 V3 == [][(status = "committed") => (status' = "committed")]_status
 
-\* Neighbours the elimination table kills.
+\* Neighbors the elimination table kills.
 N1 == <>Committed
 N2 == Pending ~> Committed
 N3 == [](status # "aborted")

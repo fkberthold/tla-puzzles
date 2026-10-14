@@ -1,7 +1,7 @@
 # META: functions-records/06-depot-cover
 
 - family: functions-records
-- shape: prose, one rule, a five-row behaviour table with one foreclosing row, and a checkable count
+- shape: prose, one rule, a five-row behavior table with one foreclosing row, and a checkable count
 - time: 10 min
 - lesson: a function merge keeps the left value on a shared key, so which operand goes left is the whole design
 - shows TLA+ in the prompt: no

@@ -1,5 +1,5 @@
 ---- MODULE PileWholeAdmits ----
-\* The whole-pile neighbour against the table.
+\* The whole-pile neighbor against the table.
 EXTENDS PileWhole, PileRows
 
 TInit == pile = Rows[1][1]

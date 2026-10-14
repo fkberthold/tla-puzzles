@@ -26,7 +26,7 @@ module and number is in the Runs section below.
 
 ## Elimination table
 
-| wrong neighbour | row | rc | why |
+| wrong neighbor | row | rc | why |
 |---|---|---|---|
 | `<><<Beat>>_last` | none | 255 | TLC refuses it: "Temporal formulas containing actions must be of forms <>[]A or []<>A." |
 | `<>(last # 0)`, its state-level stand-in | 2 | 0 | one beat, then silence, and the formula is content |

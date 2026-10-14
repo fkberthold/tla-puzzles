@@ -1,7 +1,7 @@
 # Shopfront shutters
 
 A shopfront has five shutters in a row, numbered 1 to 5, and they all start
-shut. A catch sits between each neighbouring pair, so there are four catches.
+shut. A catch sits between each neighboring pair, so there are four catches.
 Working one flips both shutters of its own pair: a shut shutter opens, and an
 open one shuts. A tally counts how many times a catch has been worked, and it
 stops the shop at `Limit`.

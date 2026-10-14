@@ -41,10 +41,10 @@ pipeline has 15 in all.
 
 ## Elimination table
 
-This item has no row table, so each neighbour is killed by a run rather
+This item has no row table, so each neighbor is killed by a run rather
 than a row.
 
-| wrong neighbour | run | rc | why |
+| wrong neighbor | run | rc | why |
 |---|---|---|---|
 | `[]<>Halted` | fixed | 13 | liveness. Without fairness a retry loop is a counterexample on the correct pipeline |
 | `<>Halted` | fixed | 13 | the same |

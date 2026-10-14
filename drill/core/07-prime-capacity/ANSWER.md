@@ -98,9 +98,9 @@ load and the load can then go either way.
 The last is the sets family's operator, and a different model. The prompt says
 "may grow to a prime", which is a choice, so the `\E` is the closer reading.
 
-## Wrong neighbours
+## Wrong neighbors
 
-| neighbour | what kills it |
+| neighbor | what kills it |
 |---|---|
 | `Grow` without the primality check | the prime invariant goes red at the first growth to 4 |
 | `\A k \in 2..n` (range includes `n`) | every `n` divides itself, so nothing is prime. The prime invariant fails in `Init` at `cap = 2`, rc 12 (not measured) |

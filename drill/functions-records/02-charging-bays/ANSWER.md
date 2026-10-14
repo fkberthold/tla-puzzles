@@ -166,7 +166,7 @@ states. The mirror of the row above.
 
 ## Elimination table
 
-| neighbour answer | what kills it |
+| neighbor answer | what kills it |
 |---|---|
 | one plugged flag for the whole forecourt | row 1: one van plugged in and the other not |
 | a per-van status with no bay name (away, parked, plugged) | rows 3 and 4 name bays, and the bay rule can't be written |

@@ -5,7 +5,7 @@ CONSTANT MaxTime
 
 ASSUME MaxTime \in Nat
 
-\* Knob 1: bound the clock inside the behaviour formula. The system TLC
+\* Knob 1: bound the clock inside the behavior formula. The system TLC
 \* checks is one whose clock stops at MaxTime.
 BoundedNext == Next /\ clock' <= MaxTime
 BoundedSpec == Init /\ [][BoundedNext]_vars

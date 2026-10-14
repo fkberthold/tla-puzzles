@@ -103,7 +103,7 @@ and the callers are drawn from the divers on the surface.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | `Descend` without the all-in guard | rule 1, first diver down | 12 |
 | rule 1 as `descended \subseteq checkedIn` | nothing in TLC. 625 states against 321 | 0 |

@@ -1,6 +1,6 @@
 # META: core/04-lift-types
 
-- shape: behaviour table with a foreclosing row at floor -2
+- shape: behavior table with a foreclosing row at floor -2
 - time: 10 min
 - lesson: the `TypeOK` idiom, `Int` against `Nat`, and the config's missing negative literal
 - shows TLA+ in the prompt: no

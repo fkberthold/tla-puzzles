@@ -128,7 +128,7 @@ of its own name. The rc is what `harness/verdict.sh` returned.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | the upstream chosen with the keyword | the claim holds, 189 states | 0 |
 | forward to any of the three | rule 1, first forward to a dead upstream | 12 |

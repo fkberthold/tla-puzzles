@@ -37,7 +37,7 @@ always at a real station.
 2. Row two: the helper leaked two names into the conveyor. One is the
    helper's own scratch definition. The other the helper didn't even
    write. Where did it come from, and what are the two marks, on two
-   different lines of the helper, that stop each one travelling?
+   different lines of the helper, that stop each one traveling?
 3. Row three is the dangerous one. Nothing was refused. Where did the
    belt get its wrap from, and why 3?
 4. Row four fixes it from the other side without touching the helper.

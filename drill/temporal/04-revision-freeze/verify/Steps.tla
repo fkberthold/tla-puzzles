@@ -1,7 +1,7 @@
 ---- MODULE Steps ----
 \* Trace spec for drill item 04-revision-freeze. Rows 1 to 3 are one-state
-\* behaviours that pin the initial state. Rows 4 to 10 are two-state
-\* behaviours, one step each, then the second state forever. Each value is
+\* behaviors that pin the initial state. Rows 4 to 10 are two-state
+\* behaviors, one step each, then the second state forever. Each value is
 \* <<rev, published>>.
 EXTENDS Naturals, Sequences
 
@@ -42,7 +42,7 @@ vars == <<row, i, rev, published>>
 
 Spec == Init /\ [][Advance]_vars /\ WF_vars(Advance)
 
-\* The candidate's two halves, and the neighbours, as names the cfg can use.
+\* The candidate's two halves, and the neighbors, as names the cfg can use.
 AnswerInit  == D!Init
 AnswerNext  == D!NextBox
 NoGuard     == D!NoGuardBox

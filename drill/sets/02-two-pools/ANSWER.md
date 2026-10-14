@@ -151,7 +151,7 @@ agree on the count. The fifth holds how many and comes in 40 states short.
 
 ## Elimination table
 
-| wrong neighbour | what kills it | rc |
+| wrong neighbor | what kills it | rc |
 |---|---|---|
 | two numbers for the two pools | rules 1 and 3 can't be stated, 9 states | 0 |
 | joining without the room check | a third guard walks in, rule 2 | 12 |
