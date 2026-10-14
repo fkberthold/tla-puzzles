@@ -1,7 +1,9 @@
 ------------------------- MODULE ShuntYardSetInit -------------------------
-(* Init says pos EQUALS the function set. pos is then a set of 64         *)
-(* functions, not a function. TypeOK, which asks whether pos is IN that    *)
-(* set, is false on the first state.                                       *)
+(* Init says pos EQUALS the function set, so pos is a set of 64          *)
+(* functions rather than a function. TypeOK then asks whether a SET is   *)
+(* in a set of functions, and TLC refuses that rather than answering.    *)
+(* The run stops at rc 75, unable to fingerprint, and names the TypeOK   *)
+(* line. So the reader gets no invariant name and no trace.              *)
 EXTENDS Naturals
 CONSTANTS Wagons, Tracks
 

@@ -3,7 +3,7 @@
 - family: functions-records
 - shape: prose prompt with a checkable state count and a closing prediction
 - time: 10 min
-- lesson: a function set and a function literal, one each in the two lines they belong to, and the four swaps measured
+- lesson: the function set in both the lines that need it, and the four swaps measured
 - shows TLA+ in the prompt: no
 
 ## Constructs
