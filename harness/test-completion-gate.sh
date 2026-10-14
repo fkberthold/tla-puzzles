@@ -563,7 +563,7 @@ rc_is "2c waiver: rc 0 on the bulleted form" 0
 
 # --- 2d: a waiver with no reason is a finding ----------------------------
 # "An exemption with no reason is itself a finding." Same floor as
-# harness/drill-gate.sh:1442.
+# harness/drill-gate.sh:1648.
 R="${TMP}/waiver-no-reason"
 D="$(mk_item "$R")"
 printf '\nClaim 2 is about the Cardinality of seen.\n' >>"${D}/PROMPT.md"

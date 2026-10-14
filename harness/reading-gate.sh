@@ -110,7 +110,7 @@
 # -d OFF (verdict.sh:25, :189-195), and it REFUSES a disagreement at rc 99
 # rather than producing a verdict over a check that did not happen. Four
 # control-state drill items hit exactly this within an hour of the drill gate
-# landing. Same call as harness/drill-gate.sh:1622-1626.
+# landing. Same call as harness/drill-gate.sh:1947-1965.
 #
 # ===========================================================================
 # CHECK 4 — THE .cfg DECLARES AT LEAST ONE INVARIANT OR PROPERTY.
@@ -209,7 +209,7 @@
 # construct IS the item. Porting that check would fail all six items for
 # being correct. This is also why the corpus has its own root rather than
 # living under drill/, whose item sweep is every depth-2 directory
-# (drill-gate.sh:1315).
+# (drill-gate.sh:1586).
 #
 # NO CONSTRUCT-COVERAGE REPORT. It needs drill/INVENTORY.md's tab parser,
 # which lives inside drill-gate.sh together with `normalize` and the rc
@@ -339,7 +339,7 @@ echo "reading-gate.sh: ${ROOT}, bound ${MAX_LINES} lines x ${MAX_COLS} cols"
 
 # ---------------------------------------------------------------------------
 # The item sweep. Every depth-2 directory under the root, which is the same
-# shape harness/drill-gate.sh:1315 uses, so <family>/<NN>-<slug> is an item
+# shape harness/drill-gate.sh:1586 uses, so <family>/<NN>-<slug> is an item
 # and a family directory is not.
 #
 # The hidden-directory predicate is ANCHORED AT THE ROOT. A bare
@@ -549,7 +549,7 @@ while IFS= read -r item; do
   fi
 
   # TLC's deadlock checking is an AND across the .cfg keyword and this flag.
-  # See CHECK 3 in the header, and harness/drill-gate.sh:1606-1626.
+  # See CHECK 3 in the header, and harness/drill-gate.sh:1947-1965.
   args=()
   if grep -qE '^[[:space:]]*CHECK_DEADLOCK[[:space:]]+TRUE' "$cfgp"; then
     args=(-d)

@@ -177,7 +177,7 @@
 #
 # optionally bulleted or emphasised (`- **telegraph-waiver**: ...`). It
 # suppresses EXACTLY ONE token for EXACTLY ONE item. This is
-# harness/drill-gate.sh:1064-1073's line format unchanged, so the project has
+# harness/drill-gate.sh:1113-1122's line format unchanged, so the project has
 # one waiver idiom rather than two; it is read from META.md here because
 # META.md is where a completion item already argues about this rule — see the
 # closing sections of 01-clockface's, 01-squares's and 01-roster's.
@@ -281,7 +281,7 @@ VERDICT="${REPO_ROOT}/harness/verdict.sh"
 # ---------------------------------------------------------------------------
 # TELEGRAPH_TOKENS — check 3's token set.
 #
-# The first five rows are harness/drill-gate.sh:269-275's DISTINCTIVE set
+# The first five rows are harness/drill-gate.sh:305-311's DISTINCTIVE set
 # VERBATIM, and its exclusion list applies here unchanged: `/\ \/ \in \A \E
 # => <=> ~ ' = # /=`, the structural keywords and the standard-module names
 # are all shared vocabulary that any shown machine carries and any answer
@@ -304,7 +304,7 @@ TELEGRAPH_TOKENS=(
 )
 
 # A reason shorter than this is an exemption wearing a waiver's clothes.
-# Same floor as harness/drill-gate.sh:1442.
+# Same floor as harness/drill-gate.sh:1648.
 WAIVER_REASON_MIN=12
 
 NO_TLC=0
@@ -418,7 +418,7 @@ claim_body() {
 
 # ---------------------------------------------------------------------------
 # waiver_lines <meta.md>: the per-item telegraph waivers, one per line.
-# Same pattern as harness/drill-gate.sh:1071-1073, plus a leading `-` so a
+# Same pattern as harness/drill-gate.sh:1120-1122, plus a leading `-` so a
 # markdown bullet is accepted.
 # ---------------------------------------------------------------------------
 waiver_lines() {
@@ -434,7 +434,7 @@ waiver_lines() {
 # writes into every translation, so a substring test reports a leak in every
 # PlusCal item whether or not its answer touches `pc`. The same bug bit
 # drill-gate.sh's rc reader, where a module called Commit picked up the prose
-# word "Committed" (drill-gate.sh:1147-1155).
+# word "Committed" (drill-gate.sh:1226-1234).
 # ---------------------------------------------------------------------------
 token_shown() {
   case "$1" in
@@ -478,7 +478,7 @@ echo "completion-gate.sh: ${ROOT}"
 
 # ---------------------------------------------------------------------------
 # The item sweep. Every depth-2 directory under the root, the same shape
-# harness/reading-gate.sh:377 and harness/drill-gate.sh:1315 use, so
+# harness/reading-gate.sh:377 and harness/drill-gate.sh:1586 use, so
 # <family>/<NN>-<slug> is an item and a family directory is not.
 #
 # The hidden-directory predicate is ANCHORED AT THE ROOT. A bare

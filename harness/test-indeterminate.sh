@@ -212,14 +212,14 @@ involuntary_admissions() {
 #
 # WHAT MADE drill-gate.sh VISIBLE IS NOT WHAT IT IS REGISTERED FOR, and the
 # distinction is the whole of bead tla-ocpw. The census reached it through
-# drill-gate.sh:1942, a --changed-only line reading "A CACHED JOB IS VERIFIED,
+# drill-gate.sh:2411, a --changed-only line reading "A CACHED JOB IS VERIFIED,
 # not skipped", a sentence that DENIES a skip and matches on the word.
 # Registering against that would have been an accident. Its real admissions
 # are four non-run paths the vocabulary could not see, and --static-only is
 # the one that mattered: it exits 0 having reproduced none of 237 recorded
 # rcs, which is a success code carrying a skip admission, exactly what part 3
 # forbids. That block now spells the admission and names its flag
-# (drill-gate.sh:1922), and the --static-only row below is what checks it.
+# (drill-gate.sh:2389), and the --static-only row below is what checks it.
 REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE" "$KGATE")
 ROWS_RUN=()
 ROWS_NONPASS=()
@@ -631,7 +631,7 @@ assert_not_out "the drill gate does not claim OK over it" "VERDICT OK"
 # a different question completely and a clean run is a true pass, so the gate
 # must not be forced to 99 for it. What it must do is SAY what it skipped and
 # name the flag that waived it, on one line, which is what keeps this rc 0 off
-# part 3's failure list. Drop the parenthetical from drill-gate.sh:1922 and
+# part 3's failure list. Drop the parenthetical from drill-gate.sh:2389 and
 # this row goes red rather than quiet.
 run_row "$DGATE" "drill-gate.sh: --static-only is a caller instruction, not a failure" \
   0 -- \
