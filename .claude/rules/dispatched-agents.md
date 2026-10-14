@@ -77,6 +77,31 @@ git branch --show-current
 
 Must not be `main`.
 
+**Step 3b — base freshness.** Two separate calls, then compare them yourself.
+
+```bash
+git merge-base main HEAD
+```
+
+```bash
+git rev-parse main
+```
+
+They must be the same SHA. **If they differ, your worktree was cut from an older
+base than local `main`** and a commit your brief depends on may be absent from
+your tree. On 2026-10-13 a `tla-z3ks` worker was worktreed from `origin/main`
+while local `main` was two commits ahead, so the item it was built to deliver did
+not exist in its checkout and `find completion` returned nothing. It rebased onto
+local `main` and said so, which is the right handling.
+
+Note this is NOT the stale-remote-ref hazard loom's conventions describe. There
+the local ref trails the remote. Here the local ref was current and the worktree's
+base trailed it, and no other battery step catches that. Six workers ran this step
+on 2026-10-13 and 2026-10-14 and five found the SHAs equal.
+
+It also tells you in advance that `git diff --stat main HEAD` will lie on the way
+out, which is the footprint hazard at the bottom of this file.
+
 **Step 4 — bead state.**
 
 ```bash
