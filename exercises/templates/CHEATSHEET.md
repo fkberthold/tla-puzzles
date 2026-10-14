@@ -25,6 +25,6 @@ List every construct this chapter introduces. One entry per construct.
 
 ## Boundary notes
 
-What this chapter does NOT cover, because a neighbouring chapter does.
+What this chapter does NOT cover, because a neighboring chapter does.
 
 - `<topic>` is covered in chapter `<NN>` instead.

@@ -209,10 +209,10 @@ makes, and it stays counterintuitive until you have run it once.
      order as served.
   Do not pick a representative order and test that one. The point is that you
   cover every order the type allows in a single run, which is what the chapter
-  means by modelling an outside action.
+  means by modeling an outside action.
 - Time budget: `15 min`
 - Uses: nondeterministic `with` drawing a whole struct from a struct set,
-  modelling requests that arrive from outside the system
+  modeling requests that arrive from outside the system
 - Expected outcome:
   - Pass run: `OK`
   - Fail run: replace the room check with `TRUE`, so every order is sold, and

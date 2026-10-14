@@ -27,19 +27,19 @@
 (***************************************************************************)
 EXTENDS Naturals
 
-VARIABLE colour
+VARIABLE color
 
-Init == colour = "red"
+Init == color = "red"
 
-Next == colour' \in {"red", "green"}
+Next == color' \in {"red", "green"}
 
-Spec == Init /\ [][Next]_colour
+Spec == Init /\ [][Next]_color
 
 (***************************************************************************)
 (* Both branches are 3. The operator READS the state, so TLC cannot         *)
 (* constant-fold it and the non-vacuity probe passes -- this submission is  *)
 (* graded, not refused as a config error.                                   *)
 (***************************************************************************)
-Observe == [level |-> IF colour = "red" THEN 3 ELSE 3]
+Observe == [level |-> IF color = "red" THEN 3 ELSE 3]
 
 =============================================================================

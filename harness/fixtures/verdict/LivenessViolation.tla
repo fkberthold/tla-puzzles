@@ -1,6 +1,6 @@
 ---------------------- MODULE LivenessViolation ----------------------
 (***************************************************************************)
-(* rc=13 fixture.  Spec carries NO fairness, so the behaviour that stutters *)
+(* rc=13 fixture.  Spec carries NO fairness, so the behavior that stutters  *)
 (* forever at x = 0 is legal and violates <>(x = 1).                        *)
 (*                                                                          *)
 (* This is the PROPERTY channel, which V2-PLAN.md section 5.4 also uses for *)

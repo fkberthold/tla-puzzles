@@ -25,7 +25,7 @@ javap -cp ~/lib/tla2tools.jar -constants 'tlc2.output.EC$ExitStatus'
 | `Deadlock.tla` | 11 | `DEADLOCK` | `x = 2` has no successor (needs `--check-deadlock`) |
 | `SafetyViolation.tla` | 12 | `SAFETY_VIOLATION` | `INVARIANT x < 3`, reachable `x = 3` |
 | `LivenessViolation.tla` | 13 | `LIVENESS_VIOLATION` | `PROPERTY <>(x = 1)` with no fairness |
-| `AssertViolation.tla` | 14 | `ASSERT_VIOLATION` | `Assert` FALSE while exploring behaviour |
+| `AssertViolation.tla` | 14 | `ASSERT_VIOLATION` | `Assert` FALSE while exploring behavior |
 | `AssertInInit.tla` | 75 | `SPEC_EVAL_FAILURE` | the *same* `Assert`, failing in `Init` |
 | `SpecEvalFailure.tla` | 75 | `SPEC_EVAL_FAILURE` | one branch of `Tick` leaves `minutes'` unconstrained |
 | `SafetyEvalFailure.tla` | 76 | `SAFETY_EVAL_FAILURE` | `INVARIANT` applies a function outside its domain |

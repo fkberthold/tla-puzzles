@@ -3,7 +3,7 @@
 Purpose-built inputs for `harness/seeded-bugs.sh` (V2-PLAN.md §5.5, bead
 `tla-kl5.8`). `selftest.sh` runs every row and asserts the raw exit status as
 well as the verdict token, so a renumbered table breaks the build instead of
-quietly relabelling itself.
+quietly relabeling itself.
 
 Measured 2026-08-07 against the TLC 2026.03.04.183147 nightly, and re-measured unchanged
 the same day against tla2tools v1.8.0 (TLC 2026.07.31.184830). Every row below holds on
@@ -170,7 +170,7 @@ values differed.
 
 The first pair carries different variable **names**, a different value
 **domain** (integers against strings) and different concrete **values**, and
-describes the same behaviour. Diffing values would fail a correct submission
+describes the same behavior. Diffing values would fail a correct submission
 for choosing a different encoding — the representational freedom §3.2 exists to
 protect.
 
@@ -198,6 +198,6 @@ them silently deletes a row.
 Only ~10.9% of real faulty student specs are one mutation away from correct —
 real mistakes are multi-step — and ~39.3% of single mutations are semantically
 inert. Mutants of our own reference are systematically unlike real learner
-errors. **This is a bootstrap, not a proxy for learner behaviour.** A pass here
+errors. **This is a bootstrap, not a proxy for learner behavior.** A pass here
 is evidence a property catches *these* bugs and nothing more. The long form is
 in the header of `harness/seeded-bugs.sh`, where the next reader will meet it.

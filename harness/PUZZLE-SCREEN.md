@@ -195,7 +195,7 @@ Change-ringing *as a system* is:
 
 > Model a **band** — one ringer per bell, each with a reaction time, each able to mistime
 > or lose their place, plus a conductor who can call corrections. The method they are
-> attempting is the abstract spec. Does the band's actual behaviour refine it?
+> attempting is the abstract spec. Does the band's actual behavior refine it?
 
 Now the actions are not given: you decide what a ringer's step is, what "losing your place"
 means as state, and how much timing to model. It also lands naturally in **column F** — the
@@ -302,9 +302,9 @@ six of these fired on the pilot during one routine adversarial pass
 |---|---|---|
 | **Vocabulary absence** | a technical noun the statement repeats and the artifact never uses | "unanimity", 3 times in the prose, 0 in the `.tla` and 0 in the `.cfg` (`agent-d.md:165-170`) |
 | **Tiling** | the artifact's own enumerated list set against the statement's own, and the holes between them | 6 declared checks against 7 numbered rules, 2 holes, and the 2 holes were the 2 seeded gaps (`agent-d.md:88-118`) |
-| **Elimination** | the only candidate of its type, or the only one that nothing constrains | one observation field carried no behavioural check, and was the only field typed against the constant the answer form demanded generality over (`agent-d.md:135-163`) |
+| **Elimination** | the only candidate of its type, or the only one that nothing constrains | one observation field carried no behavioral check, and was the only field typed against the constant the answer form demanded generality over (`agent-d.md:135-163`) |
 | **The answer form** | how far the answer instructions narrow the answer before the learner has thought about the domain | two lines fixed both the target and the shape (`agent-d.md:150-159`) |
-| **Pre-clearing** | a passage saying "this looks wrong and it is fine", which advertises that its neighbourhood repays attention | two of them, one beside each gap (`agent-d.md:201-210`, `:339-342`) |
+| **Pre-clearing** | a passage saying "this looks wrong and it is fine", which advertises that its neighborhood repays attention | two of them, one beside each gap (`agent-d.md:201-210`, `:339-342`) |
 | **Recall** | if §5.7 came back BURNED, what the mechanism's prior hands over for free | 2 of the 3 blind critics named two-phase commit before opening the spec (`pilot/reports/step6-spread.md:18`) |
 
 Run tiling first. It is the cheapest of the six, it needs no domain knowledge, and on the pilot

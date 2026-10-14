@@ -4,7 +4,7 @@
 \* A kiln loads, heats, holds the soak for a bounded number of turns, then
 \* cools. `FiringFinishes` says the firing always reaches the end. It only
 \* holds because the process is fair. Drop the `fair` and the same spec fails,
-\* because a behaviour is allowed to stutter for ever at any point.
+\* because a behavior is allowed to stutter for ever at any point.
 EXTENDS Integers
 
 MaxSoak == 2

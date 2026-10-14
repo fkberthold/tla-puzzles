@@ -10,9 +10,9 @@
 #
 # Four kinds of assertion:
 #
-#   Behavioural — drive seeded-bugs.sh over a fixture matrix and require both
+#   Behavioral — drive seeded-bugs.sh over a fixture matrix and require both
 #     the verdict token and the raw exit status. Asserting the rc as well as
-#     the token keeps a renumbered table from relabelling itself silently, the
+#     the token keeps a renumbered table from relabeling itself silently, the
 #     same discipline test-verdict.sh uses for §5.1 and selftest.sh for §5.4.
 #
 #   Attribution — the inert-mutant rows. The verdict for an inert variant set
@@ -267,9 +267,9 @@ echo "== TRACE COMPARISON: action-name sequence + length, and nothing else =="
 # agree; it cannot show that they would still have agreed had the values
 # differed. The two traces below carry different variable NAMES, different
 # value DOMAINS (integers vs strings) and different concrete values, and they
-# describe the same behaviour.
+# describe the same behavior.
 
-assert_signature_eq "different representation, same behaviour — no divergence" \
+assert_signature_eq "different representation, same behavior — no divergence" \
   "$FIX/traces/base.json" "$FIX/traces/same-actions-other-values.json"
 
 assert_signature_ne "a different action name IS a divergence" \
@@ -382,7 +382,7 @@ echo "== LIVENESS: a temporal obligation is graded as a temporal obligation =="
 # The obligation is named `Live` rather than `Inv`, per
 # `.claude/rules/tla-practice.md` §3 -- an `*Inv` name tells a reader the
 # obligation is a state predicate and this one is not -- and the matrix is
-# driven against `FairSpec`, because against `Spec` the stuttering behaviour
+# driven against `FairSpec`, because against `Spec` the stuttering behavior
 # refutes the correct property too.
 
 RMATRIX="$FIX/relay"
@@ -438,8 +438,8 @@ assert_matrix "a temporal property the reference itself violates" \
 echo
 echo "== a liveness verdict against an unfair spec is refused, not counted =="
 # ---------------------------------------------------------------------------
-# `Spec == Init /\ [][Next]_vars` admits the behaviour that takes some steps
-# and then stutters for ever, and that behaviour violates every liveness
+# `Spec == Init /\ [][Next]_vars` admits the behavior that takes some steps
+# and then stutters for ever, and that behavior violates every liveness
 # property anyone could write -- RelayGood included. Measured: against `Spec`
 # the matrix's OWN oracle exits 13 on the reference, so without the gate the
 # matrix reports ORACLE_UNSOUND and blames the instrument for the config.
@@ -680,7 +680,7 @@ assert_code_absent "the .cfg keyword is not hardcoded" \
   "printf 'INVARIANT"
 
 # And it must be chosen by the obligation's shape rather than by a flag. A
-# flag defaulting to the old behaviour reproduces the defect for every caller
+# flag defaulting to the old behavior reproduces the defect for every caller
 # who does not know to pass it.
 assert_code_present "the keyword comes from a shape classifier" \
   'tla_shape'

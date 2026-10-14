@@ -306,7 +306,7 @@ modules, 5 starters, 25 mutants, and 7 from the delivered scratch tree, less
 the overlap where the same module was run twice.
 
 The probe modules were scratch and are not committed. They pinned five
-behaviours before a single exercise was written: `\ominus` is definable,
+behaviors before a single exercise was written: `\ominus` is definable,
 bracket functions recurse without a declaration, a `CASE` with no match exits
 75, a missing `RECURSIVE` exits 150, and a runaway recursion exits 75 in half
 a second.

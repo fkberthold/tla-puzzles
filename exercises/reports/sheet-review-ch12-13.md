@@ -255,7 +255,7 @@ on ch13, matching the construct counts]. Both headers carry the chapter number, 
 and the pinned SHA.
 
 Both sheets dropped the template's boilerplate "What this chapter does NOT cover, because a
-neighbouring chapter does." line [`exercises/templates/CHEATSHEET.md:28`]. Ten of the twelve
+neighboring chapter does." line [`exercises/templates/CHEATSHEET.md:28`]. Ten of the twelve
 now drop it, so that's the settled convention.
 
 **NOTE, the H1 line has never been standardized.** Seven sheets use
@@ -336,10 +336,10 @@ theme stays where it is, but the ruling is bigger than ch13, because ch12 has th
 situation and handled it differently.
 
 The theme doesn't belong in boundary notes. The template defines that section as "what this
-chapter does NOT cover, because a neighbouring chapter does"
+chapter does NOT cover, because a neighboring chapter does"
 [`exercises/templates/CHEATSHEET.md:28`], and the author's reason for keeping it out is
 exactly right. A todo gap is what nobody covers. Filing it as a boundary note would send an
-exercise author looking for a neighbouring chapter that doesn't exist, which is a worse
+exercise author looking for a neighboring chapter that doesn't exist, which is a worse
 failure than the ch05 symmetry note the last review ruled on.
 
 Themes are the right home. The template puts no restriction on them at all, it just says

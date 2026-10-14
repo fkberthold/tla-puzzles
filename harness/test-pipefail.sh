@@ -80,7 +80,7 @@ CHATTY_OUT=$(chatty)
 # suite worth running -- a ban on an idiom that could not misbehave would be
 # cargo cult. If one of them ever fails, the failure is NOT a defect in
 # whatever change you are making: it means bash or grep changed their SIGPIPE
-# behaviour, and every "here-string, not a pipe" comment in harness/ needs
+# behavior, and every "here-string, not a pipe" comment in harness/ needs
 # re-verifying rather than trusting.
 
 chatty | grep -qE MATCHME

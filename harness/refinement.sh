@@ -326,7 +326,7 @@ strip_tla_comments() {
 # every pattern below runs over definitions, not lines: accumulate from one
 # column-zero definition head to the next.
 #
-# Limitation, documented rather than fixed: a definition head is recognised at
+# Limitation, documented rather than fixed: a definition head is recognized at
 # column zero only. An indented top-level definition would be swallowed into
 # its predecessor. TLA+ writes top-level definitions flush left and the whole
 # corpus does; indented `==` belongs to LET or to a proof.
@@ -568,7 +568,7 @@ case "$rca" in
   # 12 AND 13 ARE THE SAME FACT HERE: this refinement does not hold. They split
   # on the SHAPE of the abstract's Spec formula, not on the .cfg keyword that
   # introduced it (bead tla-94n, and the table in verdict.sh's header). The
-  # implied-init and implied-action obligations need an infinite behaviour and
+  # implied-init and implied-action obligations need an infinite behavior and
   # exit 13. A conjunct TLC can refute with a finite prefix exits 12, and
   # `[](P => []P)` is an ordinary thing for an abstract spec to say. The
   # refinement PROPERTY inherits whatever shapes the abstract Spec carries, so

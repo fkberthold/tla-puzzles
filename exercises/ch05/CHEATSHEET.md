@@ -51,7 +51,7 @@
 
 ## Boundary notes
 
-What this chapter does NOT cover, because a neighbouring chapter does.
+What this chapter does NOT cover, because a neighboring chapter does.
 
 - `Length` as a `CONSTANT` for controlling sequence length is covered in chapter `06` instead.
 - Writing invariants (define blocks, quantifiers, `=>`) is covered in chapter `04` instead.

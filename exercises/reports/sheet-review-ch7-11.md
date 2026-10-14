@@ -143,7 +143,7 @@ source says the same at `advanced-operators.rst:67`, and it's load-bearing for t
 No defects. Two notes.
 
 **NOTE, template boilerplate survives.** The line "What this chapter does NOT cover,
-because a neighbouring chapter does." sits at `exercises/ch11/CHEATSHEET.md:34`. It came
+because a neighboring chapter does." sits at `exercises/ch11/CHEATSHEET.md:34`. It came
 from `exercises/templates/CHEATSHEET.md:28`. Eight of the ten sheets dropped it. ch05 is
 the other one that kept it, and wave 1 logged the same note.
 

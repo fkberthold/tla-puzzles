@@ -3,7 +3,7 @@
 (* SUBMISSION: too strong. The cap is 1, so levels 2 and 3 are unreachable. *)
 (*                                                                          *)
 (* Expected: OVER-constrained only. Every reference obligation still holds  *)
-(* -- a spec that admits fewer behaviours satisfies MORE properties, which  *)
+(* -- a spec that admits fewer behaviors satisfies MORE properties, which   *)
 (* is precisely why obligation 1 alone cannot see this failure and why      *)
 (* whole-spec refinement against a gold reference cannot either.            *)
 (*                                                                          *)

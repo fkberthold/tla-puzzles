@@ -10,9 +10,9 @@
 #
 # Three kinds of assertion:
 #
-#   Behavioural — drive refinement.sh against a fixture directory and require
+#   Behavioral — drive refinement.sh against a fixture directory and require
 #     both the verdict token and the raw exit status. Asserting the rc as well
-#     as the token keeps a renumbered table from relabelling itself silently,
+#     as the token keeps a renumbered table from relabeling itself silently,
 #     the same discipline test-verdict.sh uses for §5.1.
 #
 #   Disjointness — drive verdict.sh DIRECTLY, bypassing refinement.sh, over the

@@ -90,7 +90,7 @@ if [ ! -d "$ROOT" ]; then
   exit 2
 fi
 
-# <numberword> -> integer. Returns the empty string for anything unrecognised,
+# <numberword> -> integer. Returns the empty string for anything unrecognized,
 # which the caller treats as "no count", never as zero.
 word_to_int() {
   case "${1,,}" in

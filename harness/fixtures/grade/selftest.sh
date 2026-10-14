@@ -28,7 +28,7 @@
 #
 # Four kinds of assertion:
 #
-#   Behavioural — run grade.sh over a fixture submission and require the exit
+#   Behavioral — run grade.sh over a fixture submission and require the exit
 #     status and named fields of the verdict object.
 #
 #   Anti-leak — recompute, INDEPENDENTLY of grade.sh's own guard, the set of
@@ -281,7 +281,7 @@ assert_json "too-strong is over-constrained"      '.over_constrained'  'true'
 assert_json "too-strong is NOT under-constrained" '.under_constrained' 'false'
 assert_json "too-strong emits no under-constraint witness" \
   '.witnesses.under_constraint' 'null'
-# The whole point of the Relational suite: a spec that admits fewer behaviours
+# The whole point of the Relational suite: a spec that admits fewer behaviors
 # satisfies MORE reference obligations, so obligation 1 alone passes it.
 assert_json "obligation 1 alone sees nothing wrong with it" \
   '.suites.Adequacy.status' 'PASS'
@@ -907,7 +907,7 @@ run_ladder() {
 }
 
 # The answer key. Read as a constraint on the spec the learner was handed, it
-# cuts that spec down to the reference behaviour, and then neither suite has
+# cuts that spec down to the reference behavior, and then neither suite has
 # anything left to hold against it.
 run_ladder states-unanimity
 assert_rc   "the answer key passes" 0

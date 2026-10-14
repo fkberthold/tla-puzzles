@@ -20,8 +20,8 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is ~450 s wall (measured below), and the fast tier is 20
-# of the 31 suites but only about 7% of the wall clock. It skips every
+# Here the full run is ~450 s wall (measured below), and the fast tier is 21
+# of the 32 suites but only about 8% of the wall clock. It skips every
 # TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
 # refinement harness, the seeded-bug matrix, the indeterminate census and the
 # drill corpus's rc verification. Defaulting to that would make
@@ -64,6 +64,7 @@
 #   ----  ------  ------------------------------------------------------
 #   fast   0.2 s  harness/test-deliver-exercises.sh
 #   fast   0.3 s  harness/test-toolchain-pin.sh
+#   fast   0.3 s  harness/test-spelling.sh                (added, bead tla-nv5q)
 #   fast   0.7 s  harness/test-build-docs-chapter.sh
 #   fast   0.7 s  harness/test-number-problems.sh
 #   fast   0.7 s  harness/test-deliver-drill.sh           (added, bead tla-s5iz)
@@ -94,10 +95,11 @@
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
-#         36.9 s  fast tier, 20 suites   (measured --fast totals: 26.9 s at 18,
-#                                         then 41.2 s at 19 — see below)
+#         37.2 s  fast tier, 21 suites   (measured --fast totals: 26.9 s at 18,
+#                                         then 41.2 s at 19, then 32.6 s at 20
+#                                         — see below)
 #        418.9 s  slow tier, 11 suites
-#        455.8 s  whole registry
+#        456.1 s  whole registry
 #
 # The two slow rows that moved are bead tla-ocpw's, 2026-10-13: the reading
 # corpus gate added at 4.1 s and the indeterminate gate re-based 7.4 -> 10.7.
@@ -124,6 +126,18 @@
 # and 11% on the fast one. The suite's 78.0 contains the gate's 48.3: part 3
 # runs the real tree through both tiers, which is why there is no separate row
 # for the gate. See the row notes themselves for the rest of that reasoning.
+#
+# THE SPELLING ROW is bead tla-nv5q's, 2026-10-14, and it is the cheapest
+# addition this registry has taken: 0.3 s, which is 0.8% on top of the 36.9
+# the fast tier read before it. Standalone 0.205 / 0.194 / 0.205 s and
+# in-suite 0.2 / 0.2 / 0.2, so the two agree. The 32.6 s at 20 above is a
+# --fast total taken the same day on the same box, before this row landed.
+#
+# Its first three runs read 10.2 to 10.5 s, and the row's own comment keeps
+# those numbers rather than quietly replacing them. The suite was pricing a
+# tree-wide scan per file instead of per match, and the assertions did not
+# change when it got 50x faster. Worth knowing before adding another scan of
+# the same shape.
 #
 # Every other row is the 2026-10-13 tla-0eis.3 pass unchanged.
 #
@@ -347,6 +361,32 @@ SUITES=(
   # Its cost tracks the size of the harness/ + scripts/ + chapter/ tree it
   # scans by shebang, not anything about itself.
   "fast|4.6|pipefail idiom ban|./harness/test-pipefail.sh"
+  # Added 2026-10-14, bead tla-nv5q phase 3. Placed next to the pipefail row
+  # because the two are siblings in shape rather than in cost: both scan the
+  # whole tree for a banned pattern, both assert one floor per root so a root
+  # that stops being walked cannot pass as clean, and both plant their own
+  # positive and negative controls.
+  #
+  # Measured standalone over three back-to-back serial runs: 0.205 / 0.194 /
+  # 0.205 s, so 0.3 is the slowest rounded up. In-suite over three
+  # back-to-back filtered runs it read the same, so there is no in-suite
+  # premium to pay for.
+  #
+  # IT READ 10.2 TO 10.5 s ON ITS FIRST THREE RUNS and that number is kept
+  # here, because the reason it moved is worth more than the number. The first
+  # draft read and grepped each of the 2149 tracked files under its roots
+  # separately, at two forks apiece. One grep over the whole list narrows
+  # those 2149 to the handful that match, and only those pay for the detailed
+  # pass. Nothing about the assertions changed. A tree-wide scan priced per
+  # file rather than per match is the shape to watch, and this row would have
+  # been the most expensive in the fast tier by more than 2x, for a suite that
+  # runs no TLC at all.
+  #
+  # Its cost tracks the size of the drill/ + completion/ + reading/ + harness/
+  # + exercises/ + module-docs/ + chapter/ tree it scans, not anything about
+  # itself. No TLC, so it belongs in fast by the rule in this header: the
+  # boundary is the model checker.
+  "fast|0.3|spelling pair-list gate|./harness/test-spelling.sh"
   # Re-measured 2026-10-13: 1.4 / 1.4 / 1.5 s, up from 1.0. tla-kqry recorded
   # 1.5 on 2026-10-08, so this row has been over for at least five days.
   "fast|1.5|puzzle screen|./harness/screen.sh --selftest"

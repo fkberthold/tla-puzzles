@@ -5,7 +5,7 @@
 (*                                                                          *)
 (* `stage = 2` is still REACHABLE, so no state predicate over a single      *)
 (* state can tell this variant from the reference.  What the mutation adds  *)
-(* is the cycle 0 -> 1 -> 0, which a fair behaviour may take for ever       *)
+(* is the cycle 0 -> 1 -> 0, which a fair behavior may take for ever        *)
 (* without ever reaching position 2.  Only a temporal formula sees it, and  *)
 (* TLC refutes it through the liveness channel at rc=13.                    *)
 (*                                                                          *)

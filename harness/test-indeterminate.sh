@@ -122,7 +122,7 @@
 #   waived:        "query: '... language:tla'  -- skipped (offline)"
 #                  "The configured-check probe was skipped (--expect none)"
 #   involuntary:   "The satisfiability probe did not run, so nothing here
-#                   says Spec admits a behaviour."
+#                   says Spec admits a behavior."
 #
 # This was not free. vacuity.sh used ONE sentence for both causes of a skipped
 # dead-action probe -- the caller's --no-dead-actions and an earlier probe
@@ -171,7 +171,7 @@ nope() {
 # (part 3). WAIVED_VOCAB is the parenthetical rule above, plus `(offline)`,
 # which names a mode rather than a flag and is screen.sh's spelling.
 #
-# Kept as two single-quoted EREs so the census and the behavioural check
+# Kept as two single-quoted EREs so the census and the behavioral check
 # cannot drift apart: there is one definition of "admits a skip" in this file.
 # ---------------------------------------------------------------------------
 SKIP_VOCAB='skipped|did not run|could not run|never ran|was not looked for|could not be assessed|unavailable|was not checked|was not run'

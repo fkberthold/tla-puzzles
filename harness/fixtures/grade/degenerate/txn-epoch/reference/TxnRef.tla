@@ -14,7 +14,7 @@
 (* raise read nothing, and the whole retry apparatus of rule 2, rule 6 and  *)
 (* requirements 5 and 6 could be deleted with no verdict moving.            *)
 (*                                                                          *)
-(* ROW 4 OF RULE 5 IS THE MECHANISM. The desk recognises a second copy and  *)
+(* ROW 4 OF RULE 5 IS THE MECHANISM. The desk recognizes a second copy and  *)
 (* writes the leaf it now holds onto the card, so the card and the book     *)
 (* agree again. It is the only step that moves the card with no entry       *)
 (* behind it, and the only route to a reading where the watch has logged a  *)

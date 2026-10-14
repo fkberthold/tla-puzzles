@@ -600,7 +600,7 @@ classify() {
     # known about whether the obligation holds.
     #
     # They are learner-facing all the same. A submission whose observation
-    # record has the wrong shape -- `[hue |-> colour]` against obligations that
+    # record has the wrong shape -- `[hue |-> color]` against obligations that
     # read `o.level` -- lands here, and getting the graded interface wrong is a
     # learner error, not a harness fault. They used to fall through to the
     # catch-all below and exit 4, which tells a learner nothing and tells
@@ -975,7 +975,7 @@ fi
 # So the run asks whether the reference obligation holds WHERE THE
 # SUBMISSION'S OWN REQUIREMENTS HOLD. Read the answer as a constraint on the
 # spec the learner was handed, which is how the learner meant it, and an
-# answer that cuts the spec down to the reference behaviour meets the
+# answer that cuts the spec down to the reference behavior meets the
 # obligation while a weaker one leaves states behind that refute it.
 #
 # THE GUARD CANNOT BE GAMED BY STRENGTHENING, and that is the whole reason it

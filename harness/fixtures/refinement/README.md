@@ -3,7 +3,7 @@
 Purpose-built inputs for `harness/refinement.sh` (V2-PLAN.md §5.4, bead
 `tla-kl5.7`). `selftest.sh` runs every row and asserts the raw exit status as
 well as the verdict token, so a renumbered table breaks the build instead of
-quietly relabelling itself.
+quietly relabeling itself.
 
 Measured 2026-08-06 against the TLC 2026.03.04.183147 nightly, and re-measured unchanged
 on 2026-08-07 against tla2tools v1.8.0 (TLC 2026.07.31.184830). Every row below holds on
@@ -71,7 +71,7 @@ to nobody else.
 
 `broken/` and `safety-conjunct/` both fail to refine and both come back
 `REFINEMENT_VIOLATED` (22), and TLC reaches that through different codes.
-`broken/` breaks the implied action, which needs an infinite behaviour, so it
+`broken/` breaks the implied action, which needs an infinite behavior, so it
 exits 13. `safety-conjunct/` breaks a `[](Hot => []Hot)` conjunct in the
 abstract's own `Spec`, which TLC refutes with a finite prefix, so it exits 12.
 

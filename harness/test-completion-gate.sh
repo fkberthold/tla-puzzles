@@ -219,7 +219,7 @@ CFG
 # WHOLE FILE AND NOT A sed SUBSTITUTION, and this is a finding rather than a
 # preference. The first version of this suite rewrote one body with
 # `sed -i "s|^Small == .*$|Small == ${body}|"`, and sed's REPLACEMENT eats a
-# backslash it does not recognise: `\cup` reached the file as `cup` and
+# backslash it does not recognize: `\cup` reached the file as `cup` and
 # `/\` as `/`. Every TLA+ body in this file carries a backslash, so the
 # fixtures were silently writing something other than what they said. Part
 # 2b's positive control is what caught it — the fixture whose answer uses the

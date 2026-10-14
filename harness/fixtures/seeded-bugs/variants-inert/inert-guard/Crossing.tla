@@ -18,7 +18,7 @@
 (* the oracle is run against every variant before any grading happens.      *)
 (*                                                                          *)
 (* Kept OUT of crossing/variants/ on purpose: an inert variant poisons the  *)
-(* whole matrix it sits in, which is exactly the behaviour under test.      *)
+(* whole matrix it sits in, which is exactly the behavior under test.       *)
 (***************************************************************************)
 EXTENDS Naturals
 

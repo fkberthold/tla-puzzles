@@ -30,7 +30,7 @@
 # that makes the check runnable anyway is that scripts/setup honours the
 # TLA_JAR_URL and TLA_JAR_SHA256 environment variables and falls back to the
 # pinned values. Point TLA_JAR_URL at a `file://` URL for a stand-in jar in a
-# temp directory, hand it a digest that does not match, and the behaviour is
+# temp directory, hand it a digest that does not match, and the behavior is
 # observable in full. curl reads `file://` the same way it reads https.
 #
 # The offline promise is enforced rather than hoped for. Both runs go through

@@ -5,7 +5,7 @@
 (*                                                                          *)
 (* It says what LadderRefObl!Req_unanimity says. Read as a constraint on    *)
 (* the spec the learner was handed, it cuts that spec down to exactly the   *)
-(* reference behaviour, so this submission is the one that should pass.     *)
+(* reference behavior, so this submission is the one that should pass.      *)
 (*                                                                          *)
 (* The sibling `states-at-least-two/` states a strict weakening under the   *)
 (* SAME operator name. The name is shared on purpose. It leaves the text of *)

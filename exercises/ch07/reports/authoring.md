@@ -41,7 +41,7 @@ carries the constructs the chapter teaches.
 Every module is a PlusCal spec with a `define` block and invariants, so a wrong
 answer lands on `SAFETY_VIOLATION`. There is no scratch-file `ASSUME` shape in
 this set the way there was in ch06, because nondeterminism is a property of a
-behaviour and a module with no behaviour has nowhere to put it. `Depot` carries
+behavior and a module with no behavior has nowhere to put it. `Depot` carries
 one `ASSUME` for its constant, which is the set's only route to
 `ASSUMPTION_FAILED` and is exercised by mutant D5.
 

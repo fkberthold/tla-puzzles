@@ -7,11 +7,11 @@
 # corpus/manifest.tsv, variable-count medians by level run 3, 2, 6, 7, 8, levels
 # 1 and 2 come out inverted, and level 1 alone spans 1 to 87 variables. The
 # reason is structural rather than a weak measurement: the variable count is the
-# ANSWER to a modelling problem, not a fact about it, so a description that told
+# ANSWER to a modeling problem, not a fact about it, so a description that told
 # you the count would be handing over the representation the learner is meant to
 # choose.
 #
-# So a candidate gets modelled first and measured second. This prints the row.
+# So a candidate gets modeled first and measured second. This prints the row.
 #
 # THE ONE RULE THIS FILE HAS TO KEEP
 #
@@ -132,7 +132,7 @@ NMODULES="$(grep -cE '^-{4,}[[:space:]]*MODULE[[:space:]]' <<<"$SRC" || true)"
 # are whitespace to TLA+ and this has to agree with that. Four things make a
 # naive strip wrong, and every one of them was measured on a real module
 # before this was written. The fixtures are in test-spike-measure.sh section
-# 6, each labelled with the wrong number it used to produce.
+# 6, each labeled with the wrong number it used to produce.
 #
 #   - Block comments NEST. `(* a (* b *) c *)` is one comment, so a non-greedy
 #     match stops at the first `*)` and leaves `c *)` standing as code, while
