@@ -157,15 +157,29 @@ ROOT_FLOORS=(
 # phase 2's footprint did not reach them, and every one is a worklist entry:
 #
 #   sources/           242     problem sources
-#   top-level files     24     V2-PLAN.md 22, PRACTICE-PLAN.md 2
 #   curated/            18     curated problems
 #   pilot/              12
+#   top-level files      7     was 24; central cleared 17 on 2026-10-14
 #   corpus/              7
 #   scripts/             1     build-docs.sh, in a comment
 #   .github/             1     verify-puzzles.yml, in a comment
 #
-# That is 305 sites. Clear a root and move it up into SCAN_ROOTS with a floor,
+# That is 288 sites. Clear a root and move it up into SCAN_ROOTS with a floor,
 # which is a two-line change and the point of the layout.
+#
+# THE TOP LEVEL IS THE EXCEPTION, and it needs a third kind of exemption this
+# file does not have yet. Its 7 remaining sites are not drift and not a
+# deferral. One is the ModelledFloor citation at V2-PLAN.md:977, already
+# covered by the token exemption below. The other six are inside `>`
+# blockquotes that reproduce earlier briefs and drawers verbatim, at
+# V2-PLAN.md:1249, 1774, 1790, 1792, 1801 and 2044. Rewording a quotation
+# makes it an inexact quotation, so those are correct as they stand.
+#
+# Both existing exemption kinds say in their own comments that they are a
+# deferral rather than a judgment that the spelling is right. A verbatim
+# quotation is the opposite: a standing judgment that it IS right. Promoting
+# the top level means adding that third category rather than reusing either of
+# these, which is why it did not happen in the same pass that cleared the 17.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------

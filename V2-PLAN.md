@@ -372,7 +372,7 @@ reading gate.
 ```
 INVARIANT: over the delivered sequence P_1 .. P_n, with floor F and
 reading checkpoints C_ch13, C_ref at fixed positions,
-  (a) no two neighbours share a situation or a task shape,
+  (a) no two neighbors share a situation or a task shape,
   (b) for every dimension d, level_d(P_i) <= 1 + max(level_d(F),
       level_d(P_1) .. level_d(P_i-1)),
   (b') at most one dimension d has level_d(P_i) strictly above that
@@ -394,7 +394,7 @@ what the problem is for.
 Two alternatives, and the world each one wins in. K=2 is what we take if 60 problems prove too
 few for the climb. The climb takes about 15 rising steps across six dimensions. K=1 leaves the
 other 45 problems at or under the high-water mark, which is where interleaving does its work.
-Neighbour comparison was rejected, because it miscounts under interleaving.
+Neighbor comparison was rejected, because it miscounts under interleaving.
 
 **The floor, and problem 1.** The floor is the hardest ch.11 drill's vector (Ex5 Airlock:
 representation 0, kind 2, count 1, sources 0, space 0, form 0, gate ch11). The v2 minimum on
@@ -411,7 +411,7 @@ the artifact, which is the statement, the reference and the reports together. Th
 is checked mechanically. Felt difficulty is never a verification input.
 
 The one human check is the door test. The learner reads a statement until they either start
-modelling or bounce, and a bounce is a complaint against the previous rung. Frank's point is
+modeling or bounce, and a bounce is a complaint against the previous rung. Frank's point is
 that the door is built in, because if problem 16 were twice as hard as 17 he'd come and say so.
 §7.1 already says "this was hard" is a non-event. This is §7.1 as a gate.
 
@@ -593,7 +593,7 @@ the topics index says outright *"Most of the topics haven't been written yet."*
 
 1. **Stuttering as constitutive, not permissive.** A spec describes *part* of a world; that
    alone forces `[...]_vars`. Refinement then gets stuttering for free.
-2. **The vacuity hole — make this the CENTREPIECE of the stuttering section, not a footnote.**
+2. **The vacuity hole — make this the CENTERPIECE of the stuttering section, not a footnote.**
    `[][ANext]_(mapped)` unfolds to `ANext \/ UNCHANGED(mapped)`. A frozen mapping makes the
    right disjunct true at every step, so `ANext` is never evaluated once. Verified: a concrete
    spec with three interleaving actions and 27 distinct states passes at rc=0.
@@ -672,7 +672,7 @@ rc** — by `harness/test-verdict.sh`.
 | 11 | `VIOLATION_DEADLOCK` | `DEADLOCK` | deadlock | measured |
 | 12 | `VIOLATION_SAFETY` | `SAFETY_VIOLATION` | safety violation (`INVARIANT`) | measured |
 | 13 | `VIOLATION_LIVENESS` | `LIVENESS_VIOLATION` | liveness / action-property violation (`PROPERTY`, incl. refinement) | measured |
-| 14 | `VIOLATION_ASSERT` | `ASSERT_VIOLATION` | `Assert(FALSE, …)` **while exploring behaviour** | measured |
+| 14 | `VIOLATION_ASSERT` | `ASSERT_VIOLATION` | `Assert(FALSE, …)` **while exploring behavior** | measured |
 | 75 | `FAILURE_SPEC_EVAL` | `SPEC_EVAL_FAILURE` | the spec could not be evaluated | measured |
 | 76 | `FAILURE_SAFETY_EVAL` | `SAFETY_EVAL_FAILURE` | the `INVARIANT` could not be evaluated | measured |
 | 77 | `FAILURE_LIVENESS_EVAL` | `LIVENESS_EVAL_FAILURE` | the `PROPERTY` could not be checked | measured |
@@ -715,7 +715,7 @@ stdout-grep chain used to make.
 #### rc=14 is a timing fact, not a construct fact
 
 `ASSERT_VIOLATION` does **not** mean "an `Assert` failed". It means an `Assert` failed *once TLC
-was already exploring behaviour*. The identical `Assert(FALSE, …)` moved into `Init` exits **75**,
+was already exploring behavior*. The identical `Assert(FALSE, …)` moved into `Init` exits **75**,
 because the initial-state computation wraps the `EvalException` as `EC.TLC_NESTED_EXPRESSION`
 (2103) instead of letting the assertion's own error code through.
 `harness/fixtures/verdict/AssertViolation.tla` and `AssertInInit.tla` are the measured pair, and
@@ -742,7 +742,7 @@ for it is `PASS-VIOLATION`.
 
 The trap is how v1 arrived at that verdict. The old grep chain classified this rc as
 `PASS-VIOLATION` **because it matched the `Trace exploration` line of the `*_TTrace_*.tla` file
-TLC emits alongside the error** — not because it recognised anything about the spec. The
+TLC emits alongside the error** — not because it recognized anything about the spec. The
 canonical invocation below passes **`-noGenerateSpecTE`**, which suppresses that file. So
 adopting the canonical invocation *while keeping the greps* would have silently removed the sole
 basis for T29's verdict, and T29 would have flipped from `PASS-VIOLATION` to a fallthrough with
@@ -895,13 +895,13 @@ NonVacuous == TLCGet("distinct") >= 4
   Passing no names leaves the probe exactly as strong as it was and no stronger.
   `harness/fixtures/vacuity/DeletedAction.tla` holds the shape.
 
-- **A fourth vector (`tla-hf39`, 2026-09-03): `Spec` admits no behaviour at all.** Drop an action
+- **A fourth vector (`tla-hf39`, 2026-09-03): `Spec` admits no behavior at all.** Drop an action
   from `Next`, keep `WF_vars(Action)` in `Spec`, and fairness now demands a step the next-state
-  relation forbids. No behaviour satisfies `Spec`. Every temporal obligation then holds over
+  relation forbids. No behavior satisfies `Spec`. Every temporal obligation then holds over
   nothing, and TLC still exits 0. The token is `VACUOUS_UNSATISFIABLE` at rc=7.
 
   **All three probes above are blind to it by construction.** Fairness doesn't touch the state
-  graph, it constrains the behaviours over that graph. The space stays healthy, `NonVacuous`
+  graph, it constrains the behaviors over that graph. The space stays healthy, `NonVacuous`
   passes, `InvariantConfigured` passes, and every action still in `Next` reports a non-zero
   total. Only the liveness half goes blind, and it goes blind at rc=0 reporting success.
   `harness/fixtures/vacuity/UnsatFairness.tla` holds the shape, and `LiveFairness.tla` is the
@@ -913,12 +913,12 @@ NonVacuous == TLCGet("distinct") >= 4
   | probe body | fixture | rc | reading |
   |---|---|---|---|
   | `[]<>FALSE` | unsatisfiable `Spec` | 0 | nothing refuted it, so there's nothing to refute it with |
-  | `[]<>FALSE` | satisfiable twin | 13 | a behaviour exists, and it refuted the formula |
+  | `[]<>FALSE` | satisfiable twin | 13 | a behavior exists, and it refuted the formula |
   | `[](counter # counter)` | unsatisfiable `Spec` | 12 | wrong channel (see below) |
 
   Row 3 is the trap. `[]P` over a state predicate isn't a weaker probe, it's a different channel.
   TLC lifts a state-level formula into an INVARIANT and refutes it against the state graph, which
-  ignores fairness by construction. It reports a violation on a spec that has no behaviours at
+  ignores fairness by construction. It reports a violation on a spec that has no behaviors at
   all, which is the opposite of the signal wanted.
 
 - **`-inv` has no `-prop` twin, so the temporal probe needs a generated module.** `tlc -help` on
@@ -940,7 +940,7 @@ NonVacuous == TLCGet("distinct") >= 4
   Two constraints on when the probe may run. It goes after the `NonVacuous` probe and only when
   that probe finished at rc=0. Appending a `PROPERTY` to a `.cfg` whose `INVARIANT` is already
   violated exits 12 on the safety violation before liveness checking starts, and a safety
-  violation says nothing either way about whether `Spec` admits a behaviour. Deadlock checking
+  violation says nothing either way about whether `Spec` admits a behavior. Deadlock checking
   also stays off, or a terminal state exits 11 before the probe means anything.
 
   `FALSE` doesn't constant-fold out of the temporal channel here, and that's worth flagging
@@ -1712,7 +1712,7 @@ problems requiring elicitation. Partially served: failure/adversary modeling —
   Calibration without spoiling the thing currently being attempted. This is also where the
   post-hoc commentary belongs.
 - **Bordeaux's "most permissive" framing** — ask for the *most permissive* correct design, not
-  *a* correct one. No memorizable canonical answer, and "does A admit behaviours B rejects,
+  *a* correct one. No memorizable canonical answer, and "does A admit behaviors B rejects,
   both still correct?" is mechanically checkable.
 - **Predict → model → check → explain the divergence.** The self-explanation prompt is the piece
   with meta-analytic support (g=0.55), and requiring a prediction commitment *before* running
@@ -1735,7 +1735,7 @@ and it lives in §2.5.
 1. **Coverage audit** (not before this point). Enumerate learntla core constructs; find the
    uncovered ones; add 2–3 problems at most. Do not let this reshape the set.
 2. **Interleave order.** Never consecutive problems of one idiom. Interleave confusable
-   near-neighbours: invariant vs inductive invariant; type invariant vs safety property;
+   near-neighbors: invariant vs inductive invariant; type invariant vs safety property;
    `WF` vs `SF`; `[]<>` vs `<>[]`; refinement mapping vs auxiliary variable; atomicity split at
    the read vs at the write.
    `harness/sequence.sh` produces this order against the §2.5 rule, not a hand walk.

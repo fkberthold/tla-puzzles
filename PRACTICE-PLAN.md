@@ -16,7 +16,7 @@ and "The decisions". It says a problem starts from a published, human-authored
 TLA+ specification.
 
 The 2026-09-06 layer replaced that source with external prose, meaning documented
-failures and prose behavioural specifications. Bead `tla-frpu` carries the
+failures and prose behavioral specifications. Bead `tla-frpu` carries the
 argument and `sources/README.md` carries the survey that settled which prose. The
 short version is that the public TLA+ corpus is search puzzles at the easy end
 and consensus protocols everywhere else. About a dozen rows in 143 read as
@@ -310,7 +310,7 @@ One scale, anchored on state representation.
 | 2 | one function as state, few entities |
 | 3 | several functions, or a nested one, or rules relating entities |
 | 4 | tier 3's state, and progress matters or the abstraction boundary is the question |
-| 5 | refinement, or behaviour only visible from parties interacting |
+| 5 | refinement, or behavior only visible from parties interacting |
 
 State representation is the anchor because it drives counterexample width, and
 counterexample width drives the debugging skill I'm getting the most out of. A wider
