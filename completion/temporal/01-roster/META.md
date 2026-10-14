@@ -70,3 +70,10 @@ actually lives. Claim 2's content is the relation between `holder'` and
 So a gate checking this rule per INVENTORY row will flag claim 2 on three
 rows. One of them, K009, is a real absence. The other two are the price of
 the family.
+
+telegraph-waiver: [] -- Spec is Init /\ [][Next]_vars and every one of the 27
+machines in the corpus carries that skeleton, so the box cannot be hidden by
+any item; what this hole withholds is the implication.
+
+telegraph-waiver: ]_ -- the same skeleton and the same count: the box-action
+subscript is on the page before the learner writes a character.

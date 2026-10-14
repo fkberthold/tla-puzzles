@@ -721,19 +721,29 @@ echo "PART 3 — the real completion/ tree"
 echo
 
 # <code>|<item>|<a substring of the finding's detail>|<where the item argues it>
-CORPUS_PENDING=(
-  "TELEGRAPH-SHOWN|pluscal/01-squares|uses 'pc'|completion/pluscal/01-squares/META.md, 'What changed from the reading sibling': pcal writes Terminating == pc = \"Done\" into every translation that can finish"
-  "TELEGRAPH-SHOWN|temporal/01-roster|uses '[]'|completion/temporal/01-roster/META.md, 'Where the no-telegraph rule does not reach': Spec == Init /\\ [][Next]_vars is the spec skeleton"
-  "TELEGRAPH-SHOWN|temporal/01-roster|uses ']_'|completion/temporal/01-roster/META.md, same section: the box-action subscript is on the page before the learner writes a character"
-)
+# EMPTIED 2026-10-14. Central added the three telegraph-waiver lines the
+# register asked for: `pc` on pluscal/01-squares, `[]` and `]_` on
+# temporal/01-roster. The gate then read 9 items, 0 findings, VERDICT OK, and
+# echoes all three waivers on every run.
+#
+# THE ARRAY STAYS, EMPTY, rather than being deleted with its consumer. An empty
+# register asserts the stronger thing: the real tree produces NO finding of any
+# kind. The both-directions check below is what makes that true, so a new leak
+# reddens this row rather than being absorbed. Refill it only to park a finding
+# somebody has read and decided to leave, never to make a red tree green.
+CORPUS_PENDING=()
 
-echo "        PENDING REGISTER — findings central has not yet dispositioned."
-echo "        Each needs one 'telegraph-waiver:' line in the item's own META.md,"
-echo "        and the reason is already written there. Any finding OUTSIDE this"
-echo "        register fails this suite; so does an entry it no longer produces."
-for p in "${CORPUS_PENDING[@]}"; do
-  printf '          %s  %s\n' "${p%%|*}" "$(cut -d'|' -f2,3 <<<"$p" | tr '|' ' ')"
-done
+if [ "${#CORPUS_PENDING[@]}" -eq 0 ]; then
+  echo "        PENDING REGISTER — empty. The real tree must produce no finding."
+else
+  echo "        PENDING REGISTER — findings central has not yet dispositioned."
+  echo "        Each needs one 'telegraph-waiver:' line in the item's own META.md,"
+  echo "        and the reason is already written there. Any finding OUTSIDE this"
+  echo "        register fails this suite; so does an entry it no longer produces."
+  for p in "${CORPUS_PENDING[@]}"; do
+    printf '          %s  %s\n' "${p%%|*}" "$(cut -d'|' -f2,3 <<<"$p" | tr '|' ' ')"
+  done
+fi
 echo
 
 COMPLETION_ITEMS=0

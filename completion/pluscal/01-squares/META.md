@@ -62,7 +62,11 @@ like a square, and `Divisors` has no counterpart.
 What the page does hand over is the `(pc = "Done") => ...` shape for a terminal
 claim. That is not worth hiding, and I do not think it can be hidden: `pcal`
 writes `Terminating == pc = "Done" /\ UNCHANGED vars` into every translation that
-can finish. So claim 2's guard sits in the shown code of all three machines by
+can finish.
+
+telegraph-waiver: pc -- pcal writes Terminating == pc = "Done" into every
+translation that can finish, so claim 2's guard is in all three machines by
+construction and only its body is withheld. So claim 2's guard sits in the shown code of all three machines by
 construction, and the item's substance is the body rather than the shape. That is
 a standing limit on the no-telegraph rule for this whole family, not a defect in
 this item.

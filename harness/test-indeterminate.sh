@@ -148,6 +148,7 @@ VERDICT="harness/verdict.sh"
 CGATE="harness/comment-gate.sh"
 DGATE="harness/drill-gate.sh"
 RGATE="harness/reading-gate.sh"
+KGATE="harness/completion-gate.sh"
 
 pass_count=0
 fail_count=0
@@ -219,7 +220,7 @@ involuntary_admissions() {
 # rcs, which is a success code carrying a skip admission, exactly what part 3
 # forbids. That block now spells the admission and names its flag
 # (drill-gate.sh:1922), and the --static-only row below is what checks it.
-REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE")
+REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE" "$KGATE")
 ROWS_RUN=()
 ROWS_NONPASS=()
 for i in "${!REGISTERED[@]}"; do
@@ -654,6 +655,40 @@ run_row "$RGATE" "reading-gate.sh: --no-tlc was asked to reproduce six rcs and d
   bash "$RGATE" --no-tlc -q reading
 assert_out "the reading gate names the check it did not run" "UNCHECKED verify-rc"
 assert_out "the reading gate reports the reserved token" "VERDICT $TOKEN"
+
+# --- completion-gate.sh: registered 2026-10-14, bead tla-4yit ---------------
+#
+# The census named it the day it landed and this suite went red by one row,
+# which is the census doing its job on an instrument nobody had driven from
+# outside its own suite yet. Its author reported that rather than editing this
+# registry, because a shared registry is not in a worker's Files line.
+#
+# It has BOTH shapes, unlike the reading gate, so it needs both rows. Checks 1
+# and 2 drive TLC through completion/verify-item.sh, so --no-tlc is a refusal
+# and --static-only is a caller instruction.
+run_row "$KGATE" "completion-gate.sh: --no-tlc was asked to measure nine items' holes and did not" \
+  "$INDETERMINATE" -- \
+  bash "$KGATE" --no-tlc -q completion
+assert_out "the completion gate names the check it did not run" "UNCHECKED one-machine-per-hole"
+assert_out "the completion gate reports the reserved token" "VERDICT $TOKEN"
+assert_not_out "the completion gate does not claim OK over it" "VERDICT OK"
+
+# THE WAIVED SIDE. Same reasoning as the drill gate's --static-only row: a
+# clean static run is a true pass, so it must not be forced to 99, and what it
+# owes instead is one line naming both the skip and the flag that waived it.
+#
+# ONE SUBSTRING AND NOT TWO, for the reason the drill row records:
+# involuntary_admissions() matches line by line and asks each matching line for
+# a parenthetical, so an admission on one line and a flag on the next waives
+# nothing. assert_out cannot see a line boundary, so the halves are pinned
+# adjacent.
+run_row "$KGATE" "completion-gate.sh: --static-only is a caller instruction, not a failure" \
+  0 -- \
+  bash "$KGATE" --static-only -q completion
+assert_out "the static-only admission and its waiving flag are on one line" \
+  "were skipped (--static-only)"
+assert_out "the static-only run still states what it did not measure" \
+  "whose holes were not measured"
 
 # --- comment-gate.sh: the instrument that already got this right ------------
 #
