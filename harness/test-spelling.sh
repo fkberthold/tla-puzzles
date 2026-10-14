@@ -320,9 +320,46 @@ exempt() {
   return 1
 }
 
+# Self-exclusion, and it is not a courtesy. This file carries the pair list,
+# a header naming the three shapes a whole-word scan misses, and two planted
+# control files, so it necessarily contains every British word the gate bans.
+# It is the one file in the tree allowed to. Every file that warns against a
+# string contains that string, which is why harness/test-pipefail.sh carries
+# the same exclusion for the same reason.
+#
+# THE TRAP THIS WALKED INTO, worth keeping because the green was false rather
+# than merely early. The suite passed its whole RED-to-GREEN cycle without
+# this line, because selection reads the index and the file was still
+# untracked. It went red on the first run after `git add`, at 69 self-hits. A
+# gate that scans tracked files and names what it bans is green until the
+# moment it is committed, so run it once more after staging.
+SELF="harness/test-spelling.sh"
+
 select_scan_files "${SCAN_ROOTS[@]}"
 
+SCANNED=()
+self_seen=0
+for f in "${SELECTED[@]}"; do
+  if [ "$f" = "$SELF" ]; then
+    self_seen=1
+    continue
+  fi
+  SCANNED+=("$f")
+done
+
 echo "== part 1: ${SCAN_ROOTS[*]} are American =="
+
+# Pinned, because the exclusion is only sound while it covers exactly this
+# file. If this suite is renamed and SELF is not, the gate starts scanning
+# its own pair list and goes red for a reason that has nothing to do with the
+# tree. The other direction matters as much: a SELF that matches nothing is
+# an exclusion nobody is using, and the next person to add a second entry
+# should have to notice that.
+if [ "$self_seen" -eq 1 ]; then
+  ok "self-exclusion covers $SELF, and it is tracked"
+else
+  nope "self-exclusion names $SELF, which is not in the scanned set — rename it in SELF or the gate will scan its own pair list"
+fi
 
 check_root() {
   local root="$1" floor="$2" f n=0
@@ -344,7 +381,7 @@ for entry in "${ROOT_FLOORS[@]}"; do
   check_root "${entry%%:*}" "${entry#*:}"
 done
 
-narrow_to_candidates "${SELECTED[@]}"
+narrow_to_candidates "${SCANNED[@]}"
 collect_findings "${CANDIDATES[@]}"
 if [ "$FINDING_COUNT" -eq 0 ]; then
   ok "no British spelling under ${SCAN_ROOTS[*]}"
