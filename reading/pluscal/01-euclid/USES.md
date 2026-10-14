@@ -5,6 +5,8 @@ divisors of the pair named as an operator and watched at every state.
 
 rc: 0
 
+## What the properties rest on
+
 Translated with `pcal -lineWidth 60 -nocfg -termination`. The
 translation is committed, so the module checks as it stands.
 
@@ -29,6 +31,7 @@ gives `WF_vars` anyway, and a `fair process` with `-nof` gives nothing. Read
 ## Constructs from other families, also exercised
 
 - Operator definition
+- EXTENDS (module import)
 - IF-THEN-ELSE
 - Integers
 - Set filter
@@ -47,6 +50,7 @@ gives `WF_vars` anyway, and a `fair process` with `-nof` gives nothing. Read
 - [P]_x (box action formula)
 - UNCHANGED
 - <> (eventually)
+- WF_v(A) (weak fairness)
 - fairness conjunct on Spec
 - Invariant (as a TLA+ operator, checked at every state)
 - PROPERTY (TLC model config: register a temporal property)

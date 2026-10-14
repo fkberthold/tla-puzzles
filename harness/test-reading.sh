@@ -12,13 +12,21 @@
 # does and — the half that matters more — what it deliberately does not.
 # This file does not restate those boundaries; it would drift from them.
 #
-# ALL FOUR CHECKS GATE. There is no report-only check here, unlike
+# ALL SIX CHECKS GATE. There is no report-only check here, unlike
 # harness/drill-gate.sh's check 3: the construct-coverage report is
 # deliberately absent from this gate, so there is nothing to pin open.
 #
 # PART 1  each check, against a fixture built to trip it
+#         1a shape · 1b phone bound · 1c recorded rc · 1d obligation
+#         1e construct declaration · 1f USES.md shape
 # PART 2  controls the other way: shapes that LOOK wrong and must not fire
 # PART 3  the real reading/ tree
+#
+# CHECKS 5 AND 6 ARRIVED WITH BEAD tla-fwkz.2.8, and two of their controls
+# are the ones worth keeping an eye on. Check 5 runs in ONE direction, so 2i
+# pins that an over-declaration stays silent. Check 1 now skips TLC's own run
+# artifacts, so 2h pins that the skip stays narrow enough to still catch a
+# stray .bak.
 #
 # Usage:  harness/test-reading.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -132,6 +140,12 @@ PROPERTY NeverFalls
 
 CHECK_DEADLOCK FALSE
 CFG
+  # THE BASELINE USES.md IS NORMALIZED, which checks 5 and 6 made load-
+  # bearing. Before bead tla-fwkz.2.8 it carried no probe section and
+  # declared neither EXTENDS nor VARIABLES, and the module text carries
+  # both, so the old baseline now trips three findings. A baseline that
+  # fails is not a baseline, and every fixture below is one mutation away
+  # from this file.
   cat >"${d}/USES.md" <<'USES'
 # USES: core/01-base
 
@@ -139,10 +153,20 @@ Subject: a counter that climbs to three and stops.
 
 rc: 0
 
+## What the properties rest on
+
+`Bounded` rests on Step's `n < 3` guard. Raise it to `n < 4` and the run
+gives rc 12.
+
 ## Constructs
 
 - Operator definition
 - Integers
+
+## Constructs from other families, also exercised
+
+- EXTENDS (module import)
+- VARIABLE / VARIABLES
 USES
   printf '%s\n' "$d"
 }
@@ -290,6 +314,95 @@ run_gate --no-tlc "$R"
 has   "1d cfg: a bare INVARIANT keyword does not count as one" "CFG-NO-OBLIGATION"
 rc_is "1d cfg: rc 1 on a bare keyword" 1
 
+# --- 1e: check 5, THE CONSTRUCT DECLARATION -------------------------------
+# The bead's RED line: a module whose text carries EXTENDS and whose USES.md
+# omits it must produce a finding that NAMES the construct. Naming it is the
+# half that makes the finding actionable, so each assertion below pins the
+# name and not just the code.
+R="${TMP}/decl-extends"
+D="$(mk_item "$R")"
+sed -i '/^- EXTENDS (module import)$/d' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1e decl: EXTENDS in the text and not declared is a finding" "USES-CONSTRUCT-UNDECLARED"
+has   "1e decl: the finding names the construct" "carries EXTENDS (module import) and USES.md does not declare it"
+rc_is "1e decl: rc 1" 1
+
+R="${TMP}/decl-variables"
+D="$(mk_item "$R")"
+sed -i '/^- VARIABLE \/ VARIABLES$/d' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1e decl: VARIABLES in the text and not declared is a finding" "carries VARIABLE / VARIABLES and USES.md does not declare it"
+rc_is "1e decl: rc 1 on an undeclared VARIABLES" 1
+
+# THE OTHER FIVE, each added to the baseline's text and left undeclared. The
+# first attempt at these fixtures deleted a bullet the baseline never had, so
+# the sed was a no-op and the fixture proved nothing. Here the construct is
+# ADDED to the module, which cannot silently miss.
+R="${TMP}/decl-constant"
+D="$(mk_item "$R")"
+sed -i 's/^EXTENDS Naturals$/EXTENDS Naturals\nCONSTANT Cap/' "${D}/Base.tla"
+run_gate --no-tlc "$R"
+has   "1e decl: an added CONSTANT is named" "carries CONSTANT and USES.md does not declare it"
+
+R="${TMP}/decl-assume"
+D="$(mk_item "$R")"
+sed -i 's/^EXTENDS Naturals$/EXTENDS Naturals\nASSUME 1 < 2/' "${D}/Base.tla"
+run_gate --no-tlc "$R"
+has   "1e decl: an added ASSUME is named" "carries ASSUME and USES.md does not declare it"
+
+R="${TMP}/decl-unchanged"
+D="$(mk_item "$R")"
+sed -i 's/^Next == Step$/Hold == UNCHANGED vars\nNext == Step/' "${D}/Base.tla"
+run_gate --no-tlc "$R"
+has   "1e decl: an added UNCHANGED is named" "carries UNCHANGED and USES.md does not declare it"
+
+R="${TMP}/decl-wf"
+D="$(mk_item "$R")"
+sed -i 's/^Spec == Init \/\\ \[\]\[Next\]_vars$/Spec == Init \/\\ [][Next]_vars \/\\ WF_vars(Step)/' "${D}/Base.tla"
+run_gate --no-tlc "$R"
+has   "1e decl: an added WF_ is named" "carries WF_v(A) (weak fairness) and USES.md does not declare it"
+
+R="${TMP}/decl-sf"
+D="$(mk_item "$R")"
+sed -i 's/^Spec == Init \/\\ \[\]\[Next\]_vars$/Spec == Init \/\\ [][Next]_vars \/\\ SF_vars(Step)/' "${D}/Base.tla"
+run_gate --no-tlc "$R"
+has   "1e decl: an added SF_ is named" "carries SF_v(A) (strong fairness) and USES.md does not declare it"
+
+# --- 1f: check 6, THE USES.md SHAPE ---------------------------------------
+# Three ways a USES.md can put its probe prose somewhere the published page
+# never shows it. See CHECK 6 in the gate's header for what each one did.
+R="${TMP}/shape-no-probe"
+D="$(mk_item "$R")"
+sed -i '/^## What the properties rest on$/d' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1f uses: a missing probe section is a finding" "USES-NO-PROBE-SECTION"
+rc_is "1f uses: rc 1 on a missing probe section" 1
+
+# A RENAMED SECTION IS THE DRIFT THIS CHECK EXISTS FOR. The corpus carried
+# six names for this one region before it was normalized, and
+# `## What the measurements say` was one of them.
+R="${TMP}/shape-variant"
+D="$(mk_item "$R")"
+sed -i 's/^## What the properties rest on$/## What the measurements say/' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1f uses: a renamed probe section is a finding" "USES-UNKNOWN-SECTION"
+has   "1f uses: and the probe section then reads as missing too" "USES-NO-PROBE-SECTION"
+rc_is "1f uses: rc 1 on a renamed section" 1
+
+# PROSE IN THE DROPPED REGION. Between the rc: line and the first heading is
+# where scripts/build-docs.sh claims nothing, so text there never publishes.
+#
+# The inserted line carries no backticks on purpose. A markdown backtick in a
+# single-quoted sed replacement reads to shellcheck as a command substitution
+# somebody forgot to make expandable (SC2016), and `a` sidesteps the question.
+R="${TMP}/shape-stray"
+D="$(mk_item "$R")"
+sed -i '/^rc: 0$/a Raising the guard gives rc 12.' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1f uses: prose in the region build-docs drops is a finding" "USES-PROSE-MISPLACED"
+has   "1f uses: the finding counts the lines" "1 line(s) sit between"
+rc_is "1f uses: rc 1 on misplaced prose" 1
+
 echo
 
 # ===========================================================================
@@ -431,6 +544,87 @@ run_gate --no-tlc "$R"
 rc_is "2g usage: an empty root is rc 99, not 0" 99
 has   "2g usage: and says no item was found" "no item found"
 
+# --- 2h: check 1 ignores TLC's run artifacts ------------------------------
+# A bare `tlc` run that finds an error drops <Name>_TTrace_<n>.tla and .bin
+# beside the module, and a -dump run leaves states/. All three are gitignored
+# so none can reach a commit, and a finding over one is noise the author then
+# clears by hand. The tla-fwkz.2.6 author did exactly that, four times.
+R="${TMP}/artifacts"
+D="$(mk_item "$R")"
+: >"${D}/Base_TTrace_1760000000000.tla"
+: >"${D}/Base_TTrace_1760000000000.bin"
+mkdir -p "${D}/states"
+run_gate --no-tlc "$R"
+hasnt "2h artifacts: a TTrace pair and a states/ dir are not a fourth entry" "SHAPE-EXTRA-ENTRY"
+
+# AND THE SKIP IS NARROW. .gitignore's next block covers *.bak and *.old, and
+# an author's scratch copy in an item directory IS a finding. Only tool output
+# is skipped, which is why this is a pattern rather than a git query.
+R="${TMP}/artifacts-narrow"
+D="$(mk_item "$R")"
+: >"${D}/Base.tla.bak"
+run_gate --no-tlc "$R"
+has   "2h artifacts: a .bak beside the module still fires" "SHAPE-EXTRA-ENTRY"
+
+# A TTrace FILE MUST NOT BE MISTAKEN FOR THE MODULE either. Both end in .tla,
+# and the artifact arm sits above the `*.tla` arm for that reason.
+R="${TMP}/artifacts-stem"
+D="$(mk_item "$R")"
+: >"${D}/Base_TTrace_1760000000000.tla"
+run_gate --no-tlc "$R"
+hasnt "2h artifacts: a TTrace .tla is not read as a second module" "SHAPE-EXTRA-ENTRY"
+hasnt "2h artifacts: nor as a stem mismatch against the .cfg" "SHAPE-STEM-MISMATCH"
+
+# --- 2i: check 5 runs in ONE direction only -------------------------------
+# Text implies declaration. The reverse is deliberately unchecked, because an
+# item may honestly declare a construct whose keyword no scan can see, and 7
+# files in the real corpus carry a prose note saying why a row is NOT claimed.
+# Overruling the author there would make the gate wrong more often than right.
+R="${TMP}/decl-extra"
+D="$(mk_item "$R")"
+cat >>"${D}/USES.md" <<'USES'
+- CONSTANT
+- ASSUME
+- UNCHANGED
+- SF_v(A) (strong fairness)
+USES
+run_gate --no-tlc "$R"
+hasnt "2i decl: a construct declared and absent from the text is not a finding" "USES-CONSTRUCT-UNDECLARED"
+
+# A CONSTRUCT IN NEITHER PLACE IS NOT A FINDING. That is the ordinary case for
+# most of the seven in most items, and it must stay silent.
+R="${TMP}/decl-neither"
+mk_item "$R" >/dev/null
+run_gate --no-tlc "$R"
+hasnt "2i decl: a construct in neither the text nor the list is silent" "USES-CONSTRUCT-UNDECLARED"
+
+# --- 2j: prose INSIDE a Constructs section is legal ------------------------
+# Those notes annotate the list they sit in, which is where they belong. The
+# shape check is about the region between the rc: line and the first heading,
+# and about the heading names, not about prose in general.
+R="${TMP}/decl-note"
+D="$(mk_item "$R")"
+cat >>"${D}/USES.md" <<'USES'
+
+`UNION` is here twice and has no row in `drill/INVENTORY.md`, so it
+isn't claimed above.
+USES
+run_gate --no-tlc "$R"
+hasnt "2j uses: a declaration note inside a Constructs section is not misplaced prose" "USES-PROSE-MISPLACED"
+hasnt "2j uses: and it is not an unknown section" "USES-UNKNOWN-SECTION"
+
+# A BULLET IN THE PROBE SECTION IS NOT A DECLARED CONSTRUCT. The probe prose
+# uses `- ` lists for its measured variants, and a whole-file bullet scan
+# would read "- `Peak` tightened to `n <= 51` gives rc 12." as a construct.
+# So the declaration reader is scoped to the two Constructs sections, and
+# this control is what holds it there.
+R="${TMP}/decl-scope"
+D="$(mk_item "$R")"
+sed -i '/^- EXTENDS (module import)$/d' "${D}/USES.md"
+sed -i '/^## What the properties rest on$/a - EXTENDS (module import)' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "2j uses: a construct bullet in the probe section does not count as declared" "carries EXTENDS (module import) and USES.md does not declare it"
+
 echo
 
 # ===========================================================================
@@ -464,7 +658,7 @@ elif [ "$READING_ITEMS" -eq 0 ]; then
 else
   run_gate "${REPO_ROOT}/reading"
   if [ "$GATE_RC" = "0" ]; then
-    ok "real tree: ${READING_ITEMS} item(s), clean on all four checks"
+    ok "real tree: ${READING_ITEMS} item(s), clean on all six checks"
   else
     nope "real tree: reading-gate.sh returned rc=${GATE_RC} over reading/ (${READING_ITEMS} items)"
     printf '%s\n' "$GATE_OUT" | sed 's/^/        /'

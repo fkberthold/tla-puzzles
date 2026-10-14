@@ -5,6 +5,8 @@ keeps that slot under a different field name.
 
 rc: 0
 
+## What the properties rest on
+
 The two record shapes carry different fields, so `DOMAIN book[t]` is
 what tells them apart. `Held` rests on that, and the shape test has to
 come first: there's no `.to` to read on a shelved record.
@@ -13,8 +15,6 @@ I think `SlotsDistinct` is the one worth the time. It holds because no
 action ever invents a slot. Lend copies the slot into `home`, Return
 copies it back, and Swap exchanges two of them, so the assignment made
 at Init is only ever permuted.
-
-## What the invariants rest on
 
 Three variants, each one change away from the module above.
 
@@ -40,6 +40,7 @@ is what keeps the set filter evaluable.
 ## Constructs from other families, also exercised
 
 - Operator definition
+- EXTENDS (module import)
 - IF-THEN-ELSE
 - Integers
 - Strings

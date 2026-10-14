@@ -5,6 +5,8 @@ whenever that value is larger, with weak fairness on every copy step.
 
 rc: 0
 
+## What the properties rest on
+
 Weak fairness is what buys `Settles`. Dropping the `Fairness` conjunct
 from `Spec` gives rc 13. Running with deadlock checking on gives rc 11,
 which is why the `.cfg` says `CHECK_DEADLOCK FALSE`.

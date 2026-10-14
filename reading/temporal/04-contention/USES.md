@@ -5,6 +5,8 @@ over, and a one-shot task that needs the same lock once.
 
 rc: 0
 
+## What the properties rest on
+
 `SF_vars(TaskTake)` is the whole point. Swapping it for
 `WF_vars(TaskTake)` gives rc 13, and `WindowCloses` says why: the
 window the task needs never stays open, so weak fairness has no

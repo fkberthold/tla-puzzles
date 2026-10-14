@@ -6,14 +6,12 @@ the properties watch.
 
 rc: 0
 
+## What the properties rest on
+
 `NoEscape` rests on a move touching one heap only. Adding an arm that
 takes a stone from two heaps at once gives rc 13. `ZeroIsOneMoveAway`
 rests on a move being allowed to take more than one stone, and
 narrowing the escape to `k = a - 1` gives rc 12.
-
-`EXTENDS Integers` is boilerplate here rather than exercised module
-work, so `drill/INVENTORY.md`'s row for it is not claimed. None of the
-six models that landed first claims it either.
 
 ## Constructs
 
@@ -31,6 +29,7 @@ six models that landed first claims it either.
 
 ## Constructs from other families, also exercised
 
+- EXTENDS (module import)
 - CONSTANT
 - ASSUME
 - BOOLEAN and integer interval as sets

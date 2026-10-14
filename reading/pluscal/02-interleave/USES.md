@@ -5,6 +5,8 @@ than they read, with the read and the write in separate labels.
 
 rc: 0
 
+## What the properties rest on
+
 Translated with `pcal -lineWidth 72 -nocfg`. The translation is committed,
 so the module checks as it stands.
 
@@ -12,8 +14,6 @@ so the module checks as it stands.
 to `-wf`, which conjoins weak fairness whatever the algorithm says, and the
 `fair` keyword would then carry no weight. The `Terminating` disjunct and
 the `Termination` operator come out anyway.
-
-## Measured probes
 
 Both bounds on `counter` are tight, and I think that gap is the thing worth
 working out.

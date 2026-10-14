@@ -5,10 +5,10 @@ Subject: Halve it if it's even, else triple it and add one, until it hits
 
 rc: 0
 
+## What the properties rest on
+
 Translated with `pcal -lineWidth 72 -nocfg`. The translation is committed,
 so the module checks as it stands.
-
-## Measured probes
 
 `Peak` says the run never goes above 52, starting from 7. The bound is
 tight, which is not what the first few steps suggest.

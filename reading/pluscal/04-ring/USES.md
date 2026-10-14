@@ -5,13 +5,13 @@ count. The two indices are equal in two different situations.
 
 rc: 0
 
+## What the properties rest on
+
 Translated with `pcal -lineWidth 72 -nocfg`. The translation is committed,
 so the module checks as it stands.
 
 `pc` is absent. One label inside `while (TRUE)` leaves pcal nothing to
 track, so it drops the variable and writes `Next` as a bare disjunction.
-
-## Measured probes
 
 `Ambiguous` is the one to sit with. `head = tail` holds when the buffer is
 empty and again when it's full, so the two indices on their own can't tell

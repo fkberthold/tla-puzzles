@@ -5,7 +5,7 @@ checking on and the claim that the table never stalls.
 
 rc: 0
 
-## What the run measured
+## What the properties rest on
 
 rc 0 over 120 distinct states. 120 is every way to split 7 chips among 4
 players, so the search reaches all of them.
@@ -37,6 +37,7 @@ larger than itself.
 ## Constructs from other families, also exercised
 
 - Operator definition
+- EXTENDS (module import)
 - IF-THEN-ELSE
 - Integers
 - Equality and inequality

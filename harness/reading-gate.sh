@@ -122,6 +122,85 @@
 # exit 0 over it while checking nothing.
 #
 # ===========================================================================
+# CHECK 5 — A CONSTRUCT IN THE MODULE TEXT IS DECLARED IN USES.md.
+#
+# THE RULE, settled by bead tla-fwkz.2.8: a construct a reader meets in the
+# module text is exercised, so it gets declared. USES.md's second heading
+# says "Constructs from other families, also exercised" rather than
+# "constructs this item drills", and that wording is what decides it.
+#
+# The question came from a real divergence. On 2026-10-13 all 8 reading
+# modules carried an EXTENDS line and only 2 USES.md files declared it, and
+# the tla-fwkz.2.5 author reported that rather than quietly matching the six.
+# At 25 items the split was 23 carrying it in the text against 10 declaring
+# it. An unenforced convention drifts every wave, which is why this is a
+# check and not a sentence in a style note.
+#
+# WHAT IT CHECKS, AND IN ONE DIRECTION ONLY. Text implies declaration. The
+# reverse is deliberately not checked: an item may honestly declare a
+# construct whose keyword this scan cannot see, and 7 files carry a prose
+# note inside a Constructs section saying why a row is NOT claimed. Those
+# notes are the author's judgment and the gate has no business overruling
+# them.
+#
+# WHY THESE SEVEN AND NOT THE OTHER 98 ROWS. drill/INVENTORY.md's rows are
+# coarser than operators, and a per-row text scan is only sound where the row
+# and the keyword are one to one. K013 "Set relational and algebraic
+# operators" covers \cup, \cap and \subseteq together, so no scan can tell
+# which of the three a module uses, and a finding over that row would be true
+# of the row and false of the module. The seven below have exactly one row
+# each and exactly one spelling in the text:
+#
+#   EXTENDS      K004 (modules)         VARIABLES  K081 (temporal)
+#   CONSTANT     K039 (state-space)     UNCHANGED  K085 (temporal)
+#   ASSUME       K040 (state-space)     WF_        K095 (temporal)
+#                                       SF_        K096 (temporal)
+#
+# WF_ AND SF_ ARE THE ONE PAIR WORTH ARGUING ABOUT, and they are included
+# because K095 and K096 are separate rows, so the scan can tell weak from
+# strong. The hazard is the PlusCal route: pcal turns a `fair process` into a
+# generated `WF_vars(...)`, and K065 "fair process (weak fairness)" is a
+# different row for the same text. That is not a reason to drop the check.
+# The translation is committed and read, so a reader does meet the operator,
+# and both pluscal items that carry `fair` declare K065 AND K095 together
+# (reading/pluscal/02-interleave, 03-contend).
+#
+# WHERE A DECLARATION GOES is the row's own family column: `## Constructs`
+# when the row's family is the item's family, and `## Constructs from other
+# families, also exercised` otherwise. All 25 items follow it.
+#
+# ===========================================================================
+# CHECK 6 — USES.md HAS ONE SHAPE, so the probe prose reaches the page.
+#
+# WHAT WENT WRONG. Most items carry a paragraph saying what to change to make
+# the run go red, and that sentence is the only thing in an item that says
+# which construct is carrying which property. Every one of the 25 items
+# checks clean at rc 0, so without it the page shows a module that passes and
+# gives no way to tell what would stop it passing.
+#
+# It had five placements and six heading names, and scripts/build-docs.sh
+# published neither region on purpose and both by accident. reading_subject()
+# took `Subject:` through the next blank line. reading_constructs() took the
+# first `## ` to the end. So prose under a named heading published demoted
+# INSIDE the block titled "Constructs, and the recorded exit code", where it
+# is not constructs, and prose sitting between the `rc:` line and the first
+# heading was dropped. Measured on main at fcd020c: `grep -c 'Swapping it
+# for' docs/reading/temporal.md` returned 0 while the source file carried
+# that sentence.
+#
+# THE ONE SHAPE. Three headings, no others, and nothing between the `rc:`
+# line and the first of them:
+#
+#   ## What the properties rest on
+#   ## Constructs
+#   ## Constructs from other families, also exercised
+#
+# The name is the corpus's own. reading/functions-records/03-overlay already
+# used it, and it says what the region holds rather than calling it a
+# measurement. Prose INSIDE a Constructs section stays legal, because the 7
+# notes that live there annotate the list they sit in.
+#
+# ===========================================================================
 # WHAT THIS GATE DELIBERATELY DOES NOT DO
 #
 # NO TELEGRAPH CHECK. harness/drill-gate.sh's check 1 fails an item whose
@@ -136,13 +215,15 @@
 # which lives inside drill-gate.sh together with `normalize` and the rc
 # reader. Duplicating it drifts and extracting it into a shared library is
 # its own bead. So USES.md names constructs as drill/INVENTORY.md field 4
-# writes them BY CONVENTION, AND THAT IS UNENFORCED TODAY: this gate does
-# not read INVENTORY.md at all and cannot tell you whether a name in a
+# writes them BY CONVENTION, and this gate still does not read INVENTORY.md
+# at all. Check 5 holds 7 construct names against the module text and knows
+# nothing about the other 98 rows, so it cannot tell you whether a name in a
 # USES.md is a real row, nor which rows no item has reached.
 #
-# NO CHECK THAT USES.md's CONSTRUCT LIST IS COMPLETE OR HONEST. An item that
-# under-declares is invisible here, exactly as META.md is taken at its word
-# by the drill gate's check 3.
+# NO CHECK THAT A CONSTRUCT LIST IS COMPLETE. Check 5 closes the 7 names
+# whose keyword a scan can see. An item that under-declares one of the other
+# 98 is still invisible here, as META.md is taken at its word by the drill
+# gate's check 3.
 # ===========================================================================
 
 set -uo pipefail
@@ -207,6 +288,43 @@ finding_n=0
 unchecked_n=0
 item_n=0
 
+# --- CHECK 5's TABLE. One row per construct, `<grep -E pattern>|<the exact
+# bullet text USES.md writes>`. The split is on the LAST `|`, so a pattern
+# may carry alternation. See CHECK 5 in the header for why these seven and
+# not the other 98 inventory rows.
+READING_CONSTRUCTS=(
+  '^[[:space:]]*EXTENDS[[:space:]]|EXTENDS (module import)'
+  '^[[:space:]]*CONSTANTS?[[:space:]]|CONSTANT'
+  '^[[:space:]]*ASSUME[[:space:]]|ASSUME'
+  '^[[:space:]]*VARIABLES?[[:space:]]|VARIABLE / VARIABLES'
+  '(^|[^A-Za-z_])UNCHANGED([^A-Za-z_]|$)|UNCHANGED'
+  '(^|[^A-Za-z_])WF_|WF_v(A) (weak fairness)'
+  '(^|[^A-Za-z_])SF_|SF_v(A) (strong fairness)'
+)
+
+# --- CHECK 6's allowed headings, in the order a normalized file writes them.
+READING_SECTIONS=(
+  '## What the properties rest on'
+  '## Constructs'
+  '## Constructs from other families, also exercised'
+)
+READING_PROBE_SECTION='## What the properties rest on'
+
+# The bullets of the two Constructs sections, one per line. Scoped to those
+# two sections because the probe section also carries `- ` bullets, and a
+# whole-file scan would read "- `Peak` tightened to `n <= 51` gives rc 12."
+# as a declared construct.
+reading_declared() {
+  awk '
+    /^## / {
+      on = ($0 == "## Constructs" ||
+            $0 == "## Constructs from other families, also exercised")
+      next
+    }
+    on && /^- / { sub(/^- /, ""); print }
+  ' "$1"
+}
+
 say()       { [ "$QUIET" = "1" ] || printf '%s\n' "$1"; }
 finding()   { printf 'FINDING   %-26s %-40s %s\n' "$1" "$2" "$3"; finding_n=$((finding_n + 1)); }
 unchecked() { printf 'UNCHECKED %-26s %-40s %s\n' "$1" "$2" "$3"; unchecked_n=$((unchecked_n + 1)); }
@@ -247,6 +365,27 @@ while IFS= read -r item; do
   extra=()
   for e in "${entries[@]+"${entries[@]}"}"; do
     case "$e" in
+      # TLC RUN ARTIFACTS ARE SKIPPED, AND THIS ARM COMES FIRST ON PURPOSE.
+      # A bare `tlc` run that finds an error drops <Name>_TTrace_<n>.tla and
+      # .bin beside the module, and a -dump run leaves a states/ directory.
+      # All three are gitignored at .gitignore:1-6, so none of them can ever
+      # reach a commit and a finding over one is noise. The tla-fwkz.2.6
+      # author hit it on both its items and deleted four files by hand.
+      #
+      # The arm is above `*.tla` because `Nim_TTrace_1.tla` matches both. It
+      # sorts after `Nim.tla` today, so the module still wins on `find |
+      # sort` order, but that is luck about ASCII rather than a rule.
+      #
+      # WHY A PATTERN AND NOT `git ls-files`. Reading the tracked set is the
+      # exact answer and it kills the suite: harness/test-reading.sh builds
+      # every fixture under `mktemp -d`, which is not a work tree, so
+      # `git ls-files` there returns rc 128 and nothing. Each of the twenty
+      # fixtures would then report SHAPE-NO-TLA. Measured 2026-10-13.
+      #
+      # The pattern is also the better rule on its own merits. .gitignore's
+      # next block covers *.bak and *.old, and an author's scratch copy in an
+      # item directory SHOULD be a finding. Only tool output is skipped here.
+      *_TTrace_*.tla|*_TTrace_*.bin|states) ;;
       *.tla)   if [ -n "$tla" ]; then extra+=("$e"); else tla="$e"; fi ;;
       *.cfg)   if [ -n "$cfg" ]; then extra+=("$e"); else cfg="$e"; fi ;;
       USES.md) uses=1 ;;
@@ -269,7 +408,7 @@ while IFS= read -r item; do
   fi
   if [ "${#extra[@]}" -gt 0 ]; then
     finding "SHAPE-EXTRA-ENTRY" "$rel" \
-      "${#extra[@]} entry(ies) beyond the three: ${extra[*]}. scripts/build-docs.sh names the three and ignores the rest"
+      "${#extra[@]} entry(ies) beyond the three: ${extra[*]}. An item is ONE module; put a library in a nested submodule inside the .tla, as reading/modules/ does. scripts/build-docs.sh names the three and ignores the rest"
     shape_ok=0
   fi
   # A .tla and a .cfg whose stems differ means TLC is being pointed at a
@@ -341,6 +480,58 @@ while IFS= read -r item; do
     finding "CFG-NO-OBLIGATION" "$rel" \
       "${cfg} declares neither an INVARIANT nor a PROPERTY with an operand; a model with no property is not a reading item"
   fi
+
+  # --- check 6: USES.md has one shape --------------------------------------
+  # Run before check 5, because check 5 reads the two Constructs sections by
+  # name and a file with the wrong headings would report every construct as
+  # undeclared. One cause, one finding.
+  usesp="${item}/USES.md"
+
+  # Every `## ` heading must be one of the three. This catches a renamed or
+  # invented probe section without the gate having to enumerate the six names
+  # the corpus used before it was normalized.
+  while IFS= read -r h; do
+    [ -n "$h" ] || continue
+    known=0
+    for s in "${READING_SECTIONS[@]}"; do
+      [ "$h" = "$s" ] && known=1
+    done
+    if [ "$known" = "0" ]; then
+      finding "USES-UNKNOWN-SECTION" "$rel" \
+        "USES.md has the section '${h}'; the three allowed are '${READING_SECTIONS[0]}', '${READING_SECTIONS[1]}' and '${READING_SECTIONS[2]}'"
+    fi
+  done < <(grep '^## ' "$usesp" || true)
+
+  if ! grep -qxF -- "$READING_PROBE_SECTION" "$usesp"; then
+    finding "USES-NO-PROBE-SECTION" "$rel" \
+      "USES.md has no '${READING_PROBE_SECTION}' section; that region is the only thing in an item saying which construct carries which property"
+  fi
+
+  # Prose between the `rc:` line and the first `## ` is dropped by
+  # scripts/build-docs.sh, which anchors on `Subject:` and on the first
+  # heading and claims neither the gap between them.
+  stray="$(awk '
+    /^[-*[:space:]]*rc:[[:space:]]*[0-9]+[[:space:]]*$/ { seen = 1; next }
+    /^## / { exit }
+    seen && /[^[:space:]]/ { n += 1 }
+    END { print n + 0 }
+  ' "$usesp")"
+  if [ "$stray" -gt 0 ]; then
+    finding "USES-PROSE-MISPLACED" "$rel" \
+      "${stray} line(s) sit between the rc: line and the first '## ' heading, where scripts/build-docs.sh drops them; move them under '${READING_PROBE_SECTION}'"
+  fi
+
+  # --- check 5: a construct in the text is declared ------------------------
+  declared="$(reading_declared "$usesp")"
+  for spec in "${READING_CONSTRUCTS[@]}"; do
+    pat="${spec%|*}"
+    label="${spec##*|}"
+    grep -qE -- "$pat" "$mod" || continue
+    if ! grep -qxF -- "$label" <<<"$declared"; then
+      finding "USES-CONSTRUCT-UNDECLARED" "$rel" \
+        "${tla} carries ${label} and USES.md does not declare it"
+    fi
+  done
 
   # --- check 3: the recorded rc reproduces ---------------------------------
   # Read the rc from USES.md. A line `rc: N`, optionally bulleted.

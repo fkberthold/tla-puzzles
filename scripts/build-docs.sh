@@ -948,11 +948,18 @@ fi
 #
 # AMENDED 2026-10-13. The design said "no question and no answer key" and the
 # index page said it too, and by the time 25 items had landed that was false
-# of the artifact. The config block and the construct block both start closed,
-# so they ARE a key: a reader who names the properties before opening them has
-# done a production exercise off a reading item. The page now says to do that,
-# under "How to read one". What the design actually rules out is an exercise
-# prompt and a worked solution, which is what the wording above now says.
+# of the artifact. The blocks all start closed, so they ARE a key: a reader
+# who names the properties before opening them has done a production exercise
+# off a reading item. The page now says to do that, under "How to read one".
+# What the design actually rules out is an exercise prompt and a worked
+# solution, which is what the wording above now says.
+#
+# AMENDED AGAIN, same day, bead tla-fwkz.2.8. There are now THREE blocks and
+# the middle one is new: config, then what the properties rest on, then the
+# construct list. That middle region existed in 20 of the 25 USES.md files
+# and reached the page in none of them, which made the page a module that
+# passes with no way to tell what would stop it passing. See reading_probe()
+# below for where it was going instead.
 #
 # PHONE-FIRST, AND THAT IS WHY IT IS A PAGE RATHER THAN A PDF. Frank asked
 # for "a PDF to flip through, or a page on the repo" (2026-10-12) and the
@@ -1009,12 +1016,61 @@ reading_subject() {
   ' "$1"
 }
 
+# ---- helper: the probe prose of a USES.md ----
+# The body of `## What the properties rest on`, heading dropped, through to
+# the next `## `. This is the paragraph saying what to change to make the run
+# go red, and it is the only thing in an item that says which construct is
+# carrying which property.
+#
+# IT USED TO PUBLISH NOWHERE, OR IN THE WRONG BLOCK. Bead tla-fwkz.2.8.
+# reading_subject() takes `Subject:` through the next blank line and
+# reading_constructs() took the first `## ` to the end, so this region fell
+# between the two anchors. Prose under a heading published demoted inside the
+# block titled "Constructs, and the recorded exit code", where it is not
+# constructs. Prose sitting above the first heading published nowhere at all:
+# `grep -c 'Swapping it for' docs/reading/temporal.md` returned 0 while
+# reading/temporal/04-contention/USES.md carried that sentence.
+#
+# The region now has one name in all 25 items and
+# harness/reading-gate.sh's check 6 holds it there, so this helper can match
+# on the heading rather than on a position between two other things.
+#
+# Leading and trailing blank lines are dropped, interior ones kept. The
+# caller indents every line by four to nest it under the admonition, and a
+# blank line that survived would come out as four spaces of nothing right
+# under the block title.
+reading_probe() {
+  awk '
+    /^## / { on = ($0 == "## What the properties rest on"); next }
+    !on { next }
+    /[^[:space:]]/ {
+      while (held > 0) { print ""; held -= 1 }
+      started = 1
+      print
+      next
+    }
+    started { held += 1 }
+  ' "$1"
+}
+
 # ---- helper: the construct lists of a USES.md ----
-# Everything from its first `## ` heading to the end. The headings are
-# demoted by two levels, because an item is already an H2 on the family page
-# and a bare `##` would break the page's heading order.
+# The two Constructs sections and nothing else. The headings are demoted by
+# two levels, because an item is already an H2 on the family page and a bare
+# `##` would break the page's heading order.
+#
+# SELECTED BY NAME, not by "first heading to the end", so the probe section
+# above cannot leak in behind whichever section happens to come first. Prose
+# INSIDE a Constructs section still publishes, which is right: 7 items carry
+# a note there saying why a construct is NOT claimed, and it annotates the
+# list it sits in.
 reading_constructs() {
-  awk '/^## / { on = 1 } on { print }' "$1" | sed 's/^## /#### /'
+  awk '
+    /^## / {
+      on = ($0 == "## Constructs" ||
+            $0 == "## Constructs from other families, also exercised")
+    }
+    on { print }
+  ' "$1" | sed 's/^## /#### /'
 }
 
 if [ -d reading ]; then
@@ -1096,6 +1152,24 @@ CFGFENCE
           echo ""
         fi
 
+        # THE PROBE BLOCK, AND WHY IT SITS HERE. It goes after the config
+        # block and before the constructs block, because that is the order
+        # the index's "How to read one" asks the reader to work in: name the
+        # properties, then say why each one holds. The config block confirms
+        # the first guess and this one confirms the second. The construct
+        # list is reference rather than part of the guess, so it comes last.
+        if [ -f "$usesfile" ]; then
+          probe="$(reading_probe "$usesfile")"
+          if [ -n "$(printf '%s' "$probe" | tr -d '[:space:]')" ]; then
+            echo "??? note \"What the properties rest on\""
+            echo ""
+            printf '%s\n' "$probe" | sed 's/^/    /'
+            echo ""
+          else
+            echo "build-docs.sh: $usesfile has no 'What the properties rest on' section." >&2
+          fi
+        fi
+
         if [ -f "$usesfile" ]; then
           rc="$(sed -n 's/^[-*[:space:]]*rc:[[:space:]]*\([0-9][0-9]*\)[[:space:]]*$/\1/p' "$usesfile" | sed -n 1p)"
           echo "??? note \"Constructs, and the recorded exit code\""
@@ -1131,16 +1205,21 @@ CFGFENCE
     echo "## How to read one"
     echo ""
     echo "An item gives you one sentence of subject and then the whole module."
-    echo "Its config and its construct list sit under that, behind two blocks"
-    echo "that start closed."
+    echo "Three blocks sit under that and all three start closed: the config,"
+    echo "what the properties rest on, and the construct list."
     echo ""
-    echo "Read the subject, read the module, and then say what the config"
-    echo "checks and why each property holds, before you open either block."
-    echo "Then open both and see how you did."
+    echo "Read the subject, read the module, and then say two things before"
+    echo "you open anything. What does the config check, and why does each"
+    echo "property hold? Open the first two blocks in order and see how you"
+    echo "did. The third is reference rather than an answer."
     echo ""
     echo "Every item here checks clean, so the exit code is a confirmation"
     echo "rather than a question. The property list and the reason are what"
     echo "the module text has to give you."
+    echo ""
+    echo "The second block is the one worth the time. It says what to change"
+    echo "to make the run go red, which is the only thing in an item that"
+    echo "tells you which construct is carrying which property."
     echo ""
     echo "Guessing first is the exercise. The blocks start closed so the"
     echo "properties are something you work out from the module text rather"
