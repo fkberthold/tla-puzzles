@@ -64,8 +64,11 @@
 #                                         run at all. Prints, and leaves the
 #                                         exit code to the other lines.
 #   COVERAGE  <count> <freq> <family> <construct>
-#   WAIVER    <item> <token> <reason>     a per-item telegraph waiver, echoed
-#                                         so waivers cannot accumulate unseen.
+#   WAIVER    <item> <token> <reason>     a per-item waiver, echoed so waivers
+#                                         cannot accumulate unseen. The token
+#                                         column reads `count:<module-stem>`
+#                                         for a count waiver and the bare
+#                                         token for a telegraph one.
 #
 # EXIT CODES
 #     0  every check THIS RUN ASKED FOR ran and passed. Under --static-only
@@ -139,8 +142,8 @@
 #     from here.
 #
 # ===========================================================================
-# CHECK 2 — VERIFICATION.  Does verify/ actually run, and does the recorded
-#                          rc reproduce?
+# CHECK 2 — VERIFICATION.  Does verify/ actually run, and do the recorded
+#                          rc AND the recorded state count reproduce?
 #
 # WHAT IS CHECKED. Every module under verify/ that is CHECKABLE — it has a
 # .cfg and ANSWER.md records an rc for it — is run through
@@ -148,6 +151,32 @@
 # claims. An item whose recorded rc does not reproduce is the defect; the
 # number in the file is a measurement and a measurement that does not
 # repeat is wrong.
+#
+# AND THE DISTINCT-STATE COUNT, where ANSWER.md records one. This half landed
+# later than the rc half, and the gap it closed is worth stating: for 64 items
+# the gate compared exit codes only, so every state count in the corpus was an
+# unguarded claim. The count is the half a READER uses. An rc says which
+# verdict TLC reached, where the count is the number a learner checks their
+# own model against, and drill/sequences/07-pneumatic-tube/PROMPT.md publishes
+# one as its only foreclosing row. They also drift differently: an rc is
+# coarse and survives a small spec change, while a count moves on any change
+# to the constants, the state space or the initial predicate, and it moves
+# without saying so.
+#
+#   - A claim is read from the table column whose HEADER cell contains the
+#     word `distinct`, by position and never by scanning for digits. See
+#     COUNT_CLAIM_AWK for why a digit scan cannot tell the rc cell from the
+#     one beside it.
+#   - NO CLAIM IS NO CHECK. The whole temporal family records no count and
+#     that is correct, because a liveness run's state count is not the
+#     diagnosis. A measured count with no claim is nobody's finding either.
+#   - A claim the run cannot reproduce is VERIFY-COUNT-ABSENT, unless the item
+#     declares that case with a `count-waiver:` line in its META.md. Two real
+#     rows need one: drill/sets/03-ballast's BallastAnyStart reports during
+#     initial-state computation, and drill/core/04-lift-types's
+#     NegativeInConfig fails in the config, so neither log carries a count.
+#   - WHETHER A COUNT IS PRINTED IS NOT PREDICTABLE FROM THE rc, which is why
+#     the waiver is a keyword rather than an inference. See count_waivers.
 #
 # Three structural checks sit on top of the per-module one:
 #
@@ -183,6 +212,13 @@
 #     a variant also passes unless it has its own module and rc.
 #   - A HELPER MODULE with no cfg and no recorded rc. It is reported as
 #     skipped rather than silently ignored, but it is not run.
+#   - ANY OTHER NUMBER IN THE TABLE. The `generated` column, trace lengths and
+#     depths are read by nobody here. Only the `distinct` column is compared,
+#     because it is the one a prompt publishes and a reader lands on.
+#   - WHETHER AN ITEM OUGHT TO RECORD A COUNT. A missing claim is silence and
+#     this gate keeps it that way, on purpose. Making the claim mandatory
+#     would push the eight temporal items into writing a number that is not
+#     their diagnosis, which is the same back door CHECK 3 refuses to open.
 #
 # ===========================================================================
 # CHECK 3 — CORPUS COVERAGE. IT REPORTS. IT NEVER FAILS.
@@ -396,6 +432,15 @@ verified_n=0
 cached_n=0
 stale_n=0
 
+# The distinct-state count's coverage, reported in one line at the end of
+# every run. COVERAGE OF A CHECK IS ITSELF A CLAIM, and the whole reason this
+# half of check 2 exists is that the counts were guarded by nothing while the
+# rcs looked checked. A run that compared three counts out of two hundred and
+# said only VERDICT OK would be the same silence wearing a green badge.
+count_claim_n=0
+count_checked_n=0
+count_waived_n=0
+
 # One scratch dir for the whole run. SYMFILE holds LAYER_A_SYMBOLS one per
 # line so construct_tokens can match them all in a single grep.
 SCRATCH="$(mktemp -d)"
@@ -489,7 +534,11 @@ enqueue_job() {
   # `printf -v` is a builtin, where `jf=$(printf ...)` would fork a subshell
   # per job. Same reasoning as normalize's.
   printf -v jf '%s/job-%06d' "$SCRATCH" "$JOB_SEQ"
-  printf '%s\n' "$1" "$2" "$3" "$4" "$5" "$6" "$7" >"$jf"
+  # F[7] is the claimed distinct-state count and may be EMPTY, which is the
+  # no-claim case and has to survive the round trip. `printf '%s\n'` writes a
+  # bare newline for it and `mapfile -t` reads that back as an empty element,
+  # so the field keeps its position. F[8] is its waiver flag.
+  printf '%s\n' "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" >"$jf"
   printf '%s\n' "$jf" >>"$JOBLIST"
   JOB_FILES+=("$jf")
   JOB_CACHED+=(0)
@@ -1073,6 +1122,36 @@ waivers() {
 }
 
 # ---------------------------------------------------------------------------
+# count_waivers <meta.md>: lines of the form
+#     count-waiver: <module-stem> -- <reason>
+#
+# The same mechanism as the telegraph waiver above, for the same reason, and
+# READ FROM THE SAME FILE. It covers one case and only one: a module whose rc
+# reproduces while TLC prints no distinct count at all, so the number
+# ANSWER.md records came from somewhere other than the run. drill/sets/03-ballast
+# is the item that needs it. Its `BallastAnyStart` violates the invariant
+# during initial-state computation, so the report arrives before any step and
+# the log carries no count, and the author wrote 1 for the one state in the
+# trace. That is a legitimate claim and a checker with no waiver would call it
+# a mismatch.
+#
+# WHY A KEYWORD AND NOT AN INFERENCE FROM THE rc. Measured over 79 gate rows
+# on 2026-10-14: a count is printed on rc 12 and on rc 75, and not printed on
+# rc 10, 99, 150, 151 or 255. drill/state-space/05-summary-record's `G05Record`
+# logs `1 distinct states found` AFTER its eval error. So a checker that
+# predicted presence from the rc would be wrong on four classes out of six,
+# and it would be wrong silently. The keyword makes the item say so.
+# Also in bd memory a-tlc-exit-code-does-not-predict-whether.
+#
+# THE WAIVER EXCUSES ABSENCE AND NOTHING ELSE. A waived module whose run DOES
+# print a count is still compared against the claim, so a waiver that has gone
+# stale surfaces as a mismatch rather than hiding one.
+# ---------------------------------------------------------------------------
+count_waivers() {
+  grep -iE '^[[:space:]]*[*_ ]*count-waiver[*_ ]*:' "$1" 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------------------
 # prompt_shows_code <prompt.md>: does the prompt carry code or a TLC trace?
 #
 # The trace half is the finding from the trial. A prompt that shows a trace is
@@ -1217,6 +1296,133 @@ rc_claims() {
     [ -n "$stem" ] || continue
     RC_CLAIM["$stem"]="$rc"
   done < <(awk -v mods="$stems" "$RC_CLAIM_AWK" "$ans")
+}
+
+# ---------------------------------------------------------------------------
+# COUNT_CLAIM_AWK / count_claims <answer.md> <stem>...
+#
+# The DISTINCT-STATE COUNT each module's row claims. One pass per item, the
+# same shape as rc_claims above, and the same word-boundary guard. What it
+# deliberately does NOT share is rc_claims' precedence.
+#
+# IT ANCHORS ON THE HEADER, NOT ON A DIGIT SCAN, and that is the whole design.
+# rc_claims falls back to "a bare pipe-delimited cell of digits, last match
+# wins" when it finds no `rc N` text. The distinct cells this reads are bare
+# pipe-delimited digits sitting right beside the rc cell, so a count parser
+# written on the same scan would be reading one of two adjacent numbers with
+# nothing to say which. So: find the table header whose cells include one
+# containing the word `distinct`, take that column's index, and read that
+# column on each stem's row. Column position, never a digit scan.
+#
+# A HEADER IS A PIPE ROW WHOSE NEXT LINE IS THE SEPARATOR, which is what makes
+# the anchor safe against data. drill/core/03-bakery-obligations:129 is a DATA
+# row ending `rc 0, 78 generated, 40 distinct`, and
+# drill/state-space/01-clock-never-stops:43 is a real header carrying the word
+# twice, in `spec-side distinct` and `constraint distinct`. Reading any pipe
+# row containing `distinct` as a header would take the first of those for a
+# table that has none, and reading the last matching cell rather than the
+# first would take the wrong column of the second. First cell, header rows
+# only.
+#
+# EVERY CELL WITH NO INTEGER IN IT IS NO CLAIM. Measured over the 64-item tree
+# on 2026-10-14: 23 checkable modules carry an explicit `-` or the bare word
+# `parse` (drill/sets/03-ballast/ANSWER.md:86) in their distinct column, and
+# that is the author saying there is no count to record. It is not a zero and
+# it is not a defect. Commas are stripped first, because an author writes
+# 3,531 where TLC prints 3531.
+#
+# LAST NON-EMPTY MATCH WINS, which is rc_claims' rule and it had to be checked
+# rather than assumed. An item may carry several tables with a distinct column
+# over the same stems: drill/modules/01-two-tanks-one-hose has a config-keyed
+# one at :192 and the `## Gate rows` one at :207. A sweep over all 64 items
+# found 3 stems hit in two tables and all 3 agreed, so no precedence rule is
+# load-bearing on today's corpus. If one ever is, the later table is the one
+# written for this gate.
+#
+# An escaped `\|` inside a cell is a real markdown spelling and it appears at
+# drill/control-state/08-wrong-label/ANSWER.md:72. Splitting on it would shift
+# every later column by one, so it is parked under \001 and restored. That
+# table has no distinct column today, which is luck rather than a guarantee.
+# ---------------------------------------------------------------------------
+declare -A COUNT_CLAIM=()
+
+# The awk program holds `$0`, and NOT expanding it is the whole point of the
+# single quotes, exactly as in RC_CLAIM_AWK above.
+# shellcheck disable=SC2016
+COUNT_CLAIM_AWK='
+# firstint: the first run of digits in s, with commas squeezed out first, or
+# "". An empty return is NO CLAIM and the caller must not read it as a zero.
+function firstint(s,   out) {
+  gsub(/,/, "", s)
+  out = ""
+  if (match(s, /[0-9]+/)) out = substr(s, RSTART, RLENGTH)
+  return out
+}
+# issep: a markdown table separator row. The hyphen test is what keeps a row
+# of empty cells, `| | | |`, from being read as one.
+function issep(s) {
+  return (s ~ /^[[:space:]]*\|[-:|[:space:]]*$/ && s ~ /-/)
+}
+# cells: split a pipe row, parking the escaped \| spelling first. A row
+# `| a | b |` yields A[1] empty, A[2] "a", A[3] "b", A[4] empty — so table
+# column N is A[N+1], and the dcol this program carries is already an A index.
+function cells(s, A,   n, i) {
+  gsub(/\\\|/, "\001", s)
+  n = split(s, A, "|")
+  for (i = 1; i <= n; i++) gsub(/\001/, "|", A[i])
+  return n
+}
+BEGIN { nmod = split(mods, MOD, "\n") }
+{
+  if (issep($0) && prevpipe) {
+    nh = cells(prev, H)
+    dcol = 0
+    for (i = 1; i <= nh; i++) {
+      h = tolower(H[i]); gsub(/[^a-z]/, "", h)
+      if (index(h, "distinct") > 0) { dcol = i; break }
+    }
+    intable = 1
+    prev = $0; prevpipe = 0
+    next
+  }
+  if ($0 ~ /^[[:space:]]*\|/) {
+    if (intable && dcol > 0) {
+      nc = cells($0, C)
+      if (nc >= dcol) {
+        for (i = 1; i <= nmod; i++) {
+          if (MOD[i] == "") continue
+          if ($0 !~ ("(^|[^A-Za-z0-9_])" MOD[i] "([^A-Za-z0-9_]|$)")) continue
+          v = firstint(C[dcol])
+          if (v != "") CNT[i] = v
+        }
+      }
+    }
+    prev = $0; prevpipe = 1
+    next
+  }
+  intable = 0; dcol = 0
+  prev = $0; prevpipe = 0
+}
+END {
+  for (i = 1; i <= nmod; i++) {
+    if (MOD[i] == "") continue
+    if (i in CNT) printf "%s\t%s\n", MOD[i], CNT[i]
+  }
+}'
+
+count_claims() {
+  local ans="$1"; shift
+  COUNT_CLAIM=()
+  [ "$#" -gt 0 ] || return 0
+  [ -f "$ans" ] || return 0
+  local stems="" stem cnt
+  for stem in "$@"; do
+    stems="${stems}${stem}"$'\n'
+  done
+  while IFS=$'\t' read -r stem cnt; do
+    [ -n "$stem" ] || continue
+    COUNT_CLAIM["$stem"]="$cnt"
+  done < <(awk -v mods="$stems" "$COUNT_CLAIM_AWK" "$ans")
 }
 
 # verdict.sh's table. A recorded rc outside it is a mis-transcription.
@@ -1578,6 +1784,64 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     STEMS+=("${m%.tla}")
   done
   rc_claims "$answer" "${STEMS[@]+"${STEMS[@]}"}"
+  count_claims "$answer" "${STEMS[@]+"${STEMS[@]}"}"
+
+  # --- the count waivers, parsed and ECHOED in every tier ----------------
+  #
+  # THIS IS THE STRUCTURAL HALF of the count check, and it sits here rather
+  # than beside the comparison because it needs no TLC. Whether a waiver names
+  # a module of this item, and whether it carries a reason, are properties of
+  # two files. So --static-only and --no-tlc check them and the unflagged run
+  # checks them again, which is the same split check 2 already has between its
+  # structural arm and its queue.
+  declare -a COUNT_WAIVED=()
+  cwv="$(count_waivers "$meta")"
+  if [ -n "$cwv" ]; then
+    while IFS= read -r cwline; do
+      [ -n "$cwline" ] || continue
+      cwbody="${cwline#*:}"
+      cwtok="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*\(--\|—\).*$//' -e 's/[[:space:]]*$//' <<<"$cwbody")"
+      cwreason="$(sed -n 's/.*\(--\|—\)[[:space:]]*//p' <<<"$cwbody")"
+      if [ -z "$cwtok" ]; then
+        finding "COUNT-WAIVER-EMPTY" "$rel" "count-waiver names no module"
+        continue
+      fi
+      if [ "${#cwreason}" -lt 12 ]; then
+        finding "COUNT-WAIVER-NO-REASON" "$rel" \
+          "count-waiver for '${cwtok}' carries no reason; a waiver without one is an exemption"
+        continue
+      fi
+      # A WAIVER FOR A MODULE THAT IS NOT THERE IS NOT HARMLESS. It reads as
+      # cover and it covers nothing, and the way it arrives is a module being
+      # renamed while the waiver keeps the old name. The telegraph waiver has
+      # no analogue of this check because its tokens come from an inventory
+      # the gate cannot close over; a module stem is a filename this gate has
+      # already listed, so there is no excuse for not resolving it.
+      cwknown=0
+      for s in "${STEMS[@]+"${STEMS[@]}"}"; do
+        [ "$s" = "$cwtok" ] && cwknown=1
+      done
+      if [ "$cwknown" = "0" ]; then
+        finding "COUNT-WAIVER-UNKNOWN-MODULE" "$rel" \
+          "count-waiver names '${cwtok}', which is not a module of this item's verify/"
+        continue
+      fi
+      COUNT_WAIVED+=("$cwtok")
+      # A WIDER TOKEN COLUMN THAN THE TELEGRAPH WAIVER'S %-10s, because what
+      # goes in it is `count:` plus a module stem rather than an operator.
+      # `count:NegativeInConfig` is 22 characters and ran straight into its
+      # reason at the narrower width.
+      printf 'WAIVER    %-44s %-26s %s\n' "$rel" "count:${cwtok}" "$cwreason"
+    done <<<"$cwv"
+  fi
+
+  count_is_waived() {
+    local t="$1" w
+    for w in "${COUNT_WAIVED[@]+"${COUNT_WAIVED[@]}"}"; do
+      [ "$w" = "$t" ] && return 0
+    done
+    return 1
+  }
 
   # ONE DIGEST PER ITEM, not one per module. Every module of an item shares
   # the same verify/ tree, so hashing it per module would multiply the cost by
@@ -1596,6 +1860,9 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     modstem="${modbase%.tla}"
     cfg="${verify}/${modstem}.cfg"
     want="${RC_CLAIM[$modstem]-}"
+    wantc="${COUNT_CLAIM[$modstem]-}"
+    cwaive=0
+    count_is_waived "$modstem" && cwaive=1
 
     if [ ! -f "$cfg" ]; then
       # Exactly one .cfg in verify/ is taken as this module's config only
@@ -1627,6 +1894,14 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
     checkable=$((checkable + 1))
     [ "$want" = "0" ] && saw_pass=1
     [ "$want" = "0" ] || saw_refutation=1
+
+    # THE CLAIM IS TALLIED HERE, ABOVE EVERY TIER BRANCH, so the number the
+    # closing line reports is the same in all four modes. What varies by tier
+    # is how many of those claims were COMPARED, and that is the second
+    # number. A claim count that moved with the flag would make the coverage
+    # line unreadable against yesterday's run.
+    [ -n "$wantc" ] && count_claim_n=$((count_claim_n + 1))
+    [ "$cwaive" = "1" ] && count_waived_n=$((count_waived_n + 1))
 
     if [ "$NO_TLC" = "1" ]; then
       unchecked "verify-rc" "$rel" "${modbase}: --no-tlc, recorded rc ${want} not reproduced"
@@ -1689,13 +1964,24 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
       deadlock_flag=1
     fi
 
+    # THE CLAIMED COUNT AND ITS WAIVER ARE IN THE KEY, and leaving either out
+    # is the one way --changed-only could still report a stale verdict. An
+    # author who edits nothing but the distinct cell changes what this gate
+    # asserts and no other input to the hash moves: not the module bytes, not
+    # the cfg, not the rc. A cached pass would then be served for a claim that
+    # had never been compared, which is precisely the silent drift the count
+    # half of check 2 exists to stop.
     job_key="-"
     if [ -n "$item_tree" ]; then
-      sha_of_string "${CACHE_BASE}|${rel}|${modbase}|${want}|${deadlock_flag}|${TIMEOUT}|${item_tree}"
+      sha_of_string "${CACHE_BASE}|${rel}|${modbase}|${want}|${wantc}|${cwaive}|${deadlock_flag}|${TIMEOUT}|${item_tree}"
       job_key="$SHA"
     fi
 
-    enqueue_job "$rel" "$modbase" "$mod" "$cfg" "$want" "$deadlock_flag" "$job_key"
+    # F[7] and F[8] are APPENDED rather than inserted. The runner reads F[5]
+    # and F[3] by index and the outcome loop reads F[0], F[1], F[4] and F[6],
+    # so renumbering to put the count beside the rc would be a change to five
+    # call sites for a tidier file.
+    enqueue_job "$rel" "$modbase" "$mod" "$cfg" "$want" "$deadlock_flag" "$job_key" "$wantc" "$cwaive"
   done
 
   if [ "$checkable" -gt 0 ]; then
@@ -1708,7 +1994,7 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
       "verify/ holds ${#MODS[@]} module(s) and not one is checkable (a .cfg plus a recorded rc)"
   fi
 
-  unset WAIVED DECLARED MODS STEMS
+  unset WAIVED COUNT_WAIVED DECLARED MODS STEMS
 done
 
 # ===========================================================================
@@ -1772,15 +2058,39 @@ if [ "${#JOB_FILES[@]}" -gt 0 ]; then
     # nothing about which job it was.
     cat >"$RUNONE" <<'RUNONE_SH'
 #!/usr/bin/env bash
-# Generated by harness/drill-gate.sh. One TLC run, one rc, one file.
+# Generated by harness/drill-gate.sh. One TLC run, one rc and one count, two
+# files beside the job.
 set -uo pipefail
 job="$1"
 mapfile -t F <"$job"
 args=()
 [ "${F[5]}" = "1" ] && args=(-d)
-"$DG_VERDICT" --timeout "$DG_TIMEOUT" -q "${args[@]+"${args[@]}"}" -c "${F[3]}" "${F[2]}" >/dev/null 2>&1
+"$DG_VERDICT" --timeout "$DG_TIMEOUT" -q "${args[@]+"${args[@]}"}" \
+  --log "${job}.log" -c "${F[3]}" "${F[2]}" >/dev/null 2>&1
 rc=$?
 printf '%s\n' "$rc" >"${job}.rc"
+# THE COUNT IS EXTRACTED HERE RATHER THAN IN THE PARENT, so it stays parallel
+# and so the parent reads it the same way it already reads the rc, out of a
+# file beside the job.
+#
+# THE LAST MATCH, ON PURPOSE. TLC prints the same number twice on a run that
+# reports progress, and on a liveness run it prints it again after the
+# temporal pass. harness/drill/temporal/verify-item.sh:40 reads the last match
+# for the same reason and this is the same pipeline.
+#
+# SAFE UNDER pipefail, measured rather than assumed. The rule in
+# .claude/rules/dispatched-agents.md is that a consumer which can close the
+# pipe early SIGPIPEs the producer and the pipeline returns 141, so a present
+# pattern reports as absent. `tail -1` and `cut` both read to end of input, so
+# neither closes it. Probed on 2026-10-14 over a 14 MB log with 200,001
+# matches: this pipeline returned 0 on six consecutive runs, 1 on a log with
+# no match, and 2 on an absent file, while `| head -1` over the SAME log
+# returned 141. So the probe was sensitive and this form is not the hazard.
+# The 1 and the 2 both yield an empty string, which is the no-measurement
+# reading the parent wants, and `|| true` keeps that true if this runner ever
+# grows a `set -e`.
+cnt="$(grep -oE '[0-9]+ distinct states' "${job}.log" 2>/dev/null | tail -1 | cut -d' ' -f1)" || true
+printf '%s\n' "$cnt" >"${job}.count"
 exit 0
 RUNONE_SH
     export DG_VERDICT="$VERDICT"
@@ -1808,10 +2118,18 @@ RUNONE_SH
     _modbase="${_F[1]}"
     _want="${_F[4]}"
     _key="${_F[6]}"
+    _wantc="${_F[7]-}"
+    _cwaive="${_F[8]-0}"
     _ident="${_rel}|${_modbase}"
 
+    # The claim is on the CACHED line too, because the cache key covers it. A
+    # cache line that named only the rc would read as standing for less than
+    # it does.
+    _wantnote=""
+    [ -n "$_wantc" ] && _wantnote=" distinct=${_wantc}"
+
     if [ "${JOB_CACHED[$_ji]}" = "1" ]; then
-      say "  CACHED  ${_rel}  ${_modbase} rc=${_want}"
+      say "  CACHED  ${_rel}  ${_modbase} rc=${_want}${_wantnote}"
       NEW_KEYS+=("$_key")
       NEW_IDS+=("$_ident")
       continue
@@ -1826,23 +2144,75 @@ RUNONE_SH
       continue
     fi
     _got="$(<"${_jf}.rc")"
+    _gotc=""
+    [ -f "${_jf}.count" ] && _gotc="$(<"${_jf}.count")"
+
+    # --- the count half, and the five cases it has to tell apart -----------
+    #
+    # THE COUNT MATTERS MORE THAN THE rc HERE, and the reason is the reader
+    # rather than the gate. An rc says which verdict TLC reached; the count is
+    # the number a learner checks their own model against.
+    # drill/sequences/07-pneumatic-tube/PROMPT.md publishes "a correct model
+    # finds 129 distinct states" as its only foreclosing row, and that number
+    # is load-bearing content. The two also drift differently: an rc is coarse
+    # and survives a small spec change, while a count moves on any change to
+    # the constants, the state space or the initial predicate, silently.
+    #
+    # NO CLAIM IS NO CHECK, AND IT IS NOT A GAP. The whole temporal family
+    # records no count, and that is correct rather than missing: a liveness
+    # run's state count is not the diagnosis. Requiring a claim would push
+    # eight items into writing a number nobody reads. Equally, a measured
+    # count with no claim is nobody's finding.
+    _cntok=1
+    _cntnote=""
+    if [ -z "$_wantc" ]; then
+      :
+    elif [ -n "$_gotc" ]; then
+      count_checked_n=$((count_checked_n + 1))
+      if [ "$_gotc" = "$_wantc" ]; then
+        _cntnote=" distinct=${_gotc}"
+      else
+        _cntok=0
+        _cntnote=" distinct=MISMATCH"
+        finding "VERIFY-COUNT-MISMATCH" "$_rel" \
+          "${_modbase}: ANSWER.md's distinct column records ${_wantc}, TLC printed ${_gotc}"
+      fi
+    elif [ "$_cwaive" = "1" ]; then
+      # The waiver excuses ABSENCE and nothing else, which is why this arm sits
+      # BELOW the comparison rather than above it. A waived module whose run
+      # starts printing a count is compared like any other, so a waiver that
+      # has gone stale surfaces rather than standing in for a check.
+      _cntnote=" distinct=waived"
+    else
+      _cntok=0
+      _cntnote=" distinct=ABSENT"
+      finding "VERIFY-COUNT-ABSENT" "$_rel" \
+        "${_modbase}: ANSWER.md's distinct column records ${_wantc} and this run printed no count at all, so the claim is unverifiable. A module whose run cannot print one declares that with a count-waiver line in META.md."
+    fi
 
     if [ "$_got" != "$_want" ]; then
       finding "VERIFY-RC-MISMATCH" "$_rel" \
         "${_modbase}: ANSWER.md records rc ${_want}, TLC returned ${_got}"
     else
-      say "  OK    ${_rel}  ${_modbase} rc=${_got}"
-      verified_n=$((verified_n + 1))
-      # A KEY IS RECORDED ONLY WHEN THE JOB RAN AND ITS rc MATCHED. A mismatch
-      # records nothing, so the next --changed-only run re-runs it rather than
-      # caching a failure as verified.
-      if [ "$_key" != "-" ]; then
-        NEW_KEYS+=("$_key")
-        NEW_IDS+=("$_ident")
+      # THE OK LINE PRINTS ON THE rc HALF ALONE, and it carries the count
+      # half's verdict beside it. A module whose rc reproduced and whose count
+      # did not is two separate facts and the line says both, where a silent
+      # OK would let the finding below look like somebody else's row.
+      say "  OK    ${_rel}  ${_modbase} rc=${_got}${_cntnote}"
+      # A KEY IS RECORDED ONLY WHEN THE JOB RAN AND BOTH HALVES MATCHED. A
+      # mismatch of either records nothing, so the next --changed-only run
+      # re-runs it rather than caching a failure as verified.
+      if [ "$_cntok" = "1" ]; then
+        verified_n=$((verified_n + 1))
+        if [ "$_key" != "-" ]; then
+          NEW_KEYS+=("$_key")
+          NEW_IDS+=("$_ident")
+        fi
       fi
     fi
   done
   unset _ji _jf _F _rel _modbase _want _key _got _ident
+  unset _wantc _cwaive _wantnote _gotc _cntok _cntnote
 fi
 
 # --- the state file is written only by the mode that was asked to cache ----
@@ -1950,6 +2320,38 @@ if [ "$INV_OK" = "1" ]; then
 fi
 
 # ===========================================================================
+# THE COUNT CLAIM'S OWN COVERAGE LINE.
+#
+# TWO NUMBERS, BECAUSE ONE OF THEM WOULD LIE. "parsed" is how many modules
+# record a distinct count, and it does not move with the tier. "compared" is
+# how many of those were put against a measurement, and it is 0 in both
+# static tiers because neither ran TLC. A run that printed only the first
+# would read as coverage it had not achieved, and a run that printed only the
+# second would say nothing about what it had to work with.
+#
+# IT PRINTS THROUGH `echo` RATHER THAN `say`, like the mode blocks below and
+# for the same reason: `-q` suppresses per-item PASS lines, and a statement
+# about how much of the corpus this run actually checked is not one of those.
+echo
+echo "drill-gate.sh: count claims: ${count_claim_n} parsed, ${count_checked_n} compared against a measured count, ${count_waived_n} waived."
+if [ "$count_claim_n" -gt 0 ] && [ "$count_checked_n" = "0" ] \
+   && [ "$NO_TLC" = "0" ] && [ "$STATIC_ONLY" = "0" ] && [ "$cached_n" = "0" ]; then
+  # Not a finding, and deliberately not. A tier that runs TLC, reaches a claim
+  # and compares none has either an empty queue or an instrument that stopped
+  # extracting, and the UNCHECKED lines above already carry the second case.
+  # What would be wrong is passing over it in silence.
+  #
+  # A WARM CACHE IS EXCLUDED BY THE LAST CLAUSE, because there the zero is the
+  # right answer rather than a symptom. A cached job's claim is in its key, so
+  # the claim it stands for is byte-identical to the one that was compared
+  # when the key was recorded, and a key is recorded only when both halves
+  # matched. The --changed-only block below states that.
+  echo "NO COUNT WAS COMPARED although ${count_claim_n} were parsed, in a tier that runs TLC"
+  echo "and served nothing from cache. Read the queue block above: most likely no job"
+  echo "reached the queue at all."
+fi
+
+# ===========================================================================
 # THE MODE BLOCKS — what a tier that exits 0 did NOT check.
 #
 # A MODE THAT EXITS 0 WITHOUT SAYING WHAT IT SKIPPED IS THE DEFECT. These
@@ -2010,6 +2412,11 @@ if [ "$CHANGED_ONLY" = "1" ]; then
   echo "verify/ bytes, same flags, same timeout, same box. Any one of those changing"
   echo "changes the key, and the job runs again. 'stale' counts the jobs whose identity"
   echo "was in the state file under a different key, which is a change this run caught."
+  echo "THE CLAIMED DISTINCT COUNT IS IN THE KEY TOO, so a cached job stands for its"
+  echo "count as well as its rc. Editing nothing but a distinct cell moves no other"
+  echo "input to the hash, so leaving it out is the one way this cache could still"
+  echo "serve a pass for a claim nobody had compared. That is why 'compared' above"
+  echo "reads 0 on a warm cache rather than reading as a check that stopped running."
 fi
 
 # ===========================================================================
