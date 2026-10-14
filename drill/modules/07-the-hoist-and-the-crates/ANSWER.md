@@ -139,12 +139,10 @@ memory in under three minutes. "Its helper next to it" says there are
 two definitions in the block. The second row is what makes the item
 worth running at all, since without it a cardinality bound passes.
 
-One leak survives the edit that cut question 1's definitional sentence.
-Question 3 asks for the sum "with no declaration at all". A reader who
-takes the three questions in order before writing learns that the
-missing line is a declaration. I think that's a real leak rather than a
-late reveal, since nothing makes a reader work question 1 first. The
-wording that would close it: "a second way to write the sum that
-doesn't need that line at all". That keeps the question's job of
-pointing at a technique the reader wouldn't look for, and drops the
-construct class.
+Question 3 used to ask for the sum "with no declaration at all", which
+put back the word question 1 had stopped saying. Nothing makes a reader
+work the questions in order, so that was a leak rather than a late
+reveal. It now asks for "a second way to write the sum that doesn't
+need that line at all", which keeps the question's job of pointing at a
+technique the reader wouldn't look for and drops the construct class.
+So the word appears nowhere in the prompt.

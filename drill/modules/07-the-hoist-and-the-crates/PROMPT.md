@@ -31,7 +31,7 @@ The requirement: the load never exceeds the limit.
 1. Write it. Row three is one line short. What is the line, and what is
    it for?
 2. The second row kills a shortcut. Which one?
-3. There's a way to write the sum with no declaration at all. What is
-   it, and what does it cost?
+3. There's a second way to write the sum that doesn't need that line at
+   all. What is it, and what does it cost?
 
 Write it, reproduce the 6, then take that line off.
