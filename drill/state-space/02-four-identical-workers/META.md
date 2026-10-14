@@ -39,3 +39,7 @@ cd verify && tlc -workers 1 -cleanup MCPool -config SymLastWorker.cfg
 The `G02*` modules are thin wrappers, one per run the drill gate
 reproduces. Each extends `MCPool` and carries a copy of the config it is
 named after in `ANSWER.md`.
+
+## Telegraph waiver
+
+telegraph-waiver: TLC -- the inventory cell for the PROPERTY row names the tool, and a prompt about what the model checker reports has to name it

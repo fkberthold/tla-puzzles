@@ -123,8 +123,6 @@ returns.
 | `G02SymInts.tla` | rc 255 | - | `SymIntegers.cfg`, symmetry over integers refused |
 | `G02SymLive.tla` | rc 13 | 9 | `SymLiveness.cfg`, a true liveness claim reported violated |
 
-telegraph-waiver: TLC -- the inventory cell for the PROPERTY row names the tool, and a prompt about what the model checker reports has to name it
-
 ## why-not-in-prompt
 
 The prompt says "interchangeable" and "nothing about any worker differs

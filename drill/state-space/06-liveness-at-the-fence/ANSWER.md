@@ -116,8 +116,6 @@ returns.
 | `G06Lean.tla` | rc 0 | 3 | `NoCounter.cfg`, the counter deleted |
 | `G06UnfairLean.tla` | rc 13 | 3 | `NoCounterNoSenderFairness.cfg`, the counter deleted, sender's fairness dropped |
 
-telegraph-waiver: TLC -- the inventory cell for the PROPERTY row names the tool, and a prompt about what the model checker reports has to name it
-
 ## why-not-in-prompt
 
 The prompt describes the cut in prose and says the counter is read by
