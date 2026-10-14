@@ -137,11 +137,19 @@
 # indeterminate row below spells out at length, arriving a second time. The
 # drift nudge stayed quiet throughout, correctly: no row came within 3x.
 #
-# THE 356.4 IS ARITHMETIC, not a reading. It is the sum of 27 budgets, and
-# every budget is a worst-of-three, so the total is a sum of worst cases and
-# no single run should be expected to hit it. Three full passes on 2026-10-13
-# read 308.8 s warm, then 365.2 s and 352.1 s cold, so the arithmetic sits
-# inside the cold spread. The warm number is 47 s short of it, and 38 of
+# THE REGISTRY TOTAL IS ARITHMETIC, not a reading. It is the sum of every
+# budget in the table above, each of which is a worst-of-three, so the total is
+# a sum of worst cases and no single run should be expected to hit it.
+#
+# The figure is no longer repeated in this sentence, and that is the fix rather
+# than an omission. It read 356.4 over 27 budgets while the table said 357.4
+# over 28, because central updated the table on 2026-10-13 and left the
+# sentence describing it. That is the same hardcoded-count failure this block
+# warns about four paragraphs down, committed inside the warning. Read the
+# total off the table.
+#
+# Three full passes at the 27-budget size on 2026-10-13 read 308.8 s warm, then
+# 365.2 s and 352.1 s cold, so the arithmetic sat inside the cold spread. The warm number is 47 s short of it, and 38 of
 # those 47 are the drill gate, which gives up that much of its 54.4 when
 # .drill-gate-state is already there. The other 9 s are spread across the
 # registry and not attributed. `scripts/test --list` is the authority on what
