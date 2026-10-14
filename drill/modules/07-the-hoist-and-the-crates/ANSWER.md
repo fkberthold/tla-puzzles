@@ -120,17 +120,31 @@ returns.
 
 ## why-not-in-prompt
 
-The prompt says "one declaration before its definition" and "name
-itself", and says the summing definition is local to its use with a
-helper beside it.
+The prompt asks for the total computed from a set, with the summing
+definition local to its use and a helper beside it. It prints the error
+the missing line produces, and question 1 points at that row. So a
+reader who writes the sum without the line gets a refusal rather than a
+clean pass. The item corrects itself without the prompt naming the
+construct.
 
-What the prompt withholds: the keyword, the underscore form of the
-declaration, that a recursive operator can be declared inside a `LET`,
-the `CHOOSE` for picking an element, and the recursive-function
-alternative.
+What the prompt withholds: the keyword, that the missing line is a
+declaration rather than a definition, and why a definition needs one to
+name itself. It also withholds the underscore form of the arity, that
+the declaration can sit inside a `LET`, the `CHOOSE` for picking an
+element, and the recursive-function alternative.
 
 The honest caveat: this is a core-family item wearing the modules label,
 and a reader who knows the recursive-sum idiom will reproduce it from
 memory in under three minutes. "Its helper next to it" says there are
 two definitions in the block. The second row is what makes the item
 worth running at all, since without it a cardinality bound passes.
+
+One leak survives the edit that cut question 1's definitional sentence.
+Question 3 asks for the sum "with no declaration at all". A reader who
+takes the three questions in order before writing learns that the
+missing line is a declaration. I think that's a real leak rather than a
+late reveal, since nothing makes a reader work question 1 first. The
+wording that would close it: "a second way to write the sum that
+doesn't need that line at all". That keeps the question's job of
+pointing at a technique the reader wouldn't look for, and drops the
+construct class.
