@@ -27,7 +27,7 @@
 # CAVEAT — READ THIS BEFORE YOU TRUST A NUMBER THIS SCRIPT PRODUCES
 # ============================================================================
 #
-#   THIS IS A BOOTSTRAP, NOT A PROXY FOR LEARNER BEHAVIOUR. The variants it
+#   THIS IS A BOOTSTRAP, NOT A PROXY FOR LEARNER BEHAVIOR. The variants it
 #   grades against are mutants of OUR OWN reference spec, and mutants of a
 #   correct spec are systematically unlike the mistakes people actually make.
 #
@@ -40,7 +40,7 @@
 #             reachable by the construction it uses.
 #
 #     ~39.3%  of single mutations are SEMANTICALLY INERT: the mutated spec has
-#             the same behaviour as the original, so no property can tell them
+#             the same behavior as the original, so no property can tell them
 #             apart. Roughly two of every five variants a mutation tool emits
 #             are not bugs at all.
 #
@@ -123,7 +123,7 @@
 #    41  PROPERTY_UNSOUND     the reference itself violates the submission
 #    42  VARIANT_INERT        a variant the ORACLE cannot catch either. OUR
 #                             bug, not the submission's
-#    43  TRACE_DIVERGED       caught, but by a different behaviour than the
+#    43  TRACE_DIVERGED       caught, but by a different behavior than the
 #                             oracle's (--strict-trace only)
 #    44  MATRIX_MALFORMED     the matrix directory is not the shape above --
 #                             INCLUDING a liveness obligation refuted against
@@ -144,7 +144,7 @@
 #   ANYTHING THAT IS NOT 0 OR 12 IS PASSED THROUGH, not folded into a verdict
 #   of this file's own. A submission whose module does not parse should be
 #   told PARSE_ERROR at rc=150, not "inconclusive": the code that names the
-#   failure is the actionable one, and re-labelling it would throw away the
+#   failure is the actionable one, and re-labeling it would throw away the
 #   only thing the caller could act on. §5.4 passes through for the same
 #   reason. (§5.3 does fold, and rightly -- its runs are harness-generated
 #   probes rather than runs of the submitted artifact.)
@@ -165,7 +165,7 @@
 #   formula silently.
 #
 #   THE KEYWORD IS CHOSEN BY THE SHAPE OF THE OBLIGATION, NEVER BY A FLAG.
-#   A flag defaulting to the old behaviour would reproduce the defect for
+#   A flag defaulting to the old behavior would reproduce the defect for
 #   every caller who did not know to pass it, which is every caller who has
 #   not read this paragraph. The obligation's definition is read out of the
 #   STAGED module -- so the oracle and the submission are classified
@@ -176,7 +176,7 @@
 #   operator on its own line, and naming the requirement and then checking the
 #   name is ordinary practice -- the txn-epoch-fence oracle does it -- so the
 #   definition closure is walked rather than the one line. The operator named
-#   by --spec is the one name never followed: it is the behaviour formula by
+#   by --spec is the one name never followed: it is the behavior formula by
 #   construction, it carries `[][Next]_vars` and usually a `WF_`, and
 #   following it would classify every obligation in every matrix as temporal.
 #
@@ -190,8 +190,8 @@
 #   liveness by grep. An INVARIANT obligation is refuted by 12 alone.
 #
 #   A LIVENESS VERDICT IS MEANINGLESS WITHOUT FAIRNESS, AND THAT IS GATED
-#   RATHER THAN ADVISED. `Init /\ [][Next]_vars` admits the behaviour that
-#   stutters for ever, and that behaviour violates every liveness property
+#   RATHER THAN ADVISED. `Init /\ [][Next]_vars` admits the behavior that
+#   stutters for ever, and that behavior violates every liveness property
 #   anyone could write -- the correct one included. Measured on the relay
 #   fixture: against `Spec` the matrix's OWN oracle exits 13 on the reference,
 #   so the matrix would report ORACLE_UNSOUND and grade nothing; against
@@ -261,7 +261,7 @@
 #     INVARIANT NeverTwo   rc=12   {"position":0}   "vars":["position"]
 #     PROPERTY  Live       rc=13   {"stage":0}      "vars":["stage"]
 #
-#   THAT IS TLC'S BEHAVIOUR AND NOT A GAP IN THE .cfg THIS FILE WRITES, and
+#   THAT IS TLC'S BEHAVIOR AND NOT A GAP IN THE .cfg THIS FILE WRITES, and
 #   two measurements separate them. The generated .cfg carried `ALIAS Alias`
 #   on 6 of 6 liveness runs. The console error trace of that same rc=13 run
 #   printed `position = 0` and `position = 1`, so TLC received the alias and
@@ -427,7 +427,7 @@ command -v python3 >/dev/null 2>&1 || {
 # The action-name sequence and the trace length, and NOTHING ELSE. The state
 # records are counted, never opened: a submission that encodes its lights as
 # 0 and 1 where the reference used "red" and "green" describes the same
-# behaviour, and the whole reason this is a signature rather than a diff is so
+# behavior, and the whole reason this is a signature rather than a diff is so
 # that it says so.
 #
 # An unreadable or absent trace is NO_TRACE rather than an error. Callers
@@ -477,11 +477,11 @@ fi
 # which is the defect this whole section exists to remove, reintroduced one
 # level down.
 #
-# <never-follow> is the --spec operator. It is the behaviour formula by
+# <never-follow> is the --spec operator. It is the behavior formula by
 # construction: it carries `[][Next]_vars` and, in any liveness matrix, a
 # `WF_`. Following it would make every obligation in every matrix come back
 # temporal. Nothing else is excluded, because nothing else is guaranteed
-# temporal the way the behaviour formula is.
+# temporal the way the behavior formula is.
 #
 # THIS IS A TOKENISER, NOT A PARSER, and it is written to fail in the loud
 # direction. The worst it can do is misclassify, and a misclassified
@@ -552,7 +552,7 @@ LIVENESS_RE='<>|~>'
 
 # Every match below is a here-string. A live pipe into `grep -q` returns 141
 # under `set -o pipefail`, which an `if` reads as "no match" -- and here a
-# missed match silently restores the INVARIANT-always behaviour this section
+# missed match silently restores the INVARIANT-always behavior this section
 # removed. Bead tla-kr9.
 tla_shape() {   # tla_shape <op> <dir> -> sets SHAPE / SHAPE_LIVENESS
   local op="$1" dir="$2" txt
@@ -811,8 +811,8 @@ fairness_gate() {   # fairness_gate <what>
   say "no fairness conjunct, so the refutation is not evidence about the spec."
   say ""
   say "$1 exited 13, and \`$SPEC\` reaches no WF_ or SF_ conjunct. So it admits"
-  say "the behaviour that takes some steps and then stutters for ever, and that"
-  say "behaviour violates EVERY liveness property, the correct one included."
+  say "the behavior that takes some steps and then stutters for ever, and that"
+  say "behavior violates EVERY liveness property, the correct one included."
   say "Measured on the relay fixture: against an unfair spec the matrix's own"
   say "oracle exits 13 on the reference, which the matrix would otherwise"
   say "report as ORACLE_UNSOUND."
@@ -886,7 +886,7 @@ if [ "$CASE_RC" = "0" ]; then
 elif [ "$CASE_REFUTED" = "1" ]; then
   say "Your property is violated by the reference solution itself."
   say ""
-  say "TLC found a behaviour of the correct specification in which"
+  say "TLC found a behavior of the correct specification in which"
   say "$PROP_NAME!$PROPERTY is false. A property that the intended answer"
   say "breaks is not a strong property, it is a wrong one -- and 'catches"
   say "every seeded bug' is trivial to satisfy that way, which is why this"
@@ -940,7 +940,7 @@ if [ "${#INERT_NAMES[@]}" -gt 0 ]; then
   say "The oracle is the strongest witness this matrix has. A variant it"
   say "cannot distinguish from the reference is one no property can"
   say "distinguish from the reference, because there is nothing there to"
-  say "distinguish: the mutation left the behaviour unchanged."
+  say "distinguish: the mutation left the behavior unchanged."
   say ""
   say "~39.3% of single mutations are inert, so expect this. Repair or drop"
   say "the variant, then re-run. Until then the matrix cannot grade, and this"
@@ -1016,7 +1016,7 @@ fi
 # ===========================================================================
 if [ "${#DIVERGED[@]}" -gt 0 ]; then
   say "TRACE: your property caught every variant, but on some of them it"
-  say "caught a DIFFERENT behaviour than the oracle did."
+  say "caught a DIFFERENT behavior than the oracle did."
   say ""
   say "$ROWS"
   say "Only the action-name sequence and the trace length are compared;"

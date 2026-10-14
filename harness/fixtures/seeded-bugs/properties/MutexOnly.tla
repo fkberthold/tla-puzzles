@@ -5,7 +5,7 @@
 (* Mutual exclusion, stated correctly and stated alone.  It catches         *)
 (* ns-runs-red and ew-runs-red -- the two variants that put both lights     *)
 (* green -- and it is silent on amber-on-go, where the lights are never     *)
-(* both green and the defect is that one of them is not a light colour at   *)
+(* both green and the defect is that one of them is not a light color at    *)
 (* all.                                                                     *)
 (*                                                                          *)
 (* This is the row that makes "passes the matrix" mean something.  A        *)

@@ -6,8 +6,8 @@
 \* spec.
 \*
 \* Your job is to add one constant that picks between the two ceilings, so a
-\* .cfg can ask for either behaviour. The constant carries no data. It selects
-\* a behaviour, the way a command line flag selects a code path.
+\* .cfg can ask for either behavior. The constant carries no data. It selects
+\* a behavior, the way a command line flag selects a code path.
 \*
 \* After you change the PlusCal, re-run `pcal Rehearsal.tla`.
 EXTENDS Integers

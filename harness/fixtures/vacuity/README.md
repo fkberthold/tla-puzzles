@@ -27,7 +27,7 @@ fired tells a learner nothing they can act on, so each gets its own token.
 | `Healthy.tla` + `DanglingInvariant.cfg` | 2 | `VACUOUS_UNCHECKED` | 4 | healthy space, no invariant configured |
 | `DeadGuard.tla` | 3 | `VACUOUS_DEAD_ACTION` | 5 | `Overflow`'s guard is never true |
 | `DeletedAction.tla` | 3 | `VACUOUS_DEAD_ACTION` | 5 | `Down` is not a disjunct of `Next`, so it has no coverage row |
-| `UnsatFairness.tla` | 4 | `VACUOUS_UNSATISFIABLE` | 7 | fairness demands a step `Next` forbids; no behaviour satisfies `Spec` |
+| `UnsatFairness.tla` | 4 | `VACUOUS_UNSATISFIABLE` | 7 | fairness demands a step `Next` forbids; no behavior satisfies `Spec` |
 | `TranscriptFloor.tla` at `--min-states 24` | 1 | `VACUOUS_EMPTY_SPACE` | 3 | 12 distinct states, below the problem's floor |
 | `Healthy.tla` + `Healthy.cfg` | — | `NON_VACUOUS` | 0 | positive control; nothing is wrong |
 | `TerminatingPcal.tla` | — | `NON_VACUOUS` | 0 | false-positive control; see below |
@@ -92,7 +92,7 @@ predicate changed to `distinct == 0`, this fixture comes back
 `VACUOUS_DEAD_ACTION`.
 
 The algorithm is the one from `puzzles/T01-the-light-switch`, on which the
-behaviour was first measured. It is reproduced here rather than referenced so
+behavior was first measured. It is reproduced here rather than referenced so
 that the fixture cannot be broken by editing a puzzle; the translation is
 `pcal`-generated and must be regenerated, not hand-edited, if the algorithm
 changes.
@@ -125,7 +125,7 @@ generates it and there's no row to match:
 <Up line 31, col 1 to line 31, col 2 of module DeletedAction>: 4:4
 ```
 
-Same observable behaviour, and the probe catches one and not the other.
+Same observable behavior, and the probe catches one and not the other.
 Deletion evades it, restriction doesn't. Closing that needs the expected action
 **names**, since a name is the only thing a missing row leaves behind.
 
@@ -138,7 +138,7 @@ exactly as it does in `Healthy.tla` and has no guard problem at all.
 **`UnsatFairness.tla`** is vector 4, and it's the one where every instrument
 this component owns says the spec is healthy. `Reset` is dropped from `Next`
 while `WF_counter(Reset)` stays in `Spec`, so fairness demands a step the
-next-state relation forbids and no behaviour satisfies `Spec`. Every temporal
+next-state relation forbids and no behavior satisfies `Spec`. Every temporal
 obligation then holds over nothing.
 
 The invariants keep biting, because TLC checks those over the state graph and
@@ -164,7 +164,7 @@ The third row is why the formula has to be temporal. `[]P` over a state
 predicate isn't a weaker probe, it's a different channel. TLC lifts it into an
 invariant, prints `Invariant AlwaysBadState is violated by the initial state`,
 and refutes it against the state graph that ignores fairness. So it fires on a
-spec with no behaviours at all.
+spec with no behaviors at all.
 
 `UnsatFairnessProbe.cfg`, `LiveFairnessProbe.cfg` and
 `UnsatFairnessStateProbe.cfg` carry those three runs, and `AlwaysBad` and
@@ -191,13 +191,13 @@ every probe `vacuity.sh` owns passes it. Measured:
 <Coast line 36, col 1 to line 36, col 5 of module TranscriptFloor>: 5:5
 ```
 
-The space is healthy, the `INVARIANT` is configured, `Spec` admits behaviours,
+The space is healthy, the `INVARIANT` is configured, `Spec` admits behaviors,
 and both actions fire. Twelve distinct states clears `Gate!NonVacuous` (`>= 4`)
 **three times over**, which is the point: nothing about the miss looks marginal.
 Only a floor the problem sets for itself can see it, and that is why the floor
 cannot be optional.
 
-**`ModelledFloor.tla`** is its matched pair — the same domain actually modelled,
+**`ModelledFloor.tla`** is its matched pair — the same domain actually modeled,
 40 distinct states, run against the **same** floor of 24. A floor that flagged
 every submission would satisfy the `TranscriptFloor` row on its own, so the
 discriminating thing has to be shown to be the submission rather than the
@@ -277,13 +277,13 @@ cross-type guards that would only move the same abort earlier.
 `EmptyInit.tla` has an `Init` with no solution, `DanglingInvariant.cfg` has a
 keyword with no operand, `DeadGuard.tla` has an action that can never fire,
 `DeletedAction.tla` has an action missing from `Next`, and `UnsatFairness.tla`
-has a fairness conjunct no behaviour can meet. Repairing any of them silently
+has a fairness conjunct no behavior can meet. Repairing any of them silently
 deletes a vector.
 
 `TranscriptFloor.tla` belongs here for a different reason: nothing about it is
 *wrong*. It is thin, and its thinness is load-bearing. Adding a branch, or
 widening the range past 23, deletes the only fixture that shows a submission
-passing every probe while modelling nothing. Its state count and
+passing every probe while modeling nothing. Its state count and
 `ModelledFloor.tla`'s straddle the floor of 24 that `test-vacuity.sh` runs them
 both at, so the two counts and that number move together or not at all.
 
@@ -301,7 +301,7 @@ follow that same shape rather than forking the module.
 
 `ObserveMixedType.tla`'s `phase` field is heterogeneous on purpose. Making it
 uniformly numeric deletes the only fixture that shows a per-field probe dying
-on one field and taking its neighbour's verdict with it.
+on one field and taking its neighbor's verdict with it.
 
 `Gate.tla` is **not** here and must not be copied here. It is centrally owned
 at `harness/Gate.tla`, shared with §5.4, and `vacuity.sh` reaches it through

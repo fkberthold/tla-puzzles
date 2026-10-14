@@ -17,7 +17,7 @@
 # Over the delivered sequence P_1 .. P_n, with the floor F as the starting
 # point:
 #
-#   (a)  no two neighbours share a situation or a task shape,
+#   (a)  no two neighbors share a situation or a task shape,
 #   (b)  for every dimension d, level_d(P_i) is at most one over the running
 #        maximum of level_d(F) and level_d(P_1) .. level_d(P_i-1),
 #   (b') at most one dimension rises above that running maximum.
@@ -43,7 +43,7 @@
 # So this script no longer reads a record's gate line at all, no ORDER file it
 # writes carries a `checkpoint:` line, and --check gives such a line no special
 # meaning. One handed to --check now falls through to the same name resolution
-# every other unrecognised entry hits, which is a usage error. The field itself
+# every other unrecognized entry hits, which is a usage error. The field itself
 # stays in the records. Restating it is bead tla-5zgr.3's job, and not reading
 # it here is what lets that bead rename it freely.
 #
@@ -762,7 +762,7 @@ run_check() {
   #
   # `checkpoint: ch13` and `checkpoint: refinement` used to be skipped here.
   # D6 took their meaning away, so they fall through to this resolution like
-  # any other unrecognised entry and exit 2.
+  # any other unrecognized entry and exit 2.
   for e in ${entries[@]+"${entries[@]}"}; do
     if [ -z "${IDX[$e]:-}" ]; then
       die2 "$file names '$e', which is no record under $ROOT"

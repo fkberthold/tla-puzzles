@@ -3,7 +3,7 @@
 (* rc=14 fixture (EC.TLC_VALUE_ASSERT_FAILED = 2132).                       *)
 (*                                                                          *)
 (* Assert's first argument is FALSE at x = 2, and the failure happens while *)
-(* TLC is exploring BEHAVIOUR -- x = 0 and x = 1 both satisfy it, so the    *)
+(* TLC is exploring BEHAVIOR -- x = 0 and x = 1 both satisfy it, so the     *)
 (* initial state computes cleanly and the run is already in the next-state  *)
 (* relation when the assertion blows up.                                    *)
 (*                                                                          *)

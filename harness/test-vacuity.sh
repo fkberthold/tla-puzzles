@@ -17,9 +17,9 @@
 # authoring/seedlib/reports/step2-variants.md.
 #
 #   RED 3  GIVEN a spec that ships a liveness obligation and a fairness
-#          conjunct NO BEHAVIOUR CAN MEET, WHEN vacuity.sh runs, THEN it
+#          conjunct NO BEHAVIOR CAN MEET, WHEN vacuity.sh runs, THEN it
 #          reports the spec UNSATISFIABLE -- rather than letting every
-#          temporal obligation pass over the empty set of behaviours.
+#          temporal obligation pass over the empty set of behaviors.
 #
 #          The three existing probes are all blind to it BY CONSTRUCTION.
 #          Invariants are checked over the state graph and fairness never
@@ -97,7 +97,7 @@
 #
 # Three kinds of assertion:
 #
-#   Behavioural  — drive vacuity.sh against a fixture and require both the
+#   Behavioral  — drive vacuity.sh against a fixture and require both the
 #     verdict token and the exit code.
 #
 #   Differential — the assertions that carry the bead's actual finding. Each
@@ -514,12 +514,12 @@ assert_vacuity "a RESTRICTED action is still caught when names are given" \
   --min-states 4 --expect-actions Up,Overflow "$FIXTURES/DeadGuard.tla"
 
 echo
-echo "== RED 3: vector 4 — a fairness conjunct no behaviour can meet =="
+echo "== RED 3: vector 4 — a fairness conjunct no behavior can meet =="
 echo "== (bead tla-hf39, seedlib V47)                                =="
 
 # The control FIRST, as with vector 1. UnsatFairness.cfg ships a real
 # INVARIANT and a real liveness PROPERTY, and this is what the harness's own
-# verdict channel says about a spec NO BEHAVIOUR SATISFIES: success.
+# verdict channel says about a spec NO BEHAVIOR SATISFIES: success.
 assert_verdict "control: bare TLC on the unsatisfiable spec reports success" \
   "OK" 0 \
   "$FIXTURES/UnsatFairness.tla"
@@ -536,8 +536,8 @@ assert_vacuity "the satisfiable twin is NOT flagged" \
   "NON_VACUOUS" 0 \
   --min-states 4 "$FIXTURES/LiveFairness.tla"
 
-assert_reports "vector 4 remediation names the empty behaviour set" \
-  "no behaviour satisfies your Spec" \
+assert_reports "vector 4 remediation names the empty behavior set" \
+  "no behavior satisfies your Spec" \
   --min-states 4 "$FIXTURES/UnsatFairness.tla"
 
 # Not Init and not Next alone: both are fine here, and a learner sent to look
@@ -550,7 +550,7 @@ echo
 echo "== differential: all three existing probes are blind to vector 4 =="
 
 # NonVacuous sees a healthy state space, because fairness does not shrink the
-# state graph -- it shrinks the set of BEHAVIOURS over that graph.
+# state graph -- it shrinks the set of BEHAVIORS over that graph.
 (
   cd harness || exit 1
   bash verdict.sh -q --postcondition "Gate!NonVacuous" \
@@ -598,9 +598,9 @@ echo
 echo "== the satisfiability probe itself, measured on both fixtures =="
 
 # THE MECHANISM, pinned rather than assumed. An always-false TEMPORAL formula
-# separates a spec that has behaviours from one that has none:
+# separates a spec that has behaviors from one that has none:
 #
-#   rc=13  the formula was refuted, so a behaviour exists to refute it.
+#   rc=13  the formula was refuted, so a behavior exists to refute it.
 #   rc=0   nothing refuted it, because there is nothing to refute it WITH.
 #
 # Measured on both fixtures, because a probe that returned 0 on everything
@@ -616,7 +616,7 @@ assert_verdict "always-false TEMPORAL formula vs the satisfiable Spec" \
 # AND WHY IT HAS TO BE TEMPORAL. `[](counter # counter)` over a STATE
 # PREDICATE is not a weaker probe, it is a different channel: TLC lifts it into
 # an INVARIANT and refutes it against the state graph, which ignores fairness
-# by construction. So it reports a violation on a spec that has no behaviours
+# by construction. So it reports a violation on a spec that has no behaviors
 # at all -- the exact opposite of the signal wanted, and unusable however false
 # the formula is.
 assert_verdict "the same formula over a STATE PREDICATE goes to the invariant channel" \
@@ -662,7 +662,7 @@ echo "== (bead tla-dk7w, custody step 4)               =="
 # TranscriptFloor.tla is that submission in miniature. It clears the
 # placeholder floor THREE TIMES OVER -- 12 distinct states against >= 4 -- so
 # nothing about the miss looks marginal, and every other probe passes it: the
-# space is healthy, the INVARIANT is configured, Spec admits behaviours, and
+# space is healthy, the INVARIANT is configured, Spec admits behaviors, and
 # both actions fire. A problem that leaves the floor at the placeholder
 # therefore grades a transcription as a model.
 #
@@ -729,13 +729,13 @@ assert_reports "the too-few-states report names the floor the problem set" \
 # THE NEGATIVE CONTROL, and it is run at the SAME floor. A floor that flagged
 # everything would satisfy the row above on its own, so the discriminating
 # thing has to be shown to be the submission rather than the number.
-# ModelledFloor.tla is the same domain actually modelled: 40 distinct states.
+# ModelledFloor.tla is the same domain actually modeled: 40 distinct states.
 #
 # Note this is the OPPOSITE experiment from the two Healthy.tla rows above,
 # which run one fixture at two floors. Neither direction substitutes for the
 # other: theirs shows the number moves the verdict, this shows the submission
 # does.
-assert_vacuity "a modelled submission clears the SAME floor" \
+assert_vacuity "a modeled submission clears the SAME floor" \
   "NON_VACUOUS" 0 \
   --min-states 24 "$FIXTURES/ModelledFloor.tla"
 
@@ -933,7 +933,7 @@ assert_absent "Gate.tla is never written to" \
   '>[[:space:]]*"?\$?\{?[A-Za-z_]*\}?/?Gate\.tla'
 
 # THE PLACEHOLDER ITSELF, banned at the source (bead tla-dk7w). The
-# behavioural rows above can be satisfied by a check bolted on in front of a
+# behavioral rows above can be satisfied by a check bolted on in front of a
 # default that is still sitting there, and a default that is still sitting
 # there is one edit away from being reachable again. A NUMBER is what is
 # banned, not the variable: an unset sentinel such as MIN_STATES="" is how the

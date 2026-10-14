@@ -40,7 +40,7 @@
 # cannot ban one the way the sibling suites ban a chapter list. What is
 # checkable is that the label reaches all three places that emit it -- the
 # page H1, the `.pages` nav title and the index link text -- and that they
-# agree. A generator that relabelled a family in one of the three would be
+# agree. A generator that relabeled a family in one of the three would be
 # publishing a page whose nav entry names something else.
 #
 # THE PROBE ASSERTION HAS A NEGATIVE CONTROL. "Every line of the probe region
@@ -286,7 +286,7 @@ extract_spec() {
 #
 # Prints one word per collapsed block in the section, in page order: `cfg`,
 # `probe`, `constructs`, or `unknown` for a block title this suite does not
-# recognise. The kind sequence is what the order assertion compares, so a
+# recognize. The kind sequence is what the order assertion compares, so a
 # retitled block reads as `unknown` and fails loudly rather than silently
 # dropping out of the comparison.
 # ---------------------------------------------------------------------------

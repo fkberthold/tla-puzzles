@@ -9,7 +9,7 @@
 \*
 \* This is what "the first match wins" costs you when the arms overlap. The
 \* arms of a CASE are not a set of independent rules. They are a list, and
-\* reordering the list is editing the behaviour.
+\* reordering the list is editing the behavior.
 
 EXTENDS Integers
 

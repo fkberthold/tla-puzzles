@@ -18,5 +18,5 @@ other chapters.
       and confirm every how-to-run command works there. A module only in
       `references/` is not delivered and its exercise cannot be run.
 - [ ] Cross-chapter: the command shape, glossary wording, and ritual lines
-      match the other chapters. Check at least the neighbouring chapter, not
+      match the other chapters. Check at least the neighboring chapter, not
       only this one.

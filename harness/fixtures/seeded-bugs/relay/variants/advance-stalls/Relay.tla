@@ -14,7 +14,7 @@
 (* Still deadlock-free: Advance is enabled at position 0 and maps it to     *)
 (* itself, so the state has a successor and TLC never reaches rc=11.  That  *)
 (* successor is a real Next step rather than a stuttering step, so          *)
-(* WF_vars(Next) is satisfied by the behaviour that violates the oracle --  *)
+(* WF_vars(Next) is satisfied by the behavior that violates the oracle --   *)
 (* which is what makes this a statement about the relay and not about       *)
 (* fairness.                                                                 *)
 (***************************************************************************)

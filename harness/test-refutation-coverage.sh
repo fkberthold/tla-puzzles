@@ -56,7 +56,7 @@ trap cleanup EXIT
 # PART 1: the mechanism, on fixtures.
 #
 # Each fixture is a statement package in the real shape, <name>/statement/.
-# The three defect shapes are modelled from the three measured instances rather
+# The three defect shapes are modeled from the three measured instances rather
 # than invented, and each is named after the statement it comes from.
 # ---------------------------------------------------------------------------
 
@@ -127,7 +127,7 @@ mk_pkg "$FX" empty-shape "Two requirements." 0
 mk_pkg "$FX" nocount-shape "" 2
 
 # The anchor control. "a requirement" and "one requirement" appear mid-sentence
-# in nine of this tree's statements, usually in the vacuity warning. A recogniser
+# in nine of this tree's statements, usually in the vacuity warning. A recognizer
 # that matched anywhere in the line would read 1 here and pass a package that
 # ships two refutations against five requirements.
 mk_pkg "$FX" midline-shape "Five requirements." 2 \
@@ -150,7 +150,7 @@ for i in "${!FX_NAME[@]}"; do
   fi
 done
 
-# The two recogniser controls, on the count itself rather than the verdict.
+# The two recognizer controls, on the count itself rather than the verdict.
 got="$(field_of "$FX" midline-shape requirements=)"
 if [ "$got" = "5" ]; then
   ok "a mid-line 'one requirement' does not displace the stated count (read 5)"
@@ -242,7 +242,7 @@ pin bonded-store                  OK        ""
 pin buyclub                       OK        ""
 pin consign                       OK        ""
 pin custody                       NO_STATED_COUNT \
-  "custody states its count as 'ten properties' mid-sentence at PROBLEM.md:190, which the line-start recogniser does not read. Its eleven trace files cover the ten, so this is the recogniser's limit rather than a coverage gap. Fix by stating the count at the head of the requirements section."
+  "custody states its count as 'ten properties' mid-sentence at PROBLEM.md:190, which the line-start recognizer does not read. Its eleven trace files cover the ten, so this is the recognizer's limit rather than a coverage gap. Fix by stating the count at the head of the requirements section."
 pin estate-notice                 OK        ""
 pin floor-malting                 OK        ""
 pin herbarium-sheet               OK        ""
@@ -322,7 +322,7 @@ fi
 if [ -z "$mismatched" ]; then
   ok "every package reads exactly as pinned"
 else
-  nope "verdict moved away from its pin, by a fix, a regression, or a changed recogniser:$mismatched"
+  nope "verdict moved away from its pin, by a fix, a regression, or a changed recognizer:$mismatched"
 fi
 
 # A pin matching nothing is a standing claim about a package that is gone or

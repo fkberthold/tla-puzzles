@@ -173,7 +173,7 @@ collide either.
 | 2 What an `ASSUME` buys you | predict-then-check | 12 min |
 | 3 A sentinel that cannot collide | complete-the-skeleton | 15 min |
 | 4 Why a symmetry set needs model values | predict-then-check | 10 min |
-| 5 A constant that picks a behaviour | write-from-prompt | 12 min |
+| 5 A constant that picks a behavior | write-from-prompt | 12 min |
 
 Both predict-then-check exercises instruct the learner to write the prediction
 into `LOG.md` before running TLC.

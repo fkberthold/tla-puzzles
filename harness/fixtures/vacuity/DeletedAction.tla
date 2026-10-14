@@ -6,7 +6,7 @@
 (* It is not a disjunct of `Next`. Compare DeadGuard.tla, where `Overflow` *)
 (* IS a disjunct and merely carries a guard that is never true.            *)
 (*                                                                         *)
-(* SAME OBSERVABLE BEHAVIOUR, DIFFERENT COVERAGE. Under -coverage 1 a       *)
+(* SAME OBSERVABLE BEHAVIOR, DIFFERENT COVERAGE. Under -coverage 1 a        *)
 (* RESTRICTED action leaves a row reading `0:0`, which is what the          *)
 (* `total == 0` predicate matches. A DELETED action leaves no row at all,   *)
 (* so there is nothing for that predicate to match and the probe is         *)

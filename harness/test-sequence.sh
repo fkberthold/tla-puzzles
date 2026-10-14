@@ -6,7 +6,7 @@
 #
 #   Over the delivered sequence P_1 .. P_n, with floor F,
 #
-#     (a)  no two neighbours share a situation or a task shape,
+#     (a)  no two neighbors share a situation or a task shape,
 #     (b)  for every dimension d, level_d(P_i) <= 1 + max(level_d(F),
 #          level_d(P_1) .. level_d(P_i-1)),
 #     (b') at most one dimension d has level_d(P_i) strictly above that
@@ -826,7 +826,7 @@ else
 fi
 
 if verify_order; then
-  ok "every neighbour pair in the printed order satisfies (a), (b) and (b'), checked here and not by --check"
+  ok "every neighbor pair in the printed order satisfies (a), (b) and (b'), checked here and not by --check"
 else
   nope "the printed order breaks a clause: $VERIFY_WHY"
 fi
@@ -964,7 +964,7 @@ assert_check_ok "control: the first three entries of the good order are accepted
 assert_check_ok "control: a one-problem order is accepted, so a short order is not rejected on length" \
   "$ORDERS/good-one.txt"
 
-assert_check_fails "control: (a) two neighbours in situation S2 fails at position 3" \
+assert_check_fails "control: (a) two neighbors in situation S2 fails at position 3" \
   "$ORDERS/break-a.txt" \
   '^FAIL at position 3: epsilon -> mu violates \(a\)'
 
@@ -1158,7 +1158,7 @@ assert_usage_error "an unknown flag exits 2" --frobnicate
 
 # D6 again. A checkpoint marker used to be one of two lines --check gave a
 # meaning to. Nothing parses one now, so it falls through to the name
-# resolution that every other unrecognised entry hits.
+# resolution that every other unrecognized entry hits.
 assert_usage_error "a checkpoint: line in an order file is an unknown name, so it exits 2" \
   --check "$ORDERS/has-checkpoint.txt"
 

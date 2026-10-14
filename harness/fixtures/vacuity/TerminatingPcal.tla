@@ -14,7 +14,7 @@
 (* with it essentially every PlusCal submission in the problem set. The     *)
 (* predicate is `total == 0`. This module is the fixture that holds that    *)
 (* line; the algorithm is the one from puzzles/T01-the-light-switch, on     *)
-(* which the behaviour was first measured.                                  *)
+(* which the behavior was first measured.                                   *)
 (***************************************************************************)
 EXTENDS Integers
 

@@ -101,7 +101,7 @@ rather than introducing it, and the sheet sends `=>` to ch2 at
 but I don't think this one is wrong.
 
 **NOTE, template boilerplate survives.** The line "What this chapter does NOT
-cover, because a neighbouring chapter does." sits at
+cover, because a neighboring chapter does." sits at
 `exercises/ch05/CHEATSHEET.md:41`. The other four sheets dropped it.
 
 **NOTE, themes are backticked.** The five theme lines at

@@ -33,7 +33,7 @@
 
 - An invariant is a property TLC checks on every reachable state, not just whether the spec runs without error.
 - Type invariants use `\in` and `\subseteq` to pin down the shape of each variable.
-- The error trace shows one state per row, with `pc` marking the current label. The command line prints no colour, so you find the changed values by comparing one row against the row above it.
+- The error trace shows one state per row, with `pc` marking the current label. The command line prints no color, so you find the changed values by comparing one row against the row above it.
 - `pc` and `=>` together restrict a check to a specific point, like "only when `pc = \"Done\"`".
 - `\A` and `\E` are vacuous on the empty set: `\A` is always true there, `\E` is always false.
 - `=>` inside a quantifier rules out unwanted combinations, but pairing `=>` with `\E` instead of `/\` makes the check trivially true.

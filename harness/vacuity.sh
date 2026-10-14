@@ -39,7 +39,7 @@
 #     4  VACUOUS_UNCHECKED      vector 2 — healthy space, nothing checked
 #     5  VACUOUS_DEAD_ACTION    vector 3 — an action never fired
 #     6  PROBE_INCONCLUSIVE     the spec never ran; not a vacuity verdict
-#     7  VACUOUS_UNSATISFIABLE  vector 4 — Spec admits no behaviour at all
+#     7  VACUOUS_UNSATISFIABLE  vector 4 — Spec admits no behavior at all
 #     8  VACUOUS_FROZEN_OBSERVE vector 5 — a field of the observation never
 #                                          changes anywhere in the space
 #    99  CHECK_DID_NOT_RUN      a probe the CALLER ASKED FOR was skipped, so
@@ -146,11 +146,11 @@
 #      fixtures/vacuity/DeletedAction.tla holds that shape.
 #
 #   4. AN UNSATISFIABLE Spec. A fairness conjunct on an action Next does not
-#      allow demands a step the next-state relation forbids, so NO behaviour
+#      allow demands a step the next-state relation forbids, so NO behavior
 #      satisfies Spec and every temporal obligation holds over nothing.
 #
 #      THE FIRST THREE PROBES ARE ALL BLIND TO IT BY CONSTRUCTION. Fairness
-#      does not touch the state graph -- it constrains the behaviours over
+#      does not touch the state graph -- it constrains the behaviors over
 #      that graph -- so the space is healthy, NonVacuous passes,
 #      InvariantConfigured passes, and every action that IS in Next reports a
 #      non-zero total. Only the liveness half goes blind, and it goes blind at
@@ -243,10 +243,10 @@
 #   `[](counter # counter)` over a state predicate is not a weaker probe, it
 #   is a different channel: TLC lifts a state-level formula into an INVARIANT
 #   and refutes it against the state graph, which ignores fairness by
-#   construction, so it exits 12 on a spec that has no behaviours at all --
+#   construction, so it exits 12 on a spec that has no behaviors at all --
 #   the opposite of the signal wanted. Measured, on both fixtures:
 #
-#     rc=13  the formula was refuted, so a behaviour exists to refute it;
+#     rc=13  the formula was refuted, so a behavior exists to refute it;
 #     rc=0   nothing refuted it, because there is nothing to refute it WITH.
 #
 #   `FALSE` does NOT constant-fold out of the temporal channel here, which
@@ -261,7 +261,7 @@
 #   reason: appending a PROPERTY to a .cfg whose INVARIANT is already
 #   violated would exit 12 on the safety violation before liveness checking
 #   began, and a safety violation says nothing either way about whether Spec
-#   admits a behaviour.
+#   admits a behavior.
 #
 # WHY THE DEAD-ACTION PROBE READS A LOG, AND WHY THAT IS NOT A §5.1 BREACH
 #
@@ -782,13 +782,13 @@ if [ "$EXPECT" != "none" ]; then
 fi
 
 # ===========================================================================
-# PROBE 4 -- does Spec admit any behaviour at all?
+# PROBE 4 -- does Spec admit any behavior at all?
 #
 # Ordered BEFORE dead actions deliberately. Both can be true of one module --
 # an action dropped from Next while a fairness conjunct still names it is
 # exactly how vector 4 arises -- and of the two descriptions the unsatisfiable
 # one is the root cause. "This action never fired" invites the learner to
-# weaken a guard; "no behaviour satisfies Spec" sends them to the mismatch
+# weaken a guard; "no behavior satisfies Spec" sends them to the mismatch
 # that actually broke the run.
 #
 # Runs only after probe 2 completed at rc=0; see the injection note in the
@@ -803,8 +803,8 @@ if [ "$nv_rc" = "0" ]; then
 (* is; it arrives as a .cfg PROPERTY, and a .cfg PROPERTY names an operator, *)
 (* so the operator has to exist in the main module.                          *)
 (*                                                                           *)
-(* []<>FALSE is refuted by any behaviour whatsoever and by nothing else, so  *)
-(* rc=13 means Spec admits a behaviour and rc=0 means it admits none. It has *)
+(* []<>FALSE is refuted by any behavior whatsoever and by nothing else, so   *)
+(* rc=13 means Spec admits a behavior and rc=0 means it admits none. It has  *)
 (* to be TEMPORAL: the same falsehood as a state predicate is lifted into an *)
 (* INVARIANT and checked against the state graph, which ignores fairness.    *)
 EXTENDS $MODULE_NAME
@@ -834,24 +834,24 @@ TLA
 
   case "$sat_rc" in
     13)
-      : ;;   # a behaviour exists, and it refuted the probe
+      : ;;   # a behavior exists, and it refuted the probe
     0)
-      say "VECTOR 4: no behaviour satisfies your Spec."
+      say "VECTOR 4: no behavior satisfies your Spec."
       say ""
       say "The state space is healthy and the model is configured, but the"
-      say "set of behaviours Spec admits is EMPTY. Every temporal obligation"
+      say "set of behaviors Spec admits is EMPTY. Every temporal obligation"
       say "you wrote then holds over nothing, and TLC still exits 0 reporting"
       say "success -- so a passing run means only that there was nothing to"
       say "fail."
       say ""
       say "This is NOT an empty state space: TLC reached"
       say "$(distinct_count "$nv_log") distinct states. Fairness never touches the state graph,"
-      say "it constrains the behaviours over that graph, which is why every"
+      say "it constrains the behaviors over that graph, which is why every"
       say "earlier probe passed."
       say ""
       say "Look at Spec in $(basename "$MODULE_ABS"). A fairness conjunct is"
       say "the usual cause: WF_ or SF_ on an action that Next does not allow"
-      say "demands a step the next-state relation forbids, so no behaviour"
+      say "demands a step the next-state relation forbids, so no behavior"
       say "can satisfy both. Check that every action named in a fairness"
       say "conjunct is also a disjunct of Next."
       finish "VACUOUS_UNSATISFIABLE" 7 ;;
@@ -901,7 +901,7 @@ if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then
     say "VECTOR 3: an action in your specification can never fire."
     say ""
     say "The state space is healthy and the model is configured, but part of"
-    say "what you wrote is unreachable -- so the behaviour it describes was"
+    say "what you wrote is unreachable -- so the behavior it describes was"
     say "never tested."
     say ""
     while IFS=$'\t' read -r name aline amod loc lcount; do
@@ -1093,11 +1093,11 @@ else
   say "here says an obligation was actually checked."
 fi
 if [ "$nv_rc" = "0" ]; then
-  say "Spec admits at least one behaviour, so the temporal obligations in"
+  say "Spec admits at least one behavior, so the temporal obligations in"
   say "the model were checked over something."
 else
   say "The satisfiability probe did not run, so nothing here says Spec"
-  say "admits a behaviour."
+  say "admits a behavior."
   SKIPPED_PROBES="${SKIPPED_PROBES}  satisfiability (probe 4)"$'\n'
 fi
 if [ "$DEAD_ACTIONS" = "1" ] && [ "$nv_rc" = "0" ]; then

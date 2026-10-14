@@ -9,7 +9,7 @@
 (* restored the fence, so the desk reads the gang's card against its own    *)
 (* book and refuses a card that does not say the leaf it holds.             *)
 (*                                                                          *)
-(* ROW 4 OF RULE 5 IS THE MECHANISM. The desk recognises a second copy and  *)
+(* ROW 4 OF RULE 5 IS THE MECHANISM. The desk recognizes a second copy and  *)
 (* writes the leaf it now holds onto the card, so the card and the book     *)
 (* agree again. It is the only step that moves the card with no entry       *)
 (* behind it, and the only route to a reading where the watch has logged a  *)

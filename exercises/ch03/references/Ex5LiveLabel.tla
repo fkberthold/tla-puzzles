@@ -2,7 +2,7 @@
 EXTENDS Integers, TLC
 
 \* The control run for Ex5DeadLabel. The probe has moved one label down, into
-\* Settle, which every behaviour reaches. The assert fires.
+\* Settle, which every behavior reaches. The assert fires.
 \*
 \* Run this one whenever the dead-label run comes back OK. An OK means either
 \* "the label never runs" or "the probe never worked", and only this run tells

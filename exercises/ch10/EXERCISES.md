@@ -239,7 +239,7 @@ differently. A load of 1200 satisfies `load >= 600` and `load >= 900` both,
 and the first arm written wins, so an overloaded lift now comes back `"warn"`.
 
 The arms of a `CASE` aren't a set of independent rules. They're a list, and
-reordering the list is editing the behaviour.
+reordering the list is editing the behavior.
 
 ## Exercise 5
 

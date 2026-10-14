@@ -9,7 +9,7 @@
 #
 # Two kinds of assertion:
 #
-#   Behavioural — run verdict.sh against a fixture in harness/fixtures/verdict/
+#   Behavioral — run verdict.sh against a fixture in harness/fixtures/verdict/
 #     and require BOTH the verdict token and the raw exit status. Asserting the
 #     raw rc as well as the token is what keeps the V2-PLAN.md 5.1 table honest:
 #     a future TLC that renumbered its exit codes would still produce the right
@@ -118,7 +118,7 @@ assert_present() {
   fi
 }
 
-echo "== behavioural: one fixture per row of the V2-PLAN.md 5.1 table =="
+echo "== behavioral: one fixture per row of the V2-PLAN.md 5.1 table =="
 
 # rc=0 — trivially satisfied, run through the FULL canonical invocation
 # including a -postCondition that holds (Ok has 5 distinct states >= 4).
@@ -189,9 +189,9 @@ echo "== the four codes 5.1 originally missed (bead tla-i9m) =="
 #   javap -cp ~/lib/tla2tools.jar -constants 'tlc2.output.EC$ExitStatus'
 #
 # rc=14 does not mean "an Assert failed" — it means an Assert failed once TLC
-# was already exploring behaviour. The identical construct in Init is 75, and
+# was already exploring behavior. The identical construct in Init is 75, and
 # the next assertion is the control that proves it.
-assert_verdict "rc=14  Assert FALSE during behaviour exploration" \
+assert_verdict "rc=14  Assert FALSE during behavior exploration" \
   "ASSERT_VIOLATION" 14 \
   "$FIXTURES/AssertViolation.tla"
 

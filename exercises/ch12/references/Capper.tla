@@ -35,12 +35,12 @@ Press == Cap \/ Wave
 Next == Arrive \/ Press
 
 \* Fairness is a constraint on Spec, not a property checked against it. It
-\* rules out behaviours that stall, and it is the ONLY reason a liveness
+\* rules out behaviors that stall, and it is the ONLY reason a liveness
 \* property can hold here at all.
 \*
 \* `SF_vars(Cap)` names a branch and marks just that branch. Marking the whole
 \* label with `SF_vars(Press)` would be satisfied by waving every bottle
-\* through forever, which is exactly the behaviour we are trying to rule out.
+\* through forever, which is exactly the behavior we are trying to rule out.
 \*
 \* Strong, not weak. `Cap` is disabled at every empty-station state, so it is
 \* never EVENTUALLY ALWAYS enabled, and weak fairness would be vacuous.

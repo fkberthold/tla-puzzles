@@ -8,7 +8,7 @@
 (* ABORTS the evaluation. So a field that holds a number in one phase of   *)
 (* the run and a string in another can take the whole probe down with it,  *)
 (* and a probe that dies reports nothing about the field NEXT to it. The   *)
-(* frozen `ledger` here is that neighbour: it is the thing the gate exists *)
+(* frozen `ledger` here is that neighbor: it is the thing the gate exists  *)
 (* to find, and it is sitting behind the field most likely to break the    *)
 (* instrument.                                                             *)
 (*                                                                         *)

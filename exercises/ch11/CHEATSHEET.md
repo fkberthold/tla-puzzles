@@ -31,7 +31,7 @@
 
 ## Boundary notes
 
-What this chapter does NOT cover, because a neighbouring chapter does.
+What this chapter does NOT cover, because a neighboring chapter does.
 
 - `PROPERTY`, the config directive used to check action properties, is covered in chapter `09` instead. This chapter only points the directive at a new class of formula.
 - The formal definition of "action" (a boolean formula containing primed variables) is given in chapter `12` instead. This chapter uses the word informally throughout, even in its own title.

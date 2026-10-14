@@ -239,12 +239,12 @@ permutation set yourself and point the `SYMMETRY` keyword at it.
 
 ## Exercise 5
 
-- Title: `A constant that picks a behaviour`
+- Title: `A constant that picks a behavior`
 - Format: `write-from-prompt`
 - Task: Start from `starters/Rehearsal.tla`. A counter climbs to a ceiling of
   `5`, and the invariant wants it to stop at `2`, so the starter fails. Add one
   boolean constant that selects between a strict ceiling of `2` and a loose one
-  of `5`, so a `.cfg` can ask for either behaviour without touching the spec.
+  of `5`, so a `.cfg` can ask for either behavior without touching the spec.
   Constrain it with an `ASSUME`. Re-run `pcal` after you edit, then write both
   `.cfg` files and run each.
 - Time budget: `12 min`

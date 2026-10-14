@@ -47,7 +47,7 @@ What each one is for:
 
 - **`too-weak`** and **`too-strong`** raise one flag each. They exist so that
   `both-at-once` raising two flags is evidence of something, rather than the
-  behaviour of a grader that always raises both.
+  behavior of a grader that always raises both.
 
 - **`strict-and-silent`** is too strong and ships no obligations module at
   all, so obligation 2 has nothing to refute. Only the landmark member can

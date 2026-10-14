@@ -56,7 +56,7 @@ names the operator I expected [cmd: `tlc -config Beacon.cfg Beacon.tla`, line 29
 of the capture reads ``Unknown operator: `IsWarm'.``].
 
 I also ran the optional third run from the After-the-run section. Narrowing
-`Warm` to one colour gives `SAFETY_VIOLATION` [cmd: same harness line, rc=12].
+`Warm` to one color gives `SAFETY_VIOLATION` [cmd: same harness line, rc=12].
 
 I think the exercise is well built. The reveal only works if you have committed
 to an answer, and the task text says so plainly enough that I committed without

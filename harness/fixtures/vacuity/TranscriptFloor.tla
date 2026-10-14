@@ -20,7 +20,7 @@
 (* floor above 12 can see it, which is why the floor cannot be optional.    *)
 (*                                                                          *)
 (* Its matched pair is ModelledFloor.tla: the same domain actually          *)
-(* modelled, 40 distinct states, run against the SAME floor.                *)
+(* modeled, 40 distinct states, run against the SAME floor.                 *)
 (*                                                                          *)
 (* The terminal state at step = 11 has no successor. That is deliberate     *)
 (* and harmless -- a script ends -- because verdict.sh leaves deadlock      *)

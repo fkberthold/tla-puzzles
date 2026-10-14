@@ -114,7 +114,7 @@ explore different numbers of states, and neither is wrong.
 
 - Title: `How far a name travels`
 - Format: `predict-then-check`
-- Task: Three files, one chain. `starters/Palette.tla` holds the colour
+- Task: Three files, one chain. `starters/Palette.tla` holds the color
   vocabulary. `starters/Signal.tla` imports it and builds the escalation policy
   on top. `starters/Beacon.tla` extends `Signal`, and `Beacon` is the module you
   run. All three ship complete and the set runs as it stands.
@@ -154,7 +154,7 @@ along the way.
 
 `LOCAL` cuts the second hop. The operator is still available inside `Signal`, so
 `Escalated` keeps working and `Signal.tla` still compiles on its own. It just
-stops travelling on. `Beacon` gets `Escalated`, doesn't get `IsWarm`, and
+stops traveling on. `Beacon` gets `Escalated`, doesn't get `IsWarm`, and
 `LampWarmOrCool` is left holding a name that means nothing.
 
 I think the interesting part is where the error lands. You broke `Signal.tla`,

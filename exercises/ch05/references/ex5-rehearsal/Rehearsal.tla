@@ -1,6 +1,6 @@
 ---- MODULE Rehearsal ----
 \* Reference solution for exercise 5.
-\* StrictMode carries no data. It picks which of two behaviours the spec has,
+\* StrictMode carries no data. It picks which of two behaviors the spec has,
 \* the way a command line flag picks a code path. The ASSUME is what stops a
 \* stray 7 in the .cfg from turning `IF StrictMode` into a silent surprise.
 EXTENDS Integers

@@ -219,7 +219,7 @@ setpoint alone, so writing 0 into the set adds nothing.
 
 **O5 and I3 only shrink the reachable state space.** `MaxLegs == 0` means the
 loop never runs, and starting the plates at `Limit` means the growth loop is
-skipped. Both properties then hold over a smaller behaviour. Neither edit
+skipped. Both properties then hold over a smaller behavior. Neither edit
 touches the thing being asserted, which is what makes them a useful control: a
 mutant pass where every mutant flips is not measuring the property, it is
 measuring whether the spec still runs.

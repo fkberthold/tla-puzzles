@@ -55,7 +55,7 @@ resolves the group's other modules the way a learner's run resolves `starters/`.
 | D4 | `DockRules.tla` | `<= cap` becomes `< cap` | `SAFETY_VIOLATION` | 12 |
 | D5 | `Dock.tla` | `Take` guard `< Cap` becomes `<= Cap` | `SAFETY_VIOLATION` | 12 |
 | B1 | `Signal.tla` | `INSTANCE` becomes `LOCAL INSTANCE` | `PARSE_ERROR` | 150 |
-| B2 | `Palette.tla` | `Warm` narrows to one colour | `SAFETY_VIOLATION` | 12 |
+| B2 | `Palette.tla` | `Warm` narrows to one color | `SAFETY_VIOLATION` | 12 |
 | B3 | `Signal.tla` | `Escalated` drops its second conjunct | `SAFETY_VIOLATION` | 12 |
 | B4 | `Beacon.tla` | `EXTENDS Signal` becomes `EXTENDS Palette` | `PARSE_ERROR` | 150 |
 | B5 | `Palette.tla` | `LOCAL` on the unused `Cool` | `OK` | 0 |
