@@ -118,13 +118,13 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G07Two.tla` | rc 0 | `Two.cfg`, the answer |
-| `G07One.tla` | rc 12 | `One.cfg`, the claim false on a one-nurse ward |
-| `G07SentinelIn.tla` | rc 10 | `SentinelInSet.cfg`, the sentinel inside the set, refused by the assumption |
-| `G07Strings.tla` | rc 255 | `StringNursesSymmetry.cfg`, symmetry over strings refused |
-| `G07Collides.tla` | rc 0 | `CollidesNoAssume.cfg`, the collision with the assumptions deleted, green and wrong |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G07Two.tla` | rc 0 | 9 | `Two.cfg`, the answer |
+| `G07One.tla` | rc 12 | 5 | `One.cfg`, the claim false on a one-nurse ward |
+| `G07SentinelIn.tla` | rc 10 | - | `SentinelInSet.cfg`, the sentinel inside the set, refused by the assumption |
+| `G07Strings.tla` | rc 255 | - | `StringNursesSymmetry.cfg`, symmetry over strings refused |
+| `G07Collides.tla` | rc 0 | 7 | `CollidesNoAssume.cfg`, the collision with the assumptions deleted, green and wrong |
 
 ## why-not-in-prompt
 

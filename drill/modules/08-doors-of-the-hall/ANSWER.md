@@ -95,12 +95,12 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G08Hall.tla` | rc 0 | `Narrow.cfg`, the answer, 2 states |
-| `G08Wide.tla` | rc 0 | `Wide.cfg`, 3 states |
-| `G08Unbound.tla` | rc 150 | the instance at the top, unknown operator |
-| `G08Unguarded.tla` | rc 12 | stacking without the check |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G08Hall.tla` | rc 0 | 2 | `Narrow.cfg`, the answer, 2 states |
+| `G08Wide.tla` | rc 0 | 3 | `Wide.cfg`, 3 states |
+| `G08Unbound.tla` | rc 150 | - | the instance at the top, unknown operator |
+| `G08Unguarded.tla` | rc 12 | 3 | stacking without the check |
 
 ## why-not-in-prompt
 

@@ -153,13 +153,13 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G02Ticker.tla` | rc 0 | the answer, 6 states |
-| `G02NoAmber.tla` | rc 13 | five read as green, the signal's action formula violated |
-| `G02NoWith.tla` | rc 150 | no reading, substitution missing for colour |
-| `G02Theorem.tla` | rc 0 | the theorem alone, wrong reading, unchecked |
-| `G02BangCfg.tla` | rc 151 | the config naming the instance formula directly |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G02Ticker.tla` | rc 0 | 6 | the answer, 6 states |
+| `G02NoAmber.tla` | rc 13 | 6 | five read as green, the signal's action formula violated |
+| `G02NoWith.tla` | rc 150 | - | no reading, substitution missing for colour |
+| `G02Theorem.tla` | rc 0 | 6 | the theorem alone, wrong reading, unchecked |
+| `G02BangCfg.tla` | rc 151 | - | the config naming the instance formula directly |
 
 ## why-not-in-prompt
 

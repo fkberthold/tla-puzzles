@@ -129,12 +129,12 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G06Line.tla` | rc 0 | the answer, 16 states |
-| `G06Named.tla` | rc 0 | the rules as named operators, 16 states |
-| `G06Expr.tla` | rc 150 | an expression where an operator was wanted |
-| `G06Crossed.tla` | rc 12 | the rules wired to the wrong records |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G06Line.tla` | rc 0 | 16 | the answer, 16 states |
+| `G06Named.tla` | rc 0 | 16 | the rules as named operators, 16 states |
+| `G06Expr.tla` | rc 150 | - | an expression where an operator was wanted |
+| `G06Crossed.tla` | rc 12 | 2 | the rules wired to the wrong records |
 
 ## why-not-in-prompt
 

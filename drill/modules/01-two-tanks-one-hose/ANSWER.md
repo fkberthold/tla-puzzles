@@ -204,14 +204,14 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G01Alone.tla` | rc 0 | `Alone.cfg`, one tank alone, 3 states |
-| `G01Pair.tla` | rc 0 | `Pair.cfg`, the answer, 12 states |
-| `G01Equal.tla` | rc 0 | `Equal.cfg`, equal capacities, 9 states |
-| `G01Anon.tla` | rc 150 | the pair's own behaviour formula already defined |
-| `G01AnonInit.tla` | rc 255 | one level never constrained, reported as null |
-| `G01NoVar.tla` | rc 150 | the level never substituted |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G01Alone.tla` | rc 0 | 3 | `Alone.cfg`, one tank alone, 3 states |
+| `G01Pair.tla` | rc 0 | 12 | `Pair.cfg`, the answer, 12 states |
+| `G01Equal.tla` | rc 0 | 9 | `Equal.cfg`, equal capacities, 9 states |
+| `G01Anon.tla` | rc 150 | - | the pair's own behaviour formula already defined |
+| `G01AnonInit.tla` | rc 255 | - | one level never constrained, reported as null |
+| `G01NoVar.tla` | rc 150 | - | the level never substituted |
 
 ## why-not-in-prompt
 
