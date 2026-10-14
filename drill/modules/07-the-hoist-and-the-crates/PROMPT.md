@@ -23,16 +23,15 @@ The requirement: the load never exceeds the limit.
 |---|---|---|
 | crates of 40, 70 and 90, limit 150 | clean | 6 |
 | crates of 40, 50 and 60, limit 150 | clean | 8 |
-| the sum written without its one-line declaration | refused: the sum's own name was unknown inside its body | |
+| the same sum, one line short | refused: the sum's own name was unknown inside its body | |
 | the boarding rule without the weight check | violation | 7 |
 
 ## The questions
 
-1. Write it. The sum over a set needs one declaration before its
-   definition that an ordinary definition doesn't. What is it, and why
-   does a definition need it to name itself?
+1. Write it. Row three is one line short. What is the line, and what is
+   it for?
 2. The second row kills a shortcut. Which one?
 3. There's a way to write the sum with no declaration at all. What is
    it, and what does it cost?
 
-Write it, reproduce the 6, then take the declaration off.
+Write it, reproduce the 6, then take that line off.
