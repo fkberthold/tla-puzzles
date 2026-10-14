@@ -107,14 +107,14 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G06Cut.tla` | rc 0 | `Constraint.cfg`, the cut at 3 with both fairness conjuncts |
-| `G06UnfairCut.tla` | rc 13 | `ConstraintNoSenderFairness.cfg`, the cut with the sender's fairness dropped |
-| `G06GivesUp.tla` | rc 13 | `SpecBound.cfg`, the sender that gives up, original claim |
-| `G06WeakGivesUp.tla` | rc 0 | `SpecBoundWeakened.cfg`, the sender that gives up, honest claim |
-| `G06Lean.tla` | rc 0 | `NoCounter.cfg`, the counter deleted |
-| `G06UnfairLean.tla` | rc 13 | `NoCounterNoSenderFairness.cfg`, the counter deleted, sender's fairness dropped |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G06Cut.tla` | rc 0 | 10 | `Constraint.cfg`, the cut at 3 with both fairness conjuncts |
+| `G06UnfairCut.tla` | rc 13 | 10 | `ConstraintNoSenderFairness.cfg`, the cut with the sender's fairness dropped |
+| `G06GivesUp.tla` | rc 13 | 10 | `SpecBound.cfg`, the sender that gives up, original claim |
+| `G06WeakGivesUp.tla` | rc 0 | 10 | `SpecBoundWeakened.cfg`, the sender that gives up, honest claim |
+| `G06Lean.tla` | rc 0 | 3 | `NoCounter.cfg`, the counter deleted |
+| `G06UnfairLean.tla` | rc 13 | 3 | `NoCounterNoSenderFairness.cfg`, the counter deleted, sender's fairness dropped |
 
 telegraph-waiver: TLC -- the inventory cell for the PROPERTY row names the tool, and a prompt about what the model checker reports has to name it
 

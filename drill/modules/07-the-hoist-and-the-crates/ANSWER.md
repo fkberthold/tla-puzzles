@@ -110,13 +110,13 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G07Hoist.tla` | rc 0 | `Heavy.cfg`, the answer, 6 states |
-| `G07Light.tla` | rc 0 | `Light.cfg`, the row that kills the cardinality shortcut, 8 states |
-| `G07NoRec.tla` | rc 150 | the sum with no declaration, unknown operator |
-| `G07Unguarded.tla` | rc 12 | boarding without the check |
-| `G07Fn.tla` | rc 0 | the sum as a recursive function, 6 states |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G07Hoist.tla` | rc 0 | 6 | `Heavy.cfg`, the answer, 6 states |
+| `G07Light.tla` | rc 0 | 8 | `Light.cfg`, the row that kills the cardinality shortcut, 8 states |
+| `G07NoRec.tla` | rc 150 | - | the sum with no declaration, unknown operator |
+| `G07Unguarded.tla` | rc 12 | 7 | boarding without the check |
+| `G07Fn.tla` | rc 0 | 6 | the sum as a recursive function, 6 states |
 
 ## why-not-in-prompt
 

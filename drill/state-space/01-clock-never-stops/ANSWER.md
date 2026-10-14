@@ -118,13 +118,13 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns, with its default `-deadlock`.
 
-| module | rc | stands for |
-|---|---|---|
-| `G01Bug.tla` | rc 12 | `UnboundedBuggy.cfg`, the bug found at depth 5 in the infinite graph |
-| `G01Cut12.tla` | rc 0 | `Constraint12.cfg`, the constraint at cap 12 |
-| `G01Cap12.tla` | rc 0 | `SpecBound12.cfg`, the spec-side bound at cap 12 |
-| `G01Probe12.tla` | rc 12 | `ConstraintProbe12.cfg`, a state outside the constraint still checked |
-| `G01Gap.tla` | rc 0 | `Relative.cfg`, the model with no clock to bound |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G01Bug.tla` | rc 12 | 15 | `UnboundedBuggy.cfg`, the bug found at depth 5 in the infinite graph |
+| `G01Cut12.tla` | rc 0 | 237 | `Constraint12.cfg`, the constraint at cap 12 |
+| `G01Cap12.tla` | rc 0 | 237 | `SpecBound12.cfg`, the spec-side bound at cap 12 |
+| `G01Probe12.tla` | rc 12 | 183 | `ConstraintProbe12.cfg`, a state outside the constraint still checked |
+| `G01Gap.tla` | rc 0 | 9 | `Relative.cfg`, the model with no clock to bound |
 
 ## why-not-in-prompt
 

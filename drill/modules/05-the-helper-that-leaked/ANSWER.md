@@ -140,12 +140,12 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G05Belt.tla` | rc 0 | the answer, 6 states |
-| `G05Clash.tla` | rc 150 | two names already defined |
-| `G05Leak.tla` | rc 0 | the silent leak, 3 states and green |
-| `G05Named.tla` | rc 0 | the named-instance fix, 6 states |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G05Belt.tla` | rc 0 | 6 | the answer, 6 states |
+| `G05Clash.tla` | rc 150 | - | two names already defined |
+| `G05Leak.tla` | rc 0 | 3 | the silent leak, 3 states and green |
+| `G05Named.tla` | rc 0 | 6 | the named-instance fix, 6 states |
 
 ## why-not-in-prompt
 

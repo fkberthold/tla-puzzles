@@ -102,12 +102,12 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G03HistoryBug.tla` | rc 12 | `History.cfg`, client A, the bug at depth 8 |
-| `G03HistoryHidden.tla` | rc 0 | `HistoryView.cfg`, client A with the log hidden, the false clean |
-| `G03AuditBug.tla` | rc 12 | `AuditBuggy.cfg`, client B, the same bug |
-| `G03AuditHidden.tla` | rc 0 | `AuditFixedView.cfg`, client B fixed with the log hidden, 10 states |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G03HistoryBug.tla` | rc 12 | 12 | `History.cfg`, client A, the bug at depth 8 |
+| `G03HistoryHidden.tla` | rc 0 | 3 | `HistoryView.cfg`, client A with the log hidden, the false clean |
+| `G03AuditBug.tla` | rc 12 | 45 | `AuditBuggy.cfg`, client B, the same bug |
+| `G03AuditHidden.tla` | rc 0 | 10 | `AuditFixedView.cfg`, client B fixed with the log hidden, 10 states |
 
 ## why-not-in-prompt
 

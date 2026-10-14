@@ -130,13 +130,13 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G08Engine3.tla` | rc 12 | `Mechanism3.cfg`, the mechanism at three doctors, 462 states |
-| `G08EngineCut4.tla` | rc 0 | `Mechanism3Ts4.cfg`, the counter cut at 4, the false clean |
-| `G08EngineCut5.tla` | rc 12 | `Mechanism3Ts5.cfg`, the counter cut at 5, the anomaly generated and checked |
-| `G08Rules2.tla` | rc 12 | `Oracle2.cfg`, the two rules at two doctors, 21 states |
-| `G08Rules4.tla` | rc 12 | `Oracle4.cfg`, the two rules at four doctors, 2,421 states |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G08Engine3.tla` | rc 12 | 462 | `Mechanism3.cfg`, the mechanism at three doctors, 462 states |
+| `G08EngineCut4.tla` | rc 0 | 280 | `Mechanism3Ts4.cfg`, the counter cut at 4, the false clean |
+| `G08EngineCut5.tla` | rc 12 | 460 | `Mechanism3Ts5.cfg`, the counter cut at 5, the anomaly generated and checked |
+| `G08Rules2.tla` | rc 12 | 21 | `Oracle2.cfg`, the two rules at two doctors, 21 states |
+| `G08Rules4.tla` | rc 12 | 2421 | `Oracle4.cfg`, the two rules at four doctors, 2,421 states |
 
 ## why-not-in-prompt
 

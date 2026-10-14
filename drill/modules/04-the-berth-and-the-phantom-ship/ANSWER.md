@@ -141,14 +141,14 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G04Two.tla` | rc 0 | `Two.cfg`, the answer, 7 states |
-| `G04One.tla` | rc 12 | `One.cfg`, the requirement false on a one-ship harbour |
-| `G04Phantom.tla` | rc 10 | `Phantom.cfg`, the sentinel listed as a ship, refused |
-| `G04PhantomNoAssume.tla` | rc 0 | `PhantomNoAssume.cfg`, the same with the line deleted, green and wrong |
-| `G04Three.tla` | rc 0 | `Three.cfg`, 13 states |
-| `G04ThreeSym.tla` | rc 0 | `ThreeSym.cfg`, the wrapper with symmetry, 4 states |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G04Two.tla` | rc 0 | 7 | `Two.cfg`, the answer, 7 states |
+| `G04One.tla` | rc 12 | 3 | `One.cfg`, the requirement false on a one-ship harbour |
+| `G04Phantom.tla` | rc 10 | - | `Phantom.cfg`, the sentinel listed as a ship, refused |
+| `G04PhantomNoAssume.tla` | rc 0 | 3 | `PhantomNoAssume.cfg`, the same with the line deleted, green and wrong |
+| `G04Three.tla` | rc 0 | 13 | `Three.cfg`, 13 states |
+| `G04ThreeSym.tla` | rc 0 | 4 | `ThreeSym.cfg`, the wrapper with symmetry, 4 states |
 
 ## why-not-in-prompt
 

@@ -114,14 +114,14 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G02Plain5.tla` | rc 0 | `NoSym5.cfg`, five workers, no symmetry, 811 states |
-| `G02Sym5.tla` | rc 0 | `Sym5.cfg`, five workers under symmetry, 15 states |
-| `G02PlainCaught.tla` | rc 12 | `NoSymLastWorker.cfg`, the asymmetric claim caught |
-| `G02SymMissed.tla` | rc 0 | `SymLastWorker.cfg`, the same claim missed under symmetry |
-| `G02SymInts.tla` | rc 255 | `SymIntegers.cfg`, symmetry over integers refused |
-| `G02SymLive.tla` | rc 13 | `SymLiveness.cfg`, a true liveness claim reported violated |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G02Plain5.tla` | rc 0 | 811 | `NoSym5.cfg`, five workers, no symmetry, 811 states |
+| `G02Sym5.tla` | rc 0 | 15 | `Sym5.cfg`, five workers under symmetry, 15 states |
+| `G02PlainCaught.tla` | rc 12 | 21 | `NoSymLastWorker.cfg`, the asymmetric claim caught |
+| `G02SymMissed.tla` | rc 0 | 12 | `SymLastWorker.cfg`, the same claim missed under symmetry |
+| `G02SymInts.tla` | rc 255 | - | `SymIntegers.cfg`, symmetry over integers refused |
+| `G02SymLive.tla` | rc 13 | 9 | `SymLiveness.cfg`, a true liveness claim reported violated |
 
 telegraph-waiver: TLC -- the inventory cell for the PROPERTY row names the tool, and a prompt about what the model checker reports has to name it
 

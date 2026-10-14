@@ -103,13 +103,13 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G05Bug.tla` | rc 12 | `Buggy.cfg`, the claim stated as a boolean, the bug found |
-| `G05Fixed.tla` | rc 0 | `Fixed.cfg`, the per-item guard |
-| `G05Record.tla` | rc 75 | `InvariantRecord.cfg`, the record named where a claim goes |
-| `G05Alias.tla` | rc 12 | `AliasShown.cfg`, the record named where a display goes, bug still found |
-| `G05Sane.tla` | rc 0 | `SummarySane.cfg`, a boolean claim over the summary that can't see the fault |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G05Bug.tla` | rc 12 | 4 | `Buggy.cfg`, the claim stated as a boolean, the bug found |
+| `G05Fixed.tla` | rc 0 | 6 | `Fixed.cfg`, the per-item guard |
+| `G05Record.tla` | rc 75 | 1 | `InvariantRecord.cfg`, the record named where a claim goes |
+| `G05Alias.tla` | rc 12 | 4 | `AliasShown.cfg`, the record named where a display goes, bug still found |
+| `G05Sane.tla` | rc 0 | 10 | `SummarySane.cfg`, a boolean claim over the summary that can't see the fault |
 
 ## why-not-in-prompt
 

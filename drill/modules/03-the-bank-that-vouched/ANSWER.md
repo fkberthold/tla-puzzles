@@ -132,14 +132,14 @@ One thin wrapper module per run the drill gate reproduces, each with a
 copy of the config it stands for. The rc is what `harness/verdict.sh`
 returns.
 
-| module | rc | stands for |
-|---|---|---|
-| `G03Bank.tla` | rc 0 | `Bank.cfg`, the library alone with 3 lockers |
-| `G03BankZero.tla` | rc 10 | `BankZero.cfg`, the library alone refusing 0 |
-| `G03Office.tla` | rc 0 | `Office.cfg`, the answer, 8 states |
-| `G03OfficeZero.tla` | rc 0 | `OfficeZero.cfg`, the guard silent through the instance |
-| `G03Pass.tla` | rc 0 | `Pass.cfg`, the guard silent with the constant passed through |
-| `G03Guarded.tla` | rc 10 | `OfficeZero.cfg` against the office with its own guard |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G03Bank.tla` | rc 0 | 4 | `Bank.cfg`, the library alone with 3 lockers |
+| `G03BankZero.tla` | rc 10 | - | `BankZero.cfg`, the library alone refusing 0 |
+| `G03Office.tla` | rc 0 | 8 | `Office.cfg`, the answer, 8 states |
+| `G03OfficeZero.tla` | rc 0 | 2 | `OfficeZero.cfg`, the guard silent through the instance |
+| `G03Pass.tla` | rc 0 | 2 | `Pass.cfg`, the guard silent with the constant passed through |
+| `G03Guarded.tla` | rc 10 | - | `OfficeZero.cfg` against the office with its own guard |
 
 ## why-not-in-prompt
 

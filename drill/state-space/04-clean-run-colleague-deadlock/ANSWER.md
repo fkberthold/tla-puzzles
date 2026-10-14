@@ -100,11 +100,11 @@ the rc column here is the six-cell table seen through that channel,
 and the middle row is the harness doing on purpose what bare `tlc`
 does silently.
 
-| module | rc | stands for |
-|---|---|---|
-| `G04Opposite.tla` | rc 0 | `OppositeNoKeyword.cfg`, the buggy ordering, keyword absent, flag present: the real stuck state not reported |
-| `G04AsksOpposite.tla` | rc 99 | `OppositeTrue.cfg`, the buggy ordering asking for the check: the channel refuses rather than drop it |
-| `G04SameEnd.tla` | rc 0 | `SameWithEnd.cfg`, the fixed ordering with finishing allowed to go nowhere |
+| module | rc | distinct | stands for |
+|---|---|---|---|
+| `G04Opposite.tla` | rc 0 | 13 | `OppositeNoKeyword.cfg`, the buggy ordering, keyword absent, flag present: the real stuck state not reported |
+| `G04AsksOpposite.tla` | rc 99 | - | `OppositeTrue.cfg`, the buggy ordering asking for the check: the channel refuses rather than drop it |
+| `G04SameEnd.tla` | rc 0 | 12 | `SameWithEnd.cfg`, the fixed ordering with finishing allowed to go nowhere |
 
 ## why-not-in-prompt
 
