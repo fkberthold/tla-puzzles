@@ -80,17 +80,60 @@
 # there rather than being quietly tolerated by one of the two.
 #
 # ---------------------------------------------------------------------------
-# NEVER OVERWRITE, AND NEVER DELETE
+# NEVER OVERWRITE A PROMPT, AND NEVER DELETE ANYTHING
 #
 # ~/tla-practice is not a git repo and it holds the only copy of the work done
-# in it, so a clobbered file does not come back. Every file this script places
-# is checked for existence first. An existing file is left alone and reported
-# on stdout as "skipped (exists): <path>", and the run still exits 0, because a
-# second delivery over a tree already carrying the corpus is the normal case
-# rather than an error.
+# in it, so a clobbered file does not come back. Every prompt this script
+# places is checked for existence first. An existing one is left alone and
+# reported on stdout as "skipped (exists): <path>", and the run still exits 0,
+# because a second delivery over a tree already carrying the corpus is the
+# normal case rather than an error.
+#
+# THE RULE IS PER FILE CLASS NOW, AND THE RUNNER IS THE EXCEPTION. Read the
+# next section before you read this one as universal.
 #
 # Nothing is removed, at any point, under any flag. This script has no delete
 # path at all.
+#
+# ---------------------------------------------------------------------------
+# THREE FILE CLASSES, THREE POLICIES
+#
+# Until 2026-10-14 this script placed PROMPT.md and nothing else, so one rule
+# covered everything it wrote: never overwrite. The drill runner is the first
+# non-item file it delivers, and one rule stopped fitting the moment there
+# were two kinds of file. Frank ruled the split the same day, which is what
+# bead tla-emzu was blocked on.
+#
+#   PROMPT.md      NEVER overwritten. It is the learner's page. He works in
+#                  the directory it sits in, and by the time a second delivery
+#                  runs a prompt may carry his notes.
+#
+#   the runner     ALWAYS overwritten. It is tooling. The repo is the source
+#                  of truth for it, nothing he does edits it, and a fix to it
+#                  is worth nothing if it cannot reach him. A delivered copy
+#                  that can never be refreshed is the stale-copy problem
+#                  tla-emzu's own notes describe from the other end.
+#
+#   PROGRESS.tsv   NEVER written, read or touched here, under any flag. They
+#   LAST-SERVED    are his record of what he has done, the runner owns them,
+#                  and nothing in this script has any business near them. The
+#                  practice tree holds the only copy.
+#
+# WHAT DECIDES WHICH CLASS A FILE IS IN: could the learner have edited it. If
+# he could, refuse to overwrite. If the repo is the source of truth and he
+# never edits it, refresh it. The never-overwrite rule exists to protect work
+# that has no git behind it, and the runner carries none.
+#
+# SO AN ALWAYS-OVERWRITE PATH LIVES IN THIS SCRIPT NOW, and it is named rather
+# than hidden. install_runner() below is the only place it is, deliver_file()
+# still refuses, and they are separate functions so neither can be reached by
+# accident. Anyone who reads deliver_file() and concludes that this script
+# never overwrites would be right about that function and wrong about the
+# script, which is why this section sits above both.
+#
+# A source tree with no drill.sh is NOT an error. The prompts still land and
+# the run reports that no runner was found. A corpus that predates the runner
+# is a tree that was fine yesterday, not a defect today.
 
 set -uo pipefail
 
@@ -114,6 +157,17 @@ SRC_ROOT="${DELIVER_DRILL_SRC_ROOT:-$REPO_ROOT}"
 # The one file an item hands over. Read the manifest section above before
 # changing this, and change harness/test-drill.sh in the same commit.
 PROMPT_NAME="PROMPT.md"
+
+# The runner, which is the one thing this script delivers that is not an item.
+# It lands without its extension so the command reads `./drill`, and it is
+# ALWAYS overwritten. Read "THREE FILE CLASSES, THREE POLICIES" above before
+# changing either name.
+RUNNER_SRC_NAME="drill.sh"
+RUNNER_DEST_NAME="drill"
+
+# The learner's record. Named so the run can say what it leaves alone, and
+# never opened.
+LEARNER_RECORD_NAMES=("PROGRESS.tsv" "LAST-SERVED")
 
 CHECK_ONLY=0
 DEST_ROOT=""
@@ -239,6 +293,30 @@ done
 echo "source: $SRC_DRILL"
 echo "destination: $DEST_ROOT"
 
+# ---------------------------------------------------------------------------
+# The runner, resolved beside the items and reported either way.
+#
+# It sits at the drill root rather than inside an item, so none of the item
+# walking above sees it and it is not a withheld path. harness/drill-gate.sh
+# and harness/test-drill.sh both read items at depth two, so a file here is
+# outside the four-entry shape assertion as well.
+# ---------------------------------------------------------------------------
+
+RUNNER_SRC="$SRC_DRILL/$RUNNER_SRC_NAME"
+RUNNER_DEST="$DEST_ROOT/$RUNNER_DEST_NAME"
+
+HAVE_RUNNER=0
+if [ -f "$RUNNER_SRC" ]; then
+  HAVE_RUNNER=1
+  echo "runner source: $RUNNER_SRC"
+else
+  echo "no runner at $RUNNER_SRC, so none lands"
+fi
+
+for record_name in "${LEARNER_RECORD_NAMES[@]}"; do
+  echo "left alone (the learner's record, never written here): $DEST_ROOT/$record_name"
+done
+
 if [ "$CHECK_ONLY" -eq 1 ]; then
   to_land=0
   already=0
@@ -251,6 +329,15 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
       to_land=$((to_land + 1))
     fi
   done
+  # Says whether it would overwrite, because that is the one thing about the
+  # runner a reader cannot infer from the prompt policy above it.
+  if [ "$HAVE_RUNNER" -eq 1 ]; then
+    if [ -e "$RUNNER_DEST" ]; then
+      echo "would deliver runner, OVERWRITING the copy already there: $RUNNER_DEST"
+    else
+      echo "would deliver runner: $RUNNER_DEST"
+    fi
+  fi
   echo "$to_land prompt(s) to land, $already already there, ${#withheld_paths[@]} path(s) withheld"
   [ "${#missing_prompt[@]}" -eq 0 ] || exit 1
   exit 0
@@ -276,6 +363,32 @@ deliver_file() {
   cp -- "$src" "$dest" || return 1
 }
 
+# install_runner <src> <dest>
+#
+# The one always-overwrite path in this script, and the only one there will
+# ever be unless somebody argues another file class into the section above.
+# It is deliberately NOT deliver_file() with a flag: a flag on the function
+# that holds the never-overwrite rule is one typo away from clobbering a
+# prompt, and two functions cannot be confused that way.
+#
+# It says which of the two things it did, because a refresh and a first
+# delivery are different events and he should be able to tell them apart in
+# the output.
+install_runner() {
+  local src="$1" dest="$2" existed=0
+  if [ -e "$dest" ]; then
+    existed=1
+  fi
+  mkdir -p -- "$(dirname -- "$dest")" || return 1
+  cp -- "$src" "$dest" || return 1
+  chmod 0755 -- "$dest" || return 1
+  if [ "$existed" -eq 1 ]; then
+    echo "runner refreshed, overwriting the copy already there: $dest"
+  else
+    echo "runner delivered: $dest"
+  fi
+}
+
 rc=0
 landed=0
 skipped=0
@@ -291,6 +404,13 @@ for rel in "${deliver_items[@]}"; do
       ;;
   esac
 done
+
+if [ "$HAVE_RUNNER" -eq 1 ]; then
+  if ! install_runner "$RUNNER_SRC" "$RUNNER_DEST"; then
+    echo "$0: failed to deliver the runner: $RUNNER_DEST" >&2
+    rc=1
+  fi
+fi
 
 echo "$landed prompt(s) landed, $skipped skipped, ${#withheld_paths[@]} path(s) withheld"
 
