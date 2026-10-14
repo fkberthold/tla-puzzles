@@ -1,5 +1,5 @@
 ---- MODULE RobotFromStart ----
-\* Wrong neighbour: the move is checked against the first cell in the
+\* Wrong neighbor: the move is checked against the first cell in the
 \* record rather than the last. The first index is the one a reader reaches
 \* for by reflex, and the adjacency rule catches it on the second move.
 EXTENDS Naturals, Sequences
@@ -33,7 +33,7 @@ Next == Step \/ Lift
 
 Spec == Init /\ [][Next]_vars
 
-NeighboursOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
+NeighborsOnly == \A i \in 1..(Len(path) - 1) : Adjacent(path[i], path[i + 1])
 
 NoCellTwice == \A i, j \in DOMAIN path : i /= j => path[i] /= path[j]
 ====

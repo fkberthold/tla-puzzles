@@ -1,5 +1,5 @@
 ---- MODULE RobotDomainEdge ----
-\* Wrong neighbour: the adjacency rule quantified over the whole domain.
+\* Wrong neighbor: the adjacency rule quantified over the whole domain.
 \* At the last index it asks for path[Len(path) + 1], which does not exist,
 \* and TLC stops the first time it evaluates the invariant.
 EXTENDS Naturals, Sequences
@@ -35,7 +35,7 @@ Next == Step \/ Lift
 
 Spec == Init /\ [][Next]_vars
 
-NeighboursOnly == \A i \in DOMAIN path : Adjacent(path[i], path[i + 1])
+NeighborsOnly == \A i \in DOMAIN path : Adjacent(path[i], path[i + 1])
 
 NoCellTwice == \A i, j \in DOMAIN path : i /= j => path[i] /= path[j]
 ====
