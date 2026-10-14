@@ -65,7 +65,12 @@ if [ ! -d "${REPO_ROOT}/harness" ] || [ ! -d "${REPO_ROOT}/scripts" ]; then
   exit 2
 fi
 
-LINT_ROOTS=(scripts harness)
+# drill/ was added 2026-10-14 with bead tla-t9de, because drill/drill.sh is the
+# one script here a learner runs every day and it was getting no shellcheck at
+# all. Widening the root surfaced exactly one finding, a false SC2016 on a
+# markdown format string in drill/temporal/runs-table.sh, closed with a
+# per-site disable and its reason.
+LINT_ROOTS=(scripts harness drill)
 
 LIST_ONLY=0
 declare -a EXPLICIT=()

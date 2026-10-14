@@ -18,5 +18,9 @@ while read -r stem rc _token _distinct; do
   spec="$(sed -n 's/^SPECIFICATION //p' "$cfg")"
   rows="$(sed -n 's/^CONSTANT Rows = //p' "$cfg" | tr -d '{}' | sed 's/,/, /g')"
   checks="$(grep -E '^(PROPERTY|INVARIANT|CHECK_DEADLOCK) ' "$cfg" | tr '\n' ' ' | sed 's/ $//')"
+  # The backticks in this format string are markdown, not command substitution,
+  # so the single quotes are what keeps them literal. shellcheck reads them as
+  # an expansion somebody forgot to enable.
+  # shellcheck disable=SC2016
   printf '| `%s` | `%s` | %s | `%s` | rc %s |\n' "$stem" "$spec" "${rows:--}" "$checks" "$rc"
 done < "$results"

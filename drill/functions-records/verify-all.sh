@@ -53,7 +53,11 @@ for cfg in "$here"/[0-9][0-9]-*/verify/*.cfg; do
   distinct=$(sed -n 's/.* \([0-9][0-9]*\) distinct states found.*/\1/p' "$log" | tail -n 1)
   printf '%-22s %-30s %4s  %-22s %s\n' "$item" "$stem" "$rc" "$token" "${distinct:--}"
   if [ "$verbose" = 1 ] && [ "$rc" != 0 ]; then
-    sed -n '/^Error\|^\*\*\* Errors/,/^The coverage statistics/p' "$log" \
-      | sed '/^The coverage statistics/d' | head -n 60 | sed 's/^/      /'
+    # Materialise the extract before head reads it. A live producer piped into
+    # head takes SIGPIPE at line 60, and this script would report that as a
+    # failure the day somebody adds pipefail to line 20.
+    err="$(sed -n '/^Error\|^\*\*\* Errors/,/^The coverage statistics/p' "$log" \
+             | sed '/^The coverage statistics/d')"
+    head -n 60 <<<"$err" | sed 's/^/      /'
   fi
 done

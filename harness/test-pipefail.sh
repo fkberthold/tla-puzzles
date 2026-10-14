@@ -188,7 +188,11 @@ fi
 # (bead tla-1qn).
 # ---------------------------------------------------------------------------
 
-SCAN_ROOTS=(harness scripts chapter .github)
+# drill/ joined 2026-10-14 with bead tla-t9de, and it is the third widening for
+# the same reason as the first two: a live site the ban could not see. The
+# runner a learner drives daily, plus six family helper scripts, sat outside
+# every root this suite had.
+SCAN_ROOTS=(harness scripts chapter .github drill)
 
 echo
 echo "== part 2: the idiom is banned across ${SCAN_ROOTS[*]} =="
