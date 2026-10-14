@@ -36,3 +36,7 @@ Named as `drill/INVENTORY.md` field 4 writes them, one per bullet.
 
 Each module has a config of the same name. Reproduce with
 `bash drill/sets/verify-item.sh drill/sets/03-ballast`.
+
+## Count waiver
+
+count-waiver: BallastAnyStart -- the invariant is violated during initial-state computation, so TLC reports before any step and the log carries no distinct count. The 1 in the table is the one state in the trace.

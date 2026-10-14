@@ -41,3 +41,7 @@ Named as `drill/INVENTORY.md` field 4 writes them, one per bullet.
 | `verify/NegativeInConfig.tla` | 255 | 0 |
 
 Each module has a config of the same name.
+
+## Count waiver
+
+count-waiver: NegativeInConfig -- the config fails to parse, so TLC throws a ConfigFileException before reaching the state graph and the log carries no distinct count. The 0 in the table is the author recording that nothing was generated.
