@@ -102,6 +102,16 @@
 #        418.9 s  slow tier, 11 suites
 #        457.7 s  whole registry
 #
+# A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
+# are a comment. The enforced number is the second field of the row's own
+# literal in the SUITES array below, and nothing checks the two against each
+# other. Re-base both or the run prints a budget the header contradicts. Found
+# 2026-10-14 by the tla-emzu author, which re-based the header first and then
+# read `PASS drill delivery 0.9s (budget 0.7s)` against a comment saying 1.0.
+# Every awk-over-the-row-literals re-base done that day had the same hole, and
+# the awk reads the literals rather than this block, which is why it was the
+# header that went stale.
+#
 # The two slow rows that moved are bead tla-ocpw's, 2026-10-13: the reading
 # corpus gate added at 4.1 s and the indeterminate gate re-based 7.4 -> 10.7.
 # The fast tier gained the drill delivery row the same day, bead tla-s5iz, and
