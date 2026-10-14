@@ -5,7 +5,7 @@ stops climbing, and a CONSTRAINT is what keeps the search finite.
 
 rc: 0
 
-## What the run measured
+## What the properties rest on
 
 rc 0 over 79 distinct states at `Limit = 6`, with deadlock checking on.
 
@@ -48,6 +48,7 @@ it, so nothing above claims one.
 ## Constructs from other families, also exercised
 
 - Operator definition
+- EXTENDS (module import)
 - Integers
 - Equality and inequality
 - Implication

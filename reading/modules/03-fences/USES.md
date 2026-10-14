@@ -5,16 +5,7 @@ instance of one interval library that assumes its own bounds are in order.
 
 rc: 0
 
-## Constructs
-
-- EXTENDS (module import)
-- INSTANCE
-- named instance
-- ! (namespace lookup)
-- INSTANCE ... WITH (<- constant substitution)
-- LOCAL (definition modifier)
-
-## What the measurements say
+## What the properties rest on
 
 N = 7 gives rc 0 over 28 distinct states, which is the whole `a <= b`
 triangle, so every degenerate gate position is reached.
@@ -39,6 +30,15 @@ boundary. Writing `Below!Span` gives rc 150 and "Unknown operator: `Span'".
 `Disjoint` is not declared, because I think `Covered` and `Counted` together
 already carry it: five pieces summing to N elements cannot overlap inside a
 union of N.
+
+## Constructs
+
+- EXTENDS (module import)
+- INSTANCE
+- named instance
+- ! (namespace lookup)
+- INSTANCE ... WITH (<- constant substitution)
+- LOCAL (definition modifier)
 
 ## Constructs from other families, also exercised
 

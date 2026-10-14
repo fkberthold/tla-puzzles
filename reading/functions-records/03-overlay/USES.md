@@ -5,6 +5,8 @@ layer on top wins every key it binds.
 
 rc: 0
 
+## What the properties rest on
+
 `@@` keeps the left operand's value on a shared key, so the fold in
 `Flat` has to put the higher layer on the left. `Topmost` is what that
 buys, and I think it's the one worth the time. The effective value of a
@@ -13,8 +15,6 @@ is the order of two arguments.
 
 `Covered` is the quieter half. The domain is the union of every live
 layer, even though the value comes from one of them.
-
-## What the properties rest on
 
 Two variants, each one change away from the module above.
 
@@ -46,6 +46,7 @@ isn't claimed below.
 ## Constructs from other families, also exercised
 
 - Operator definition
+- EXTENDS (module import)
 - IF-THEN-ELSE
 - Integers
 - Equality and inequality

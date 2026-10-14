@@ -5,20 +5,7 @@ position is read off the big wheel's rather than tracked on its own.
 
 rc: 0
 
-## Constructs
-
-- EXTENDS (module import)
-- INSTANCE
-- named instance
-- ! (namespace lookup)
-- INSTANCE ... WITH (<- constant substitution)
-- partial parameterization
-
-`Big == INSTANCE Wheel WITH K <- 12` leaves `n` out of the WITH clause, so the
-implicit `n <- n` binds the outer variable. That binding drives the whole run,
-since `Init` and `Click` are both `Big!` lookups.
-
-## What the measurements say
+## What the properties rest on
 
 Teeth = 4 gives rc 0 over 12 distinct states, one per tooth of the big wheel.
 
@@ -33,6 +20,19 @@ here. `Big!WSpec` fails at rc 13 even at Teeth = 4, because `Spin` moves the
 big wheel by 4 teeth rather than by 1. The small wheel survives a step the big
 wheel cannot, and what lets it is the `_n` subscript in `[][WNext]_n` once `n`
 has been substituted.
+
+## Constructs
+
+- EXTENDS (module import)
+- INSTANCE
+- named instance
+- ! (namespace lookup)
+- INSTANCE ... WITH (<- constant substitution)
+- partial parameterization
+
+`Big == INSTANCE Wheel WITH K <- 12` leaves `n` out of the WITH clause, so the
+implicit `n <- n` binds the outer variable. That binding drives the whole run,
+since `Init` and `Click` are both `Big!` lookups.
 
 ## Constructs from other families, also exercised
 

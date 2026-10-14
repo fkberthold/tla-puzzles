@@ -5,10 +5,10 @@ the only difference between them is `fair` against `fair+`.
 
 rc: 0
 
+## What the properties rest on
+
 Translated with `pcal -lineWidth 72 -nocfg`. The translation is committed,
 so the module checks as it stands.
-
-## Measured probes
 
 `KeenEnters` and `SlowEnters` are the same formula over a different process.
 The config names one of them, and which one is not arbitrary.

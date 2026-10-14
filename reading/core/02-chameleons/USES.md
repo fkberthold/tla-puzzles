@@ -6,6 +6,8 @@ never all end up matching.
 
 rc: 0
 
+## What the properties rest on
+
 `Spread` rests on the third colour gaining two rather than one.
 Changing that arm of the CASE to `count[k] + 1` gives rc 12.
 `NeverOneColour` rests on the starting counts, and `<<2, 2, 2>>` in
@@ -29,6 +31,7 @@ line. The nine reachable states are the whole run.
 
 ## Constructs from other families, also exercised
 
+- EXTENDS (module import)
 - BOOLEAN and integer interval as sets
 - function literal
 - function set

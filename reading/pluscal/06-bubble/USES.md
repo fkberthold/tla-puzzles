@@ -5,10 +5,10 @@ only move swaps an adjacent pair that's out of order.
 
 rc: 0
 
+## What the properties rest on
+
 Translated with `pcal -lineWidth 72 -nocfg`. The translation is committed,
 so the module checks as it stands.
-
-## Measured probes
 
 `Shrinks` says one swap removes exactly one inversion, counted over all
 pairs rather than adjacent ones. That's the termination argument, and

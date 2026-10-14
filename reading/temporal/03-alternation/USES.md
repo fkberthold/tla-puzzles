@@ -5,6 +5,8 @@ variable decides who may enter and neither process can be starved.
 
 rc: 0
 
+## What the properties rest on
+
 Both halves were probed. Dropping `WF_vars(Ask(p))` from `Fairness`
 gives rc 13, so `NoStarvation` rests on every process going on asking.
 Dropping the `turn = p` guard from `Enter` gives rc 12.

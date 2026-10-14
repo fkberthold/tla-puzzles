@@ -5,6 +5,8 @@ cups with one cup between them, and the odd and even places never mix.
 
 rc: 0
 
+## What the properties rest on
+
 Both parity invariants rest on the gap being two rather than one.
 Turning over neighbours instead gives rc 12 against `OddPlaces`, and
 rc 12 against `NoMixedPair`, measured as two separate runs.
@@ -28,6 +30,7 @@ of the thirty-two cup positions are reachable.
 
 ## Constructs from other families, also exercised
 
+- EXTENDS (module import)
 - Sets
 - Set relational and algebraic operators
 - Set filter
