@@ -143,6 +143,17 @@ DEST_STRAY="$TMPROOT/dest-stray"       # carries learner work beside the prompt
 DEST_NOPROMPT="$TMPROOT/dest-noprompt" # an item with nothing to deliver
 DEST_REAL="$TMPROOT/dest-real"         # the real corpus, read from the repo
 DEST_TWICE="$TMPROOT/dest-twice"       # delivered, then delivered again
+DEST_PLAINDIFF="$TMPROOT/dest-plaindiff" # a stale prompt, and no refresh flag
+DEST_REFRESH="$TMPROOT/dest-refresh"   # --refresh-prompts, the whole mixed case
+DEST_RCHECK="$TMPROOT/dest-rcheck"     # --check --refresh-prompts, never created
+DEST_RCHECK2="$TMPROOT/dest-rcheck2"   # --check --refresh-prompts over a real tree
+
+# The reference mtime every refresh fixture is pre-dated to, as an epoch second
+# so no timezone enters the comparison. A file still carrying it was not
+# written, and that is the only way to tell an identical file that was left
+# alone from an identical file that was copied over itself: cp truncates in
+# place, so the inode does not move and the contents cannot tell you either.
+REF_EPOCH=981173106
 
 mkdir -p "$SANDBOX_HOME"
 
@@ -296,6 +307,77 @@ snapshot() {
   (cd "$root" && find . -type f | LC_ALL=C sort | while IFS= read -r f; do
     printf '%s :: %s\n' "$f" "$(cat "$f")"
   done)
+}
+
+# predate_tree <dir>: set every regular file's mtime to the reference second.
+predate_tree() {
+  local f
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    touch -d "@$REF_EPOCH" -- "$f"
+  done < <(find "$1" -type f | LC_ALL=C sort)
+}
+
+# mtime_of <path>
+mtime_of() {
+  [ -e "$1" ] || { printf 'missing\n'; return; }
+  stat -c %Y -- "$1"
+}
+
+# touched_files <dir>: every regular file whose mtime has moved off the
+# reference second, which is every file the run under test wrote.
+touched_files() {
+  local root="$1" f
+  [ -d "$root" ] || return 0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    [ "$(stat -c %Y -- "$f")" = "$REF_EPOCH" ] && continue
+    printf '%s\n' "${f#"$root/"}"
+  done < <(find "$root" -type f | LC_ALL=C sort)
+}
+
+# assert_touched_count <label> <dir> <wanted>
+#
+# The whole-tree form of "it wrote what it said it wrote". Every file is
+# pre-dated before the run, so the count below is the run's write footprint
+# over files that already existed, plus every file it created.
+assert_touched_count() {
+  local label="$1" dir="$2" want="$3" got names
+  names=$(touched_files "$dir")
+  got=$(grep -c . <<<"$names")
+  [ -n "$names" ] || got=0
+  if [ "$got" = "$want" ]; then
+    ok "$label"
+  else
+    nope "$label. Wanted $want file(s) written, got $got: $(tr '\n' ' ' <<<"$names")"
+  fi
+}
+
+# assert_mtime_is <label> <path> <wanted>
+assert_mtime_is() {
+  local label="$1" path="$2" want="$3" got
+  got=$(mtime_of "$path")
+  if [ "$got" = "$want" ]; then
+    ok "$label"
+  else
+    nope "$label. Wanted mtime $want, got $got: $path"
+  fi
+}
+
+# assert_mtime_moved <label> <path> <reference>
+#
+# The positive control for the two rows above. If stat came back constant, or
+# the pre-dating never happened, this row and its sibling cannot both hold.
+assert_mtime_moved() {
+  local label="$1" path="$2" ref="$3" got
+  got=$(mtime_of "$path")
+  if [ "$got" = "missing" ]; then
+    nope "$label. No file at $path"
+  elif [ "$got" != "$ref" ]; then
+    ok "$label"
+  else
+    nope "$label. The mtime is still the reference $ref, so the file was never written: $path"
+  fi
 }
 
 # assert_rc0 <label>
@@ -566,6 +648,185 @@ assert_unchanged "a directory the source does not have survives whole" \
 
 # ---------------------------------------------------------------------------
 echo
+echo "== --refresh-prompts, and the default that stays never-overwrite =="
+# ---------------------------------------------------------------------------
+
+# On 2026-10-14 central measured the practice tree against the repo: 15 of 64
+# delivered prompts differed, 49 were byte for byte. Two of the 15 were content
+# fixes, and under never-overwrite the tree would have served the telegraphed
+# version of those two drills for good. So the flag exists. What it must not do
+# is arrive as a change in the default, which is why the first rows here run
+# the same fixture WITHOUT it.
+#
+# seed_refresh_dest <dest-root>: one prompt that differs, one byte for byte,
+# one item the source does not have, the learner's record, and work beside a
+# prompt. Every file is pre-dated, so the run's write footprint is readable off
+# the mtimes afterwards.
+seed_refresh_dest() {
+  local dest="$1"
+  mkdir -p "$dest/core/01-alpha" "$dest/core/02-beta" "$dest/core/09-mine" \
+    "$dest/traces"
+  printf 'the old telegraphed prompt\n' >"$dest/core/01-alpha/PROMPT.md"
+  printf 'half a module\n'             >"$dest/core/01-alpha/Alpha.tla"
+  cp -- "$FIX_REPO/drill/core/02-beta/PROMPT.md" "$dest/core/02-beta/PROMPT.md"
+  printf 'a drill of my own\n'         >"$dest/core/09-mine/PROMPT.md"
+  printf 'a trace I kept\n'            >"$dest/traces/one.txt"
+  printf 'core/01-alpha\t1\n'          >"$dest/PROGRESS.tsv"
+  printf 'core/01-alpha\n'             >"$dest/LAST-SERVED"
+  predate_tree "$dest"
+}
+
+# --- the default, which is the regression that matters most ----------------
+
+seed_refresh_dest "$DEST_PLAINDIFF"
+
+run_deliver "$DEST_PLAINDIFF"
+
+assert_rc0 "a plain run over a stale prompt exits 0"
+
+assert_file_is "a plain run leaves a prompt that differs from the source exactly as it was" \
+  "$DEST_PLAINDIFF/core/01-alpha/PROMPT.md" "the old telegraphed prompt"
+
+assert_mtime_is "and does not even open it" \
+  "$DEST_PLAINDIFF/core/01-alpha/PROMPT.md" "$REF_EPOCH"
+
+assert_says_literal "a plain run reports the stale prompt as a skip" \
+  "skipped (exists): $DEST_PLAINDIFF/core/01-alpha/PROMPT.md" "$RUN_OUT"
+
+assert_never_names "a plain run never says it replaced anything" \
+  "replaced" "$RUN_OUT"
+
+assert_says_literal "a plain run's counts line is the one it has always printed" \
+  "1 prompt(s) landed, 2 skipped, $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
+
+assert_touched_count "a plain run writes exactly the one file it says it landed" \
+  "$DEST_PLAINDIFF" 1
+
+# --- the flag --------------------------------------------------------------
+
+seed_refresh_dest "$DEST_REFRESH"
+REFRESH_STRAY_BEFORE=$(snapshot "$DEST_REFRESH/core/09-mine")
+REFRESH_TRACES_BEFORE=$(snapshot "$DEST_REFRESH/traces")
+
+run_deliver --refresh-prompts "$DEST_REFRESH"
+
+assert_rc0 "--refresh-prompts exits 0"
+
+assert_file_is "a prompt that differs is replaced with the source's" \
+  "$DEST_REFRESH/core/01-alpha/PROMPT.md" \
+  "$(cat "$FIX_REPO/drill/core/01-alpha/PROMPT.md")"
+
+assert_mtime_moved "and the replacement is a real write" \
+  "$DEST_REFRESH/core/01-alpha/PROMPT.md" "$REF_EPOCH"
+
+assert_says_literal "every replacement names its path" \
+  "replaced (the source differs): $DEST_REFRESH/core/01-alpha/PROMPT.md" "$RUN_OUT"
+
+assert_mtime_is "a prompt that is byte for byte is not touched at all" \
+  "$DEST_REFRESH/core/02-beta/PROMPT.md" "$REF_EPOCH"
+
+assert_says_literal "and the run says it left that one alone" \
+  "left alone (identical to the source): $DEST_REFRESH/core/02-beta/PROMPT.md" "$RUN_OUT"
+
+assert_file_is "an item the destination did not have still lands" \
+  "$DEST_REFRESH/temporal/01-gamma/PROMPT.md" \
+  "$(cat "$FIX_REPO/drill/temporal/01-gamma/PROMPT.md")"
+
+assert_says_literal "the counts line separates landed, replaced and left alone" \
+  "1 prompt(s) landed, 1 replaced, 1 left alone, $(count_withheld "$FIX_REPO") path(s) withheld" \
+  "$RUN_OUT"
+
+# The counts line is only worth something if it agrees with the filesystem.
+# One landed and one replaced is two files written, and nothing else in the
+# tree may have moved.
+assert_touched_count "--refresh-prompts writes exactly the files its counts line claims" \
+  "$DEST_REFRESH" 2
+
+# The withholding is unchanged by the flag. ANSWER.md is the one that hands
+# over the answer and META.md is the one that names the trap in a line.
+assert_absent "ANSWER.md never lands under --refresh-prompts either" \
+  "$DEST_REFRESH/core/01-alpha/ANSWER.md"
+assert_absent "META.md never lands under --refresh-prompts either" \
+  "$DEST_REFRESH/core/01-alpha/META.md"
+assert_absent "verify/ never lands under --refresh-prompts either" \
+  "$DEST_REFRESH/core/01-alpha/verify"
+assert_absent "the planted starter never lands under --refresh-prompts either" \
+  "$DEST_REFRESH/core/02-beta/SURPRISE.tla"
+
+assert_says_literal "the withholding is still reported under the flag" \
+  "withheld (not PROMPT.md): $FIX_REPO/drill/core/01-alpha/ANSWER.md" "$RUN_OUT"
+
+# The learner's record. The runner owns both files and the practice tree holds
+# the only copy, so nothing here goes near them under any flag.
+assert_mtime_is "PROGRESS.tsv is not touched under --refresh-prompts" \
+  "$DEST_REFRESH/PROGRESS.tsv" "$REF_EPOCH"
+assert_file_is "PROGRESS.tsv keeps its contents" \
+  "$DEST_REFRESH/PROGRESS.tsv" "$(printf 'core/01-alpha\t1')"
+assert_mtime_is "the runner's pointer file is not touched under --refresh-prompts" \
+  "$DEST_REFRESH/LAST-SERVED" "$REF_EPOCH"
+assert_file_is "the pointer file keeps its contents" \
+  "$DEST_REFRESH/LAST-SERVED" "core/01-alpha"
+assert_says_literal "and the run still says it leaves the record alone" \
+  "left alone (the learner's record, never written here): $DEST_REFRESH/PROGRESS.tsv" "$RUN_OUT"
+
+# Still no delete path. The 2026-10-02 incident was a deletion, and a refresh
+# flag is exactly where one would grow: the shortest route to "the destination
+# matches the source" is to remove what the source does not have.
+assert_unchanged "an item the source does not have survives --refresh-prompts" \
+  "$DEST_REFRESH/core/09-mine" "$REFRESH_STRAY_BEFORE" 0
+assert_unchanged "a directory the source does not have survives --refresh-prompts" \
+  "$DEST_REFRESH/traces" "$REFRESH_TRACES_BEFORE" 0
+assert_file_is "the learner's own module beside a replaced prompt survives" \
+  "$DEST_REFRESH/core/01-alpha/Alpha.tla" "half a module"
+assert_mtime_is "and is not rewritten either" \
+  "$DEST_REFRESH/core/01-alpha/Alpha.tla" "$REF_EPOCH"
+
+assert_never_names "a refresh run never names the real practice tree" \
+  "$REAL_PRACTICE" "$RUN_OUT$RUN_ERR"
+
+# --- --check composed with the flag ---------------------------------------
+
+RCHECK_BEFORE=$(snapshot "$DEST_RCHECK")
+
+run_deliver --check --refresh-prompts "$DEST_RCHECK"
+
+assert_rc0 "--check --refresh-prompts exits 0"
+
+assert_absent "--check --refresh-prompts creates no destination directory" "$DEST_RCHECK"
+
+assert_unchanged "--check --refresh-prompts over an absent destination writes nothing" \
+  "$DEST_RCHECK" "$RCHECK_BEFORE" 0
+
+assert_says_literal "--check --refresh-prompts names what it would deliver fresh" \
+  "would deliver: $DEST_RCHECK/core/01-alpha/PROMPT.md" "$RUN_OUT"
+
+# The flag order is reversed here on purpose. Both are options, so neither may
+# depend on coming first.
+seed_refresh_dest "$DEST_RCHECK2"
+RCHECK2_BEFORE=$(snapshot "$DEST_RCHECK2")
+
+run_deliver --refresh-prompts --check "$DEST_RCHECK2"
+
+assert_rc0 "--refresh-prompts --check exits 0, whichever order the flags come in"
+
+assert_says_literal "--check names the prompt it would replace" \
+  "would replace (the source differs): $DEST_RCHECK2/core/01-alpha/PROMPT.md" "$RUN_OUT"
+
+assert_says_literal "--check names the prompt it would leave alone" \
+  "would leave alone (identical to the source): $DEST_RCHECK2/core/02-beta/PROMPT.md" "$RUN_OUT"
+
+assert_says_literal "--check under the flag ends on its own counts line" \
+  "1 prompt(s) to land, 1 to replace, 1 left alone, $(count_withheld "$FIX_REPO") path(s) withheld" \
+  "$RUN_OUT"
+
+assert_unchanged "--check --refresh-prompts over a populated destination changes nothing" \
+  "$DEST_RCHECK2" "$RCHECK2_BEFORE" 0
+
+assert_touched_count "--check --refresh-prompts writes no file at all" \
+  "$DEST_RCHECK2" 0
+
+# ---------------------------------------------------------------------------
+echo
 echo "== --check resolves everything and writes nothing =="
 # ---------------------------------------------------------------------------
 
@@ -780,6 +1041,13 @@ else
     '[Ww]ithhold|NEVER DELIVER|never delivers' "$SCRIPT_HEAD"
   assert_says "the script states the never-overwrite rule" \
     'NEVER OVERWRITE|never overwrit' "$SCRIPT_HEAD"
+  # A reader who gets as far as the usage block and no further has to come away
+  # knowing that a plain run cannot replace a prompt. That is the one thing
+  # about this script somebody could act on wrongly.
+  assert_says "the usage block names --refresh-prompts and says it is off by default" \
+    '--refresh-prompts' "$SCRIPT_HEAD"
+  assert_says "and says plainly that the default does not overwrite" \
+    'OFF BY DEFAULT|[Oo]ff by default' "$SCRIPT_HEAD"
 fi
 
 # Gate, don't advise. The shape assertion is the other half of this script's
