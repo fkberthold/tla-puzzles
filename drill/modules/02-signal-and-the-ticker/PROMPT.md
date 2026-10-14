@@ -8,12 +8,12 @@ The coarse one is a signal. It shows red, then green, then amber, then
 red again, forever. That's its whole life, and it starts on red.
 
 The fine one is a ticker. It counts from zero to five and wraps to zero.
-Someone reads a colour off the count: zero to two is red, three and four
+Someone reads a color off the count: zero to two is red, three and four
 are green, five is amber.
 
-The claim: the ticker implements the signal. Every behaviour of the
-ticker, read as colours, is a behaviour the signal could have had. TLC
-can check that claim if you tell it how to read the count as a colour
+The claim: the ticker implements the signal. Every behavior of the
+ticker, read as colors, is a behavior the signal could have had. TLC
+can check that claim if you tell it how to read the count as a color
 and which keyword in the config asks for the check.
 
 ## What happened

@@ -1,5 +1,5 @@
 --------------------------- MODULE TickerNoWith ---------------------------
-\* The missing mapping: the instance names no substitution for colour and
+\* The missing mapping: the instance names no substitution for color and
 \* this module declares no variable of that name to pass through.
 EXTENDS Naturals
 

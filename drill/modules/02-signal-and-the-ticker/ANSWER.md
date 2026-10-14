@@ -14,16 +14,16 @@ The signal:
 
 ```
 ---- MODULE Signal ----
-VARIABLE colour
+VARIABLE color
 
-Init == colour = "red"
+Init == color = "red"
 
 Next ==
-    \/ colour = "red"   /\ colour' = "green"
-    \/ colour = "green" /\ colour' = "amber"
-    \/ colour = "amber" /\ colour' = "red"
+    \/ color = "red"   /\ color' = "green"
+    \/ color = "green" /\ color' = "amber"
+    \/ color = "amber" /\ color' = "red"
 
-Spec == Init /\ [][Next]_colour
+Spec == Init /\ [][Next]_color
 ====
 ```
 
@@ -43,7 +43,7 @@ Shown ==
     ELSE IF tick < 5 THEN "green"
     ELSE "amber"
 
-S == INSTANCE Signal WITH colour <- Shown
+S == INSTANCE Signal WITH color <- Shown
 
 Refinement == S!Spec
 ====
@@ -56,13 +56,13 @@ SPECIFICATION Spec
 PROPERTY Refinement
 ```
 
-Three things are doing the work. `S == INSTANCE Signal WITH colour <-
+Three things are doing the work. `S == INSTANCE Signal WITH color <-
 Shown` is the refinement mapping: every operator of `Signal` is now
 available as `S!Op` with `Shown` written wherever `Signal` wrote
-`colour`. So `S!Spec` is the signal's behaviour formula over the
+`color`. So `S!Spec` is the signal's behavior formula over the
 ticker's state. `Refinement == S!Spec` gives that formula a plain name,
 because a config can only name a definition of the root module.
-`PROPERTY Refinement` asks TLC to check that every behaviour of the
+`PROPERTY Refinement` asks TLC to check that every behavior of the
 ticker satisfies it.
 
 The substituted thing here is a variable, not a constant. That's the
@@ -76,10 +76,10 @@ to zero reads as green to red. The signal has no such step. TLC's
 message, from `G02NoAmber.tla`'s run:
 
 ```
-Error: Action property line 12, col 17 to line 12, col 31 of module Signal is violated.
+Error: Action property line 12, col 17 to line 12, col 30 of module Signal is violated.
 ```
 
-Line 12 of `Signal` is `Spec`, and columns 17 to 31 are `[][Next]_colour`.
+Line 12 of `Signal` is `Spec`, and columns 17 to 30 are `[][Next]_color`.
 So the blame lands on the abstract module's own action formula, not on
 anything in the ticker. The trace is seven states long: ticks zero
 through five, then zero. The violation is on the last step.
@@ -114,11 +114,11 @@ is why `Refinement == S!Spec` exists at all. The same holds for
 ## Row three: no reading
 
 `S == INSTANCE Signal` with no `WITH`, in a module that declares no
-`colour`:
+`color`:
 
 ```
 line 14, col 1 to line 14, col 20 of module TickerNoWith
-Substitution missing for symbol colour declared at line 3, col 10 to line 3, col 15 of module Signal
+Substitution missing for symbol color declared at line 3, col 10 to line 3, col 14 of module Signal
 and instantiated in module TickerNoWith.
 ```
 
@@ -133,7 +133,7 @@ is the same formula written out, and the subscript is the derived
 expression. That's the one place a derived state function appears as a
 subscript in published specs, through a mapping like this one.
 
-Make the signal richer. Add a fourth colour, or make amber go back to
+Make the signal richer. Add a fourth color, or make amber go back to
 green, and the correct reading fails. The item's signal is as small as it
 can be while still having a step a wrong reading can break.
 
@@ -157,14 +157,14 @@ returns.
 |---|---|---|---|
 | `G02Ticker.tla` | rc 0 | 6 | the answer, 6 states |
 | `G02NoAmber.tla` | rc 13 | 6 | five read as green, the signal's action formula violated |
-| `G02NoWith.tla` | rc 150 | - | no reading, substitution missing for colour |
+| `G02NoWith.tla` | rc 150 | - | no reading, substitution missing for color |
 | `G02Theorem.tla` | rc 0 | 6 | the theorem alone, wrong reading, unchecked |
 | `G02BangCfg.tla` | rc 151 | - | the config naming the instance formula directly |
 
 ## why-not-in-prompt
 
 The prompt describes both machines in words and says the reading is
-"how to read the count as a colour". It says a keyword in the config
+"how to read the count as a color". It says a keyword in the config
 asks for the check, and that row three is about a symbol "never
 substituted". Those are the mechanism in English.
 
@@ -175,7 +175,7 @@ name so its formula can be reached, and the keyword that registers the
 check.
 
 The honest caveat, in two parts. First, the prompt leans on the reader
-knowing what "implements" means for behaviours, and a reader who has met
+knowing what "implements" means for behaviors, and a reader who has met
 refinement before will recall the shape from the smell of the domain
 rather than retrieve it. Second, time. Two modules, the mapping line, a
 named definition and a two-line config is more typing than the other
