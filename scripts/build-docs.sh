@@ -942,9 +942,17 @@ fi
 # THE READING CORPUS: reading/ AS ITS OWN SECTION
 #
 # Bead tla-fwkz.1. A reading item is a COMPLETE, CORRECT, SMALL SPEC WITH
-# REAL PROPERTIES plus one line naming its constructs. There is no question
-# and no answer key: it is read and moved on from. Design drawer
+# REAL PROPERTIES plus one line naming its constructs. There is no exercise
+# prompt and no worked solution. Design drawer
 # drawer_tla_puzzles_decisions_eb788dc4f6f90f072aced527.
+#
+# AMENDED 2026-10-13. The design said "no question and no answer key" and the
+# index page said it too, and by the time 25 items had landed that was false
+# of the artifact. The config block and the construct block both start closed,
+# so they ARE a key: a reader who names the properties before opening them has
+# done a production exercise off a reading item. The page now says to do that,
+# under "How to read one". What the design actually rules out is an exercise
+# prompt and a worked solution, which is what the wording above now says.
 #
 # PHONE-FIRST, AND THAT IS WHY IT IS A PAGE RATHER THAN A PDF. Frank asked
 # for "a PDF to flip through, or a page on the repo" (2026-10-12) and the
@@ -1113,13 +1121,32 @@ CFGFENCE
     echo "Small, complete, checked specifications to read rather than write."
     echo ""
     echo "Each one does something worth working out and carries properties"
-    echo "worth reading. There is no question and no answer key. Every module"
-    echo "on these pages is checked by TLC at the exit code its item records,"
-    echo "and [\`harness/reading-gate.sh\`]($GH_BLOB/harness/reading-gate.sh)"
+    echo "worth reading. There is no exercise prompt and no worked solution."
+    echo "Every module on these pages is checked by TLC at the exit code its"
+    echo "item records, and"
+    echo "[\`harness/reading-gate.sh\`]($GH_BLOB/harness/reading-gate.sh)"
     echo "reproduces that exit code, holds each module to the phone bound, and"
     echo "refuses an item whose config declares no property."
     echo ""
-    echo "To run one yourself:"
+    echo "## How to read one"
+    echo ""
+    echo "An item gives you one sentence of subject and then the whole module."
+    echo "Its config and its construct list sit under that, behind two blocks"
+    echo "that start closed."
+    echo ""
+    echo "Read the subject, read the module, and then say what the config"
+    echo "checks and why each property holds, before you open either block."
+    echo "Then open both and see how you did."
+    echo ""
+    echo "Every item here checks clean, so the exit code is a confirmation"
+    echo "rather than a question. The property list and the reason are what"
+    echo "the module text has to give you."
+    echo ""
+    echo "Guessing first is the exercise. The blocks start closed so the"
+    echo "properties are something you work out from the module text rather"
+    echo "than something you read off the page."
+    echo ""
+    echo "## Running one yourself"
     echo ""
     echo '```bash'
     echo "git clone $GH_REPO"
