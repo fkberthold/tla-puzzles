@@ -82,9 +82,10 @@ have.
 | the teller puts capsules in at the clerk's end | `TubeSendFront` | the rule, on the second send | rc 12 |
 | the rule written as a count, in plus inside equals out | `TubeCountOnly` | nothing. It holds for the stack as well as the queue | rc 0 |
 
-The third row is the reason the prompt says the tube on its own isn't
-enough. A count is the first thing a reader adds, and it can't see order.
-That module is the stack's `Receive` with a counting rule, and it passes.
+The third row is why the prompt publishes a count. A count is the first
+thing a reader adds, and it can't see order. That module is the stack's
+`Receive` with a counting rule, and it passes, so the only thing that
+tells a reader who wrote it that they're wrong is the 57 against 129.
 
 ## Measured
 
@@ -107,9 +108,14 @@ the clerk can have got to. 1 + 4 + 12 + 32 + 80.
 Prose only, and the queue operators are absent from the page. So is the
 idea of a history variable, which is the thing the item is about.
 
-The caveat, and it's a large one. "You'll have to add what it needs" says
-outright that the state isn't enough, which is half the discovery. I left
-it in because without it a reader writes the queue, finds no way to state
-the rule, and has nothing to check. The hint says a thing is missing. It
-doesn't say the missing thing is two lists and one equation, and I think
-the counting rule is the trap most readers will walk into first.
+This section used to carry a caveat and the prompt has now answered it.
+The prompt used to say "you'll have to add what it needs", which told the
+reader outright that the state isn't enough. That was half the discovery.
+I left it in because without it a reader writes the queue, finds no way
+to state the rule, and has nothing to check.
+
+The published 129 does that job without saying what's missing. A reader
+who reaches for counters gets 57, and the gap tells them they're wrong
+while leaving them to work out why. I still think the counting rule is
+the trap most readers will walk into first. Now it costs them a wrong
+count rather than a sentence in the prompt.
