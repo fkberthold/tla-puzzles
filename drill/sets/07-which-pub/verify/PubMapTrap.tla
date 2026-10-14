@@ -1,8 +1,11 @@
 ---- MODULE PubMapTrap ----
 \* The trap on the broken model. The half threshold is in, and VotesFor is
 \* written as a map where a filter was meant, so it is a set of truth values
-\* with at most two members. Two votes never look like half of four, nobody
-\* is ever committed, and the rule holds for the wrong reason.
+\* with at most two members. At the half threshold two members are enough, so
+\* one vote for one pub and one for another makes both read as committed and
+\* the rule reports it after two votes. Measured 2026-10-14: rc 12, 17
+\* distinct. The same map on the correct threshold is silent, which is
+\* PubMapTrapStrict. Loud here, quiet there, one error.
 EXTENDS Naturals, FiniteSets
 
 CONSTANTS Friends, Pubs
