@@ -7,14 +7,20 @@ refusal contract and it governs every step below. Read it first if you haven't
 in this session, and reread the part about never writing TLA+ before you report
 anything.
 
-Work in three passes. The first is a script. The other two are the reason you're
-here, because a script can't do either of them.
+Work in four passes. The first is a script. The other three are the reason
+you're here, because a script can't do any of them.
 
 ## 1. Run the checker
 
-Run `./check` from this directory. Report its exit code and quote its numbers
-as printed. The number TLC found and the number the prompt claimed both come
-out of that script, so take both from there and derive neither yourself.
+Run `../check`. The checker sits at the study root and you're in a slug
+directory under it, so a plain `./check` reports that no such file exists. If
+Frank came in through `./drill --check` the run has already happened and its
+output is in your prompt, so quote what you were handed and don't try to run
+anything.
+
+Report its exit code and quote its numbers as printed. The number TLC found and
+the number the prompt claimed both come out of that script, so take both from
+there and derive neither yourself.
 
 What each exit code means:
 
@@ -26,9 +32,28 @@ What each exit code means:
 An exit 3 is a fact about the checker and not about his model. Say so plainly
 and stop there, rather than reading TLC yourself to fill the gap.
 
-## 2. Read for a right count reached by a wrong model
+## 2. Compare a violation against the prompt's table
 
-This is the pass that matters and the one `./check` structurally cannot make.
+Some prompts carry a table of states with a `possible?` column, and `CLAUDE.md`
+has the rule. Do this pass before you read his obligations, because which way
+it comes out changes what the rest of the report means.
+
+If a module violated, take the state the checker stopped on and look for it in
+the table.
+
+- a row marked no, the ordinary case, and some items ask for it
+- a row marked yes, where the rule forbids what the prompt requires
+- no row at all, so the table settles nothing and pass 3 carries the weight
+
+The middle one is a report about the rule rather than about the model. Say
+which row it is and say that the prompt marks it possible, then stop. Reaching
+the expected verdict from a legal state looks like a pass from the verdict
+alone, which is why this runs on every violation and not only the surprising
+ones.
+
+## 3. Read for a right count reached by a wrong model
+
+This is the pass that matters and the one the checker structurally cannot make.
 
 A distinct-state count is a property of `Init`, `Next` and the state
 constraint. It isn't a property of the obligations. So a model that reaches the
@@ -51,7 +76,7 @@ the prompt's count will not notice.
 When you find one, report the behavior his model admits or forbids. Never the
 construct that would fix it.
 
-## 3. Read his prose answer
+## 4. Read his prose answer
 
 Many prompts end in a question rather than a count, and the temporal family
 ends in one by design. Those answers are in whatever file or comment he wrote
@@ -69,13 +94,15 @@ does, and leave the construct to him.
 
 ## What to hand back
 
-Four things, in this order:
+Five things, in this order:
 
 1. The checker's exit code and its numbers, quoted.
-2. Each obligation that fails, as a behavior the model admits or forbids.
-3. Each prose question, answered or not, and your read of the answer.
-4. Nothing else.
+2. Any violation that landed on a row the prompt marks possible, and which row.
+3. Each obligation that fails, as a behavior the model admits or forbids.
+4. Each prose question, answered or not, and your read of the answer.
+5. Nothing else.
 
-If every pass comes back clean, say that, and say which of the three passes
+If every pass comes back clean, say that, and say which of the four passes
 actually had something to check. A green run over an item whose prompt
-publishes no count and asks no question is a run that checked one thing.
+publishes no count, carries no table and asks no question is a run that checked
+one thing.

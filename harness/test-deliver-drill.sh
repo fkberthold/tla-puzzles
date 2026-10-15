@@ -781,6 +781,64 @@ assert_matches() {
   fi
 }
 
+# flatten <file>: the file as one line, every run of whitespace a single space.
+#
+# WHY THE PROSE ROWS GO THROUGH THIS. drill/study/ holds prose that wraps at
+# about 79 columns, so a phrase a row looks for can sit across a line break and
+# read as absent to a line-based grep. That is the same instrument error the
+# 43/21 count split hit, where a line-based scan got 36/28 because the claim
+# wrapped in 7 prompts.
+#
+# Measured 2026-10-15 while building bead tla-rzvk.3: "leave him the item's
+# work" wrapped after the apostrophe, and two rows went red against two files
+# that both said it. Nothing was wrong with either file, and reflowing the
+# paragraph to suit the gate would have left the gate just as brittle for the
+# next reword.
+#
+# A row anchored to a line must NOT flatten, since flattening destroys the only
+# thing `^` can anchor to. So the line-based helpers above stay, the flat ones
+# are separate, and a row picks the one that matches what it is asserting: a
+# heading is a line, a claim is a phrase.
+flatten() {
+  tr -s '[:space:]' ' ' <"$1"
+}
+
+# assert_contains_flat <label> <file> <literal>
+assert_contains_flat() {
+  local label="$1" file="$2" needle="$3"
+  if [ ! -f "$file" ]; then
+    nope "$label. $file does not exist"
+  elif grep -qF -- "$needle" <<<"$(flatten "$file")"; then
+    ok "$label"
+  else
+    nope "$label. $file never says: $needle"
+  fi
+}
+
+# assert_matches_flat <label> <file> <extended-regex>
+assert_matches_flat() {
+  local label="$1" file="$2" pattern="$3"
+  if [ ! -f "$file" ]; then
+    nope "$label. $file does not exist"
+  elif grep -qE -- "$pattern" <<<"$(flatten "$file")"; then
+    ok "$label"
+  else
+    nope "$label. Nothing in $file matched: $pattern"
+  fi
+}
+
+# assert_lacks_flat <label> <file> <extended-regex>
+assert_lacks_flat() {
+  local label="$1" file="$2" pattern="$3"
+  if [ ! -f "$file" ]; then
+    nope "$label. $file does not exist"
+  elif grep -qE -- "$pattern" <<<"$(flatten "$file")"; then
+    nope "$label. $file still matches: $pattern"
+  else
+    ok "$label"
+  fi
+}
+
 # assert_lacks <label> <file> <extended-regex>
 assert_lacks() {
   local label="$1" file="$2" pattern="$3"
@@ -1611,6 +1669,134 @@ assert_matches "and forbids reaching one any other way" \
 assert_matches "CLAUDE.md gives the register a report is allowed to use" \
   "$STUDY_CONFIG" 'admits|forbids'
 
+assert_matches "the prohibition on estimating a count is in the NEVER register" \
+  "$STUDY_CONFIG" 'NEVER estimate'
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the path to the checker, from where the session actually stands =="
+# ---------------------------------------------------------------------------
+
+# Bead tla-rzvk.3. The file said "Run `./check` in the directory" until
+# 2026-10-15 and the checker is delivered to the study ROOT, one level up from
+# the slug directory a session works in. Frank's session on 2026-10-14 got
+# "./check doesn't exist in this directory" and worked the path out for itself.
+#
+# So the positive row asserts the form that reaches it from the cwd, and the
+# negative row is what catches the old sentence coming back. Both are needed:
+# a file carrying `../check` in one paragraph and the old instruction in
+# another reads fine and still sends a session to a path that is not there.
+#
+# The pattern lives in a variable because both the config and the command row
+# want it, and because it needs one justification rather than two.
+#
+# THE SINGLE QUOTES ARE LOAD-BEARING AND THE SC2016 IS A FALSE POSITIVE, shown
+# rather than assumed. The backtick is a character of the regex, matching the
+# code span a markdown file writes the command in. Take shellcheck's advice and
+# double-quote it, and the shell runs ./check and substitutes its output:
+# measured 2026-10-15, the pattern comes back as " (in|from) (the|this)
+# directory" with the whole head gone, which matches nothing and makes the row
+# pass over the defect it exists to catch. Same shape as the SC1087 finding in
+# harness/refinement.sh, where the checker was also reading shell syntax into a
+# string that is not shell.
+# shellcheck disable=SC2016
+CHECK_IN_CWD='`\./check` (in|from) (the|this) directory'
+
+assert_contains "CLAUDE.md reaches the checker from the slug directory the session stands in" \
+  "$STUDY_CONFIG" "../check"
+
+assert_contains_flat "and names the runner flag that makes the path moot from the shell" \
+  "$STUDY_CONFIG" "./drill --check"
+
+assert_lacks_flat "CLAUDE.md no longer puts the checker in the working directory" \
+  "$STUDY_CONFIG" "$CHECK_IN_CWD"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a violation at a state the prompt blesses is a report about the rule =="
+# ---------------------------------------------------------------------------
+
+# Bead tla-rzvk.3, and this is the diagnosis the config was silent on rather
+# than wrong about. A prompt's `possible?` table is a constraint on the model
+# and nothing verifies it. So a rule that forbids a row marked yes gives the
+# expected verdict from a legal state, which reads as a pass.
+#
+# Worked instance, 2026-10-14: a control-state attempt reported a violation one
+# step before any pick, at a state the prompt's third row marks possible. The
+# verdict was the one the item asks for and the rule was still wrong. The
+# reasoning behind that instance is author-side and these rows do not cite the
+# item's META.md or verify/, because a citation inside the file that forbids
+# reading them is the leak wearing a footnote.
+assert_matches "CLAUDE.md carries the table comparison as a named step" \
+  "$STUDY_CONFIG" '^## .*possible'
+
+assert_contains "and names the column by the heading a prompt prints it under" \
+  "$STUDY_CONFIG" "possible?"
+
+assert_matches_flat "and says a violation on a blessed row is about the rule, not the model" \
+  "$STUDY_CONFIG" 'report about the rule'
+
+assert_matches_flat "and says which way that points, so the diagnosis is not left to be inferred" \
+  "$STUDY_CONFIG" 'forbids something the prompt requires'
+
+assert_matches_flat "and keeps the register, naming the row where a construct would go" \
+  "$STUDY_CONFIG" 'the prompt marks (it )?possible'
+
+# NON-VACUITY, against the live corpus rather than against a count written
+# here. The step is worth gating only while prompts carrying the table exist.
+#
+# The scan FLATTENS each prompt first. A line-based grep over this corpus gives
+# wrong counts, because the prompts are prose and wrap: core/06-can-pyramid,
+# core/08-altimeter-approx and sets/05-leases all publish a count that spans
+# two lines and read as publishing nothing to a line-based pass. The column
+# header does sit on one line today, and flattening costs nothing and removes
+# the question.
+#
+# Measured 2026-10-15 over this tree: 8 prompts carry a `possible?` column,
+# and they are the 8 the bead names. The lead-in sentence "must be possible in
+# your model" catches only 6 of them, which is why the column is what gets
+# counted here. The floor is 5 rather than 8 on purpose, the same way the
+# family row above floors 8 families at 5: a hardcoded corpus count in a gate
+# is the staleness shape this project has hit three times.
+POSSIBLE_PROMPTS=0
+while IFS= read -r p; do
+  [ -n "$p" ] || continue
+  PROMPT_FLAT=$(tr '\n' ' ' <"$p")
+  if grep -qE -- '\| *possible\? *\|' <<<"$PROMPT_FLAT"; then
+    POSSIBLE_PROMPTS=$((POSSIBLE_PROMPTS + 1))
+  fi
+done < <(find drill -mindepth 3 -maxdepth 3 -name PROMPT.md | LC_ALL=C sort)
+
+if [ "$POSSIBLE_PROMPTS" -ge 5 ]; then
+  ok "$POSSIBLE_PROMPTS prompt(s) carry the table those rows are about"
+else
+  nope "only $POSSIBLE_PROMPTS prompt(s) carry a possible? column, so the rows above gate a shape the corpus no longer has"
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the two modes the runner writes, and the budget a steered hint needs =="
+# ---------------------------------------------------------------------------
+
+# Bead tla-rzvk.3. drill.sh writes `MODE: check` or `MODE: hint` and, on a
+# steered hint, a `QUESTION:` block carrying Frank's text verbatim. This file
+# owns what the three mean and drill.sh owns none of it, so a reader who only
+# has the runner cannot tell what either mode is for.
+assert_contains_flat "CLAUDE.md defines the check mode the runner writes" \
+  "$STUDY_CONFIG" "MODE: check"
+
+assert_contains_flat "and the hint mode" \
+  "$STUDY_CONFIG" "MODE: hint"
+
+assert_contains "and the block a steered question arrives in" \
+  "$STUDY_CONFIG" "QUESTION:"
+
+assert_matches_flat "and says a one-shot runs with no tools at all" \
+  "$STUDY_CONFIG" 'no tools'
+
+assert_matches_flat "CLAUDE.md rations a steered question by whether answering it leaves the work" \
+  "$STUDY_CONFIG" "leave him the item's work"
+
 # ---------------------------------------------------------------------------
 echo
 echo "== the two commands =="
@@ -1636,6 +1822,20 @@ assert_matches "and names the mechanism rather than asserting it" \
 assert_matches "check.md reads his prose answers, for the prompts that end in a question" \
   "$STUDY_CHECK_CMD" 'question|prose'
 
+# Bead tla-rzvk.3. The same wrong path the config carried, in the command that
+# actually tells a session what to type first.
+assert_contains "check.md reaches the checker from the slug directory, not from the study root" \
+  "$STUDY_CHECK_CMD" "../check"
+
+assert_lacks_flat "check.md no longer puts the checker in the working directory" \
+  "$STUDY_CHECK_CMD" "$CHECK_IN_CWD"
+
+assert_matches "check.md compares a violation against the prompt's table, as its own pass" \
+  "$STUDY_CHECK_CMD" '^## [0-9]+\. .*table'
+
+assert_contains_flat "and says which way a row marked possible points" \
+  "$STUDY_CHECK_CMD" "the prompt requires"
+
 assert_matches "hint.md refuses before it has seen an attempt" \
   "$STUDY_HINT_CMD" 'REFUSE|[Rr]efuse'
 
@@ -1644,6 +1844,24 @@ assert_matches "hint.md ladders rather than answering at once" \
 
 assert_matches "and never hands over the text of the fix" \
   "$STUDY_HINT_CMD" '[Nn]ever the text|not the text'
+
+# Bead tla-rzvk.3. A steered hint is two kinds of question under one flag, and
+# the ladder rations only one of them. A mechanism he has forgotten about TLA+
+# itself can be answered in full and still leave the item's work untouched.
+# The rows below pin the test, the flat answer, and the fallback, because the
+# fallback is what decides the ambiguous case and is the easiest of the three
+# to drop in a reword.
+assert_contains "hint.md says a steered question arrives in its own block" \
+  "$STUDY_HINT_CMD" "QUESTION:"
+
+assert_matches_flat "and sorts it by whether answering in full leaves the item's work" \
+  "$STUDY_HINT_CMD" "leave him the item's work"
+
+assert_matches_flat "and answers a mechanism question flat rather than spending a rung on it" \
+  "$STUDY_HINT_CMD" '[Aa]nswer it flat|[Aa]nswer flat'
+
+assert_matches_flat "and ladders the ambiguous case, so the budget degrades safe" \
+  "$STUDY_HINT_CMD" "can't tell which kind"
 
 # ---------------------------------------------------------------------------
 echo
