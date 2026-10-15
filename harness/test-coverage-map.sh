@@ -268,10 +268,19 @@ echo "part 2b: the mirror is a faithful copy"
 
 n_meta="$(find "$WORK/base/drill" -name META.md -type f | sed -n '$=')"
 n_uses="$(find "$WORK/base/reading" -name USES.md -type f | sed -n '$=')"
-if [ "${n_meta:-0}" -eq 64 ] && [ "${n_uses:-0}" -eq 25 ]; then
-  ok "the mirror holds 64 META.md and 25 USES.md"
+# Derived from the live tree, never pinned. A literal here reddens this gate
+# every time the corpus grows, and when the reading corpus went 25 to 33 on
+# 2026-10-15 it took the 18 controls below down with it, because the next
+# assertion reads "--check reddens on the unmutated mirror, so every control
+# below is meaningless". The count is a property of the tree, so ask the tree.
+live_meta="$(find "$REPO_ROOT/drill" -mindepth 3 -maxdepth 3 -type f -name META.md \
+               ! -path "$REPO_ROOT/drill/.*" ! -path "$REPO_ROOT/drill/*/.*" | sed -n '$=')"
+live_uses="$(find "$REPO_ROOT/reading" -mindepth 3 -maxdepth 3 -type f -name USES.md \
+               ! -path "$REPO_ROOT/reading/.*" ! -path "$REPO_ROOT/reading/*/.*" | sed -n '$=')"
+if [ "${n_meta:-0}" -eq "${live_meta:-0}" ] && [ "${n_uses:-0}" -eq "${live_uses:-0}" ]; then
+  ok "the mirror holds every META.md and USES.md the tree does, ${n_meta:-0} and ${n_uses:-0}"
 else
-  bad "the mirror holds ${n_meta:-0} META.md and ${n_uses:-0} USES.md, expected 64 and 25"
+  bad "the mirror holds ${n_meta:-0} META.md and ${n_uses:-0} USES.md, the tree has ${live_meta:-0} and ${live_uses:-0}"
 fi
 
 run_gen "$WORK/base" --check
