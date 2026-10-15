@@ -135,14 +135,41 @@ ERRFILE="$TMPROOT/stderr"
 
 # run_drill <tree> [args...]
 #
-# HOME is redirected on every single invocation. The runner should resolve no
-# HOME at all, and part 4 asserts that statically. This is the belt to that
-# braces: a runner that grew a HOME lookup tomorrow writes into the sandbox
-# rather than into Frank's tree, and part 4's live row then says so.
+# HOME is redirected on every single invocation. The runner resolves HOME for
+# exactly one thing, the study root, and part 4 asserts that the lookup stays
+# there. The redirection is the belt to that braces: the study directories a
+# serve creates land in the sandbox rather than in Frank's own tree, whatever
+# the resolution does.
 run_drill() {
   local tree="$1"
   shift
   RUN_OUT=$(HOME="$SANDBOX_HOME" "$tree/drill" "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+}
+
+# run_drill_study <study-root> <tree> [args...]
+#
+# The same invocation with DRILL_STUDY_ROOT named explicitly, which is what
+# part 4b drives. HOME stays redirected as well, so a run that ignored the
+# variable would still miss the real tree rather than write into it.
+run_drill_study() {
+  local root="$1" tree="$2"
+  shift 2
+  RUN_OUT=$(HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$root" "$tree/drill" "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+}
+
+# run_drill_rootless <tree> [args...]
+#
+# Neither DRILL_STUDY_ROOT nor HOME set, which is the case where no study root
+# can be resolved at all. `env -u` rather than an assignment, because an empty
+# HOME and an unset HOME are different things and this row wants unset.
+run_drill_rootless() {
+  local tree="$1"
+  shift
+  RUN_OUT=$(env -u HOME -u DRILL_STUDY_ROOT "$tree/drill" "$@" 2>"$ERRFILE")
   RUN_RC=$?
   RUN_ERR=$(cat "$ERRFILE")
 }
@@ -535,27 +562,49 @@ assert_eq "a served prompt is unchanged after being served" \
   "PROMPT BODY for alpha/01-alpha-drill" "$PROMPT_NOW"
 
 # THE REAL TREE, live and static. The sandboxed HOME has to be untouched, and
-# the runner has to resolve no HOME in the first place.
+# the runner's HOME lookups have to stay in the one place that needs them.
 assert_absent "the sandboxed HOME grew no practice tree, over every run above" \
   "$SANDBOX_HOME/tla-practice"
 
-# CODE, not prose. The runner's header explains at length that it resolves no
-# HOME and that ~/tla-practice has no git behind it, so matching raw text
-# would flag the explanation. Whole-line comments come out first, the same way
+# CODE, not prose. The runner's header explains at length where it writes and
+# that ~/tla-practice has no git behind it, so matching raw text would flag
+# the explanation. Whole-line comments come out first, the same way
 # harness/test-pipefail.sh strips them before its own ban.
 RUNNER_CODE=$(sed 's/^[[:space:]]*#.*$//' "$RUNNER")
 
-HOME_HITS=$(grep -cE -- '\$\{?HOME' <<<"$RUNNER_CODE")
-if [ "$HOME_HITS" -eq 0 ]; then
-  ok "the runner resolves no HOME, so it cannot reach the real practice tree"
+# THIS ROW WAS NARROWED, AND THE OLD FORM IS WHY IT NEEDS SAYING. It used to
+# read "the runner resolves no HOME" and required zero lookups, which was true
+# until bead tla-ytv2.1 gave a serve one write outside the runner's own
+# directory: the study directory, under a root defaulting to
+# $HOME/Study/tla-drills. Deleting the row with the invariant would have left
+# the file with no static guard on HOME at all.
+#
+# So the question changed from "are there none" to "are they all in the one
+# place". Every code line naming HOME must also name the study root, which is
+# what stops a HOME lookup from spreading to the record, the pointer or the
+# prompt reads, which are the three paths the header still confines to $HERE.
+HOME_LINES=$(grep -E -- '\$\{?HOME' <<<"$RUNNER_CODE")
+HOME_STRAY=$(grep -vE -- 'STUDY_ROOT' <<<"$HOME_LINES")
+if [ -z "$HOME_STRAY" ]; then
+  ok "every HOME lookup in the runner sits in the study-root resolution"
 else
-  nope "the runner resolves HOME at $HOME_HITS site(s), so it can reach a path nobody handed it"
+  nope "the runner resolves HOME away from the study root: $(tr '\n' ' ' <<<"$HOME_STRAY")"
 fi
+
+# And the narrowing is pinned to the thing that caused it. A runner that
+# stopped resolving HOME for the study root would pass the row above
+# vacuously, since a stray set is empty when the whole set is.
+if grep -qE -- 'STUDY_ROOT.*\$\{?HOME' <<<"$HOME_LINES"; then
+  ok "and the lookup that is there resolves the study root, so the row above is not empty"
+else
+  nope "the runner resolves no HOME for a study root, so the narrowed row above holds over nothing"
+fi
+
 assert_never_names "and no code line of it names a practice tree path" \
   "tla-practice" "$RUNNER_CODE"
 
-# The controls for the two rows above. Both patterns have to bite real code
-# and neither may bite a comment, or the two rows are green over nothing.
+# The controls for the rows above. Both patterns have to bite real code and
+# neither may bite a comment, or the rows are green over nothing.
 #
 # The single quotes are load-bearing in both fixtures. Each one is a line of
 # SOURCE TEXT that the scan reads back, so expanding it here would write
@@ -572,6 +621,17 @@ else
   nope "control: the HOME pattern matched nothing, so the row above it is vacuous"
 fi
 
+# The control for the narrowing itself: a HOME lookup that is NOT in the
+# study-root resolution has to come back as a stray. Without this the stray
+# row passes over any runner at all, since a filter that matches everything
+# leaves nothing behind.
+CTRL_STRAY=$(grep -vE -- 'STUDY_ROOT' <<<"$(grep -E -- '\$\{?HOME' <<<"$CTRL_CODE")")
+if [ -n "$CTRL_STRAY" ]; then
+  ok "control: a HOME lookup outside the study root is DETECTED as a stray"
+else
+  nope "control: a stray HOME lookup was not detected, so the stray row above is vacuous"
+fi
+
 # The strip runs over a FILE, the way it does against the real runner above. A
 # sed over a here-string would be a different mechanism from the one under
 # test, and shellcheck reads it as a string substitution besides.
@@ -584,6 +644,172 @@ fi
 
 assert_never_names "no run has named the real practice tree" \
   "$REAL_PRACTICE" "$RUN_OUT$RUN_ERR"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== part 4b: the study directory, which is the one write outside the tree =="
+# ---------------------------------------------------------------------------
+#
+# WHY THIS IS ITS OWN PART rather than more rows in part 4. Part 4's question
+# is what the runner writes BESIDE ITSELF, and its comm against the fixture's
+# parent directory answers it. The study directory is the deliberate exception
+# to that confinement, so asserting it there would read as part 4 contradicting
+# itself. Here the root is named explicitly on every run and starts empty, so
+# each row sees only what the run under it created.
+#
+# THE SLUG IS THE ITEM WITH THE FAMILY STRIPPED, and the tree is flat. All 64
+# delivered slugs are distinct across the eight families, so a flat per-slug
+# directory cannot collide and the name needs no family to disambiguate it.
+#
+# THREE BEHAVIORS, AND THE THIRD IS THE ONE WORTH BEING DELIBERATE ABOUT.
+# Creating the directory is a convenience and serving the drill is the job, so
+# a creation that fails warns and serves anyway. A serve that exited non-zero
+# because a directory could not be made would cost Frank the prompt he asked
+# for, over something he can fix with one mkdir.
+
+T_STUDY="$TMPROOT/study-tree"
+mk_tree "$T_STUDY" "$RUNNER"
+
+SLUG0="${CANONICAL[0]##*/}"
+assert_eq "the slug under test is the item with its family stripped" \
+  "01-alpha-drill" "$SLUG0"
+
+# --- a new directory is created, and the served block names it --------------
+
+STUDY_A="$TMPROOT/study-root-a"
+mkdir -p "$STUDY_A"
+assert_absent "the study root starts with no directory for the queue head" \
+  "$STUDY_A/$SLUG0"
+
+run_drill_study "$STUDY_A" "$T_STUDY"
+assert_rc "a serve into an empty study root exits 0" 0
+if [ -d "$STUDY_A/$SLUG0" ]; then
+  ok "the serve created the study directory for the drill it served"
+else
+  nope "the serve created no directory at $STUDY_A/$SLUG0"
+fi
+assert_says_literal "and the served block names the path to work in" \
+  "$STUDY_A/$SLUG0" "$RUN_OUT"
+assert_says_literal "and says it created it, the first time" "created" "$RUN_OUT"
+assert_says_literal "and the prompt is still served alongside it" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$RUN_OUT"
+
+# The tree is flat, so the family must not appear as a directory of its own.
+# This is the row that goes red on a slug built from the whole item name.
+assert_eq "the study root holds exactly the one slug directory, with no family above it" \
+  "./$SLUG0" "$(paths_of "$STUDY_A")"
+
+# --- an existing directory is left completely alone -------------------------
+#
+# Frank already has real work in 01-slip-on-the-spike. A second serve of the
+# same head must not touch a byte of it, and must not claim a creation it did
+# not perform.
+
+printf 'CONSTANT N\nVARIABLE x\n' >"$STUDY_A/$SLUG0/pickers.tla"
+printf 'SPECIFICATION Spec\n' >"$STUDY_A/$SLUG0/pickers.cfg"
+STUDY_BEFORE=$(snapshot "$STUDY_A/$SLUG0")
+
+# The non-vacuity control for the byte-for-byte row below. snapshot() of a
+# directory that is not there reads `<absent>`, and `<absent>` compares equal
+# to itself, so without this row the comparison is green over a directory the
+# runner never made.
+assert_says_literal "the existing-directory fixture really holds a file to leave alone" \
+  "./pickers.tla :: CONSTANT N" "$STUDY_BEFORE"
+
+run_drill_study "$STUDY_A" "$T_STUDY"
+assert_rc "a second serve over an existing study directory exits 0" 0
+assert_eq "it serves the same head, so the row below is about the same directory" \
+  "${CANONICAL[0]}" "$(served_of "$RUN_OUT")"
+assert_eq "every file in the existing study directory is untouched, byte for byte" \
+  "$STUDY_BEFORE" "$(snapshot "$STUDY_A/$SLUG0")"
+assert_says_literal "it still names the path to work in" \
+  "$STUDY_A/$SLUG0" "$RUN_OUT"
+assert_never_names "and it does not claim to have created anything" \
+  "created" "$RUN_OUT"
+
+# --- a root that cannot hold a directory warns and serves anyway ------------
+
+STUDY_FILE="$TMPROOT/study-root-is-a-file"
+printf 'a regular file where a study root was expected\n' >"$STUDY_FILE"
+POINTER_BEFORE=$(cat "$T_STUDY/LAST-SERVED")
+
+run_drill_study "$STUDY_FILE" "$T_STUDY"
+assert_rc "a study root that is a regular file still exits 0" 0
+assert_says_literal "the prompt is still printed" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$RUN_OUT"
+assert_says_literal "the pointer is still written" \
+  "${CANONICAL[0]}" "$(cat "$T_STUDY/LAST-SERVED")"
+assert_eq "and the pointer holds the item, not a diagnostic" \
+  "$POINTER_BEFORE" "$(cat "$T_STUDY/LAST-SERVED")"
+if [ -n "$RUN_ERR" ]; then
+  ok "the failure to create warns on stderr: $(tr '\n' ' ' <<<"$RUN_ERR")"
+else
+  nope "the failure to create said nothing on stderr, so the serve looks clean when it is not"
+fi
+assert_says_literal "and the warning on stderr names the path it could not make" \
+  "$STUDY_FILE/$SLUG0" "$RUN_ERR"
+assert_never_names "a failed creation is not reported on stdout as a success" \
+  "created" "$RUN_OUT"
+if [ -f "$STUDY_FILE" ]; then
+  ok "the regular file standing in for a root is still a regular file"
+else
+  nope "the run replaced the regular file at $STUDY_FILE"
+fi
+
+# --- no root resolvable at all: no DRILL_STUDY_ROOT and no HOME -------------
+#
+# The default root comes off HOME, so an unset HOME leaves nothing to default
+# to. Guessing at / would be worse than saying so.
+
+run_drill_rootless "$T_STUDY"
+assert_rc "a serve with neither DRILL_STUDY_ROOT nor HOME set still exits 0" 0
+assert_says_literal "and still prints the prompt" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$RUN_OUT"
+if [ -n "$RUN_ERR" ]; then
+  ok "and says on stderr that it has no study root: $(tr '\n' ' ' <<<"$RUN_ERR")"
+else
+  nope "it resolved no study root and said nothing about it"
+fi
+assert_says_literal "the warning names the variable that would fix it" \
+  "DRILL_STUDY_ROOT" "$RUN_ERR"
+
+# --- the default root, which is the form Frank actually runs ----------------
+#
+# HOME is the sandbox on every run_drill call, so this asserts the default
+# over a redirected HOME rather than over Frank's own.
+
+T_DEFAULT="$TMPROOT/study-tree-default"
+mk_tree "$T_DEFAULT" "$RUNNER"
+run_drill "$T_DEFAULT"
+assert_rc "a serve with no DRILL_STUDY_ROOT exits 0" 0
+if [ -d "$SANDBOX_HOME/Study/tla-drills/$SLUG0" ]; then
+  ok "it defaults the root to \$HOME/Study/tla-drills"
+else
+  nope "no directory at $SANDBOX_HOME/Study/tla-drills/$SLUG0, so the default root is somewhere else"
+fi
+assert_says_literal "and names that default path in the served block" \
+  "$SANDBOX_HOME/Study/tla-drills/$SLUG0" "$RUN_OUT"
+
+# --- the header carries the narrowed invariant ------------------------------
+#
+# Gate, don't advise. The runner's header is its contract with its next
+# reader, and a header promising it writes nothing outside its own directory
+# while a serve creates a directory elsewhere is a trap rather than a
+# document. These rows are over the header block alone, cut at the first line
+# of code the way part 7 cuts it.
+
+STUDY_RUNNER_HEAD=$(awk '/^set -uo pipefail/ { exit } { print }' "$RUNNER")
+assert_says_literal "the runner's header names the study root variable" \
+  "DRILL_STUDY_ROOT" "$STUDY_RUNNER_HEAD"
+assert_says_literal "and names the default the variable overrides" \
+  "Study/tla-drills" "$STUDY_RUNNER_HEAD"
+# Single-quoted: this is a line of the runner's SOURCE TEXT read back, so an
+# expansion here would put this suite's own path into the needle and the row
+# would be asserting nothing about the runner.
+# shellcheck disable=SC2016
+STUDY_HEAD_NEEDLE='${BASH_SOURCE[0]}'
+assert_says_literal "and the header still argues the confinement it narrows" \
+  "$STUDY_HEAD_NEEDLE" "$STUDY_RUNNER_HEAD"
 
 # ---------------------------------------------------------------------------
 echo
@@ -681,6 +907,55 @@ if [ -n "$M4" ]; then
     ok "control: a runner writing outside its directory is DETECTED"
   else
     nope "control: a runner writing outside its directory was NOT detected, so part 4 is vacuous"
+  fi
+fi
+
+# M5 AND M6 EXIST FOR A REASON THE OTHER FOUR DO NOT HAVE. Two of part 4b's
+# rows are NEGATIVE: a failed creation still exits 0, and a serve over an
+# existing directory does not claim to have created it. Both of those hold
+# over a runner with no study directory at all, which is exactly what they
+# held over the day before this feature landed. A negative row needs a runner
+# that gets it wrong, or it is green over nothing for the rest of the file's
+# life.
+#
+# M5. a creation that fails takes the serve down with it.
+# shellcheck disable=SC2016
+M5=$(mutate study-failure-is-fatal \
+  's|^  echo "drill: cannot create the study directory at \$STUDY_ROOT/\$slug, so work" >&2$|  exit 9|')
+if [ -n "$M5" ]; then
+  T_M5="$TMPROOT/tree-m5"
+  mk_tree "$T_M5" "$M5"
+  M5_FILE="$TMPROOT/m5-root-is-a-file"
+  printf 'a regular file where a study root was expected\n' >"$M5_FILE"
+  run_drill_study "$M5_FILE" "$T_M5"
+  if [ "$RUN_RC" -ne 0 ]; then
+    ok "control: a runner that fails a serve over the study directory is DETECTED, rc=$RUN_RC"
+  else
+    nope "control: a fatal creation failure was NOT detected, so the still-exits-0 rows are vacuous"
+  fi
+  if grep -qF -- "PROMPT BODY for ${CANONICAL[0]}" <<<"$RUN_OUT"; then
+    nope "control: the fatal mutant still printed the prompt, so the prompt row is vacuous"
+  else
+    ok "and it withheld the prompt, which is the cost the rows above price"
+  fi
+fi
+
+# M6. the existing-directory guard drops out, so every serve runs mkdir and
+# reports a creation. `mkdir -p` over a directory that is already there
+# succeeds, which is why this mutation is silent on the filesystem and shows
+# up only in what the serve claims.
+# shellcheck disable=SC2016
+M6=$(mutate study-claims-every-serve 's|^  if \[ -d "\$STUDY_ROOT/\$slug" \]; then$|  if false; then|')
+if [ -n "$M6" ]; then
+  T_M6="$TMPROOT/tree-m6"
+  mk_tree "$T_M6" "$M6"
+  STUDY_M6="$TMPROOT/study-root-m6"
+  mkdir -p "$STUDY_M6/$SLUG0"
+  run_drill_study "$STUDY_M6" "$T_M6"
+  if grep -qF -- "created" <<<"$RUN_OUT"; then
+    ok "control: a runner claiming a creation over an existing directory is DETECTED"
+  else
+    nope "control: the false creation claim was NOT detected, so the no-claim row is vacuous"
   fi
 fi
 
