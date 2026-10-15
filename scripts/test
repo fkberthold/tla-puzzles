@@ -84,6 +84,7 @@
 #   fast   2.6 s  harness/test-corpus-manifest.sh
 #   fast   4.8 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
+#   slow   3.5 s  harness/test-drill-check.sh            (added, bead tla-ytv2.2)
 #   slow  12.9 s  harness/test-reading.sh               (re-based, bead tla-8q8n)
 #   slow  10.7 s  harness/test-indeterminate.sh        (re-based, bead tla-ocpw)
 #   slow   9.0 s  chapter/snippets/run-all.sh
@@ -99,8 +100,8 @@
 #         38.8 s  fast tier, 22 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        418.9 s  slow tier, 11 suites
-#        457.7 s  whole registry
+#        422.4 s  slow tier, 12 suites
+#        461.2 s  whole registry
 #
 # A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
 # are a comment. The enforced number is the second field of the row's own
@@ -865,6 +866,19 @@ SUITES=(
   # without anything having drifted. The budget had been measured honestly
   # over an EMPTY drill tree and 32 items arrived afterwards.
   "slow|54.4|drill corpus gate|./harness/test-drill.sh"
+  # Added 2026-10-15, bead tla-ytv2.2. The gate for drill/study/check, the
+  # objective half of the study loop. Measured standalone over three
+  # back-to-back serial runs: 3.422 / 3.414 / 3.319 s, so 3.5 is the slowest
+  # rounded up. One TLC run on its trivial fixture costs 0.29 s on this box,
+  # measured separately three times, and the suite makes ten of them, so about
+  # 2.9 of the 3.4 s is the model checker and the rest is the fixture tree.
+  #
+  # SLOW BY THE RULE AND NOT BY ITS WALL CLOCK, which at 3.5 s would sit in the
+  # middle of the fast tier. The rule in this header is that the boundary is
+  # the model checker, and this suite runs it. Its cost also tracks its own
+  # fixture count rather than the corpus, so it will not drift as drills land,
+  # which is the opposite of the drill corpus gate above.
+  "slow|3.5|drill study check|./harness/test-drill-check.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 13.2 / 14.4 / 14.1 s, so 14.4 and up from 10.8. tla-kqry
   # recorded 12.8 on 2026-10-08, so this row has been climbing and the move is
