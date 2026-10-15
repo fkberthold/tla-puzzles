@@ -27,6 +27,15 @@
 #   three new dependencies is refused with one message before anything is
 #   executed, and the serve path works with none of them present.
 #
+#   Then, from bead tla-iiow.3: --style is a third coaching flag in the same
+#   shape, and the two things that make it its own flag are pinned here. It
+#   CATS THE REGISTER into the prompt, because a one-shot with no tools cannot
+#   open drill/study/STYLE.md, and that makes the style prompt the largest of
+#   the three. And it DOES NOT RUN THE CHECKER, so a style pass works over a
+#   study root holding no checker at all. Its two new dependencies refuse the
+#   same way the first three do, before the script is executed rather than
+#   after, and the style script's own exit code never becomes the runner's.
+#
 # ---------------------------------------------------------------------------
 # WHY THE MUTANTS ARE HERE, AND WHY THEY ARE THE POINT
 #
@@ -34,7 +43,7 @@
 # contract says", which is also what a suite driving a runner that silently
 # stopped working would report if the comparison went slack. So part 5 copies
 # the real runner, breaks ONE line of it, and requires the row that owns that
-# line to go red. Eight mutants:
+# line to go red. Nine mutants:
 #
 #   family-major order   the index drops out of the sort key
 #   shaky retires        shaky behaves like done and never comes back
@@ -44,6 +53,7 @@
 #   a claimed creation   every serve reports making the directory
 #   a coached half-run   the checker gate drops out and it ships anyway
 #   a prompt on argv     the prompt goes positional instead of on stdin
+#   a styled half-run    the register gate drops out and it ships anyway
 #
 # A mutant that passes means the row above it is vacuous. That is a stronger
 # control than a planted fixture, because it exercises the real code path with
@@ -898,6 +908,42 @@ CHECK_STUB
   chmod +x "$1"
 }
 
+# The style stub, in the checker's shape and for the same reasons. It writes
+# on both streams, because the runner joins them and a row below asserts the
+# stderr line reached the model.
+#
+# ONE FACT LINE PER AXIS, which is the contract bead tla-iiow.2 locks: the
+# script measures and the model interprets, so every line carries a measured
+# value and the survey count beside it and no verdict at all. Two lines, so a
+# row can say every line arrived rather than only the first.
+write_style_stub() {
+  cat >"$1" <<'STYLE_STUB'
+#!/usr/bin/env bash
+rec="${STYLE_STUB_REC:?the style stub needs STYLE_STUB_REC}"
+: >"$rec.argv"
+for a in "$@"; do printf 'ARG[%s]\n' "$a" >>"$rec.argv"; done
+printf '%s\n' "$PWD" >"$rec.cwd"
+printf '%s\n' "${DRILL_PROMPT_ROOT:-<unset>}" >"$rec.promptroot"
+printf 'axis=constant-case module=Pickers camel=0 snake=2 lower=0 corpus=126of132\n'
+printf 'axis=spec-name module=Pickers measured=Spec corpus=170of205\n'
+printf 'a line the style script wrote on stderr\n' >&2
+exit "${STYLE_STUB_RC:-0}"
+STYLE_STUB
+  chmod +x "$1"
+}
+
+# The register, which is PROSE the one-shot cannot read off disk, since it
+# runs with no tools. Its sentinel is a whole sentence rather than a token, so
+# a row asserting it arrived is asserting the file's body and not a filename
+# the runner could have printed on its own.
+STYLE_REGISTER_SENTINEL="C1: 405 of 421 resolvable box sites cover every variable."
+write_style_register() {
+  printf '%s\n' \
+    '# The style register, fixture copy' \
+    "$STYLE_REGISTER_SENTINEL" \
+    'C2: Specifying Systems 14.5.3 p. 259, so TLC names the conjunct.' >"$1"
+}
+
 # run_coach_path <path> <study-root> <cwd> <tree> [args...]
 #
 # The recorder is cleared first, so every "no model was called" row below is
@@ -906,6 +952,11 @@ CHECK_STUB
 # than a parameter because exactly one row varies it, and the runner is not
 # supposed to care either way.
 COACH_CHECK_RC=0
+# What the style stub will exit with. Style has no pass and no fail by
+# contract (bead tla-iiow.2: 0 when it measured anything, 3 when it could not
+# run, and no 1 at all), so the runner is not supposed to care either way and
+# one row varies this to say so.
+COACH_STYLE_RC=0
 
 run_coach_path() {
   local path="$1" root="$2" dir="$3" tree="$4"
@@ -914,6 +965,7 @@ run_coach_path() {
   RUN_OUT=$(cd "$dir" && HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$root" \
     PATH="$path" CLAUDE_STUB_REC="$STUB_REC/claude" \
     CHECK_STUB_REC="$STUB_REC/check" CHECK_STUB_RC="$COACH_CHECK_RC" \
+    STYLE_STUB_REC="$STUB_REC/style" STYLE_STUB_RC="$COACH_STYLE_RC" \
     "$tree/drill" "$@" 2>"$ERRFILE")
   RUN_RC=$?
   RUN_ERR=$(cat "$ERRFILE")
@@ -938,7 +990,8 @@ run_coach_rootless() {
   rm -f "$STUB_REC"/*
   RUN_OUT=$(cd "$dir" && env -u HOME -u DRILL_STUDY_ROOT \
     PATH="$STUB_BIN:$PATH" CLAUDE_STUB_REC="$STUB_REC/claude" \
-    CHECK_STUB_REC="$STUB_REC/check" "$tree/drill" "$@" 2>"$ERRFILE")
+    CHECK_STUB_REC="$STUB_REC/check" STYLE_STUB_REC="$STUB_REC/style" \
+    "$tree/drill" "$@" 2>"$ERRFILE")
   RUN_RC=$?
   RUN_ERR=$(cat "$ERRFILE")
 }
@@ -950,6 +1003,8 @@ STUDY_COACH="$TMPROOT/coach-study"
 ATTEMPT_DIR="$STUDY_COACH/$SLUG0"
 mkdir -p "$ATTEMPT_DIR"
 write_check_stub "$STUDY_COACH/check"
+write_style_stub "$STUDY_COACH/style"
+write_style_register "$STUDY_COACH/STYLE.md"
 
 printf '%s\n' '---- MODULE Pickers ----' 'VARIABLE held' 'Init == held = 0' '====' \
   >"$ATTEMPT_DIR/Pickers.tla"
@@ -1335,6 +1390,12 @@ assert_says_literal "help names --check and its optional drill" \
 assert_says_literal "and names --hint" "./drill --hint" "$RUN_OUT"
 assert_says_literal "and says --hint takes no drill name, since the text owns that slot" \
   "--hint takes no drill name" "$RUN_OUT"
+assert_says_literal "and names --style with the same optional drill --check takes" \
+  "./drill --style [<family>/<item>]" "$RUN_OUT"
+# A reader who runs --style on a box with the script and no register gets a
+# refusal, so the two things it needs are named where he will look first.
+assert_says_literal "and says --style needs the register as well as the script" \
+  "the register" "$RUN_OUT"
 
 # --- the header carries the SECOND narrowing --------------------------------
 #
@@ -1366,6 +1427,25 @@ assert_says_literal "and says the resolution is the pointer, the way a mark's is
 assert_never_names "and no longer claims the cwd decides which drill" \
   "the directory you are standing in" "$COACH_HEAD"
 
+# THE INVARIANT IS NOT WIDENED AGAIN, AND THAT IS THE POINT OF THESE TWO ROWS.
+# Bead tla-iiow.3 adds --style, which reads two more paths under the SAME
+# study root the three above already resolve from, so the argument that buys
+# the narrowing is the one already written: the one-shot has no tools, so
+# either this script fetches the material or the coaching is worthless. What
+# changes is the enumeration, because a list that says three while the code
+# reads five is a header that lies. So the rows below check the two new
+# entries are IN the list, and that the argument was not restated beside them.
+# shellcheck disable=SC2016
+COACH_HEAD_STYLE='$STUDY_ROOT/style'
+assert_says_literal "the narrowed list names the style script it executes" \
+  "$COACH_HEAD_STYLE" "$COACH_HEAD"
+# shellcheck disable=SC2016
+COACH_HEAD_REGISTER='$STUDY_ROOT/STYLE.md'
+assert_says_literal "and the register it reads, which no other flag reads" \
+  "$COACH_HEAD_REGISTER" "$COACH_HEAD"
+assert_never_names "and the list no longer says there are three of them" \
+  "read three things outside it" "$COACH_HEAD"
+
 # ONE SOURCE FOR THE REGISTER RULES, AND IT IS NOT THE RUNNER.
 #
 # drill/study/CLAUDE.md is the single source of what the model must not do, and
@@ -1391,6 +1471,305 @@ for coach_needle in "ANSWER.md" "META.md"; do
 done
 assert_never_names "and the prompt it ships restates none either" \
   "ANSWER.md" "$COACH_STDIN"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== part 4d: --style, the register and the measuring script =="
+# ---------------------------------------------------------------------------
+#
+# Bead tla-iiow.3. A third coaching flag, resolved exactly as --check is, and
+# the differences from --check are the whole of what these rows are about.
+#
+# IT CATS THE REGISTER INTO THE PROMPT, which --check has no equivalent of.
+# The one-shot runs with no tools, so the model cannot open drill/study/STYLE.md
+# however plainly it is told to, and a register it cannot read is a register
+# that is not there. So the runner ships it, and that makes the style prompt
+# the largest of the three. One row below measures that rather than asserting
+# it.
+#
+# IT DOES NOT RUN THE CHECKER. Correctness and style are different questions,
+# and folding them together would make every check pay for a style pass. So a
+# style run over a study root with no checker in it still works, which is the
+# last row of the gate progression below.
+#
+# THE STYLE SCRIPT'S EXIT CODE IS NOT A VERDICT. Bead tla-iiow.2 locks 0 for
+# measured-something and 3 for could-not-run, with no 1 at all, because a
+# style pass that can fail becomes a gate on Frank's own work. The runner
+# relays the one-shot's status and never the script's, same as for the
+# checker, and one row varies the stub's code to say so.
+
+STYLE_TREE_SNAP=$(snapshot "$T_COACH")
+STYLE_ATTEMPT_SNAP=$(snapshot "$ATTEMPT_DIR")
+# The non-vacuity control for the untouched-ness rows at the end of this part.
+# snapshot() of a directory that is not there reads `<absent>`, which compares
+# equal to itself, so without this the comparison is green over a directory
+# holding nothing.
+assert_says_literal "the attempt fixture really holds a module and a config to leave alone" \
+  "./Pickers.cfg :: SPECIFICATION Spec" "$STYLE_ATTEMPT_SNAP"
+
+if [ -x "$STUDY_COACH/style" ] && [ -f "$STUDY_COACH/STYLE.md" ]; then
+  ok "the style fixture is a runnable script and a register beside it"
+else
+  nope "the style fixture is missing its script or its register, so nothing below is evidence"
+fi
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style
+assert_rc "--style exits 0" 0
+
+if [ -f "$STUB_REC/claude.argv" ]; then
+  ok "the stub model was the thing called, so the rows below read a real invocation"
+else
+  nope "no invocation was recorded at $STUB_REC/claude.argv, so nothing below is evidence"
+fi
+
+assert_eq "--style ships the same invocation, with no tool added back" \
+  "ARG[-p]
+ARG[--tools]
+ARG[]" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
+assert_eq "the model was handed exactly three arguments" \
+  "3" "$(cat "$STUB_REC/claude.argc" 2>/dev/null)"
+assert_eq "it ran from the slug directory, so the study config above it loads by itself" \
+  "$ATTEMPT_DIR" "$(cat "$STUB_REC/claude.cwd" 2>/dev/null)"
+
+STYLE_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_eq "the mode is the very first line of what arrived on stdin" \
+  "MODE: style" "$(awk 'NR == 1' <<<"$STYLE_STDIN")"
+assert_never_names "and the prompt is not on argv, which --tools would swallow" \
+  "MODE: style" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
+
+# --- what the style prompt carries that the other two do not -----------------
+
+assert_says_literal "stdin carries the register's own text, since the model cannot open it" \
+  "$STYLE_REGISTER_SENTINEL" "$STYLE_STDIN"
+assert_says_literal "stdin carries the style script's measurements verbatim" \
+  "axis=constant-case module=Pickers camel=0 snake=2 lower=0 corpus=126of132" "$STYLE_STDIN"
+assert_says_literal "every line of them, not just the first" \
+  "axis=spec-name module=Pickers measured=Spec corpus=170of205" "$STYLE_STDIN"
+assert_says_literal "and what the style script said on stderr, so a silent failure is not read as a clean pass" \
+  "a line the style script wrote on stderr" "$STYLE_STDIN"
+assert_says_literal "and its exit code, which the model has no way to derive" \
+  "exit 0" "$STYLE_STDIN"
+
+assert_says_literal "stdin carries the item's own PROMPT.md text" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$STYLE_STDIN"
+assert_says_literal "stdin names which drill it is about" \
+  "${CANONICAL[0]}" "$STYLE_STDIN"
+assert_says_literal "stdin carries the attempt's module" "MODULE Pickers" "$STYLE_STDIN"
+assert_says_literal "and the attempt's config" "SPECIFICATION Spec" "$STYLE_STDIN"
+assert_never_names "a TLC trace dump is no more part of a style attempt than of a check one" \
+  "a trace dump TLC wrote" "$STYLE_STDIN"
+assert_never_names "nor is a superseded .old module" "an earlier go at it" "$STYLE_STDIN"
+
+# --- the checker is not run, and that is the separation of the two flags -----
+
+assert_absent "the checker was not run, because style is a different question" \
+  "$STUB_REC/check.argv"
+assert_never_names "and no checker block reaches the model" "== CHECKER" "$STYLE_STDIN"
+assert_never_names "nor any of its numbers" "count=MATCH" "$STYLE_STDIN"
+
+# --- the style call ---------------------------------------------------------
+
+assert_eq "the style script was handed the attempt directory" \
+  "ARG[$ATTEMPT_DIR]" "$(cat "$STUB_REC/style.argv" 2>/dev/null)"
+assert_eq "and told where the prompts are, so it reads the same prompt the runner read" \
+  "$T_COACH" "$(cat "$STUB_REC/style.promptroot" 2>/dev/null)"
+
+# --- what the run says for itself -------------------------------------------
+
+assert_says_literal "the run says which drill it used" "${CANONICAL[0]}" "$RUN_OUT"
+assert_says_literal "and says it came off the pointer" "LAST-SERVED" "$RUN_OUT"
+assert_says_literal "and names the directory it read" "$ATTEMPT_DIR" "$RUN_OUT"
+# The register is the one input a reader cannot otherwise account for: it is
+# prose from a third file, and it is most of the prompt by volume.
+assert_says_literal "and names the register it shipped, which is most of the prompt" \
+  "$STUDY_COACH/STYLE.md" "$RUN_OUT"
+assert_says_literal "and the model's own answer reaches stdout" "STUB MODEL SPOKE" "$RUN_OUT"
+
+assert_eq "a style run writes nothing into the attempt directory" \
+  "$STYLE_ATTEMPT_SNAP" "$(snapshot "$ATTEMPT_DIR")"
+assert_eq "and nothing beside the runner either, so a style run is not a serve" \
+  "$STYLE_TREE_SNAP" "$(snapshot "$T_COACH")"
+
+# --- the style prompt is the biggest of the three, measured ------------------
+#
+# Not an aesthetic point. The register is the reason --style exists as its own
+# flag rather than as an addition to --check, and the size is what that costs.
+# Measured here rather than written down, so the row stays true as the files
+# move.
+
+# Both read off the recorder FILE rather than off a captured variable, because
+# a command substitution strips trailing newlines and the two prompts do not
+# end the same way. A byte count taken through one is not a byte count.
+STYLE_PROMPT_BYTES=0
+[ -f "$STUB_REC/claude.stdin" ] && STYLE_PROMPT_BYTES=$(wc -c <"$STUB_REC/claude.stdin")
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+CHECK_PROMPT_BYTES=0
+[ -f "$STUB_REC/claude.stdin" ] && CHECK_PROMPT_BYTES=$(wc -c <"$STUB_REC/claude.stdin")
+printf '  NOTE  style prompt %s bytes, check prompt %s bytes over the same attempt\n' \
+  "$STYLE_PROMPT_BYTES" "$CHECK_PROMPT_BYTES"
+if [ "$STYLE_PROMPT_BYTES" -gt "$CHECK_PROMPT_BYTES" ]; then
+  ok "the style prompt is larger than the check prompt over the same attempt, which is the register's weight"
+else
+  nope "the style prompt is $STYLE_PROMPT_BYTES bytes against the check prompt's $CHECK_PROMPT_BYTES, so the register is not being shipped"
+fi
+
+# --- the style script's exit code is not the runner's -----------------------
+
+COACH_STYLE_RC=3
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style
+COACH_STYLE_RC=0
+assert_rc "a style script exiting 3 does not become the runner's exit code" 0
+assert_says_literal "and the code reaches the model on the label instead" \
+  "exit 3" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# --- an explicit drill, the way --check takes one ---------------------------
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style "$OVERRIDE_ITEM"
+assert_rc "--style with an explicit drill name exits 0" 0
+assert_says_literal "it styles the drill it was handed" "$OVERRIDE_ITEM" "$RUN_OUT"
+assert_never_names "and not the one the pointer named" "${CANONICAL[0]}" "$RUN_OUT"
+assert_eq "the model ran from the named drill's own directory" \
+  "$OVERRIDE_DIR" "$(cat "$STUB_REC/claude.cwd" 2>/dev/null)"
+# A module with no config beside it is still worth measuring for style, since
+# measuring style needs no config at all. The override fixture is exactly that
+# shape, so this row is also the one that would catch --style inheriting the
+# checker's pairing requirement.
+assert_says_literal "a module with no config beside it is still styled" \
+  "MODULE Ballast" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+assert_eq "an override does not move the pointer, because styling is not a mark" \
+  "${CANONICAL[0]}" "$(cat "$T_COACH/LAST-SERVED")"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style "alpha/99-not-a-drill"
+assert_rc "--style with a name that is not a drill is refused" 1
+# THE WHOLE SENTENCE, not the command inside it. `./drill list` on its own is
+# carried by the usage block, so a needle that short passed against the runner
+# before --style existed at all: the unknown-option path prints usage on
+# stderr and the row read as green over a flag that was refused for a
+# completely different reason. Measured 2026-10-15 on the RED run of this part.
+assert_says_literal "and the refusal says what to run instead, the way --check does" \
+  "Run ./drill list to see what there is." "$RUN_ERR"
+assert_absent "and no model was called over it" "$STUB_REC/claude.argv"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style "${OVERRIDE_ITEM##*/}"
+assert_rc "a bare slug is refused, since --style takes <family>/<item> like the marks" 1
+assert_says_literal "and the refusal names what it could not find" \
+  "no drill at" "$RUN_ERR"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style "${CANONICAL[0]}" extra
+assert_rc "--style refuses a second argument" 1
+assert_says_literal "and says which one it did not expect" \
+  "unexpected extra argument" "$RUN_ERR"
+assert_absent "and no model was called over a usage error" "$STUB_REC/claude.argv"
+
+# --- an absent pointer says what --check says -------------------------------
+
+T_STYLE_NOPTR="$TMPROOT/style-no-pointer"
+mk_tree "$T_STYLE_NOPTR" "$RUNNER"
+assert_absent "the fixture starts with no pointer" "$T_STYLE_NOPTR/LAST-SERVED"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_STYLE_NOPTR" --style
+assert_rc "--style with nothing served yet is refused" 1
+assert_says_literal "and says nothing has been served yet" \
+  "nothing has been served yet" "$RUN_ERR"
+assert_says_literal "and points at the override that exists, since --style has one" \
+  "./drill --style <family>/<item>" "$RUN_ERR"
+assert_absent "and no model was called" "$STUB_REC/claude.argv"
+
+# --- THE GATES, ONE DEPENDENCY AT A TIME ------------------------------------
+#
+# One root, built up a file at a time, so each step adds exactly what the
+# previous refusal asked for and nothing else. That is a stronger reading than
+# four separate roots: it shows the refusals are about the file each one names
+# rather than about anything else the root happens to be missing.
+#
+# The root carries NO CHECKER at any point, which is why the last row of the
+# progression is the independence row.
+
+STYLE_BUILD="$TMPROOT/style-build-up"
+mkdir -p "$STYLE_BUILD/$SLUG0"
+cp -- "$ATTEMPT_DIR/Pickers.tla" "$STYLE_BUILD/$SLUG0/Pickers.tla"
+assert_absent "the build-up root starts with no checker in it at all" "$STYLE_BUILD/check"
+
+run_coach "$STYLE_BUILD" "$OUTSIDE" "$T_COACH" --style
+assert_rc "a study root with no style script is refused" 1
+assert_says_literal "and the refusal names the path the script should be at" \
+  "$STYLE_BUILD/style" "$RUN_ERR"
+assert_absent "and no model was called, so nothing half-ran" "$STUB_REC/claude.argv"
+
+write_style_stub "$STYLE_BUILD/style"
+chmod -x "$STYLE_BUILD/style"
+run_coach "$STYLE_BUILD" "$OUTSIDE" "$T_COACH" --style
+assert_rc "a style script that is there but not executable is refused too" 1
+assert_says_literal "and the refusal still names it" "$STYLE_BUILD/style" "$RUN_ERR"
+assert_absent "and still no model was called" "$STUB_REC/claude.argv"
+
+chmod +x "$STYLE_BUILD/style"
+assert_absent "the root now has a runnable script and still no register" \
+  "$STYLE_BUILD/STYLE.md"
+run_coach "$STYLE_BUILD" "$OUTSIDE" "$T_COACH" --style
+assert_rc "a study root with the script and no register is refused" 1
+assert_says_literal "and the refusal names the register's path" \
+  "$STYLE_BUILD/STYLE.md" "$RUN_ERR"
+assert_says_literal "and says why a model with no tools cannot be sent to read it" \
+  "no tools" "$RUN_ERR"
+assert_absent "and no model was called" "$STUB_REC/claude.argv"
+# THE HALF-RUN GUARD. A refusal decided after the script ran would have
+# measured the attempt and thrown the measurements away, and a measuring pass
+# that runs when its output has nowhere to go is the shape the checker gate
+# was written against.
+assert_absent "and the style script was not run either, so nothing was measured for nothing" \
+  "$STUB_REC/style.argv"
+
+write_style_register "$STYLE_BUILD/STYLE.md"
+run_coach "$STYLE_BUILD" "$OUTSIDE" "$T_COACH" --style
+assert_rc "with the script and the register there, --style runs over a root holding no checker" 0
+assert_says_literal "and the register it shipped is that root's" \
+  "$STYLE_BUILD/STYLE.md" "$RUN_OUT"
+if [ -f "$STUB_REC/claude.argv" ]; then
+  ok "so --style needs no checker at all, which is the separation the two flags are for"
+else
+  nope "no model was called over a root with the style pair and no checker"
+fi
+
+# --- an attempt with no module, no claude, no root --------------------------
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style "${CANONICAL[1]}"
+assert_rc "a drill whose directory holds no module is refused" 1
+assert_says_literal "and says there is no attempt to read" "no attempt" "$RUN_ERR"
+assert_absent "and no model was called over nothing" "$STUB_REC/claude.argv"
+assert_absent "and the style script was not run either" "$STUB_REC/style.argv"
+
+run_coach_path "$NOCLAUDE_BIN" "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style
+assert_rc "no claude on the path is refused" 1
+assert_says_literal "and the refusal names what is missing" "no claude on the path" "$RUN_ERR"
+assert_absent "and the style script was not run, so a missing model costs no measurement" \
+  "$STUB_REC/style.argv"
+
+run_coach_rootless "$OUTSIDE" "$T_COACH" --style
+assert_rc "a style run with neither DRILL_STUDY_ROOT nor HOME is refused" 1
+# The variable NAME alone is in the usage block, so the needle is the clause
+# that only the refusal carries. Same measurement as the `./drill list` row
+# above: the short needle was green before --style existed.
+assert_says_literal "and the refusal names the variable that would fix it" \
+  "DRILL_STUDY_ROOT is unset and so is HOME" "$RUN_ERR"
+assert_never_names "and it is a message rather than a crash under set -u" \
+  "unbound variable" "$RUN_ERR"
+assert_absent "and no model was called" "$STUB_REC/claude.argv"
+
+# --- THE SERVE PATH KEEPS WORKING WITH NONE OF THEM PRESENT -----------------
+#
+# The half of the fail-soft rule that matters most, now with two more things
+# absent. Serving is the job and coaching is the convenience.
+
+assert_absent "the bare study root has no style script in it" "$STUDY_BARE/style"
+assert_absent "and no register either" "$STUDY_BARE/STYLE.md"
+RUN_OUT=$(cd "$OUTSIDE" && HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$STUDY_BARE" \
+  PATH="$NOCLAUDE_BIN" "$T_BARE/drill" 2>"$ERRFILE")
+RUN_RC=$?
+RUN_ERR=$(cat "$ERRFILE")
+assert_rc "a serve exits 0 with no claude, no checker and no style pair" 0
+assert_says_literal "and still prints the prompt" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$RUN_OUT"
 
 # ---------------------------------------------------------------------------
 echo
@@ -1549,8 +1928,15 @@ fi
 # model gets a block from a command that never ran. That is the half-run the
 # header argues against, and part 4c's "nothing half-ran" rows are what catch
 # it.
+#
+# THE PATTERN FOLLOWED THE LINE, 2026-10-15. Bead tla-iiow.3 made the checker
+# gate the `elif` of the style gate's `if`, so the old `^  if [ ! -x ...` no
+# longer matched and this mutation silently became a copy of the runner.
+# mutate() caught it and said so, which is the half of that function worth
+# knowing about: a mutation that matches nothing is reported as a vacuous
+# control rather than passing as a mutant that was not detected.
 # shellcheck disable=SC2016
-M7=$(mutate coach-ships-without-checker 's|^  if \[ ! -x "\$STUDY_ROOT/check" \]; then$|  if false; then|')
+M7=$(mutate coach-ships-without-checker 's|^  elif \[ ! -x "\$STUDY_ROOT/check" \]; then$|  elif false; then|')
 if [ -n "$M7" ]; then
   T_M7="$TMPROOT/tree-m7"
   mk_tree "$T_M7" "$M7"
@@ -1584,6 +1970,38 @@ if [ -n "$M8" ]; then
     ok "control: a runner putting the prompt on argv is DETECTED"
   else
     nope "control: the prompt on argv was NOT detected, so part 4c's stdin rows are vacuous"
+  fi
+fi
+
+# M9 BACKS PART 4d'S REGISTER GATE, for the reason M7 backs the checker's. "No
+# model was called" and "the style script was not run" both hold over a runner
+# with no --style at all, which is what they held over the day before this
+# feature landed: `./drill --style` was an unknown option exiting 1. So the rc
+# and the absence agreed with the contract while nothing implemented it, and
+# only the message rows reddened. A negative row needs a runner that gets it
+# wrong, and this is that runner.
+#
+# M9. the register gate drops out, so a run with no STYLE.md measures the
+# attempt and ships a prompt with no register in it. The model then reads
+# measurements against a register it was never given, which is the one failure
+# this flag cannot tolerate: with no tools it cannot tell an absent register
+# from an empty one, so it would interpret counts against nothing and sound
+# just as certain.
+# shellcheck disable=SC2016
+M9=$(mutate style-ships-without-register 's|^    if \[ ! -r "\$STUDY_ROOT/STYLE\.md" \]; then$|    if false; then|')
+if [ -n "$M9" ]; then
+  T_M9="$TMPROOT/tree-m9"
+  mk_tree "$T_M9" "$M9"
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M9/LAST-SERVED"
+  STUDY_M9="$TMPROOT/study-root-m9"
+  mkdir -p "$STUDY_M9/$SLUG0"
+  cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_M9/$SLUG0/Pickers.tla"
+  write_style_stub "$STUDY_M9/style"
+  run_coach "$STUDY_M9" "$OUTSIDE" "$T_M9" --style
+  if [ -e "$STUB_REC/claude.argv" ]; then
+    ok "control: a runner shipping a style prompt with no register is DETECTED as a half-run"
+  else
+    nope "control: the register half-run was NOT detected, so part 4d's no-model-called rows are vacuous"
   fi
 fi
 

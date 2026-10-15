@@ -118,14 +118,20 @@
 #   guessing a tree into place is how a delivery script writes somewhere nobody
 #   asked for.
 #
-#   Three classes land, and every one of them is ALWAYS overwritten:
+#   Five classes land, and every one of them is ALWAYS overwritten:
 #
 #     drill/study/CLAUDE.md                  -> <root>/CLAUDE.md
 #     drill/study/.claude/commands/*.md      -> <root>/.claude/commands/*.md
 #     drill/study/check                      -> <root>/check, mode 0755
+#     drill/study/STYLE.md                   -> <root>/STYLE.md
+#     drill/study/style                      -> <root>/style, mode 0755
 #
 #   A source with no check script is NOT an error. Bead tla-ytv2.2 owns that
-#   file and a tree that predates it was fine yesterday.
+#   file and a tree that predates it was fine yesterday. The style pair,
+#   added 2026-10-15 by bead tla-iiow.3, carries the same rule for the same
+#   reason: beads tla-iiow.1 and tla-iiow.2 own those two files and this half
+#   is the plumbing under them, so it ships before they land and says plainly
+#   which of the two it did not find.
 #
 #   NOTHING under <root>/<slug>/ is ever written, read or removed. Those hold
 #   Frank's attempts, that tree is not a git repo, and it is in no backup, so
@@ -177,6 +183,13 @@ STUDY_SRC="drill/study"
 STUDY_CONFIG="$STUDY_SRC/CLAUDE.md"
 STUDY_CHECK_CMD="$STUDY_SRC/.claude/commands/check.md"
 STUDY_HINT_CMD="$STUDY_SRC/.claude/commands/hint.md"
+# The style pair. Beads tla-iiow.1 and tla-iiow.2 write these two and may not
+# have landed, so every row below that reads the REAL tree asks whether the
+# file is there and asserts a real fact either way. A row that only holds once
+# a sibling lands is not green, and a row that holds whatever the tree looks
+# like is asserting nothing.
+STUDY_REGISTER="$STUDY_SRC/STYLE.md"
+STUDY_STYLE="$STUDY_SRC/style"
 DRILL_README="drill/README.md"
 
 # The real practice tree, captured before anything is sandboxed. Used only to
@@ -306,6 +319,9 @@ mk_study() {
   printf 'fixture hint command\n'             >"$d/.claude/commands/hint.md"
   printf '#!/bin/sh\nexit 2\n'                >"$d/check"
   chmod 0755 "$d/check"
+  printf 'fixture style register, not the real one\n' >"$d/STYLE.md"
+  printf '#!/bin/sh\nexit 3\n'                        >"$d/style"
+  chmod 0755 "$d/style"
 }
 
 mk_study "$FIX_REPO"
@@ -329,6 +345,15 @@ mk_item  "$NOCHECK_REPO" "core/01-alpha"
 mk_study "$NOCHECK_REPO"
 rm -f "$NOCHECK_REPO/drill/study/check"
 
+# A source whose study tree carries neither the register nor the style script.
+# Beads tla-iiow.1 and tla-iiow.2 own those two files, so a source without
+# them still has to deliver the rest, and this is also the shape the repo
+# itself has until both land.
+NOSTYLE_REPO="$TMPROOT/repo-nostyle"
+mk_item  "$NOSTYLE_REPO" "core/01-alpha"
+mk_study "$NOSTYLE_REPO"
+rm -f "$NOSTYLE_REPO/drill/study/STYLE.md" "$NOSTYLE_REPO/drill/study/style"
+
 # A source with no study tree at all, and one with no readme.
 NOSTUDY_REPO="$TMPROOT/repo-nostudy"
 mk_item "$NOSTUDY_REPO" "core/01-alpha"
@@ -342,6 +367,7 @@ STUDY_TWICE="$TMPROOT/study-twice"     # delivered, then delivered again
 STUDY_WORK="$TMPROOT/study-work"       # carries a per-slug work directory
 STUDY_CHECKONLY="$TMPROOT/study-check" # --check only, never written
 STUDY_NOCHECK="$TMPROOT/study-nochk"   # source carries no check script
+STUDY_NOSTYLE="$TMPROOT/study-nosty"   # source carries neither style file
 STUDY_ENV="$TMPROOT/study-env"         # resolved from DRILL_STUDY_ROOT
 STUDY_POS="$TMPROOT/study-pos"         # positional, overriding the env var
 STUDY_REAL="$TMPROOT/study-real"       # the real repo's study tree
@@ -349,7 +375,7 @@ STUDY_ABSENT="$TMPROOT/study-absent"   # never created, on purpose
 STUDY_FILE="$TMPROOT/study-is-a-file"  # a regular file where a root should be
 
 mkdir -p "$STUDY_MAIN" "$STUDY_TWICE" "$STUDY_WORK" "$STUDY_CHECKONLY" \
-  "$STUDY_NOCHECK" "$STUDY_ENV" "$STUDY_POS" "$STUDY_REAL"
+  "$STUDY_NOCHECK" "$STUDY_NOSTYLE" "$STUDY_ENV" "$STUDY_POS" "$STUDY_REAL"
 printf 'not a directory\n' >"$STUDY_FILE"
 
 DEST_README="$TMPROOT/dest-readme"     # a plain run, for the readme rows
@@ -1369,13 +1395,13 @@ echo
 echo "== --study lands the configuration and the two commands =="
 # ---------------------------------------------------------------------------
 
-STUDY_WANT=$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n./check\n')
+STUDY_WANT=$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n./STYLE.md\n./check\n./style\n')
 
 run_study "$STUDY_MAIN"
 
 assert_rc0 "a study delivery into an existing root exits 0"
 
-assert_tree_is "the study root holds exactly the configuration, both commands and the checker" \
+assert_tree_is "the study root holds exactly the configuration, both commands, the checker and the style pair" \
   "$STUDY_MAIN" "$STUDY_WANT"
 
 assert_file_is "the configuration lands byte for byte" \
@@ -1389,6 +1415,39 @@ assert_file_is "the hint command lands beside it" \
 
 assert_executable "the checker lands executable, because he runs it as ./check" \
   "$STUDY_MAIN/check"
+
+# The style pair, bead tla-iiow.3. The register is prose the one-shot cannot
+# read off disk, since it runs with no tools, so drill.sh cats it into the
+# prompt. The script measures. Both have to arrive for --style to mean
+# anything, and the delivery is the only thing that puts them there.
+assert_file_is "the style register lands byte for byte" \
+  "$STUDY_MAIN/STYLE.md" "$(cat "$FIX_REPO/drill/study/STYLE.md")"
+
+assert_file_is "the style script lands byte for byte" \
+  "$STUDY_MAIN/style" "$(cat "$FIX_REPO/drill/study/style")"
+
+assert_executable "the style script lands executable, the way the checker does" \
+  "$STUDY_MAIN/style"
+
+# And the register does NOT, which is the half a chmod on the wrong name of
+# the pair would get backwards. drill.sh reads the register and execs the
+# script, so the two modes are not interchangeable.
+if [ ! -f "$STUDY_MAIN/STYLE.md" ]; then
+  nope "the register lands as prose rather than as a program. No file at $STUDY_MAIN/STYLE.md"
+elif [ -x "$STUDY_MAIN/STYLE.md" ]; then
+  nope "the register landed executable, so the chmod went on the wrong half of the pair"
+else
+  ok "the register lands as prose rather than as a program"
+fi
+
+# Its own verb, so a run says which of the five classes landed rather than
+# counting to five. The register is not a script and the script is not prose,
+# and a reader of the output should not have to work out which is which.
+assert_says_literal "the run names the register with its own verb" \
+  "style register delivered: $STUDY_MAIN/STYLE.md" "$RUN_OUT"
+
+assert_says_literal "and the style script with its own" \
+  "style script delivered: $STUDY_MAIN/style" "$RUN_OUT"
 
 assert_says_literal "the run names the study source" \
   "study source: $FIX_REPO/drill/study" "$RUN_OUT"
@@ -1411,6 +1470,12 @@ echo "== every study file is ALWAYS overwritten =="
 run_study "$STUDY_TWICE"
 STUDY_FIRST_RC=$RUN_RC
 printf 'he edited this, or something did\n' >"$STUDY_TWICE/CLAUDE.md"
+printf 'and this, which is a register nothing refreshed\n' >"$STUDY_TWICE/STYLE.md"
+# The executable bit cleared on a delivered copy. `cp` onto an existing file
+# keeps the DESTINATION's mode rather than the source's, so a delivery that
+# copies and never chmods leaves a style script he cannot run and says it
+# delivered one. Measured as the shape the checker's own chmod exists for.
+chmod 0644 "$STUDY_TWICE/style"
 predate_tree "$STUDY_TWICE"
 run_study "$STUDY_TWICE"
 
@@ -1425,6 +1490,15 @@ assert_file_is "a changed configuration is replaced, not skipped" \
 
 assert_mtime_moved "the configuration was written rather than left alone" \
   "$STUDY_TWICE/CLAUDE.md" "$REF_EPOCH"
+
+assert_file_is "a stale style register is replaced too" \
+  "$STUDY_TWICE/STYLE.md" "$(cat "$FIX_REPO/drill/study/STYLE.md")"
+
+assert_mtime_moved "and it was written rather than skipped" \
+  "$STUDY_TWICE/STYLE.md" "$REF_EPOCH"
+
+assert_executable "and a style script whose bit was cleared gets it back" \
+  "$STUDY_TWICE/style"
 
 assert_says "the output says it overwrote rather than claiming a first delivery" \
   'overwriting the copy already there' "$RUN_OUT"
@@ -1514,6 +1588,14 @@ assert_absent "--check did not even create .claude/" "$STUDY_CHECKONLY/.claude"
 assert_says_literal "--check says what it would deliver" \
   "would deliver: $STUDY_CHECKONLY/CLAUDE.md" "$RUN_OUT"
 
+assert_says_literal "--check names the register it would deliver" \
+  "would deliver: $STUDY_CHECKONLY/STYLE.md" "$RUN_OUT"
+
+assert_says_literal "and the style script" \
+  "would deliver: $STUDY_CHECKONLY/style" "$RUN_OUT"
+
+assert_absent "--check placed no register either" "$STUDY_CHECKONLY/STYLE.md"
+
 assert_says "--check ends on its own counts line" \
   'study file\(s\) to land' "$RUN_OUT"
 
@@ -1546,11 +1628,39 @@ run_study_from "$NOCHECK_REPO" "$STUDY_NOCHECK"
 
 assert_rc0 "a source carrying no check script is not an error"
 
-assert_tree_is "the configuration and both commands still land" \
-  "$STUDY_NOCHECK" "$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n')"
+assert_tree_is "the configuration, both commands and the style pair still land" \
+  "$STUDY_NOCHECK" "$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n./STYLE.md\n./style\n')"
 
 assert_says "and the run says no checker was found" \
   'no checker at' "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a source with neither style file still delivers the rest =="
+# ---------------------------------------------------------------------------
+
+# Bead tla-iiow.3. This is the shape the repo itself has until tla-iiow.1 and
+# tla-iiow.2 land, so it is the ordinary case rather than an edge one, and the
+# run has to say which of the two it did not find rather than counting one
+# short and leaving a reader to work out why.
+
+run_study_from "$NOSTYLE_REPO" "$STUDY_NOSTYLE"
+
+assert_rc0 "a source carrying neither style file is not an error"
+
+assert_tree_is "the configuration, both commands and the checker still land" \
+  "$STUDY_NOSTYLE" "$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n./check\n')"
+
+assert_says_literal "and the run names the register it did not find" \
+  "no style register at $NOSTYLE_REPO/drill/study/STYLE.md" "$RUN_OUT"
+
+assert_says_literal "and the style script it did not find" \
+  "no style script at $NOSTYLE_REPO/drill/study/style" "$RUN_OUT"
+
+assert_absent "nothing was invented where the register would have gone" \
+  "$STUDY_NOSTYLE/STYLE.md"
+
+assert_absent "nor where the style script would have gone" "$STUDY_NOSTYLE/style"
 
 # ---------------------------------------------------------------------------
 echo
@@ -1578,6 +1688,31 @@ else
     "$STUDY_REAL/.claude/commands/check.md" "$(cat "$STUDY_CHECK_CMD")"
   assert_file_is "the real hint command lands byte for byte" \
     "$STUDY_REAL/.claude/commands/hint.md" "$(cat "$STUDY_HINT_CMD")"
+
+  # THE STYLE PAIR IS ANOTHER BEAD'S, SO THIS ROW ASKS THE TREE FIRST. Both
+  # branches assert a real fact. With the file there, that it lands byte for
+  # byte. Without it, that the run said so and placed nothing. Neither branch
+  # is vacuous and neither waits on a sibling. Delete the branch, not the
+  # section, once both files are permanent.
+  if [ -f "$STUDY_REGISTER" ]; then
+    assert_file_is "the real style register lands byte for byte" \
+      "$STUDY_REAL/STYLE.md" "$(cat "$STUDY_REGISTER")"
+  else
+    assert_says_literal "the repo carries no register yet, and the run says so" \
+      "no style register at" "$RUN_OUT"
+    assert_absent "and nothing was placed where it will go" "$STUDY_REAL/STYLE.md"
+  fi
+
+  if [ -f "$STUDY_STYLE" ]; then
+    assert_file_is "the real style script lands byte for byte" \
+      "$STUDY_REAL/style" "$(cat "$STUDY_STYLE")"
+    assert_executable "and lands executable, because drill.sh execs it" \
+      "$STUDY_REAL/style"
+  else
+    assert_says_literal "the repo carries no style script yet, and the run says so" \
+      "no style script at" "$RUN_OUT"
+    assert_absent "and nothing was placed where it will go" "$STUDY_REAL/style"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -2015,6 +2150,13 @@ else
     'WHY THE SOURCE MIRRORS THE DESTINATION' "$SCRIPT_BODY"
   assert_says "the script names the readme's file class rather than leaving it to be inferred" \
     'A FOURTH FILE CLASS' "$SCRIPT_BODY"
+  # The study-mode manifest in the header is what a reader trusts over reading
+  # the resolution loop, so a class delivered and absent from it is worse than
+  # one that is not delivered at all.
+  assert_says_literal "the study-mode manifest in the header names the register" \
+    'drill/study/STYLE.md' "$SCRIPT_BODY"
+  assert_says_literal "and names the style script with its mode" \
+    'drill/study/style' "$SCRIPT_BODY"
 fi
 
 # Gate, don't advise. The shape assertion is the other half of this script's
