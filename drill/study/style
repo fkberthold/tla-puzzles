@@ -1,0 +1,1150 @@
+#!/usr/bin/env bash
+# style: seven textual facts about the module you wrote, each printed beside
+# what a corpus counted, and no opinion about any of them.
+#
+# Delivered to the study root, with no extension, so the command reads
+# `./style` or `style <slug>`. It is check's sibling and reads like it.
+#
+# Usage:  style [<slug-or-dir>]       the default is the current directory
+#         style --help
+#
+# Exit:   0  it measured something
+#         3  it could not run: no prompt, no module, nothing to read
+#
+#         THERE IS NO EXIT 1 AND NO EXIT 2. See the next section, because this
+#         is the decision the whole file is built around rather than an
+#         omission.
+#
+# ---------------------------------------------------------------------------
+# STYLE HAS NO PASS AND NO FAIL
+#
+# Every axis below can come out any way at all and the exit code does not
+# move. That is deliberate and it is the only reason this script is safe to
+# run on Frank's own work.
+#
+# A style pass that can fail is a gate on the one half of the loop that is
+# supposed to be his. The corpus survey this script quotes opens its own
+# section 7 with the reason: "A reviewer that fires on every deviation is
+# worse than no reviewer", then lists thirteen shapes that look like defects
+# and are routine practice (.claude/rules/tla-practice.md:435). A subscript
+# naming one variable of several is one of them, 12 of 16 such box sites being
+# sound (:450). An obligation defined and never checked is another, at 133 of
+# 286 (:440). Any of those would land on a nonzero exit in a scored pass, and
+# every one of them would be a false alarm.
+#
+# So the exit code answers one question: did it measure anything. The reading
+# is somebody else's job.
+#
+# ---------------------------------------------------------------------------
+# IT REPORTS FACTS AND NEVER JUDGMENTS
+#
+# The script prints what it measured and what the corpora counted. It never
+# prints "wrong", "should", "unidiomatic" or "error", and
+# harness/test-drill-style.sh bans that vocabulary from the whole output of
+# its least idiomatic fixture.
+#
+# The model reads these facts against drill/study/STYLE.md and writes the
+# prose. That split is the same one that keeps check honest, where check
+# reports a distinct-state count and refuses to rule on whether the model that
+# reached it was the right model. Here the refusal is sharper, because a
+# difference from a corpus is not even evidence of a defect: it is evidence of
+# a difference.
+#
+# ---------------------------------------------------------------------------
+# WHY A SCRIPT AT ALL, WHICH IS THE WHOLE ARCHITECTURE IN ONE SENTENCE
+#
+# The one-shot runs the model with `--tools ""`. It cannot open a file and it
+# cannot run a count, so a corpus figure it does not have in front of it is a
+# figure it will invent. Every number this script prints is a number the model
+# would otherwise guess.
+#
+# ---------------------------------------------------------------------------
+# IT DEPENDS ON NOTHING AT ALL, AND IT NEVER RUNS TLC
+#
+# check needs `tlc` on the path. This does not: it reads text. Taking tlc off
+# the path changes nothing about the output, which the suite asserts rather
+# than assumes, because that is a stronger claim than the absence of leavings.
+#
+# NOTHING IT DOES CREATES A FILE IN THE DIRECTORY IT IS MEASURING. Bead
+# tla-rzvk.5 is open because check runs TLC in the work directory and leaves a
+# timestamped trace pair behind on every violated run. A text pass has no
+# reason to go near that, so this one writes nothing anywhere.
+#
+# Two environment variables with documented defaults, the same two check uses:
+#
+#   DRILL_PROMPT_ROOT   default $HOME/tla-practice/drill
+#   DRILL_STUDY_ROOT    default $HOME/Study/tla-drills
+#
+# RESOLUTION NEEDS NO MAPPING DATA, which is check's rule verbatim. The slug
+# is the basename of the study directory, and the prompt is the one hit of
+# $DRILL_PROMPT_ROOT/*/<slug>/PROMPT.md. All 64 slugs are distinct across the
+# eight families, so two hits is a bug in the tree rather than a choice to
+# make, and this script reports it instead of picking one.
+#
+# IT RESOLVES THE PROMPT AND THEN DOES NOT READ IT. That looks wasteful and it
+# is not. Measuring style needs nothing from the prompt, but the per-item
+# suppression at the bottom of this file is keyed on the slug, and a slug that
+# resolves to no prompt is not a drill slug, so a suppression keyed on it
+# would be keyed on nothing. Resolving the prompt is what makes the slug mean
+# something.
+#
+# ---------------------------------------------------------------------------
+# IT DOES NOT INHERIT CHECK'S PAIRING RULE, AND THAT IS THE ONE PLACE THE TWO
+# SCRIPTS PART COMPANY
+#
+# check will not run a module it cannot find a usable config for, because
+# running TLC needs one. Measuring style needs no config at all, so a module
+# with no config is still a module worth measuring. Six of the seven axes have
+# a real value without one, and only the seventh, the obligation count, says
+# it has none.
+#
+# The borrowing rule and the skip rules from bead tla-rzvk.4 do carry over.
+# A module with a `.cfg` of its own name uses that one. A module without one
+# borrows the directory's config when exactly one sits beside it, which is
+# Frank's two-model workflow rather than an oversight. Two configs and no own
+# one is not a choice to make, and the reason prints on a line of its own.
+#
+# Three kinds of leaving drop out, two of them for free:
+#
+#   *_TTrace_*.tla      TLC's generated trace spec, skipped by name
+#   states/             TLC's fingerprint cache, never descended into
+#   *.tla.old           pcal's backup, which no *.tla glob matches
+#
+# THE TRACE SKIP MATTERS MORE HERE THAN IT DOES IN CHECK. A trace spec is TLA+
+# the toolchain wrote, so measuring its style reports TLC's habits as Frank's:
+# its identifiers are machine-named, its constants are `_generated_*`, and its
+# Next is nothing he typed.
+#
+# ---------------------------------------------------------------------------
+# THE PARSER, AND THE ONE HAZARD THAT GIVES PLAUSIBLE WRONG ANSWERS
+#
+# TLA+ WRAPS, AND A LINE-BASED SCAN OF IT IS CONFIDENTLY WRONG. A CONSTANTS
+# declaration can put its names on following lines; so can VARIABLES; and TLC
+# lets a config keyword and its name sit on separate lines. Measured
+# 2026-10-15 over this repo's 498 reference modules under drill/*/verify/,
+# three ways:
+#
+#   no continuation walk at all                     113 distinct CONSTANT names
+#   stopping after one continuation line            132
+#   the full token walk this script uses            140
+#
+# so a line-based scan loses 27 real declarations and a half-measure loses 8.
+# Four of the names sit in drill/control-state/02-pumps/verify/Phases.tla:6-7,
+# where `CONSTANTS Pumps, Budget,` continues onto the next line and ends in a
+# `\*` comment, and five more continue over three lines in
+# drill/control-state/03-two-tools/verify/NewHire.tla:3-5.
+#
+# SO EVERY DECLARATION IS READ AS A TOKEN STREAM over the whole file, never
+# line by line. The stream is flattened first, which means the end of a
+# declaration has to be decided rather than observed, and the rule is the
+# comma: after a name, only a comma continues the list. A following identifier
+# with no comma in front of it ends it. That is what keeps a trailing comma at
+# the end of a declaration from swallowing the next keyword, which an earlier
+# draft of this walk did do.
+#
+# A SECOND GUARD SITS BEHIND THE FIRST. Any reserved word ends a declaration
+# outright, comma or no comma, so `CONSTANTS A, B,` followed by `VARIABLES x`
+# cannot read `VARIABLES` as a constant even though a comma preceded it.
+#
+# BRACKETS ARE TOKENIZED TOO, AND THAT IS WORTH ONE NAME. A declaration may
+# give an operator its arity: `CONSTANTS Parcels, Admit(_)` at
+# drill/modules/06-two-chutes-one-gate/verify/Chute.tla:4. Without separating
+# the paren, `Admit(_)` is one token carrying a character no identifier has,
+# the walk ends the declaration, and `Admit` is lost. That single name is the
+# whole difference between 139 and 140.
+#
+# COMMENTS COME OFF IN TWO PASSES AND THE ORDER MATTERS. `\*` runs to the end
+# of its line, so it is stripped line by line and first. Only then are `(* *)`
+# blocks removed, counting depth so that nested comments close correctly. The
+# other order lets a `(*` inside a line comment open a block that never
+# closes, which eats the rest of the module.
+#
+# DEFINITIONS ARE READ LINE BY LINE, which is the opposite choice, and the
+# reason is that `==` is what marks a definition and TLA+ lays definitions out
+# at the line start. The flattened stream has no notion of a top level, so a
+# `LET x == 1 IN` would read there as a definition of its own. It still can be
+# read that way here if somebody writes a LET at column 0; the line anchor is
+# what makes that unlikely rather than impossible.
+#
+# ---------------------------------------------------------------------------
+# WHERE THE CORPUS FIGURES COME FROM, AND WHY EVERY AXIS CARRIES TWO
+#
+# Every axis prints a `corpus-c1=` field and a `corpus-c3=` field, and the
+# field name IS the tier. drill/study/STYLE.md carries the same two tiers per
+# axis, and that is the point: the register is what the model reads, so a
+# single figure on this line would be the script quietly overruling it.
+#
+#   C1  MEASURED IN THE PUBLISHED CORPUS. A count from the survey in
+#       .claude/rules/tla-practice.md, 666 modules and 337 configs from 16
+#       public repositories. The strongest ground for "idiomatic".
+#   C3  OBSERVED IN CODE TO DATE. A count run over a named body on disk, here
+#       this repo's 498 reference modules and 540 reference configs under
+#       drill/*/verify/, measured 2026-10-15.
+#
+# `corpus-c1=-` means C1 is SILENT on that axis, which is not the same as zero
+# and happens on exactly one axis. The survey never measured identifier case
+# at all: it counts what invariants and tuples and behavior formulas are
+# NAMED, never how a name is cased. C3 is what answers it.
+#
+# THE TWO TIERS CONFLICT ON ONE AXIS AND THE REGISTER RULES C3 WINS. A config
+# in the published corpus names a median of 2 obligations; a reference config
+# here names a median of 1, with 327 of 540 naming exactly one. A coach
+# holding a two-variable drill to the published median would fire on most
+# correct answers. Both figures print; the register says which governs.
+#
+# THE C3 CONSTANT FIGURE IS 140 AND THE BEAD SAID 132. The bead and the epic
+# both carry 132, and it is wrong. The mechanism is the continuation walk in
+# the section above: stopping after one continuation line reads exactly 132,
+# and the 8 names on a second or third continuation line are all CamelCase.
+# Re-measured here and independently by the register's author on the same day,
+# both arriving at 140 distinct, 134 CamelCase or ALLCAPS, 0 snake_case and 6
+# all-lowercase. The load-bearing half of the finding never moved: no
+# reference module in this repo gives a constant a snake_case name.
+#
+# ---------------------------------------------------------------------------
+# THE SEVEN AXES, NAMED AS THE REGISTER NAMES THEM
+#
+#   identifier-case      how each declared name is cased
+#   type-invariants      is a type invariant declared, by name and by body
+#   state-tuple          does a tuple exist, and does it cover every variable
+#   behavior-formula     is the Init /\ [][Next]_v definition named Spec
+#   box-subscript        is the box subscript the full tuple or a subset
+#   next-shape           does Next name its actions or write them inline
+#   config-obligations   how many obligations the config names
+#
+# TWO OF THEM MEASURE SOMETHING THE OBVIOUS TEST GETS WRONG.
+#
+# NEXT'S SHAPE IS DECIDED BY A PRIME, NOT BY A DISJUNCTION. The test is
+# whether the body of `Next` primes a declared variable or carries an
+# UNCHANGED. If it does, Next writes its transition inline; if it does not, it
+# names actions and delegates. That is the test behind the register's count of
+# 207 of 222 reference modules naming their actions against 15 priming inline.
+#
+# THE OBVIOUS ALTERNATIVE WAS MEASURED AND IT FAILS BADLY. Splitting the body
+# on `\/` and asking whether each arm is a bare operator name breaks the
+# `\E ... :` structure, so a body that delegates under a quantifier reads as
+# inline: 60 false inline against 15 real, measured over the same 222 modules.
+# This script carried that test until the register's author measured it. A
+# prime is the thing that cannot be faked -- a body that primes a variable
+# wrote the transition itself, whatever its arms look like.
+#
+# A TYPE INVARIANT IS LOOKED FOR BY NAME AND BY BODY SEPARATELY, because the
+# two come apart. The name test is a `Type` prefix, which is the layer the
+# survey says that prefix is reserved for (:292). The body test is whether
+# some definition gives EVERY declared variable a membership clause. `Init`
+# and `Next` are left out of the body test by name: a definition that pins the
+# initial state is not the type layer, and a single-variable
+# `Init == x \in 0..3` would otherwise read as one. That exclusion is a
+# heuristic, and the name it found is printed so a reader can see what it
+# landed on.
+#
+# ---------------------------------------------------------------------------
+# THE ONE PER-ITEM SUPPRESSION, AND WHY IT IS ONE ITEM AND ONE AXIS
+#
+# drill/study/CLAUDE.md forbids naming the construct that is missing, and the
+# type-invariants axis is the one axis that collides with it. Measured over
+# all 64 META.md files: 9 items name a type invariant in a construct bullet,
+# and exactly one of them drills the idiom itself. On that item the fact IS
+# the answer, and the register says to withhold even the name there.
+#
+# It is keyed on the slug, it reaches one axis, and the same module under any
+# other slug reports the axis normally. A blanket exclusion of the axis would
+# cost the other 63 items a real measurement to protect one.
+# ---------------------------------------------------------------------------
+
+set -uo pipefail
+
+PROMPT_ROOT="${DRILL_PROMPT_ROOT:-${HOME:-}/tla-practice/drill}"
+STUDY_ROOT="${DRILL_STUDY_ROOT:-${HOME:-}/Study/tla-drills}"
+
+# The corpus figures, two tiers per axis. Each C1 figure is pinned to a line
+# of .claude/rules/tla-practice.md; each C3 figure to the 2026-10-15 run over
+# drill/*/verify/ recorded in the header and in drill/study/STYLE.md.
+
+# C1 is silent here: the survey never measured identifier case.
+CORPUS_IDENT_C1='-'
+CORPUS_IDENT_C3='constants:140-distinct,CamelCase-or-ALLCAPS:134,camelBack:0,snake_case:0,short-lowercase:6;variables:137-distinct,CamelCase:0,camelBack:10,snake_case:0,lowercase:127'
+
+# :269 and :273.
+CORPUS_TYPE_C1='TypeOK:117/713,Type-prefixed:164/713'
+CORPUS_TYPE_C3='declares-TypeOK:172/498'
+
+# :253 and :254.
+CORPUS_TUPLE_C1='plain-tuple-definitions:375,named-vars:181/375,vars-or-Vars-suffix:342/375'
+CORPUS_TUPLE_C3='tuple-definitions:208,named-vars:203/208'
+
+# :260 and :259.
+CORPUS_SPEC_C1='named-Spec:170/205,SPECIFICATION-names-Spec:178/253'
+CORPUS_SPEC_C3='named-Spec:230/236,SPECIFICATION-names-Spec:469/540'
+
+# :175 and :169.
+CORPUS_BOX_C1='full-tuple:405/421,bare-vars:906/1182'
+CORPUS_BOX_C3='bare-vars:253/298'
+
+# :279 and :280.
+CORPUS_NEXT_C1='disjunction-of-named-actions:105/238,existential-over-named-action:69/238'
+CORPUS_NEXT_C3='names-actions:207/222,primes-inline:15/222'
+
+# :102 and :115. C3 governs this axis -- see the header.
+CORPUS_OBLIG_C1='median:2,mean:2.79,invariants:713,properties:226,no-property:220/337'
+CORPUS_OBLIG_C3='median:1,mean:1.55,exactly-one:327/540'
+
+# The one suppression. One slug, one axis.
+SUPPRESS_SLUG='04-lift-types'
+SUPPRESS_AXIS='type-invariants'
+
+usage() {
+  cat <<'USAGE'
+Usage: style [<slug-or-dir>]
+
+  style                 measure the current directory
+  style <slug>          measure $DRILL_STUDY_ROOT/<slug>
+  style <dir>           measure that directory
+  style --help          this text
+
+Exit 0 if it measured anything, 3 if it could not run. There is no exit 1 and
+no exit 2: style has no pass and no fail, so nothing it measures can move the
+exit code. It never runs TLC and never writes a file.
+USAGE
+}
+
+# ---------------------------------------------------------------------------
+# Reading a module. Two forms of the same text, because the two halves of the
+# parser want opposite things from it.
+# ---------------------------------------------------------------------------
+
+# strip_block_comments: remove (* *) blocks from stdin, counting depth so
+# nested comments close correctly, and keeping line structure.
+#
+# Line structure is kept on purpose: the definition reader below is anchored
+# at the line start, so a pass that flattened here would take it with it.
+strip_block_comments() {
+  awk '
+    BEGIN { depth = 0 }
+    {
+      line = $0; out = ""; i = 1; n = length(line)
+      while (i <= n) {
+        two = substr(line, i, 2)
+        if (two == "(*") { depth++; i += 2; continue }
+        if (depth > 0 && two == "*)") { depth--; i += 2; continue }
+        if (depth == 0) { out = out substr(line, i, 1) }
+        i++
+      }
+      print out
+    }
+  '
+}
+
+# module_lines <file>: the module with every comment gone and every line
+# where it was. `\*` first and line by line, then the blocks -- the other
+# order lets a `(*` inside a line comment open a block that never closes.
+module_lines() {
+  sed 's/\\\*.*//' "$1" | strip_block_comments
+}
+
+# module_flat <file>: the same text as one line.
+module_flat() {
+  module_lines "$1" | tr '\n' ' ' | tr -s ' '
+}
+
+# RESERVED: the words that end a declaration whatever precedes them. Not the
+# whole of TLA+, just everything that can follow a declaration at the top
+# level of a module.
+RESERVED=" ASSUME ASSUMPTION AXIOM CONSTANT CONSTANTS VARIABLE VARIABLES \
+EXTENDS INSTANCE LOCAL RECURSIVE THEOREM LEMMA COROLLARY PROPOSITION MODULE \
+BY OBVIOUS OMITTED QED PROOF "
+
+is_reserved() {
+  case "$RESERVED" in
+  *" $1 "*) return 0 ;;
+  esac
+  return 1
+}
+
+is_identifier() {
+  case "$1" in
+  '' | [!A-Za-z_]*) return 1 ;;
+  *[!A-Za-z0-9_]*) return 1 ;;
+  esac
+  return 0
+}
+
+# is_operator_name <token>: an identifier, or one qualified through an
+# INSTANCE as `M!Op`, which is a name a config may legally give.
+is_operator_name() {
+  case "$1" in
+  '' | [!A-Za-z_]*) return 1 ;;
+  *[!A-Za-z0-9_!]*) return 1 ;;
+  esac
+  return 0
+}
+
+# declared_names <flat-text> <keyword> <keyword>: the names declared under
+# either spelling of one declaration keyword, in declaration order.
+#
+# THE COMMA IS WHAT CONTINUES A LIST. After a name, only a comma lets another
+# name follow; a bare identifier ends the declaration. That is the rule the
+# wrapped-declaration hazard in the header turns on, and the reserved-word
+# guard above is the second line of defense behind it. Parens are tokenized
+# so an operator arity costs the walk its bracket rather than its name.
+declared_names() {
+  local flat="$1" kw1="$2" kw2="$3"
+  local tok taking=0 want=0
+  while read -r tok; do
+    [ -n "$tok" ] || continue
+    if [ "$tok" = "$kw1" ] || [ "$tok" = "$kw2" ]; then
+      taking=1
+      want=1
+      continue
+    fi
+    if is_reserved "$tok"; then
+      taking=0
+      continue
+    fi
+    [ "$taking" = 1 ] || continue
+    if [ "$tok" = "," ]; then
+      want=1
+      continue
+    fi
+    if [ "$want" = 1 ] && is_identifier "$tok"; then
+      printf '%s\n' "$tok"
+      want=0
+      continue
+    fi
+    taking=0
+  done < <(sed 's/,/ , /g; s/(/ ( /g; s/)/ ) /g' <<<"$flat" | tr -s '[:space:]' '\n')
+}
+
+# is_def_open <line>: does this line open a top-level definition? A name at
+# column 0, an optional parameter list, then `==`.
+#
+# IT IS PURE SHELL ON PURPOSE AND THAT IS A MEASUREMENT, NOT A PREFERENCE.
+# This test is asked once per line per definition per axis, so the obvious
+# `grep -qE` here forks thousands of processes on a forty-line module and the
+# suite that drives it ran 10 to 34 seconds depending on what else the box was
+# doing. The same test in parameter expansions took the suite to under a
+# second. A fork per line is the whole cost of this file.
+is_def_open() {
+  local line="$1" head rest
+  case "$line" in
+  [A-Za-z_]*) ;;
+  *) return 1 ;;
+  esac
+  head="${line%%[^A-Za-z0-9_]*}"
+  [ -n "$head" ] || return 1
+  rest="${line#"$head"}"
+  case "$rest" in
+  '('*) rest="${rest#*)}" ;;
+  esac
+  rest="${rest#"${rest%%[![:space:]]*}"}"
+  case "$rest" in
+  '=='*) return 0 ;;
+  esac
+  return 1
+}
+
+# is_def_open_named <line> <name>: the same test for ONE name. The guard
+# against a longer name sharing the prefix is the second case below, so a line
+# opening `Nexter ==` is not read as a definition of `Next`.
+is_def_open_named() {
+  local line="$1" name="$2" rest
+  case "$line" in
+  "$name"*) ;;
+  *) return 1 ;;
+  esac
+  rest="${line#"$name"}"
+  case "$rest" in
+  [A-Za-z0-9_]*) return 1 ;;
+  esac
+  case "$rest" in
+  '('*) rest="${rest#*)}" ;;
+  esac
+  rest="${rest#"${rest%%[![:space:]]*}"}"
+  case "$rest" in
+  '=='*) return 0 ;;
+  esac
+  return 1
+}
+
+# def_names <lines>: the names of top-level definitions, in order.
+def_names() {
+  local line name
+  while IFS= read -r line; do
+    is_def_open "$line" || continue
+    name="${line%%[^A-Za-z0-9_]*}"
+    [ -n "$name" ] && printf '%s\n' "$name"
+  done <<<"$1"
+}
+
+# def_body <lines> <name>: the body of one definition, flattened to a single
+# line. It runs from the `==` to the next definition, the next `----`
+# separator, or the module footer.
+def_body() {
+  local lines="$1" name="$2" line out="" collecting=0 rest
+  while IFS= read -r line; do
+    if [ "$collecting" = 1 ]; then
+      case "$line" in
+      '----'* | '===='*) break ;;
+      esac
+      is_def_open "$line" && break
+      out="${out} ${line}"
+      continue
+    fi
+    is_def_open_named "$line" "$name" || continue
+    rest="${line#*==}"
+    out="$rest"
+    collecting=1
+  done <<<"$lines"
+  tr -s '[:space:]' ' ' <<<"$out"
+}
+
+# trim <text>
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
+# csv_or_dash <space-separated>
+csv_or_dash() {
+  local out="" tok
+  for tok in $1; do
+    out="${out:+${out},}${tok}"
+  done
+  printf '%s' "${out:--}"
+}
+
+# csv_or_none <space-separated>
+csv_or_none() {
+  local out
+  out="$(csv_or_dash "$1")"
+  if [ "$out" = "-" ]; then
+    printf 'none'
+  else
+    printf '%s' "$out"
+  fi
+}
+
+# in_list <needle> <space-separated haystack>
+in_list() {
+  case " $2 " in
+  *" $1 "*) return 0 ;;
+  esac
+  return 1
+}
+
+# count_words <space-separated>
+count_words() {
+  local tok n=0
+  for tok in $1; do n=$((n + 1)); done
+  printf '%s' "$n"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — identifier case.
+#
+# SEVEN CLASSES, AND EACH ONE EARNS ITS KEEP AGAINST A STATED FINDING. The
+# bead names three; the others are there because a coarser split would report
+# something untrue.
+#
+#   snake_case        an underscore and at least one lowercase letter
+#   SCREAMING_SNAKE   an underscore and no lowercase letter. Reporting
+#                     MAX_N as snake_case would be a wrong fact, not a
+#                     coarse one
+#   CamelCase         no underscore, an initial capital, some lowercase
+#   camelBack         no underscore, an initial lowercase, some uppercase.
+#                     The split from CamelCase is not cosmetic: 10 of the
+#                     137 reference variable names are camelBack and NONE is
+#                     CamelCase, so collapsing the two would report an
+#                     ordinary variable name as the shape no variable in
+#                     that body has
+#   ALLCAPS           no underscore, no lowercase. The C3 constant figure
+#                     lumps this with CamelCase because one of the 140 is `N`
+#   short-lowercase   no underscore, no uppercase, at most two letters
+#                     before any trailing digits. All six of the lowercase
+#                     reference constants are this shape -- a, b, l1, l2,
+#                     w1, w4 -- which is what licenses reading them as
+#                     mathematical placeholders rather than as words
+#   lowercase         no underscore, no uppercase, three or more letters
+#
+# THE MEASURED SIDE SPLITS SHORT FROM LONG AND THE CORPUS SIDE DOES NOT
+# ALWAYS. The constant figure prints `short-lowercase:6` because all six of
+# those names are short; the variable figure prints `lowercase:127` because
+# those are not. That asymmetry is in the bodies, not in the classifier.
+#
+# The per-name detail is printed as well as the tally, because the tally is
+# what the model cannot count and the names are what it has to read.
+# ---------------------------------------------------------------------------
+
+case_class() {
+  local n="$1" letters
+  case "$n" in
+  *_*)
+    case "$n" in
+    *[a-z]*) printf 'snake_case' ;;
+    *) printf 'SCREAMING_SNAKE' ;;
+    esac
+    return
+    ;;
+  esac
+  case "$n" in
+  [A-Z]*)
+    case "$n" in
+    *[a-z]*) printf 'CamelCase' ;;
+    *) printf 'ALLCAPS' ;;
+    esac
+    return
+    ;;
+  esac
+  # Starts lowercase.
+  case "$n" in
+  *[A-Z]*)
+    printf 'camelBack'
+    return
+    ;;
+  esac
+  # No uppercase anywhere. Short or long, counting only the letters before
+  # any trailing digits, so l1 and w4 read the same way a and b do.
+  letters="${n%%[0-9]*}"
+  if [ "${#letters}" -le 2 ]; then
+    printf 'short-lowercase'
+  else
+    printf 'lowercase'
+  fi
+}
+
+axis_identifier_case() {
+  local names="$1" n cls detail="" line
+  local c_camel=0 c_back=0 c_caps=0 c_snake=0 c_scream=0 c_short=0 c_lower=0
+  for n in $names; do
+    cls="$(case_class "$n")"
+    case "$cls" in
+    CamelCase) c_camel=$((c_camel + 1)) ;;
+    camelBack) c_back=$((c_back + 1)) ;;
+    ALLCAPS) c_caps=$((c_caps + 1)) ;;
+    snake_case) c_snake=$((c_snake + 1)) ;;
+    SCREAMING_SNAKE) c_scream=$((c_scream + 1)) ;;
+    short-lowercase) c_short=$((c_short + 1)) ;;
+    *) c_lower=$((c_lower + 1)) ;;
+    esac
+    detail="${detail:+${detail},}${n}=${cls}"
+  done
+  # Every class prints, empty ones included, so the field is comparable from
+  # one module to the next.
+  line="CamelCase:${c_camel},camelBack:${c_back},ALLCAPS:${c_caps}"
+  line="${line},snake_case:${c_snake},SCREAMING_SNAKE:${c_scream}"
+  line="${line},short-lowercase:${c_short},lowercase:${c_lower}"
+  printf 'measured=%s detail=%s corpus-c1=%s corpus-c3=%s' \
+    "$line" "${detail:--}" "$CORPUS_IDENT_C1" "$CORPUS_IDENT_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — type invariants.
+# ---------------------------------------------------------------------------
+
+# mentions_membership <body> <name>: does the body give <name> a membership
+# clause? Anchored at both ends, so `tank \in` is not matched by `bank \in`
+# and not by `tankage \in` either.
+#
+# Pure shell, for the reason is_def_open records: it is asked once per
+# definition per declared variable.
+mentions_membership() {
+  local body="$1" name="$2" rest before
+  rest="$body"
+  while :; do
+    case "$rest" in
+    *"$name"*) ;;
+    *) return 1 ;;
+    esac
+    before="${rest%%"$name"*}"
+    rest="${rest#*"$name"}"
+    # The character before the name must not be an identifier character.
+    case "${before: -1}" in
+    [A-Za-z0-9_]) continue ;;
+    esac
+    # Then optional space, then the membership operator.
+    case "${rest#"${rest%%[![:space:]]*}"}" in
+    '\in'*) return 0 ;;
+    esac
+  done
+}
+
+axis_type_invariants() {
+  local lines="$1" vars="$2" defs="$3"
+  local d body v all byname="" bybody=""
+  for d in $defs; do
+    case "$d" in
+    Type*) byname="${byname:+${byname} }${d}" ;;
+    esac
+  done
+  for d in $defs; do
+    # Init and Next are left out by name, for the reason in the header.
+    case "$d" in
+    Init | Next) continue ;;
+    esac
+    [ -n "$vars" ] || continue
+    body="$(def_body "$lines" "$d")"
+    all=1
+    for v in $vars; do
+      mentions_membership "$body" "$v" || all=0
+    done
+    [ "$all" = 1 ] && bybody="${bybody:+${bybody} }${d}"
+  done
+  printf 'measured=name-shape:%s,body-shape:%s corpus-c1=%s corpus-c3=%s' \
+    "$(csv_or_none "$byname")" "$(csv_or_none "$bybody")" \
+    "$CORPUS_TYPE_C1" "$CORPUS_TYPE_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — the state tuple, and whether it covers every declared variable.
+# ---------------------------------------------------------------------------
+
+# tuple_members <lines> <name> <depth>: the members of a tuple definition,
+# expanding a member that is itself a tuple definition.
+#
+# EXPANSION IS NOT OPTIONAL. The Raft lineage writes
+# `vars == <<messageVars, serverVars, ...>>`, so a reader that stops at the
+# first level sees four names where the module declares fourteen and reports
+# the whole state as a proper subset of itself. The survey's own parser
+# expands for the same reason, and the register says a tuple of tuples still
+# counts as covering everything.
+tuple_members() {
+  local lines="$1" name="$2" depth="${3:-0}" body inner tok out="" sub
+  [ "$depth" -gt 4 ] && return 0
+  body="$(trim "$(def_body "$lines" "$name")")"
+  case "$body" in
+  '<<'*'>>') ;;
+  *) return 0 ;;
+  esac
+  inner="${body#<<}"
+  inner="${inner%>>}"
+  for tok in $(tr ',' ' ' <<<"$inner"); do
+    is_identifier "$tok" || continue
+    sub="$(tuple_members "$lines" "$tok" $((depth + 1)))"
+    if [ -n "$sub" ]; then
+      out="${out:+${out} }${sub}"
+    else
+      out="${out:+${out} }${tok}"
+    fi
+  done
+  printf '%s' "$out"
+}
+
+is_tuple_def() {
+  local body
+  body="$(trim "$(def_body "$1" "$2")")"
+  case "$body" in
+  '<<'*'>>') return 0 ;;
+  esac
+  return 1
+}
+
+# covered_count <members> <vars>
+covered_count() {
+  local v n=0
+  for v in $2; do
+    in_list "$v" "$1" && n=$((n + 1))
+  done
+  printf '%s' "$n"
+}
+
+axis_state_tuple() {
+  local lines="$1" vars="$2" defs="$3"
+  local d members best="" best_members="" best_n=-1 n total
+  total="$(count_words "$vars")"
+  for d in $defs; do
+    is_tuple_def "$lines" "$d" || continue
+    members="$(tuple_members "$lines" "$d")"
+    n="$(covered_count "$members" "$vars")"
+    # A definition literally called `vars` wins outright; otherwise the widest
+    # coverage does. Naming is half of what this axis is about, so the name
+    # decides first.
+    if [ "$d" = "vars" ]; then
+      best="$d"
+      best_members="$members"
+      best_n="$n"
+      break
+    fi
+    if [ "$n" -gt "$best_n" ]; then
+      best="$d"
+      best_members="$members"
+      best_n="$n"
+    fi
+  done
+  [ "$best_n" -lt 0 ] && best_n=0
+  printf 'measured=tuple:%s,covers:%s/%s detail=members:%s corpus-c1=%s corpus-c3=%s' \
+    "${best:-none}" "$best_n" "$total" \
+    "$(csv_or_dash "$best_members")" "$CORPUS_TUPLE_C1" "$CORPUS_TUPLE_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — the behavior formula.
+#
+# The definition is found by its SHAPE rather than by its name, which is the
+# only way to ask the question at all: looking for a definition called `Spec`
+# answers yes or finds nothing, and finding nothing is not the same as the
+# module having no behavior formula. The shape is a body carrying `[][`, which
+# is what the survey counted its 205 of.
+# ---------------------------------------------------------------------------
+
+axis_behavior_formula() {
+  local lines="$1" defs="$2" d body found=""
+  for d in $defs; do
+    body="$(def_body "$lines" "$d")"
+    case "$body" in
+    *'[]['*) found="${found:+${found} }${d}" ;;
+    esac
+  done
+  printf 'measured=name:%s corpus-c1=%s corpus-c3=%s' \
+    "$(csv_or_none "$found")" "$CORPUS_SPEC_C1" "$CORPUS_SPEC_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — the box subscript.
+#
+# A site is `[][` ... `]_v`. The subscript is read as the text after the FIRST
+# `]_` following the `[][`, which is right even when the action holds brackets
+# of its own: an inner `]` is followed by another `]`, never by `_`.
+#
+# A SUPERSET IS NOT A SUBSET. A subscript covering every declared variable
+# reports full even when it carries something else as well -- a history or
+# auxiliary variable, which the survey lists among the routine shapes. The
+# question the axis asks is whether anything declared was left out.
+# ---------------------------------------------------------------------------
+
+axis_box_subscript() {
+  local lines="$1" vars="$2" flat="$3"
+  local rest after sub members n total sites=0 full=0 subset=0 unresolved=0
+  local detail="" label
+  total="$(count_words "$vars")"
+  rest="$flat"
+  while :; do
+    case "$rest" in
+    *'[]['*) ;;
+    *) break ;;
+    esac
+    rest="${rest#*'[]['}"
+    after="${rest#*']_'}"
+    if [ "$after" = "$rest" ]; then
+      # A `[][` with no `]_` after it at all.
+      sites=$((sites + 1))
+      unresolved=$((unresolved + 1))
+      detail="${detail:+${detail},}?=unresolved,0/${total}"
+      continue
+    fi
+    sites=$((sites + 1))
+    after="$(trim "$after")"
+    members=""
+    label=""
+    case "$after" in
+    '<<'*)
+      sub="$(trim "${after%%'>>'*}")"
+      members="$(tr -d '<>' <<<"$sub" | tr ',' ' ')"
+      label='<<...>>'
+      ;;
+    [A-Za-z_]*)
+      label="${after%%[^A-Za-z0-9_]*}"
+      members="$(tuple_members "$lines" "$label")"
+      [ -n "$members" ] || members="$label"
+      ;;
+    esac
+    if [ -z "$label" ]; then
+      unresolved=$((unresolved + 1))
+      detail="${detail:+${detail},}?=unresolved,0/${total}"
+      continue
+    fi
+    n="$(covered_count "$members" "$vars")"
+    if [ "$total" -gt 0 ] && [ "$n" = "$total" ]; then
+      full=$((full + 1))
+      detail="${detail:+${detail},}${label}=full,${n}/${total}"
+    else
+      subset=$((subset + 1))
+      detail="${detail:+${detail},}${label}=proper-subset,${n}/${total}"
+    fi
+  done
+  printf 'measured=sites:%s,full-tuple:%s,proper-subset:%s,unresolved:%s detail=%s corpus-c1=%s corpus-c3=%s' \
+    "$sites" "$full" "$subset" "$unresolved" "${detail:--}" \
+    "$CORPUS_BOX_C1" "$CORPUS_BOX_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — Next's shape.
+#
+# THE TEST IS A PRIME, NOT A DISJUNCTION, and the header says why at length.
+# A body that primes a declared variable or carries an UNCHANGED wrote its
+# transition itself. A body that does neither delegates to named actions,
+# whatever its arms look like and whatever quantifier they sit under.
+#
+#   names-actions   no declared variable primed, no UNCHANGED
+#   primes-inline   at least one of those
+#   no-Next         no definition called Next
+#
+# THE TWO COUNTS FULLY DETERMINE THE SHAPE, which is deliberate: a shape that
+# could disagree with the numbers printed beside it would be a third fact
+# nobody measured. `primed` counts DISTINCT declared variables, so a variable
+# primed in both arms counts once -- the question is which parts of the state
+# this body moves, not how many times it says so.
+# ---------------------------------------------------------------------------
+
+# is_primed_in <body> <name>: does the body prime this variable? The prime has
+# to follow the whole name, so `pickers'` counts and `pickers[p]` does not,
+# and a declared `pick` is not found inside `pickers'`.
+is_primed_in() {
+  local body="$1" name="$2" rest before
+  rest="$body"
+  while :; do
+    case "$rest" in
+    *"$name"*) ;;
+    *) return 1 ;;
+    esac
+    before="${rest%%"$name"*}"
+    rest="${rest#*"$name"}"
+    case "${before: -1}" in
+    [A-Za-z0-9_]) continue ;;
+    esac
+    case "$rest" in
+    "'"*) return 0 ;;
+    esac
+  done
+}
+
+axis_next_shape() {
+  local lines="$1" vars="$2" defs="$3"
+  local body v tok primed=0 unchanged=0 shape
+  if ! in_list Next "$defs"; then
+    printf 'measured=shape:no-Next,primed:0,unchanged:0 corpus-c1=%s corpus-c3=%s' \
+      "$CORPUS_NEXT_C1" "$CORPUS_NEXT_C3"
+    return
+  fi
+  body="$(def_body "$lines" Next)"
+  for v in $vars; do
+    is_primed_in "$body" "$v" && primed=$((primed + 1))
+  done
+  # Counted by token rather than by regex, so two adjacent UNCHANGED clauses
+  # cannot share a separator and lose one of themselves.
+  while read -r tok; do
+    [ "$tok" = "UNCHANGED" ] && unchanged=$((unchanged + 1))
+  done < <(tr -s '[:space:]' '\n' <<<"$body")
+  if [ "$primed" -gt 0 ] || [ "$unchanged" -gt 0 ]; then
+    shape='primes-inline'
+  else
+    shape='names-actions'
+  fi
+  printf 'measured=shape:%s,primed:%s,unchanged:%s corpus-c1=%s corpus-c3=%s' \
+    "$shape" "$primed" "$unchanged" "$CORPUS_NEXT_C1" "$CORPUS_NEXT_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Axis — how many obligations the config names.
+#
+# Read as a token stream, not line by line, because TLC lets a keyword and its
+# name sit on separate lines -- the config half of the wrapping hazard in the
+# header. A mode opens on INVARIANT or PROPERTY and closes on any other config
+# keyword, which is the method the survey used for its own 939.
+#
+# Names are counted DISTINCT. `INVARIANT A` written twice is two declarations
+# of one obligation, and the axis asks how many obligations the config names.
+# ---------------------------------------------------------------------------
+
+CFG_KEYWORDS=" SPECIFICATION INIT NEXT INVARIANT INVARIANTS PROPERTY \
+PROPERTIES CONSTANT CONSTANTS CONSTRAINT CONSTRAINTS ACTION_CONSTRAINT \
+ACTION_CONSTRAINTS SYMMETRY VIEW ALIAS POSTCONDITION CHECK_DEADLOCK \
+TYPE TYPE_CONSTRAINT "
+
+axis_config_obligations() {
+  local cfg="$1" tok mode="" invs="" props=""
+  if [ -z "$cfg" ] || [ ! -f "$cfg" ]; then
+    printf 'measured=invariants:-,properties:- names-invariant=- names-property=- corpus-c1=%s corpus-c3=%s' \
+      "$CORPUS_OBLIG_C1" "$CORPUS_OBLIG_C3"
+    return
+  fi
+  while read -r tok; do
+    [ -n "$tok" ] || continue
+    case "$CFG_KEYWORDS" in
+    *" $tok "*)
+      case "$tok" in
+      INVARIANT | INVARIANTS) mode=inv ;;
+      PROPERTY | PROPERTIES) mode=prop ;;
+      *) mode="" ;;
+      esac
+      continue
+      ;;
+    esac
+    [ -n "$mode" ] || continue
+    is_operator_name "$tok" || continue
+    if [ "$mode" = inv ]; then
+      in_list "$tok" "$invs" || invs="${invs:+${invs} }${tok}"
+    else
+      in_list "$tok" "$props" || props="${props:+${props} }${tok}"
+    fi
+  done < <(sed 's/\\\*.*//' "$cfg" | tr -s '[:space:]' '\n')
+  printf 'measured=invariants:%s,properties:%s names-invariant=%s names-property=%s corpus-c1=%s corpus-c3=%s' \
+    "$(count_words "$invs")" "$(count_words "$props")" \
+    "$(csv_or_dash "$invs")" "$(csv_or_dash "$props")" \
+    "$CORPUS_OBLIG_C1" "$CORPUS_OBLIG_C3"
+}
+
+# ---------------------------------------------------------------------------
+# Resolve what to measure. Lifted from check so the two commands take the same
+# argument in the same way.
+# ---------------------------------------------------------------------------
+
+case "${1:-}" in
+-h | --help)
+  usage
+  exit 0
+  ;;
+-*)
+  echo "style: unknown option '$1' (try --help)." >&2
+  exit 3
+  ;;
+esac
+
+if [ "$#" -gt 1 ]; then
+  echo "style: one argument at most, got $#." >&2
+  usage >&2
+  exit 3
+fi
+
+TARGET="${1:-}"
+if [ -z "$TARGET" ]; then
+  WORK="$PWD"
+  SLUG="$(basename -- "$PWD")"
+elif [ -d "$TARGET" ]; then
+  WORK="$(cd -- "$TARGET" && pwd)"
+  SLUG="$(basename -- "$WORK")"
+elif [ "${TARGET#*/}" != "$TARGET" ]; then
+  # It carries a slash, so it was meant as a path and the path is not there.
+  WORK="$TARGET"
+  SLUG="$(basename -- "$TARGET")"
+else
+  WORK="${STUDY_ROOT}/${TARGET}"
+  SLUG="$TARGET"
+fi
+
+HITS=()
+for candidate in "$PROMPT_ROOT"/*/"$SLUG"/PROMPT.md; do
+  [ -f "$candidate" ] && HITS+=("$candidate")
+done
+
+if [ "${#HITS[@]}" -eq 0 ]; then
+  echo "style: no prompt for '${SLUG}'. Looked for ${PROMPT_ROOT}/*/${SLUG}/PROMPT.md." >&2
+  exit 3
+fi
+if [ "${#HITS[@]}" -gt 1 ]; then
+  echo "style: '${SLUG}' matches ${#HITS[@]} prompts. That is a corpus bug, not a choice to make:" >&2
+  for candidate in "${HITS[@]}"; do
+    echo "  ${candidate}" >&2
+  done
+  exit 3
+fi
+
+if [ ! -d "$WORK" ]; then
+  echo "style: ${WORK} is not a directory, so there is nothing to read." >&2
+  exit 3
+fi
+
+# ---------------------------------------------------------------------------
+# The configs and the modules. The skip rules are tla-rzvk.4's, less the
+# pairing requirement, which measuring style does not need.
+# ---------------------------------------------------------------------------
+
+CONFIGS=()
+for candidate in "$WORK"/*.cfg; do
+  [ -f "$candidate" ] || continue
+  cbase="${candidate##*/}"
+  case "$cbase" in
+  *_TTrace_*) continue ;;
+  esac
+  CONFIGS+=("$cbase")
+done
+
+CANDIDATES=""
+for cbase in ${CONFIGS[@]+"${CONFIGS[@]}"}; do
+  CANDIDATES="${CANDIDATES:+${CANDIDATES}, }${cbase}"
+done
+
+MODULES=()
+for candidate in "$WORK"/*.tla; do
+  [ -f "$candidate" ] || continue
+  base="${candidate##*/}"
+  base="${base%.tla}"
+  case "$base" in
+  *_TTrace_*) continue ;;
+  esac
+  MODULES+=("$base")
+done
+
+if [ "${#MODULES[@]}" -eq 0 ]; then
+  echo "style: no module under ${WORK} to measure." >&2
+  exit 3
+fi
+
+# ---------------------------------------------------------------------------
+# Measure each module and print it.
+# ---------------------------------------------------------------------------
+
+AXES_MEASURED=0
+SUPPRESSED=0
+
+for module in "${MODULES[@]}"; do
+  FILE="${WORK}/${module}.tla"
+  LINES="$(module_lines "$FILE")"
+  FLAT="$(module_flat "$FILE")"
+
+  CONSTS="$(declared_names "$FLAT" CONSTANT CONSTANTS | tr '\n' ' ')"
+  VARS="$(declared_names "$FLAT" VARIABLE VARIABLES | tr '\n' ' ')"
+  DEFS="$(def_names "$LINES" | tr '\n' ' ')"
+
+  # Whose config, if any. The reason prints on a line of its own when there is
+  # none, because "no config" with no reason sends Frank looking for one he
+  # already has.
+  CFG=""
+  CFG_SHOWN="-"
+  CFG_WHY=""
+  if [ -f "${WORK}/${module}.cfg" ]; then
+    CFG="${WORK}/${module}.cfg"
+    CFG_SHOWN="${module}.cfg"
+  elif [ "${#CONFIGS[@]}" -eq 1 ]; then
+    CFG="${WORK}/${CONFIGS[0]}"
+    CFG_SHOWN="${CONFIGS[0]}"
+  elif [ "${#CONFIGS[@]}" -eq 0 ]; then
+    CFG_WHY="no ${module}.cfg, and no other config in the directory"
+  else
+    CFG_WHY="no ${module}.cfg, and ${#CONFIGS[@]} configs to choose from: ${CANDIDATES}"
+  fi
+
+  printf 'module=%s config=%s\n' "$module" "$CFG_SHOWN"
+  [ -n "$CFG_WHY" ] && printf '  config NOT CHOSEN: %s\n' "$CFG_WHY"
+
+  printf '  axis=identifier-case %s\n' \
+    "$(axis_identifier_case "${CONSTS}${VARS}")"
+  AXES_MEASURED=$((AXES_MEASURED + 1))
+
+  if [ "$SLUG" = "$SUPPRESS_SLUG" ]; then
+    printf '  axis=%s SUPPRESSED: %s drills this idiom itself, so a fact about it would hand over what the item asks for.\n' \
+      "$SUPPRESS_AXIS" "$SLUG"
+    SUPPRESSED=$((SUPPRESSED + 1))
+  else
+    printf '  axis=type-invariants %s\n' \
+      "$(axis_type_invariants "$LINES" "$VARS" "$DEFS")"
+    AXES_MEASURED=$((AXES_MEASURED + 1))
+  fi
+
+  printf '  axis=state-tuple %s\n' "$(axis_state_tuple "$LINES" "$VARS" "$DEFS")"
+  printf '  axis=behavior-formula %s\n' "$(axis_behavior_formula "$LINES" "$DEFS")"
+  printf '  axis=box-subscript %s\n' "$(axis_box_subscript "$LINES" "$VARS" "$FLAT")"
+  printf '  axis=next-shape %s\n' "$(axis_next_shape "$LINES" "$VARS" "$DEFS")"
+  printf '  axis=config-obligations %s\n' "$(axis_config_obligations "$CFG")"
+  AXES_MEASURED=$((AXES_MEASURED + 5))
+done
+
+if [ "$SUPPRESSED" -gt 0 ]; then
+  printf 'MEASURED: %s axes on %s module(s) in %s, %s suppressed.\n' \
+    "$AXES_MEASURED" "${#MODULES[@]}" "$SLUG" "$SUPPRESSED"
+else
+  printf 'MEASURED: %s axes on %s module(s) in %s.\n' \
+    "$AXES_MEASURED" "${#MODULES[@]}" "$SLUG"
+fi
+exit 0
