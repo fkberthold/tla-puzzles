@@ -31,8 +31,7 @@ The requirement: neither tank ever holds more than its capacity.
 ## The questions
 
 1. Write the tank module, the pair module, and the config for row two.
-   Each copy of the tank has to be told which capacity it has and which
-   variable of the pair it lives in.
+   Each copy of the tank has to be told which capacity it has.
 2. Rows four and five. Which names arrived twice, and why does naming
    each copy fix it? Why did row five get as far as a state at all?
 3. Row six. The tank module declares one thing that isn't a constant.

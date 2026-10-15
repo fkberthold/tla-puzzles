@@ -31,8 +31,7 @@ second file that brings the dock in whole.
 ## The questions
 
 1. Write the dock, the second file, and the config for row six. Which
-   file does the permutation set live in, and why can't it live in the
-   dock?
+   file does row six's line live in, and why can't it live in the dock?
 2. Row three was refused by a line in the dock. Write it. Then delete it
    and run row four. The names in that config are all bare words, none
    of them quoted. Why didn't that protect you?

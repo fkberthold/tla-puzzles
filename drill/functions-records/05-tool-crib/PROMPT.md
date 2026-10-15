@@ -18,5 +18,4 @@ Write the specification and the rule from an empty file. Check it with
 deadlock checking on. A correct model finds 63 distinct states and reports
 no error.
 
-Then say what the set of tools that are out looks like in your model, and
-what happens to that set when a tool comes back.
+Then say what the set of tools that are out looks like in your model.

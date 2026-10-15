@@ -30,8 +30,7 @@ The requirement: the pallet gets through every doorway, always.
 
 1. Write the doorway, the hall, and the config for row one.
 2. Row three: the obvious place to bring a module in is the top of the
-   file. Why can't the width be filled there, and what does the instance
-   have to become so it can be filled later?
+   file. Why can't the width be filled there?
 3. Why 2 and 3?
 
 Write it, reproduce the 2, then move the instance to the top and read
