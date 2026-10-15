@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# reading-gate.sh — the four checks over the reading corpus.
+# reading-gate.sh — the checks over the reading corpus.
+#
+# The count is left out of that line on purpose. It read "the four checks"
+# while the file carried six, which is what a hardcoded count in prose does
+# when nothing gates it.
 #
 # WHAT THE READING CORPUS IS. One item is a COMPLETE, CORRECT, SMALL SPEC
 # WITH REAL PROPERTIES, plus one line naming its constructs. There is no
@@ -11,10 +15,12 @@
 #   harness/reading-gate.sh [OPTIONS] <reading-root>
 #
 # OPTIONS
-#   --no-tlc        skip check 3's TLC runs. Checks 1, 2 and 4 still run.
-#                   This mode can NEVER exit 0 — see EXIT CODES.
+#   --no-tlc        skip check 3's TLC runs. Every text check still runs.
+#                   This mode can NEVER exit 0. See EXIT CODES.
+#   --registry      print the landed subjects and slugs, run no check, exit 0.
+#                   This is the list an authoring brief pastes. See CHECK 8.
 #   --timeout SECS  per-module TLC budget, passed to verdict.sh (default 120)
-#   -q, --quiet     suppress the per-item PASS lines; findings still print
+#   -q, --quiet     suppress the per-item OK lines. Findings still print.
 #   -h, --help      this text
 #
 # EXIT CODES, the same three this project uses everywhere.
@@ -201,6 +207,106 @@
 # notes that live there annotate the list they sit in.
 #
 # ===========================================================================
+# CHECK 7 — NO TWO ITEMS SHARE A SLUG.
+#
+# An item directory is <NN>-<slug>, and the slug names the system. Two items
+# with the same slug in different families are two models of one system, and
+# at that point a reader meets the second one knowing everything it teaches.
+#
+# THIS IS THE CHECK THAT CATCHES THE REAL CASE. On 2026-10-13 the
+# tla-fwkz.2.1 author wrote reading/pluscal/04-chameleons against a landed
+# reading/core/02-chameleons, caught it by hand, and replaced it. The discard
+# is at fbd5ae2 and the slug was `chameleons` in both. Nothing in the gate
+# saw it, and the author found it by reading the landed six and then
+# re-reading main. 04-ring is what sits in that slot now.
+#
+# The check is exact. Two directory names are equal or they are not, there is
+# no threshold and nothing to tune, and no author can argue with the result.
+# That is why it is first and why I would keep it even if check 8 went away.
+#
+# ===========================================================================
+# CHECK 8 — NO TWO SUBJECTS RESTATE EACH OTHER.
+#
+# Check 7 misses a duplicate written under a different slug. This one reads
+# the `Subject:` line of every item, reduces it to its distinctive words, and
+# compares all pairs. A pair that shares enough words describes one system.
+#
+# A SUBJECT IS PROSE AND IT WRAPS, so it is read flattened from the
+# `Subject:` line through the next blank line. A line-based scan of this
+# corpus produced a plausible wrong count five times in one session, twice in
+# the hour before bead tla-ldvw was filed, and every one of those was a
+# multi-line declaration read one line at a time.
+#
+# THE TWO NUMBERS CAME FROM THE CORPUS, and here is the whole measurement so
+# the next author can redo it rather than trust it. Over the 25 items that
+# existed on 2026-10-15:
+#
+#   worst real pair       3 shared words, 27%   temporal/01-handover against
+#                                               temporal/02-converge
+#                                               (weak, fairness, step)
+#   the real duplicate    5 shared words, 50%   core/02-chameleons against
+#                                               the fbd5ae2 discard
+#                                               (chameleons, different, meet,
+#                                               take, third)
+#   the pair central
+#     keeps on purpose    1 shared word, 12%    pluscal/03-contend against
+#                                               temporal/04-contention (lock)
+#
+# So the threshold sits in a gap one word wide on each side, and I would not
+# describe that as comfortable. It is one real positive against 300 real
+# negatives, which is the evidence there is. Both numbers have to clear at
+# once, and the count is the discriminator while the percentage is only there
+# to stop a long subject drifting over the count by sheer length.
+#
+# THE 5 IS A FLOOR RATHER THAN THE REAL FIGURE, because the discard spelled
+# the color words the British way and two words that name the same thing do
+# not match if they differ by a letter. The same pair scores 6 once the
+# spelling agrees, which harness/test-reading.sh's 1g fixture holds. So the
+# threshold was set against the pessimistic reading of the one real positive
+# there is, which I think is the right direction to be wrong in.
+#
+# THE STOPWORD LIST IS PART OF THE MEASUREMENT. Change it and the three rows
+# above are hypotheses again, because every one of them is a count of words
+# that survived it. Number words are in it on purpose: five items open with a
+# count of something, and `two processes` against `two chameleons` is not a
+# shared subject.
+#
+# THE PAIR CENTRAL KEEPS IS THE REASON THIS CHECK IS NARROW. Bead
+# tla-fwkz.2.9 argued against gating this class at all, on the grounds that
+# pluscal/03-contend and temporal/04-contention both teach weak against
+# strong fairness and both stay, so a subject check would flag a pair
+# somebody chose. That pair shares one word, and the gap between 1 and 4 is
+# the answer to the objection rather than a coincidence. Two items can teach
+# one lesson and still describe different systems, and the Subject line is
+# about the system.
+#
+# ===========================================================================
+# WHAT CHECKS 7 AND 8 DO NOT GATE, SAID PLAINLY
+#
+# A DUPLICATED LEMMA INSIDE A DIFFERENT SYSTEM IS NOT GATED. The same author
+# in the same hour wrote a coprime model that duplicated reading/pluscal/
+# 01-euclid's own divisor lemma, two items along in its own family, and threw
+# that one away too. Both checks here would pass it. The slugs differ, and a
+# subject that describes one system does not restate a subject that describes
+# another, whatever the two models end up teaching.
+#
+# This is out of mechanical reach as far as I can see, and the gate says so
+# in its own output on every run rather than leaving a reader to work out
+# which half it bought. An advisory half of a gate that presents itself as
+# whole is worse than a gate that states its limit, because the next author
+# trusts it.
+#
+# The coprime model was never committed, so no measurement of its Subject
+# line is possible. tla-ldvw and tla-fwkz.2.9 both say both discards are in
+# the reflog at fbd5ae2. Only the chameleons one is, and that commit is the
+# five-item pluscal wave.
+#
+# WHAT TO DO INSTEAD, for now: `--registry` prints every landed subject in a
+# form an authoring brief pastes verbatim. That puts the 25 subjects in front
+# of an author before it writes a 26th, which is the half a human can do and
+# this gate cannot.
+#
+# ===========================================================================
 # WHAT THIS GATE DELIBERATELY DOES NOT DO
 #
 # NO TELEGRAPH CHECK. harness/drill-gate.sh's check 1 fails an item whose
@@ -240,14 +346,42 @@ MAX_LINES=60
 # that nobody checked on a device. Four of the five calibration specs fit 77.
 MAX_COLS=77
 
+# --- CHECK 8's TWO NUMBERS. Both have to clear at once. Amending either is a
+# one-line edit, and the measurement behind the pair is in CHECK 8's header
+# section. Real corpus worst pair 3 words at 27%, real duplicate 5 at 50%.
+#
+# The count is what discriminates. The percentage is a drift guard, so that a
+# pair of long subjects cannot reach 4 shared words by length alone.
+SUBJECT_MIN_SHARED=4
+SUBJECT_MIN_PCT=40
+
+# Words thrown away before the comparison. THIS LIST IS PART OF THE
+# MEASUREMENT above, so changing it reopens both numbers. Words under 3
+# characters go whatever this says. Number words are here because five
+# subjects open with a count of something.
+#
+# `the` IS THE ONE TO WATCH, and it is here because it was once missing. The
+# first draft left out every word the length filter already covers, and `the`
+# is 3 characters, so it survived both and counted as distinctive. The worst
+# real pair then read as core/02-chameleons against state-space/02-tickets at
+# `take, the, never`, which is a sentence about English rather than about
+# either model. Any word of exactly 3 characters needs listing here on
+# purpose, since nothing else drops it.
+SUBJECT_STOPWORDS="the and are its that this with for from not only every
+each two three four five six seven eight nine ten one both their them there
+they when where which whose what has have had but then than more most all
+any into over under out down back off again same other another"
+
 NO_TLC=0
 TIMEOUT=120
 QUIET=0
+REGISTRY=0
 ROOT=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --no-tlc)   NO_TLC=1 ;;
+    --registry) REGISTRY=1 ;;
     --timeout)  TIMEOUT="${2:-120}"; shift ;;
     -q|--quiet) QUIET=1 ;;
     -h|--help)
@@ -325,9 +459,116 @@ reading_declared() {
   ' "$1"
 }
 
+# --- THE ITEM SWEEP, in one place. Every depth-2 directory under the root,
+# which is the shape harness/drill-gate.sh:1586 uses, so <family>/<NN>-<slug>
+# is an item and a family directory is not.
+#
+# The hidden-directory predicate is ANCHORED AT THE ROOT. A bare
+# `! -path '*/.*'` would match the root itself, since every dispatched worker
+# here runs under .claude/worktrees/agent-*, and the sweep would find nothing
+# on any real tree. That bug is recorded in harness/test-drill.sh's part 3.
+#
+# It is a function because --registry sweeps too, and two copies of this
+# predicate would drift the moment somebody fixed one of them.
+reading_items() {
+  find "$1" -mindepth 2 -maxdepth 2 -type d ! -name '.*' ! -path "${1}/.*" | sort
+}
+
+# --- CHECK 8's READER. One awk per item, never one per pair.
+#
+# Prints the normalized word list, a tab, then the flattened Subject. The
+# flattened half is what --registry prints, so both halves come off one pass
+# and an item is read once.
+#
+# A SUBJECT WRAPS, so the grab runs from the `Subject:` line through the next
+# blank line and joins with spaces. Reading it one line at a time is the
+# failure this corpus has produced five times in a session.
+reading_subject() {
+  awk -v stop="$SUBJECT_STOPWORDS" '
+    BEGIN {
+      n = split(stop, a, /[ \t\n]+/)
+      for (i = 1; i <= n; i++) if (a[i] != "") S[a[i]] = 1
+    }
+    /^Subject:/ {
+      if (got) next
+      got = 1
+      g = 1
+      s = $0
+      sub(/^Subject:[[:space:]]*/, "", s)
+      acc = s
+      next
+    }
+    g && /^[[:space:]]*$/ { g = 0 }
+    g { acc = acc " " $0 }
+    END {
+      gsub(/[[:space:]]+/, " ", acc)
+      sub(/^ /, "", acc)
+      sub(/ $/, "", acc)
+      line = tolower(acc)
+      gsub(/[^a-z0-9]+/, " ", line)
+      n = split(line, w, " ")
+      out = ""
+      for (i = 1; i <= n; i++) {
+        t = w[i]
+        if (t == "") continue
+        if (length(t) < 3) continue
+        if (t in S) continue
+        if (t in seen) continue
+        seen[t] = 1
+        out = out t " "
+      }
+      sub(/ $/, "", out)
+      print out "\t" acc
+    }
+  ' "$1"
+}
+
 say()       { [ "$QUIET" = "1" ] || printf '%s\n' "$1"; }
 finding()   { printf 'FINDING   %-26s %-40s %s\n' "$1" "$2" "$3"; finding_n=$((finding_n + 1)); }
 unchecked() { printf 'UNCHECKED %-26s %-40s %s\n' "$1" "$2" "$3"; unchecked_n=$((unchecked_n + 1)); }
+
+# ---------------------------------------------------------------------------
+# --registry. The list an authoring brief pastes, and no check runs.
+#
+# It comes before the verdict.sh guard because it drives no TLC run, so it
+# works in a checkout where the toolchain is not set up.
+# ---------------------------------------------------------------------------
+if [ "$REGISTRY" = "1" ]; then
+  reg_n=0
+  reg_slugs=""
+  echo "# The reading subjects that exist. Do not write one that restates one of"
+  echo "# these, and do not reuse a slug. harness/reading-gate.sh checks both."
+  echo "#"
+  echo "# Generated by: harness/reading-gate.sh --registry ${ROOT}"
+  echo
+  while IFS= read -r item; do
+    rel="${item#"${ROOT}"/}"
+    reg_n=$((reg_n + 1))
+    # The same `NN-` strip check 7 does, so the roster lists what that check
+    # actually compares. Printing `02-chameleons` here would tell an author
+    # the number is part of the slug, and it is not.
+    reg_dir="${rel##*/}"
+    reg_slugs="${reg_slugs}${reg_dir#*-} "
+    printf -- '- %s\n' "$rel"
+    if [ -f "${item}/USES.md" ]; then
+      # The reader prints `<words><tab><subject>`, so the subject is
+      # everything after the first tab and no second fork is needed.
+      reg_pair="$(reading_subject "${item}/USES.md")"
+      reg_subj="${reg_pair#*$'\t'}"
+      if [ -n "$reg_subj" ]; then
+        printf '  %s\n' "$reg_subj"
+      else
+        printf '  (no Subject: line, which harness/reading-gate.sh reports as a finding)\n'
+      fi
+    else
+      printf '  (no USES.md, which harness/reading-gate.sh reports as a finding)\n'
+    fi
+  done < <(reading_items "$ROOT")
+  echo
+  printf '# %s item(s). Slugs in use, and check 7 refuses a second use of any:\n' "$reg_n"
+  printf '# %s\n' "$reg_slugs"
+  exit 0
+fi
 
 if [ ! -x "$VERDICT" ] && [ "$NO_TLC" = "0" ]; then
   echo "reading-gate.sh: ${VERDICT} is missing or not executable." >&2
@@ -338,18 +579,44 @@ fi
 echo "reading-gate.sh: ${ROOT}, bound ${MAX_LINES} lines x ${MAX_COLS} cols"
 
 # ---------------------------------------------------------------------------
-# The item sweep. Every depth-2 directory under the root, which is the same
-# shape harness/drill-gate.sh:1586 uses, so <family>/<NN>-<slug> is an item
-# and a family directory is not.
+# The item sweep. See reading_items() above for the predicate and why it is
+# a function.
 #
-# The hidden-directory predicate is ANCHORED AT THE ROOT. A bare
-# `! -path '*/.*'` would match the root itself, since every dispatched worker
-# here runs under .claude/worktrees/agent-*, and the sweep would find nothing
-# on any real tree. That bug is recorded in harness/test-drill.sh's part 3.
+# CHECKS 7 AND 8 ARE CORPUS-WIDE, so they cannot run inside this loop. The
+# three arrays below collect what they need as the sweep goes, and the pair
+# comparison runs once after it. Reading each USES.md here rather than in a
+# second sweep is what keeps the cost at one read per item.
 # ---------------------------------------------------------------------------
+sub_rel=()
+sub_slug=()
+sub_words=()
+sub_uses=()
+
 while IFS= read -r item; do
   rel="${item#"${ROOT}"/}"
   item_n=$((item_n + 1))
+
+  # The slug comes off the directory name, so check 7 sees an item whose
+  # shape is broken. Two items can collide on a slug and one of them still
+  # be missing its .cfg, and both facts are worth reporting.
+  #
+  # `${dir#*-}` DROPS THE `NN-`, which is what makes the real case collide:
+  # the discard was 04-chameleons against a landed 02-chameleons, so
+  # comparing whole directory names would have missed it. A slug carrying its
+  # own dash keeps the rest, since only the first one goes.
+  dir="${rel##*/}"
+  sub_rel+=("$rel")
+  sub_slug+=("${dir#*-}")
+  if [ -f "${item}/USES.md" ]; then
+    sub_pair="$(reading_subject "${item}/USES.md")"
+    sub_words+=("${sub_pair%%$'\t'*}")
+    sub_uses+=(1)
+  else
+    # A missing USES.md is already SHAPE-NO-USES. One cause, one finding, so
+    # the no-Subject report below skips this item rather than adding a second.
+    sub_words+=("")
+    sub_uses+=(0)
+  fi
 
   # --- check 1: shape ------------------------------------------------------
   # Read the directory ONCE into an array and compare counts, rather than
@@ -565,7 +832,93 @@ while IFS= read -r item; do
   else
     say "  OK    ${rel}  ${stem} rc=${got}, ${nlines} lines"
   fi
-done < <(find "$ROOT" -mindepth 2 -maxdepth 2 -type d ! -name '.*' ! -path "${ROOT}/.*" | sort)
+done < <(reading_items "$ROOT")
+
+# ---------------------------------------------------------------------------
+# CHECKS 7 AND 8 — the corpus-wide pair. They run here because no item can
+# answer them alone, and they run under --no-tlc like every text check.
+# ---------------------------------------------------------------------------
+sub_n="${#sub_rel[@]}"
+sub_pairs=0
+if [ "$sub_n" -gt 1 ]; then
+  sub_pairs=$((sub_n * (sub_n - 1) / 2))
+fi
+
+# A USES.md carrying no `Subject:` line. scripts/build-docs.sh anchors the
+# published page on that line, so the page loses its one sentence saying what
+# the model is about, and check 8 has nothing to compare. Reported only where
+# the file exists, so a missing USES.md stays one finding.
+for ((i = 0; i < sub_n; i++)); do
+  if [ "${sub_uses[$i]}" = "1" ] && [ -z "${sub_words[$i]}" ]; then
+    finding "USES-NO-SUBJECT" "${sub_rel[$i]}" \
+      "USES.md has no 'Subject:' line carrying words of its own; scripts/build-docs.sh anchors the published page on it and check 8 cannot compare an item without one"
+  fi
+done
+
+# --- check 7: no two items share a slug ------------------------------------
+# The `NN-` came off in the sweep above. A slug that CONTAINS another is a
+# different slug, so this compares whole strings and not prefixes: `base` and
+# `based` are two systems.
+for ((i = 0; i < sub_n; i++)); do
+  for ((j = i + 1; j < sub_n; j++)); do
+    if [ "${sub_slug[$i]}" = "${sub_slug[$j]}" ]; then
+      # BOTH PATHS GO IN THE MESSAGE, not one in the path column and one
+      # here. A reader fixing this needs the pair, and an assertion that
+      # pins only the column is satisfied by the per-item OK lines too.
+      finding "SLUG-REUSED" "${sub_rel[$j]}" \
+        "${sub_rel[$j]} and ${sub_rel[$i]} share the slug '${sub_slug[$j]}'. A slug names the system, so two items under one slug are two models of one system"
+    fi
+  done
+done
+
+# --- check 8: no two subjects restate each other ---------------------------
+# ONE ASSOCIATIVE ARRAY, BUILT ONCE. The pair loop then does lookups and
+# forks nothing. 25 items is 300 pairs and 100 items would be 4,950, which is
+# where a grep per pair becomes this project's recurring performance defect.
+# harness/drill-gate.sh produced it twice, once at 7,350 greps.
+declare -A sub_set=()
+sub_count=()
+for ((i = 0; i < sub_n; i++)); do
+  read -ra ws <<<"${sub_words[$i]}"
+  sub_count+=("${#ws[@]}")
+  for w in ${ws[@]+"${ws[@]}"}; do
+    sub_set["${i}|${w}"]=1
+  done
+done
+
+# The worst real pair is printed on every run whatever the verdict, because a
+# corpus creeping toward the bound is the thing an author wants to know
+# before it writes the pair that trips it.
+worst_c=0
+worst_pair="none"
+for ((i = 0; i < sub_n; i++)); do
+  [ "${sub_count[$i]}" -gt 0 ] || continue
+  read -ra ws <<<"${sub_words[$i]}"
+  for ((j = i + 1; j < sub_n; j++)); do
+    [ "${sub_count[$j]}" -gt 0 ] || continue
+    shared=0
+    shared_w=""
+    for w in ${ws[@]+"${ws[@]}"}; do
+      if [ -n "${sub_set["${j}|${w}"]:-}" ]; then
+        shared=$((shared + 1))
+        shared_w="${shared_w}${w}, "
+      fi
+    done
+    small="${sub_count[$i]}"
+    if [ "${sub_count[$j]}" -lt "$small" ]; then
+      small="${sub_count[$j]}"
+    fi
+    pct=$((100 * shared / small))
+    if [ "$shared" -gt "$worst_c" ]; then
+      worst_c="$shared"
+      worst_pair="${sub_rel[$i]} and ${sub_rel[$j]}, ${shared} word(s) at ${pct}% (${shared_w%, })"
+    fi
+    if [ "$shared" -ge "$SUBJECT_MIN_SHARED" ] && [ "$pct" -ge "$SUBJECT_MIN_PCT" ]; then
+      finding "SUBJECT-RESTATED" "${sub_rel[$j]}" \
+        "${sub_rel[$j]} and ${sub_rel[$i]} describe one system. ${shared} shared words (${shared_w%, }), ${pct}% of the shorter subject, against a bound of ${SUBJECT_MIN_SHARED} words and ${SUBJECT_MIN_PCT}%. One of the two is the one to keep, and the other wants a different system"
+    fi
+  done
+done
 
 if [ "$item_n" -eq 0 ]; then
   unchecked "items" "$ROOT" \
@@ -574,6 +927,10 @@ fi
 
 echo
 echo "reading-gate.sh: ${item_n} item(s), ${finding_n} finding(s), ${unchecked_n} unchecked"
+echo "  collisions: ${sub_n} subject(s) over ${sub_pairs} pair(s), worst ${worst_pair}"
+echo "  NOT GATED: a duplicated lemma inside a different system. Checks 7 and 8"
+echo "  read the slug and the Subject wording, so two items that teach one fact"
+echo "  under two different subjects both pass. Run --registry and read the list."
 
 if [ "$finding_n" -gt 0 ]; then
   echo "VERDICT FINDINGS"

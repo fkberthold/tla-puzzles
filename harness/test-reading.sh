@@ -8,17 +8,19 @@
 # suite is the instrument's controls, and it proves the instrument still
 # bites in both directions.
 #
-# Read harness/reading-gate.sh's header for what each of the four checks
-# does and — the half that matters more — what it deliberately does not.
-# This file does not restate those boundaries; it would drift from them.
+# Read harness/reading-gate.sh's header for what each check does and, the
+# half that matters more, what it deliberately does not. This file does not
+# restate those boundaries, because it would drift from them. The count of
+# checks is left out of that sentence on purpose. It read "four" while the
+# gate carried six.
 #
-# ALL SIX CHECKS GATE. There is no report-only check here, unlike
+# EVERY CHECK GATES. There is no report-only check here, unlike
 # harness/drill-gate.sh's check 3: the construct-coverage report is
 # deliberately absent from this gate, so there is nothing to pin open.
 #
 # PART 1  each check, against a fixture built to trip it
 #         1a shape · 1b phone bound · 1c recorded rc · 1d obligation
-#         1e construct declaration · 1f USES.md shape
+#         1e construct declaration · 1f USES.md shape · 1g collisions
 # PART 2  controls the other way: shapes that LOOK wrong and must not fire
 # PART 3  the real reading/ tree
 #
@@ -27,6 +29,18 @@
 # pins that an over-declaration stays silent. Check 1 now skips TLC's own run
 # artifacts, so 2h pins that the skip stays narrow enough to still catch a
 # stray .bak.
+#
+# CHECKS 7 AND 8 ARRIVED WITH BEAD tla-ldvw, and 2k is the part of this file
+# to read first. They are the only two checks here that compare items against
+# EACH OTHER, so the thing that can go wrong is not a missed duplicate but a
+# gate nobody can land work through. 2k names the two real pairs the
+# thresholds were measured against, so a red row says which pair moved.
+#
+# 2l PINS A SENTENCE RATHER THAN A BEHAVIOR, which is unusual and deliberate.
+# Checks 7 and 8 buy half of what tla-ldvw asked for, and the gate says which
+# half in its own output. An advisory half of a gate that presents itself as
+# whole is worse than a gate that states its limit, so the statement is a
+# gated string.
 #
 # Usage:  harness/test-reading.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -171,6 +185,31 @@ USES
   printf '%s\n' "$d"
 }
 
+# set_subject <USES.md> <first line> [more lines...]: replace the baseline's
+# one-line Subject with the lines given.
+#
+# IT TAKES SEVERAL LINES ON PURPOSE. A real Subject is prose and it wraps, so
+# the checks that read one have to read it flattened. Every fixture below that
+# is meant to collide carries a Subject over two or three lines, because a
+# one-line fixture would pass a line-based reader and prove nothing. This
+# corpus has produced a plausible wrong count from a line-based scan five
+# times in one session.
+set_subject() {
+  local f="$1"
+  shift
+  local first="$1"
+  shift
+  {
+    printf '# USES: core/01-base\n\n'
+    printf 'Subject: %s\n' "$first"
+    local l
+    for l in "$@"; do printf '%s\n' "$l"; done
+    printf '\n'
+    sed -n '/^rc: /,$p' "$f"
+  } >"${f}.new"
+  mv "${f}.new" "$f"
+}
+
 # wide_line <n>: a comment line of exactly n columns, for the column check.
 wide_line() {
   local n="$1" s=""
@@ -184,7 +223,7 @@ echo
 # ===========================================================================
 # PART 1 — each check, against a fixture built to trip it
 # ===========================================================================
-echo "PART 1 — the four checks, each against a fixture built to trip it"
+echo "PART 1 — each check, against a fixture built to trip it"
 echo
 
 # --- 1a: check 1, SHAPE ----------------------------------------------------
@@ -402,6 +441,94 @@ run_gate --no-tlc "$R"
 has   "1f uses: prose in the region build-docs drops is a finding" "USES-PROSE-MISPLACED"
 has   "1f uses: the finding counts the lines" "1 line(s) sit between"
 rc_is "1f uses: rc 1 on misplaced prose" 1
+
+# --- 1g: checks 7 and 8, THE SUBJECT COLLISIONS ---------------------------
+# THE FIXTURES BELOW ARE THE REAL CASE, not an invention. On 2026-10-13 the
+# tla-fwkz.2.1 author wrote reading/pluscal/04-chameleons against a landed
+# reading/core/02-chameleons and caught it by hand. The two Subject lines
+# used here are copied from that commit and from main, so this is the
+# historical regression rather than a shape somebody imagined.
+#
+# Both are also the first fixtures in this file with TWO items in one tree,
+# which is what a corpus-wide check needs.
+R="${TMP}/slug-reused"
+D1="$(mk_item "$R" core 02-chameleons)"
+D2="$(mk_item "$R" pluscal 04-chameleons)"
+set_subject "${D1}/USES.md" \
+  'Six chameleons in three colors, starting one, two and three.' \
+  'Two of different colors meet and both take on the third, and they' \
+  'never all end up matching.'
+set_subject "${D2}/USES.md" 'a ring buffer with a head index and a tail index.'
+run_gate --no-tlc "$R"
+has   "1g slug: the same slug in two families is a finding" "SLUG-REUSED"
+# ONE STRING CARRYING BOTH PATHS, which is what the bead's RED line asks for.
+# Pinning the path column alone is not evidence: the gate prints every item's
+# path on its own OK line, so a bare path assertion passes against a gate
+# with no such check at all. Three rows here did exactly that on the first
+# RED run, which is why the finding names the pair in its message.
+has   "1g slug: the finding names both paths and the slug" \
+  "pluscal/04-chameleons and core/02-chameleons share the slug 'chameleons'"
+rc_is "1g slug: rc 1 on a reused slug" 1
+
+# THE SUBJECTS ALONE, under slugs that do not collide, so this pins check 8
+# on its own rather than riding on check 7. Both Subject lines wrap.
+#
+# THE DISCARD IS QUOTED WITH ITS SPELLING AMERICANIZED, and that is the one
+# edit made to it. It spelled the color words the British way, which
+# harness/test-spelling.sh bans in a tracked file and which is not this
+# bead's file to add an exemption to. The edit moves the score, so both
+# numbers are recorded rather than one:
+#
+#   as it was really written   5 shared words at 50%
+#   with the spelling fixed    6 shared words at 60%
+#
+# The 5 is the measurement that set the threshold, and it is reproducible
+# outside the index:
+#
+#   git show fbd5ae2:reading/pluscal/04-chameleons/USES.md > <scratch>/USES.md
+#   harness/reading-gate.sh --no-tlc -q <scratch-root>
+#
+# So the 5 is a FLOOR rather than the real similarity of the two models. Two
+# words that name the same thing were thrown away for differing by a letter,
+# and the fixture below is what the same pair scores once they match.
+R="${TMP}/subject-restated"
+D1="$(mk_item "$R" core 02-chameleons)"
+D2="$(mk_item "$R" pluscal 04-newts)"
+set_subject "${D1}/USES.md" \
+  'Six chameleons in three colors, starting one, two and three.' \
+  'Two of different colors meet and both take on the third, and they' \
+  'never all end up matching.'
+set_subject "${D2}/USES.md" \
+  'Chameleons in three colors. Two of different colors meet and' \
+  'both turn the third color, so no color can ever take over the island.'
+run_gate --no-tlc "$R"
+has   "1g subject: two subjects describing one system is a finding" "SUBJECT-RESTATED"
+has   "1g subject: the finding names both paths in one string" \
+  "pluscal/04-newts and core/02-chameleons describe one system"
+has   "1g subject: the finding counts the shared words" "6 shared words"
+has   "1g subject: and names them, so a reader can judge it" "chameleons, colors, different, meet, take, third"
+has   "1g subject: and states the bound it cleared" "against a bound of 4 words and 40%"
+hasnt "1g subject: the slugs differ, so check 7 stays quiet" "SLUG-REUSED"
+rc_is "1g subject: rc 1 on a restated subject" 1
+
+# A USES.md WITH NO Subject: LINE. scripts/build-docs.sh anchors the page on
+# that line, so the page loses the sentence saying what the model is about,
+# and check 8 has nothing to compare.
+R="${TMP}/subject-absent"
+D="$(mk_item "$R")"
+sed -i '/^Subject: /d' "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1g subject: a USES.md with no Subject line is a finding" "USES-NO-SUBJECT"
+rc_is "1g subject: rc 1 on a missing Subject line" 1
+
+# AND IT IS ONE FINDING, NOT TWO. A missing USES.md is already SHAPE-NO-USES,
+# so the no-Subject report must not pile a second finding onto one cause.
+R="${TMP}/subject-no-uses"
+D="$(mk_item "$R")"
+rm "${D}/USES.md"
+run_gate --no-tlc "$R"
+has   "1g subject: a missing USES.md is still SHAPE-NO-USES" "SHAPE-NO-USES"
+hasnt "1g subject: and is not also reported as a missing Subject line" "USES-NO-SUBJECT"
 
 echo
 
@@ -625,6 +752,183 @@ sed -i '/^## What the properties rest on$/a - EXTENDS (module import)' "${D}/USE
 run_gate --no-tlc "$R"
 has   "2j uses: a construct bullet in the probe section does not count as declared" "carries EXTENDS (module import) and USES.md does not declare it"
 
+# --- 2k: checks 7 and 8 must not fire on the corpus that exists ------------
+# THIS IS THE HALF THAT DECIDES WHETHER THE GATE IS LANDABLE. A collision
+# check that fires on the landed corpus is a check nobody can get work
+# through, and part 3 would catch that at the aggregate. These rows name the
+# two specific pairs the thresholds were measured against, so a failure says
+# which pair moved rather than that something did.
+
+# THE PAIR CENTRAL KEEPS ON PURPOSE. reading/pluscal/03-contend and
+# reading/temporal/04-contention both teach weak against strong fairness, and
+# both stay, because one shows why it is needed and the other shows the
+# syntax for asking. Bead tla-fwkz.2.9 argued against gating this class at
+# all on exactly that ground. The pair shares one word, so the gap between 1
+# and 4 is the answer to the objection.
+R="${TMP}/keep-contend"
+D1="$(mk_item "$R" pluscal 03-contend)"
+D2="$(mk_item "$R" temporal 04-contention)"
+# The backticks are in the landed subject, and the whole worth of this
+# control is that it is that subject verbatim rather than a paraphrase of it.
+# They cost nothing: the word reader strips every non-alphanumeric character
+# before it counts, so `fair` and fair reduce to the same token. shellcheck
+# reads a markdown backtick in a single-quoted string as a command
+# substitution somebody forgot to make expandable, which is the same finding
+# the 1f shape-stray fixture sidesteps by carrying no backticks at all.
+# shellcheck disable=SC2016
+set_subject "${D1}/USES.md" \
+  'Two processes run the same three statements against one lock, and' \
+  'the only difference between them is `fair` against `fair+`.'
+set_subject "${D2}/USES.md" \
+  'A background poller that takes and releases a lock over and' \
+  'over, and a one-shot task that needs the same lock once.'
+run_gate --no-tlc "$R"
+hasnt "2k collide: the fairness pair central keeps does not fire" "SUBJECT-RESTATED"
+hasnt "2k collide: nor on the slug, since contend and contention differ" "SLUG-REUSED"
+has   "2k collide: and the run reports what it measured" "1 word(s)"
+
+# THE WORST REAL PAIR IN THE LANDED CORPUS, at 3 shared words. It is one word
+# under the bound, which is the whole headroom there is, so this row is the
+# one that goes red first if the stopword list or the threshold moves.
+R="${TMP}/keep-worst"
+D1="$(mk_item "$R" temporal 01-handover)"
+D2="$(mk_item "$R" temporal 02-converge)"
+set_subject "${D1}/USES.md" \
+  'A baton that moves between sites only when somebody has asked' \
+  'for it, with weak fairness on the granting step alone.'
+set_subject "${D2}/USES.md" \
+  'A ring of nodes where each one copies its left neighbor value' \
+  'whenever that value is larger, with weak fairness on every copy step.'
+run_gate --no-tlc "$R"
+hasnt "2k collide: the worst real pair, at 3 words, does not fire" "SUBJECT-RESTATED"
+has   "2k collide: and the run names it as the worst" "weak, fairness, step"
+
+# --- the two thresholds, each from both sides -----------------------------
+# Nonsense words, because a control about a threshold should not also be a
+# claim about English. None of them is a stopword and all are over 2
+# characters, so each one counts exactly once.
+R="${TMP}/edge-count-under"
+D1="$(mk_item "$R" core 01-aa)"
+D2="$(mk_item "$R" core 02-bb)"
+set_subject "${D1}/USES.md" 'alpha bravo charlie echo foxtrot golf.'
+set_subject "${D2}/USES.md" 'alpha bravo charlie uniform victor whiskey.'
+run_gate --no-tlc "$R"
+hasnt "2k edge: 3 shared words at 50% does not fire" "SUBJECT-RESTATED"
+
+R="${TMP}/edge-count-at"
+D1="$(mk_item "$R" core 01-aa)"
+D2="$(mk_item "$R" core 02-bb)"
+set_subject "${D1}/USES.md" 'alpha bravo charlie delta echo foxtrot golf hotel.'
+set_subject "${D2}/USES.md" 'alpha bravo charlie delta uniform victor whiskey xray.'
+run_gate --no-tlc "$R"
+has   "2k edge: 4 shared words at 50%, one over, fires" "SUBJECT-RESTATED"
+
+# THE PERCENTAGE IS THE DRIFT GUARD, and this is the row that holds it. Two
+# long subjects reach 4 shared words by length rather than by subject, and
+# the count alone would call that a duplicate.
+R="${TMP}/edge-pct-under"
+D1="$(mk_item "$R" core 01-aa)"
+D2="$(mk_item "$R" core 02-bb)"
+set_subject "${D1}/USES.md" \
+  'alpha bravo charlie delta echo foxtrot golf hotel india juliett' \
+  'kilo lima mike november oscar papa quebec romeo sierra tango.'
+set_subject "${D2}/USES.md" \
+  'alpha bravo charlie delta uniform victor whiskey xray yankee zulu' \
+  'zebra walrus vulture turtle squirrel rabbit possum otter newt marten.'
+run_gate --no-tlc "$R"
+hasnt "2k edge: 4 shared words at 20% does not fire" "SUBJECT-RESTATED"
+has   "2k edge: and the run still reports the 4 it found" "4 word(s) at 20%"
+
+# --- the slug check is exact, in both directions --------------------------
+# A slug that CONTAINS another is a different slug. `base` and `based` are two
+# systems, and a prefix match here would fire on half the corpus.
+R="${TMP}/slug-substring"
+mk_item "$R" core 01-base >/dev/null
+mk_item "$R" temporal 02-based >/dev/null
+run_gate --no-tlc "$R"
+hasnt "2k slug: base and based are different slugs" "SLUG-REUSED"
+
+# AND THE NN- PREFIX IS DROPPED BEFORE THE COMPARISON, which is what makes
+# the real case collide: the discard was 04-chameleons against a landed
+# 02-chameleons, so comparing whole directory names would have missed it.
+R="${TMP}/slug-renumbered"
+mk_item "$R" core 01-ring >/dev/null
+mk_item "$R" temporal 07-ring >/dev/null
+run_gate --no-tlc "$R"
+has   "2k slug: a different number with the same slug still collides" "SLUG-REUSED"
+
+# --- two honest items must be silent -------------------------------------
+# The ordinary case, and it has to stay quiet or none of the above matters.
+R="${TMP}/collide-silent"
+D1="$(mk_item "$R" core 01-nim)"
+D2="$(mk_item "$R" sets 01-clockface)"
+set_subject "${D1}/USES.md" \
+  'Three heaps of seven stones. A move takes any number of stones' \
+  'from one heap, and the bitwise exclusive-or of the three sizes is what' \
+  'the properties watch.'
+set_subject "${D2}/USES.md" \
+  'A clock hand that moves the same number of hours on every tick,' \
+  'carrying the set of hours it has landed on. The step size is picked once.'
+run_gate --no-tlc "$R"
+hasnt "2k collide: two real unrelated subjects are silent" "SUBJECT-RESTATED"
+hasnt "2k collide: and so are their slugs" "SLUG-REUSED"
+
+# A ONE-ITEM TREE HAS NO PAIR TO COMPARE, and must not report one.
+R="${TMP}/collide-single"
+mk_item "$R" >/dev/null
+run_gate --no-tlc "$R"
+hasnt "2k collide: a single item reports no collision" "SUBJECT-RESTATED"
+has   "2k collide: and says it compared 0 pairs" "over 0 pair(s)"
+
+# --- 2l: the gate states its own limit on every run -----------------------
+# THE LIMIT IS THE POINT OF THIS ROW. A duplicated lemma inside a different
+# system is NOT gated here, and the same author in the same hour wrote one: a
+# coprime model duplicating reading/pluscal/01-euclid's own divisor lemma,
+# two items along in its own family. Both checks pass it.
+#
+# An advisory half of a gate that presents itself as whole is worse than a
+# gate that states its limit, because the next author trusts it. So the
+# statement is in the gate's output and this row holds it there.
+R="${TMP}/limit"
+mk_item "$R" >/dev/null
+run_gate --no-tlc "$R"
+has   "2l limit: the gate says the lemma case is not gated" "NOT GATED: a duplicated lemma inside a different system"
+has   "2l limit: and points at the list a brief should paste" "--registry"
+
+# --- 2m: --registry prints the list and checks nothing --------------------
+# Every authoring brief above this bead needs the landed subjects, and
+# deriving them by hand in each brief is how three copies of the smoke
+# battery drifted before .claude/rules existed.
+R="${TMP}/registry"
+D1="$(mk_item "$R" core 02-chameleons)"
+D2="$(mk_item "$R" pluscal 04-ring)"
+set_subject "${D1}/USES.md" \
+  'Six chameleons in three colors, starting one, two and three.' \
+  'Two of different colors meet and both take on the third, and they' \
+  'never all end up matching.'
+set_subject "${D2}/USES.md" 'A ring buffer of four slots with a head index.'
+run_gate --registry "$R"
+rc_is "2m registry: rc 0, because it runs no check" 0
+has   "2m registry: lists the first item by path" "- core/02-chameleons"
+has   "2m registry: lists the second item by path" "- pluscal/04-ring"
+has   "2m registry: counts the items" "2 item(s)"
+has   "2m registry: lists the slugs an author may not reuse" "chameleons ring"
+hasnt "2m registry: runs no check, so no verdict line" "VERDICT"
+
+# THE SUBJECT IS PRINTED FLATTENED, on one line. A brief pastes it, and a
+# three-line Subject pasted as three lines reads as three facts.
+has   "2m registry: the wrapped subject is printed as one line" \
+  "Six chameleons in three colors, starting one, two and three. Two of different colors meet and both take on the third, and they never all end up matching."
+
+# AND IT WORKS OVER A TREE THAT WOULD FAIL THE GATE, because a brief author
+# wants the list whatever state the corpus is in.
+R="${TMP}/registry-broken"
+D="$(mk_item "$R" core 01-nim)"
+rm "${D}/Base.cfg"
+run_gate --registry "$R"
+rc_is "2m registry: rc 0 even over a tree with a broken item" 0
+has   "2m registry: and still lists that item" "- core/01-nim"
+
 echo
 
 # ===========================================================================
@@ -658,7 +962,7 @@ elif [ "$READING_ITEMS" -eq 0 ]; then
 else
   run_gate "${REPO_ROOT}/reading"
   if [ "$GATE_RC" = "0" ]; then
-    ok "real tree: ${READING_ITEMS} item(s), clean on all six checks"
+    ok "real tree: ${READING_ITEMS} item(s), clean on every check"
   else
     nope "real tree: reading-gate.sh returned rc=${GATE_RC} over reading/ (${READING_ITEMS} items)"
     printf '%s\n' "$GATE_OUT" | sed 's/^/        /'
