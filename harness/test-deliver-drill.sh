@@ -1783,28 +1783,28 @@ assert_contains "and spells that path out, so no expansion is left to guess" \
 assert_contains "and names the withheld files, so the boundary is concrete" \
   "$STUDY_CONFIG" "ANSWER.md"
 
-assert_matches "the prohibition on reading is in the NEVER register" \
+assert_matches_flat "the prohibition on reading is in the NEVER register" \
   "$STUDY_CONFIG" 'NEVER read'
 
-assert_matches "the prohibition on writing TLA+ is in the NEVER register" \
+assert_matches_flat "the prohibition on writing TLA+ is in the NEVER register" \
   "$STUDY_CONFIG" 'NEVER write'
 
-assert_matches "and closes the one-line and the code-fence loopholes by name" \
+assert_matches_flat "and closes the one-line and the code-fence loopholes by name" \
   "$STUDY_CONFIG" 'one line|single line'
 
-assert_matches "the prohibition on naming the missing construct is in the NEVER register" \
+assert_matches_flat "the prohibition on naming the missing construct is in the NEVER register" \
   "$STUDY_CONFIG" 'NEVER name'
 
 assert_matches "CLAUDE.md says the count comes from the checker" \
   "$STUDY_CONFIG" './check'
 
-assert_matches "and forbids reaching one any other way" \
+assert_matches_flat "and forbids reaching one any other way" \
   "$STUDY_CONFIG" 'never from|not from'
 
 assert_matches "CLAUDE.md gives the register a report is allowed to use" \
   "$STUDY_CONFIG" 'admits|forbids'
 
-assert_matches "the prohibition on estimating a count is in the NEVER register" \
+assert_matches_flat "the prohibition on estimating a count is in the NEVER register" \
   "$STUDY_CONFIG" 'NEVER estimate'
 
 # ---------------------------------------------------------------------------
@@ -1948,7 +1948,7 @@ assert_matches "check.md runs the checker rather than re-deriving its number" \
 # 129 distinct states. The file this cites is author-side and the command does
 # NOT name it, because naming a path under the withheld tree inside the file
 # that forbids reading it would be the leak wearing a citation.
-assert_matches "check.md says a matching count is not sufficient" \
+assert_matches_flat "check.md says a matching count is not sufficient" \
   "$STUDY_CHECK_CMD" 'not sufficient|cannot catch|structurally cannot'
 
 assert_matches "and names the mechanism rather than asserting it" \
@@ -1974,10 +1974,10 @@ assert_contains_flat "and says which way a row marked possible points" \
 assert_matches "hint.md refuses before it has seen an attempt" \
   "$STUDY_HINT_CMD" 'REFUSE|[Rr]efuse'
 
-assert_matches "hint.md ladders rather than answering at once" \
+assert_matches_flat "hint.md ladders rather than answering at once" \
   "$STUDY_HINT_CMD" '[Rr]ung 1'
 
-assert_matches "and never hands over the text of the fix" \
+assert_matches_flat "and never hands over the text of the fix" \
   "$STUDY_HINT_CMD" '[Nn]ever the text|not the text'
 
 # Bead tla-rzvk.3. A steered hint is two kinds of question under one flag, and
