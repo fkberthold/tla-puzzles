@@ -1,0 +1,399 @@
+#!/usr/bin/env bash
+# check: does the model you wrote reach the distinct-state count the drill's
+# prompt publishes?
+#
+# Delivered to the study root, with no extension, so the command reads
+# `./check` or `check <slug>`.
+#
+# Usage:  check [<slug-or-dir>]       the default is the current directory
+#         check --help
+#
+# Exit:   0  every module run reached a count the prompt publishes
+#         1  a module did not, or TLC never got far enough to print one
+#         2  UNCHECKED: the prompt publishes no count, so there is nothing
+#            to compare
+#         3  usage, no prompt found, no model found, or no tlc on the path
+#
+# ---------------------------------------------------------------------------
+# WHAT IT ANSWERS, AND WHAT IT REFUSES TO ANSWER
+#
+# One question, with no judgment in it: did TLC print a number the prompt
+# published? That is all. It cannot tell a right count reached by a wrong
+# model from a right count reached by a right one, and
+# drill/sequences/07-pneumatic-tube is the standing proof, where a rule true
+# of a stack and a queue alike runs clean at the published figure.
+#
+# So a 0 from this script means the count matched and nothing more. The
+# judgment half belongs to a session reading the model, which is why bead
+# tla-ytv2 split the two.
+#
+# 43 of the 64 prompts publish a count and 21 do not (measured 2026-10-15
+# over both the repo tree and the delivered one). The 21 end in a prose
+# question, and on those this script says UNCHECKED and stops. An absent
+# count is never a count of zero.
+#
+# ---------------------------------------------------------------------------
+# IT DEPENDS ON NOTHING BUT TLC
+#
+# The study tree is not this repo. There is no harness beside this file, no
+# verdict.sh to source, and no repo root to resolve. Everything it needs comes
+# from two environment variables with documented defaults, from the directory
+# it is pointed at, and from `tlc` on the path. An absent tlc is exit 3 with a
+# message, never a quiet pass.
+#
+#   DRILL_PROMPT_ROOT   default $HOME/tla-practice/drill
+#   DRILL_STUDY_ROOT    default $HOME/Study/tla-drills
+#
+# RESOLUTION NEEDS NO MAPPING DATA. The slug is the basename of the study
+# directory, and the prompt is the one hit of $DRILL_PROMPT_ROOT/*/<slug>/
+# PROMPT.md. All 64 slugs are distinct across the eight families, so two hits
+# is a bug in the tree rather than a choice to make, and this script reports
+# it instead of picking one.
+#
+# ---------------------------------------------------------------------------
+# WHERE THE NUMBER COMES FROM, WHICH IS THE LOG AND NEVER THE EXIT CODE
+#
+# TLC's exit code does not predict whether it printed a count, and four of the
+# six classes I measured on 2026-10-15 against TLC2 2026.07.31.184830 go the
+# way you would not guess:
+#
+#   rc    count printed?   measured against
+#   ----  ---------------  --------------------------------------------
+#   0     yes              drill/core/01-box-office/verify/BoxOffice
+#   12    yes              drill/core/01-box-office/verify/DoubleFare
+#   75    yes              drill/state-space/05-summary-record/verify/G05Record
+#   150   no               drill/sets/03-ballast/verify/BallastBinary
+#   255   no               drill/core/04-lift-types/verify/NegativeInConfig
+#
+# rc 75 is the one that catches people: G05Record logs `1 distinct states
+# found` AFTER its error. So the count is read out of the log, the rc is
+# printed beside it, and the two are never derived from each other.
+#
+# A NONZERO RC AT A MATCHING COUNT IS STILL A MATCH, and that is a decision
+# rather than an oversight. drill/state-space/05-summary-record publishes a
+# count for a run that errors, and deciding whether this particular prompt
+# wanted this particular error means reading the prompt's prose. The rc is on
+# the line for the reader. The one failure this script does gate on is TLC
+# printing no count at all, which no prompt in the corpus publishes a figure
+# for, so it lands on exit 1.
+#
+# ---------------------------------------------------------------------------
+# WHICH MODULE GETS RUN
+#
+# Every `.tla` at the top of the directory that has a `.cfg` of the same name.
+# If several qualify, each one is run and each one is reported, because Frank
+# keeps variants side by side: 01-slip-on-the-spike holds pickers.tla next to
+# pickers_collision.tla. Three kinds of leaving drop out, and two of them drop
+# out for free:
+#
+#   *_TTrace_*.tla      TLC's generated trace spec, skipped by name
+#   states/             TLC's fingerprint cache, never descended into
+#   *.tla.old           pcal's backup, which no *.tla glob matches
+#
+# A module with no config of its own name is skipped too, which is what
+# pickers_collision.tla actually is.
+#
+# NO DEADLOCK FLAG IS PASSED, on purpose. Several prompts say to check with
+# deadlock checking off, and the learner says that in the config with
+# CHECK_DEADLOCK. Passing `-deadlock` here would overrule the model being
+# graded.
+#
+# ---------------------------------------------------------------------------
+# THE COUNT CLAIM IN THE PROMPT, AND THE THREE SHAPES IT TAKES
+#
+# The claim is a SET of counts, and a module matches if TLC's number is one of
+# them. A prompt that publishes a table of six runs publishes six counts, and
+# this script cannot know which row you were reproducing. Printing the whole
+# set is what keeps that honest: you can see what the comparison was against.
+#
+#   1. The prose claim, 25 prompts. "A correct model finds 129 distinct
+#      states." Any integer sitting immediately before `states` or `distinct
+#      states` counts, which also picks up "came back clean at 211 states"
+#      and "13 distinct states, depth 7".
+#
+#   2. The table column, 18 prompts. A `| distinct states |` header names a
+#      column, and the integers in that column are the claims. Every real
+#      table carries a depth column and some carry a numeric first column, so
+#      this reads the column and never the row. A blank cell is not a claim,
+#      which is how a refused run is written down.
+#
+#   3. The continuation, 2 prompts. "81 distinct states with three troughs
+#      and 168 with four" publishes two counts at two model sizes, and
+#      state-space/08 runs the same shape out to four sizes. Only integers
+#      after the anchor count, which is what keeps "stopped at depth 4 with 7
+#      distinct states" from reading its depth as a claim.
+#
+# Commas are stripped before comparing, because the prompts group thousands
+# (`3,531`) and TLC's own summary line does not (measured: `123457 distinct
+# states found`). TLC's progress lines may group; I have not measured one on
+# this build, so the reader below tolerates grouping rather than assuming its
+# absence.
+# ---------------------------------------------------------------------------
+
+set -uo pipefail
+
+PROMPT_ROOT="${DRILL_PROMPT_ROOT:-${HOME:-}/tla-practice/drill}"
+STUDY_ROOT="${DRILL_STUDY_ROOT:-${HOME:-}/Study/tla-drills}"
+
+usage() {
+  cat <<'USAGE'
+Usage: check [<slug-or-dir>]
+
+  check                 check the current directory
+  check <slug>          check $DRILL_STUDY_ROOT/<slug>
+  check <dir>           check that directory
+  check --help          this text
+
+Exit 0 if every module reached a count the prompt publishes, 1 if one did not,
+2 if the prompt publishes no count, 3 if it could not run.
+USAGE
+}
+
+# ---------------------------------------------------------------------------
+# The claim scan.
+# ---------------------------------------------------------------------------
+
+# prose_claims <prompt>: shapes 1 and 3 from the header. The file is flattened
+# to one line first, because a claim wraps across lines in 7 of the prompts,
+# then split into sentences so a continuation cannot reach past the sentence
+# that anchored it.
+prose_claims() {
+  local norm sentences sentence anchors rest conts hit num out=""
+  local nl=$'\n'
+  norm="$(tr '\n' ' ' <"$1")"
+  norm="$(tr -s ' ' <<<"$norm")"
+  # One sentence per line, splitting on ". " alone, so a decimal inside a
+  # figure like "1.2 seconds" does not open a sentence of its own.
+  sentences="${norm//. /.${nl}}"
+  while IFS= read -r sentence; do
+    anchors="$(grep -oE '[0-9][0-9,]*[[:space:]]+(distinct[[:space:]]+)?states' <<<"$sentence")"
+    [ -n "$anchors" ] || continue
+    while IFS= read -r hit; do
+      [ -n "$hit" ] || continue
+      num="$(grep -oE '^[0-9][0-9,]*' <<<"$hit")"
+      out="${out}$(tr -d ',' <<<"$num") "
+    done <<<"$anchors"
+    # Shape 3. Everything up to the first `states` is dropped, so only an
+    # integer AFTER the anchor can be read as a further model size.
+    rest="${sentence#*states}"
+    conts="$(grep -oE '[0-9][0-9,]*[[:space:]]+with([[:space:]]|$)' <<<"$rest")"
+    [ -n "$conts" ] || continue
+    while IFS= read -r hit; do
+      [ -n "$hit" ] || continue
+      num="$(grep -oE '^[0-9][0-9,]*' <<<"$hit")"
+      out="${out}$(tr -d ',' <<<"$num") "
+    done <<<"$conts"
+  done <<<"$sentences"
+  printf '%s' "$out"
+}
+
+# table_claims <prompt>: shape 2. The header row names a column by index and
+# every following row is read at that index alone. A line that does not start
+# with a pipe ends the table, which is what lets a prompt carry three of them
+# at three different column positions (state-space/03 does).
+table_claims() {
+  local line col idx cell out=""
+  col=""
+  while IFS= read -r line; do
+    case "$line" in
+    '|'*)
+      if [ -z "$col" ]; then
+        idx=0
+        while IFS= read -r cell; do
+          idx=$((idx + 1))
+          case "$cell" in
+          *distinct*states*) col="$idx" ;;
+          esac
+        done < <(tr '|' '\n' <<<"$line")
+      else
+        idx=0
+        while IFS= read -r cell; do
+          idx=$((idx + 1))
+          if [ "$idx" = "$col" ]; then
+            cell="$(tr -d ' ,' <<<"$cell")"
+            case "$cell" in
+            '' | *[!0-9]*) : ;;
+            *) out="${out}${cell} " ;;
+            esac
+          fi
+        done < <(tr '|' '\n' <<<"$line")
+      fi
+      ;;
+    *) col="" ;;
+    esac
+  done <"$1"
+  printf '%s' "$out"
+}
+
+# dedupe_csv <space-separated>: the claim is a set, so a table that publishes
+# the same count three times (modules/02 does) claims it once.
+dedupe_csv() {
+  local -a toks=()
+  local tok seen=" " out=""
+  read -r -a toks <<<"$1"
+  for tok in ${toks[@]+"${toks[@]}"}; do
+    case "$seen" in
+    *" ${tok} "*) continue ;;
+    esac
+    seen="${seen}${tok} "
+    out="${out:+${out},}${tok}"
+  done
+  printf '%s' "$out"
+}
+
+# ---------------------------------------------------------------------------
+# The run.
+# ---------------------------------------------------------------------------
+
+# last_count <tlc output>: the number TLC printed, or nothing. The LAST match
+# wins, because a long run reports progress on the same words before it
+# reaches its summary.
+last_count() {
+  local hits
+  hits="$(grep -oE '[0-9][0-9,]*[[:space:]]+distinct[[:space:]]+states[[:space:]]+found' <<<"$1")"
+  [ -n "$hits" ] || return 0
+  hits="$(tail -n 1 <<<"$hits")"
+  hits="$(grep -oE '^[0-9][0-9,]*' <<<"$hits")"
+  tr -d ',' <<<"$hits"
+}
+
+# claim_matches <count> <csv>
+claim_matches() {
+  local one
+  while IFS= read -r one; do
+    [ "$one" = "$1" ] && return 0
+  done < <(tr ',' '\n' <<<"$2")
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# Resolve what to check.
+# ---------------------------------------------------------------------------
+
+case "${1:-}" in
+-h | --help)
+  usage
+  exit 0
+  ;;
+esac
+
+if [ "$#" -gt 1 ]; then
+  echo "check: one argument at most, got $#." >&2
+  usage >&2
+  exit 3
+fi
+
+TARGET="${1:-}"
+if [ -z "$TARGET" ]; then
+  WORK="$PWD"
+  SLUG="$(basename -- "$PWD")"
+elif [ -d "$TARGET" ]; then
+  WORK="$(cd -- "$TARGET" && pwd)"
+  SLUG="$(basename -- "$WORK")"
+elif [ "${TARGET#*/}" != "$TARGET" ]; then
+  # It carries a slash, so it was meant as a path and the path is not there.
+  WORK="$TARGET"
+  SLUG="$(basename -- "$TARGET")"
+else
+  WORK="${STUDY_ROOT}/${TARGET}"
+  SLUG="$TARGET"
+fi
+
+# ---------------------------------------------------------------------------
+# Resolve the prompt. Two hits is a corpus bug and gets reported as one.
+# ---------------------------------------------------------------------------
+
+HITS=()
+for candidate in "$PROMPT_ROOT"/*/"$SLUG"/PROMPT.md; do
+  [ -f "$candidate" ] && HITS+=("$candidate")
+done
+
+if [ "${#HITS[@]}" -eq 0 ]; then
+  echo "check: no prompt for '${SLUG}'. Looked for ${PROMPT_ROOT}/*/${SLUG}/PROMPT.md." >&2
+  exit 3
+fi
+if [ "${#HITS[@]}" -gt 1 ]; then
+  echo "check: '${SLUG}' matches ${#HITS[@]} prompts. That is a corpus bug, not a choice to make:" >&2
+  for candidate in "${HITS[@]}"; do
+    echo "  ${candidate}" >&2
+  done
+  exit 3
+fi
+PROMPT="${HITS[0]}"
+
+# ---------------------------------------------------------------------------
+# The claim. No claim is exit 2, and it is decided before anything else is
+# needed, so a drill with nothing to compare never asks for tlc or a model.
+# ---------------------------------------------------------------------------
+
+CLAIMS="$(dedupe_csv "$(prose_claims "$PROMPT")$(table_claims "$PROMPT")")"
+
+if [ -z "$CLAIMS" ]; then
+  printf 'UNCHECKED: %s publishes no distinct-state count, so there is nothing to compare.\n' "$SLUG"
+  exit 2
+fi
+
+# ---------------------------------------------------------------------------
+# The models, then the toolchain.
+# ---------------------------------------------------------------------------
+
+if [ ! -d "$WORK" ]; then
+  echo "check: ${WORK} is not a directory, so there is no model to run." >&2
+  exit 3
+fi
+
+MODULES=()
+for candidate in "$WORK"/*.tla; do
+  [ -f "$candidate" ] || continue
+  base="${candidate##*/}"
+  base="${base%.tla}"
+  case "$base" in
+  *_TTrace_*) continue ;;
+  esac
+  [ -f "${WORK}/${base}.cfg" ] || continue
+  MODULES+=("$base")
+done
+
+if [ "${#MODULES[@]}" -eq 0 ]; then
+  echo "check: no module with a config of the same name under ${WORK}." >&2
+  exit 3
+fi
+
+if ! command -v tlc >/dev/null 2>&1; then
+  echo "check: tlc is not on the path, so nothing was checked." >&2
+  exit 3
+fi
+
+# ---------------------------------------------------------------------------
+# Run each model and report it.
+# ---------------------------------------------------------------------------
+
+MISSED=()
+for module in "${MODULES[@]}"; do
+  out="$(cd -- "$WORK" && tlc -config "${module}.cfg" "$module" 2>&1)"
+  rc=$?
+  count="$(last_count "$out")"
+  if [ -z "$count" ]; then
+    shown="none"
+    verdict="MISMATCH"
+  elif claim_matches "$count" "$CLAIMS"; then
+    shown="$count"
+    verdict="MATCH"
+  else
+    shown="$count"
+    verdict="MISMATCH"
+  fi
+  printf 'module=%s rc=%s distinct=%s claimed=%s %s\n' \
+    "$module" "$rc" "$shown" "$CLAIMS" "$verdict"
+  [ "$verdict" = "MISMATCH" ] && MISSED+=("$module")
+done
+
+if [ "${#MISSED[@]}" -eq 0 ]; then
+  printf 'MATCHED: %s of %s module(s) reached a count %s publishes.\n' \
+    "${#MODULES[@]}" "${#MODULES[@]}" "$SLUG"
+  exit 0
+fi
+
+printf 'MISMATCHED: %s of %s module(s) did not reach a count %s publishes: %s\n' \
+  "${#MISSED[@]}" "${#MODULES[@]}" "$SLUG" "${MISSED[*]}"
+exit 1
