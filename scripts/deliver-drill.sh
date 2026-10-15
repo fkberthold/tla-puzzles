@@ -218,10 +218,25 @@
 #   drill/study/CLAUDE.md              -> <root>/CLAUDE.md
 #   drill/study/.claude/commands/*.md  -> <root>/.claude/commands/*.md
 #   drill/study/check                  -> <root>/check, mode 0755
+#   drill/study/STYLE.md               -> <root>/STYLE.md
+#   drill/study/style                  -> <root>/style, mode 0755
 #
-# All three are ALWAYS overwritten. They are tooling in the runner's class, and
+# All five are ALWAYS overwritten. They are tooling in the runner's class, and
 # CLAUDE.md is a refusal contract, so a fix to it that cannot reach him is
 # worth nothing.
+#
+# THE STYLE PAIR, added 2026-10-15 by bead tla-iiow.3, is the register a
+# session reads style against and the script that does the measuring. They are
+# a pair rather than one file for the reason the checker is not the config:
+# the script measures and the model interprets, and a model running under
+# `--tools ""` can do neither without being handed both. drill/drill.sh
+# --style is what hands them over.
+#
+# NEITHER IS AN ERROR WHEN ABSENT, and that is load-bearing rather than
+# tolerant. Beads tla-iiow.1 and tla-iiow.2 write those two files and this
+# half shipped before them, so the only honest thing a delivery can do over a
+# source that has one and not the other is deliver what is there and name
+# what is not. The same rule the checker already has, for the same reason.
 #
 # IT IS A SEPARATE MODE RATHER THAN AN ADDITION TO A PLAIN RUN, because the two
 # roots differ and so does the rule about creating them. The prompt tree is
@@ -308,6 +323,11 @@ STUDY_DIR_NAME="study"
 STUDY_CONFIG_NAME="CLAUDE.md"
 STUDY_COMMANDS_REL=".claude/commands"
 STUDY_CHECK_NAME="check"
+# The style pair. The register is prose and the script is executable, so they
+# take two names and two verbs rather than one of each. drill/drill.sh --style
+# reads both off the study root under exactly these names.
+STUDY_REGISTER_NAME="STYLE.md"
+STUDY_STYLE_NAME="style"
 
 # The corpus readme, in the runner's file class. Read "A FOURTH FILE CLASS"
 # above before changing this.
@@ -489,6 +509,27 @@ if [ "$STUDY_MODE" -eq 1 ]; then
     echo "no checker at $SRC_STUDY/$STUDY_CHECK_NAME, so none lands"
   fi
 
+  # The style pair, bead tla-iiow.3. Each is reported on its own, because a
+  # source can carry one and not the other while the two beads that write them
+  # land separately, and "the style pair did not land" would not say which.
+  if [ -f "$SRC_STUDY/$STUDY_REGISTER_NAME" ]; then
+    study_srcs+=("$SRC_STUDY/$STUDY_REGISTER_NAME")
+    study_dests+=("$STUDY_ROOT/$STUDY_REGISTER_NAME")
+    study_labels+=("style register")
+  else
+    echo "no style register at $SRC_STUDY/$STUDY_REGISTER_NAME, so none lands"
+  fi
+
+  HAVE_STUDY_STYLE=0
+  if [ -f "$SRC_STUDY/$STUDY_STYLE_NAME" ]; then
+    HAVE_STUDY_STYLE=1
+    study_srcs+=("$SRC_STUDY/$STUDY_STYLE_NAME")
+    study_dests+=("$STUDY_ROOT/$STUDY_STYLE_NAME")
+    study_labels+=("style script")
+  else
+    echo "no style script at $SRC_STUDY/$STUDY_STYLE_NAME, so none lands"
+  fi
+
   if [ "$CHECK_ONLY" -eq 1 ]; then
     study_to_land=0
     study_to_overwrite=0
@@ -530,6 +571,16 @@ if [ "$STUDY_MODE" -eq 1 ]; then
   if [ "$HAVE_STUDY_CHECK" -eq 1 ] && [ -f "$STUDY_ROOT/$STUDY_CHECK_NAME" ]; then
     if ! chmod 0755 -- "$STUDY_ROOT/$STUDY_CHECK_NAME"; then
       echo "$0: delivered the checker but could not make it executable: $STUDY_ROOT/$STUDY_CHECK_NAME" >&2
+      study_rc=1
+    fi
+  fi
+
+  # drill/drill.sh execs the style script and refuses when it is not
+  # executable, so the same chmod the checker needs, after the copy and for
+  # the same reason. The register is prose and needs none.
+  if [ "$HAVE_STUDY_STYLE" -eq 1 ] && [ -f "$STUDY_ROOT/$STUDY_STYLE_NAME" ]; then
+    if ! chmod 0755 -- "$STUDY_ROOT/$STUDY_STYLE_NAME"; then
+      echo "$0: delivered the style script but could not make it executable: $STUDY_ROOT/$STUDY_STYLE_NAME" >&2
       study_rc=1
     fi
   fi

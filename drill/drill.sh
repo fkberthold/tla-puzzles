@@ -6,6 +6,7 @@
 #
 # Usage:  ./drill [done|shaky|status|list|help] [<family>/<item>]
 #         ./drill --check
+#         ./drill --style
 #         ./drill --hint [<question>]
 #
 # Exit:   0 on a served drill, a recorded mark, a status or a list, and on an
@@ -55,26 +56,36 @@
 # SILENCE STOPS MEANING ANYTHING
 #
 # The clause above used to cover the whole script: it read nothing outside the
-# directory it sits in, full stop. The two coaching flags, --check and --hint,
-# read three things outside it. So the clause is now about a serve, and here
-# are the three, each one named rather than tucked into the code:
+# directory it sits in, full stop. The three coaching flags, --check, --hint
+# and --style, read five things outside it. So the clause is now about a serve,
+# and here are the five, each one named rather than tucked into the code:
 #
-#   $STUDY_ROOT/check   executed, and its output read back
-#   $STUDY_ROOT/<slug>  the attempt's .tla and .cfg files, read
-#   claude              executed, found on PATH rather than at a known path
+#   $STUDY_ROOT/check     executed, and its output read back
+#   $STUDY_ROOT/style     executed, and its output read back
+#   $STUDY_ROOT/STYLE.md  read, and cat whole into the style prompt
+#   $STUDY_ROOT/<slug>    the attempt's .tla and .cfg files, read
+#   claude                executed, found on PATH rather than at a known path
 #
-# WHY THE THREE ARE WORTH IT, which is one argument rather than three. The
-# one-shot runs as `claude -p --tools ""`, and the empty tool set is what makes
-# the read prohibition in the study config structural rather than advisory: the
-# model cannot reach the worked answer because it cannot reach anything. The
-# cost of that is that it cannot fetch its own material either. So either this
-# script fetches the prompt, the attempt and the checker's numbers, or the
-# one-shot has nothing to read and the coaching is worthless. Measured
-# 2026-10-14 against claude 2.1.300, bead tla-rzvk.
+# WHY THEY ARE WORTH IT, which is one argument rather than five. The one-shot
+# runs as `claude -p --tools ""`, and the empty tool set is what makes the read
+# prohibition in the study config structural rather than advisory: the model
+# cannot reach the worked answer because it cannot reach anything. The cost of
+# that is that it cannot fetch its own material either. So either this script
+# fetches the prompt, the attempt and whichever script's numbers the mode
+# needs, or the one-shot has nothing to read and the coaching is worthless.
+# Measured 2026-10-14 against claude 2.1.300, bead tla-rzvk.
 #
-# The first two resolve the same way the study directory already did, off
+# THE STYLE PAIR ADDED NOTHING TO THAT ARGUMENT AND IS NOT ARGUED AGAIN. Bead
+# tla-iiow.3 added two reads under the same root the other three already
+# resolve from, and the paragraph above covers them as written: a register the
+# model cannot open is a register that is not there. What grew is the list,
+# because a list that says three while the code reads five is worse than no
+# list. The one thing worth saying on top is that STYLE.md is READ rather than
+# executed, and it is the only input here that is prose rather than a number.
+#
+# The paths resolve the same way the study directory already did, off
 # $DRILL_STUDY_ROOT with the documented default. claude comes off PATH because
-# a model binary has no fixed home, which is the one of the three that could
+# a model binary has no fixed home, which is the one of the five that could
 # surprise somebody reading this and so is the one worth naming twice.
 #
 # THE ONE-SHOT'S CWD IS THE SLUG DIRECTORY AND THAT IS LOAD-BEARING. The study
@@ -89,13 +100,15 @@
 # $STUDY_ROOT/<slug> for whichever drill that was. Your own cwd decides
 # nothing, so --check works from the study root where you land.
 #
-# EVERY ONE OF THE THREE FAILS SOFT, AND THE SERVE PATH IS WHY. Serving is the
+# EVERY ONE OF THE FIVE FAILS SOFT, AND THE SERVE PATH IS WHY. Serving is the
 # job and coaching is the convenience. No claude on the path, no checker at
-# the study root, no attempt in the directory: each is one message on stderr
-# and exit 1, decided BEFORE anything is executed, so there is never a half-run
-# that ships a block from a command that did not run. A model handed an empty
-# checker block cannot tell it from a clean one, which is the wrong direction
-# to be wrong in. A serve still works with none of the three present.
+# the study root, no style script, no register beside it, no attempt in the
+# directory: each is one message on stderr and exit 1, decided BEFORE anything
+# is executed, so there is never a half-run that ships a block from a command
+# that did not run. A model handed an empty checker block cannot tell it from a
+# clean one, and one handed measurements with no register cannot tell an absent
+# register from an empty one, which is the wrong direction to be wrong in
+# twice. A serve still works with none of the five present.
 #
 # ---------------------------------------------------------------------------
 # THE QUEUE IS DERIVED FROM THE TREE, NEVER FROM A LIST
@@ -162,21 +175,45 @@
 # behind it, so a clobbered file does not come back, and the study tree is in
 # the same position.
 #
-# THE COACHING FLAGS ADD NO FOURTH PATH. --check and --hint read, execute and
-# print. Neither touches PROGRESS.tsv, LAST-SERVED or the study directory, and
-# neither is a mark: reading your attempt back to you is not finishing the
-# drill, and deciding that is yours.
+# THE COACHING FLAGS ADD NO FOURTH PATH. --check, --hint and --style read,
+# execute and print. None touches PROGRESS.tsv, LAST-SERVED or the study
+# directory, and none is a mark: reading your attempt back to you is not
+# finishing the drill, and deciding that is yours.
 #
 # LAST-SERVED is the one file that gets replaced rather than appended to, and
 # that is sound because it holds no work. It is this script's own cursor, it
 # is rewritten on every serve, and the record of what happened is in
 # PROGRESS.tsv. A pointer can go stale if you work two terminals, which is why
-# both marks and --check also take an explicit <family>/<item>.
+# both marks, --check and --style all take an explicit <family>/<item>.
 #
 # --hint does not, and that is the one asymmetry here. The rest of its line is
 # the question, so a drill name typed there is a question about that text. The
 # override exists for a drifted pointer, and ./drill --check names the drill
 # just as well while the hint is one command behind it.
+#
+# ---------------------------------------------------------------------------
+# --style IS A THIRD MODE AND NOT A SECOND HALF OF --check
+#
+# Bead tla-iiow.3. --check asks whether the model does what the prompt asked.
+# --style asks how the TLA+ reads against how published TLA+ reads. Two
+# different questions, and folding the second into the first would make every
+# check pay for it, so a style run does not execute the checker and a check
+# run does not execute the style script. One line to change here if the two
+# are ever wanted together.
+#
+# IT CATS THE REGISTER INTO THE PROMPT, which is the one thing it does that
+# neither other mode has an equivalent of. $STUDY_ROOT/STYLE.md is where the
+# survey counts and Lamport's page citations live, and a model under
+# `--tools ""` cannot open it however plainly it is told to. So the register
+# ships with the measurements, and the style prompt is the largest of the
+# three by a wide margin. That is the cost of the separation and it is paid
+# only by the runs that ask for it.
+#
+# THE STYLE SCRIPT'S EXIT CODE IS NOT A VERDICT AND NOT THIS SCRIPT'S. Bead
+# tla-iiow.2 locks 0 for measured-something and 3 for could-not-run, with no 1
+# at all, because a style pass that can fail becomes a gate on the work. It
+# goes on the block's label where the model can read it, exactly as the
+# checker's does, and this script still exits with the one-shot's status.
 
 set -uo pipefail
 
@@ -217,6 +254,7 @@ usage() {
   cat <<'USAGE'
 Usage: ./drill [done|shaky|status|list|help] [<family>/<item>]
        ./drill --check [<family>/<item>]
+       ./drill --style [<family>/<item>]
        ./drill --hint [<question>]
 
   ./drill            serve the next drill: where to work, then its prompt
@@ -225,6 +263,7 @@ Usage: ./drill [done|shaky|status|list|help] [<family>/<item>]
   ./drill status     how many are done, shaky and untried
   ./drill list       the queue, in the order it gets served
   ./drill --check    run the checker over your attempt, then read it back
+  ./drill --style    measure your attempt against how published TLA+ reads
   ./drill --hint     one rung of a hint about your attempt
   ./drill help       this text
 
@@ -239,17 +278,23 @@ A serve makes the directory to work the drill in, under ~/Study/tla-drills.
 Set DRILL_STUDY_ROOT to put it somewhere else. A directory already there is
 left exactly as it is, and a serve that cannot make one still serves.
 
---check and --hint coach the drill that was served last, the same way a mark
-does, and --check takes a name when two terminals have drifted apart. Every
-run prints the drill and the directory it read, so a stale pointer shows up
-before you read the answer rather than after. It does not matter where you are
-standing.
+--check, --style and --hint coach the drill that was served last, the same way
+a mark does, and --check and --style take a name when two terminals have
+drifted apart. Every run prints the drill and the directory it read, so a
+stale pointer shows up before you read the answer rather than after. It does
+not matter where you are standing.
+
+--check asks whether your model does what the prompt asked. --style asks how
+your TLA+ reads next to published TLA+, which is a different question, so it
+runs on its own and a check never pays for it. It has no pass and no fail.
 
 --hint takes no drill name, because the rest of the line is the question:
 ./drill --hint why does this one keep failing. The quotes are optional.
 
-Both need claude on the path and the checker at the study root, and both
-refuse rather than half-run when either is missing. Serving never does.
+All three need claude on the path. --check needs the checker at the study
+root, --style needs the style script and the register beside it, and each one
+refuses rather than half-running when what it needs is missing. Serving never
+does.
 USAGE
 }
 
@@ -478,12 +523,12 @@ serve_next() {
 }
 
 # ---------------------------------------------------------------------------
-# Coaching: --check and --hint.
+# Coaching: --check, --hint and --style.
 #
-# This assembles and ships. What the two modes MEAN is the study config's, and
-# the first line of the prompt is the whole of the seam: MODE: check or
-# MODE: hint, plus a QUESTION block when a hint was steered. Nothing here
-# decides a rung or a register.
+# This assembles and ships. What the three modes MEAN is the study config's,
+# and the first line of the prompt is the whole of the seam: MODE: check,
+# MODE: hint or MODE: style, plus a QUESTION block when a hint was steered.
+# Nothing here decides a rung or a register.
 # ---------------------------------------------------------------------------
 
 COACH_ITEM=""
@@ -494,6 +539,8 @@ COACH_MODULES=0
 QUESTION=""
 CHECK_OUT=""
 CHECK_RC=0
+STYLE_OUT=""
+STYLE_RC=0
 PROMPT_TEXT=""
 
 # resolve_coach <flag> <arg>: which drill, and which directory holds it.
@@ -592,12 +639,34 @@ run_checker() {
   CHECK_RC=$?
 }
 
+# run_styler <dir>: the style script, joined and labeled exactly as the
+# checker is, and for the same two reasons. An empty block is unreadable to a
+# model with no tools, and the exit code is a fact the output does not carry.
+#
+# DRILL_PROMPT_ROOT is named here too. The style axes are read against the
+# item the attempt is for, and one item is excluded from one axis by name, so
+# a style script resolving some other prompt tree would exclude the wrong
+# thing or nothing at all.
+run_styler() {
+  STYLE_OUT=""
+  STYLE_RC=0
+  STYLE_OUT="$(DRILL_PROMPT_ROOT="$HERE" "$STUDY_ROOT/style" "$1" 2>&1)"
+  STYLE_RC=$?
+}
+
 # build_prompt <mode>: everything the one-shot gets, on stdout.
 #
 # MODE is the first line and the only instruction in here. Everything after it
-# is labeled material: the prompt as it was served, what the checker said, and
-# the files of the attempt. No prohibition is restated, because the study
-# config holds all of them and a second copy drifts from the day it is written.
+# is labeled material: the prompt as it was served, what the checker or the
+# style script said, and the files of the attempt. No prohibition is restated,
+# because the study config holds all of them and a second copy drifts from the
+# day it is written.
+#
+# THE MIDDLE BLOCK IS THE ONLY THING THAT VARIES BY MODE, and a style run gets
+# two where the other two get one: the register, whole, and then the
+# measurements. The register comes FIRST because it is what the numbers are
+# read against, and a model handed figures before the frame reads the figures
+# twice.
 build_prompt() {
   local mode="$1" base
   printf 'MODE: %s\n' "$mode"
@@ -608,15 +677,22 @@ build_prompt() {
   fi
   printf '\n== PROMPT.md ==\n'
   cat "$HERE/$COACH_ITEM/PROMPT.md"
-  printf '\n== CHECKER, exit %s, output verbatim ==\n' "$CHECK_RC"
-  printf '%s\n' "$CHECK_OUT"
+  if [ "$mode" = "style" ]; then
+    printf '\n== STYLE.md, the register, verbatim ==\n'
+    cat "$STUDY_ROOT/STYLE.md"
+    printf '\n== STYLE, exit %s, output verbatim ==\n' "$STYLE_RC"
+    printf '%s\n' "$STYLE_OUT"
+  else
+    printf '\n== CHECKER, exit %s, output verbatim ==\n' "$CHECK_RC"
+    printf '%s\n' "$CHECK_OUT"
+  fi
   for base in "${COACH_FILES[@]}"; do
     printf '\n== ATTEMPT %s ==\n' "$base"
     cat "$COACH_DIR/$base"
   done
 }
 
-# coach <mode>: the whole of --check and --hint.
+# coach <mode>: the whole of --check, --hint and --style.
 #
 # EVERY GATE IS DECIDED BEFORE ANYTHING IS EXECUTED, and the order is the
 # cheapest refusal first: a box with no claude on it never pays for a TLC run
@@ -640,7 +716,29 @@ coach() {
     return 1
   fi
 
-  if [ ! -x "$STUDY_ROOT/check" ]; then
+  # WHICH DEPENDENCY EACH MODE NEEDS, and the two sets do not overlap. A style
+  # run never executes the checker, so a study root with no checker in it
+  # styles an attempt perfectly well, and a check run never reads the
+  # register. Gating on both would refuse a run over a tree that holds
+  # everything that run needs.
+  if [ "$mode" = "style" ]; then
+    if [ ! -x "$STUDY_ROOT/style" ]; then
+      echo "drill: no runnable style script at $STUDY_ROOT/style, so there is nothing" >&2
+      echo "drill: measured to send and I would rather send nothing than a blank." >&2
+      echo "drill: Deliver the study tree, then try again." >&2
+      return 1
+    fi
+    # The register is the frame the measurements are read against, and the
+    # one-shot runs with no tools, so it cannot open the file itself however
+    # plainly it is told to. Measurements with no register would be read
+    # against nothing and sound exactly as certain.
+    if [ ! -r "$STUDY_ROOT/STYLE.md" ]; then
+      echo "drill: no style register at $STUDY_ROOT/STYLE.md, and the one-shot runs with" >&2
+      echo "drill: no tools, so it cannot open one itself. Measurements with nothing to" >&2
+      echo "drill: read them against are worse than none. Deliver the study tree first." >&2
+      return 1
+    fi
+  elif [ ! -x "$STUDY_ROOT/check" ]; then
     echo "drill: no runnable checker at $STUDY_ROOT/check, so there is nothing objective" >&2
     echo "drill: to send and I would rather send nothing than a blank. Deliver the study" >&2
     echo "drill: tree, then try again." >&2
@@ -653,13 +751,25 @@ coach() {
     return 1
   fi
 
-  run_checker "$COACH_DIR"
+  if [ "$mode" = "style" ]; then
+    run_styler "$COACH_DIR"
+  else
+    run_checker "$COACH_DIR"
+  fi
 
   printf -- '-- %s: %s --\n' "$mode" "$COACH_ITEM"
   printf 'chosen from %s\n' "$COACH_HOW"
   printf 'reading in:   %s\n' "$COACH_DIR"
   printf 'attempt:      %s\n' "${COACH_FILES[*]}"
-  printf 'checker:      exit %s\n' "$CHECK_RC"
+  if [ "$mode" = "style" ]; then
+    printf 'style:        exit %s\n' "$STYLE_RC"
+    # The register is named because it is the one input a reader cannot
+    # otherwise account for: it comes from a third file and it is most of the
+    # prompt by volume.
+    printf 'register:     %s\n' "$STUDY_ROOT/STYLE.md"
+  else
+    printf 'checker:      exit %s\n' "$CHECK_RC"
+  fi
   echo
 
   PROMPT_TEXT="$(build_prompt "$mode")"
@@ -670,13 +780,13 @@ coach() {
 }
 
 # ---------------------------------------------------------------------------
-# WHICH DRILL, FOR ALL FOUR VERBS THAT NEED ONE
+# WHICH DRILL, FOR ALL FIVE VERBS THAT NEED ONE
 #
-# done, shaky, --check and --hint all answer the same question, so they ask it
-# in the same place. The drill comes from the argument if there is one, and
-# from the pointer otherwise. Either way it has to be a drill that is in the
-# tree: a name that is not gets refused rather than written, so the record
-# never holds an entry for something that does not exist.
+# done, shaky, --check, --hint and --style all answer the same question, so
+# they ask it in the same place. The drill comes from the argument if there is
+# one, and from the pointer otherwise. Either way it has to be a drill that is
+# in the tree: a name that is not gets refused rather than written, so the
+# record never holds an entry for something that does not exist.
 #
 # THE COACHING FLAGS USED TO RESOLVE OFF THE DIRECTORY YOU WERE STANDING IN,
 # and that was wrong. The argument for it was borrowed from why a mark takes an
@@ -701,6 +811,7 @@ resolve_target() {
   local item="" noun="mark" named="$verb"
   case "$verb" in
     --check) noun="check" ;;
+    --style) noun="style" ;;
     --hint)
       noun="hint"
       named=""
@@ -785,6 +896,7 @@ case "${1:-}" in
   "") VERB="serve" ;;
   done | shaky | status | list) VERB="$1" ;;
   --check) VERB="check" ;;
+  --style) VERB="style" ;;
   --hint) VERB="hint" ;;
   help | -h | --help)
     usage
@@ -863,7 +975,7 @@ case "$VERB" in
     read_progress
     serve_next
     ;;
-  check | hint)
+  check | hint | style)
     # The one-shot's own exit status is this script's, because a coaching run
     # that reached the model has nothing of its own left to report. A gate
     # refusal returns 1 from coach and exits 1 here.
