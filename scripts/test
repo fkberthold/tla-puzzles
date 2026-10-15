@@ -67,8 +67,9 @@
 #   fast   0.3 s  harness/test-spelling.sh                (added, bead tla-nv5q)
 #   fast   0.7 s  harness/test-build-docs-chapter.sh
 #   fast   0.7 s  harness/test-number-problems.sh
-#   fast   2.1 s  harness/test-deliver-drill.sh        (re-based, bead tla-rzvk.3)
-#   fast   2.5 s  harness/test-drill-runner.sh        (re-based, bead tla-rzvk.2)
+#   fast   2.3 s  harness/test-deliver-drill.sh        (re-based, bead tla-iiow.3)
+#   fast   1.7 s  harness/test-drill-style.sh             (added, bead tla-iiow.2)
+#   fast   2.9 s  harness/test-drill-runner.sh        (re-based, bead tla-iiow.3)
 #   fast   0.9 s  harness/test-deliver-problems.sh
 #   fast   1.0 s  harness/test-build-docs-exercises.sh
 #   fast   1.0 s  harness/test-deliver-completion.sh     (added, bead tla-z3ks)
@@ -85,7 +86,7 @@
 #   fast   4.8 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
 #   slow   8.0 s  harness/test-drill-check.sh         (re-based, bead tla-rzvk.4)
-#   slow  12.9 s  harness/test-reading.sh               (re-based, bead tla-8q8n)
+#   slow  14.7 s  harness/test-reading.sh               (re-based, bead tla-ldvw)
 #   slow  10.7 s  harness/test-indeterminate.sh        (re-based, bead tla-ocpw)
 #   slow   9.0 s  chapter/snippets/run-all.sh
 #   slow   9.8 s  scripts/test-verify-puzzle.sh                        (v1)
@@ -97,11 +98,11 @@
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
-#         41.1 s  fast tier, 22 suites   (measured --fast totals: 26.9 s at 18,
+#         43.4 s  fast tier, 23 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        426.9 s  slow tier, 12 suites
-#        468.0 s  whole registry
+#        428.7 s  slow tier, 12 suites
+#        472.1 s  whole registry
 #
 # A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
 # are a comment. The enforced number is the second field of the row's own
@@ -548,7 +549,8 @@ SUITES=(
   # tree, under --check, and it derives its expected counts from a second walk
   # of the tree rather than carrying a literal, so the row's cost tracks the
   # corpus while its assertions do not go stale as the 29 pending items land.
-  "fast|2.1|drill delivery|./harness/test-deliver-drill.sh"
+  "fast|2.3|drill delivery|./harness/test-deliver-drill.sh"
+  "fast|1.7|drill style measure|./harness/test-drill-style.sh"
   # Added 2026-10-14 by bead tla-t9de, which built drill/drill.sh and the
   # runner half of scripts/deliver-drill.sh. Placed next to the delivery row
   # because the two split one script between them: that row owns the prompt
@@ -582,7 +584,7 @@ SUITES=(
   # 1.467 / 1.385 / 1.332 s, so 1.5 is the slowest rounded up and the spread
   # across the six is 10%. The header table above was re-based in the same
   # edit, which the two-places paragraph up there says to do.
-  "fast|2.5|drill runner|./harness/test-drill-runner.sh"
+  "fast|2.9|drill runner|./harness/test-drill-runner.sh"
   # Added 2026-10-13 by bead tla-z3ks, which built scripts/deliver-completion.sh.
   # Measured standalone on the green tree over two sets of three back-to-back
   # serial runs: 0.931 / 0.929 / 0.947 s, then 0.955 / 0.959 / 0.954 s. So 1.0
@@ -821,7 +823,7 @@ SUITES=(
   #
   # Its cost tracks the item count: 6 items today, one TLC run each in part 3
   # plus the two in part 1c.
-  "slow|12.9|reading corpus gate|./harness/test-reading.sh"
+  "slow|14.7|reading corpus gate|./harness/test-reading.sh"
   # Measured 2026-10-12 on the green tree: 10.231 / 9.748 / 10.266 s over
   # three back-to-back serial runs, so 10.3 is the slowest rounded up.
   # Jitter 5.3%.
