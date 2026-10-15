@@ -4,6 +4,7 @@
 # that prove the answer checks.
 #
 # Usage:  scripts/deliver-drill.sh [--check] [--refresh-prompts] [dest-root]
+#         scripts/deliver-drill.sh --study [--check] [study-root]
 #
 #   --check            resolve everything and print what would be delivered.
 #                      Writes nothing.
@@ -12,10 +13,15 @@
 #                      code that can overwrite a prompt, so a plain delivery
 #                      cannot replace one. Read "WHY --refresh-prompts EXISTS"
 #                      below before you reach for it.
+#   --study            deliver the study-side configuration instead of the
+#                      prompts. Read "THE STUDY MODE" below. The root must
+#                      already exist and is never created here.
 #   dest-root          where to deliver into (default: $HOME/tla-practice/drill)
 #
 # Env:    DELIVER_DRILL_SRC_ROOT   override the source repo root (default: the
 #                                  repo this script lives in)
+#         DRILL_STUDY_ROOT         --study only: where the study tree lives
+#                                  (default: $HOME/Study/tla-drills)
 #
 # Exit:   0 on success, including a run that only skipped prompts already there
 #         1 on a usage error, a source tree holding no item, an item carrying
@@ -186,6 +192,73 @@
 # under it exactly as they are without it. PROGRESS.tsv and LAST-SERVED are
 # still never written. There is still no delete path. --check composes with it
 # and reports what it would replace without writing anything.
+#
+# ---------------------------------------------------------------------------
+# A FOURTH FILE CLASS: THE README
+#
+# drill/README.md lands at <dest-root>/README.md, and it is in the runner's
+# class rather than the prompt's: always overwritten, because the repo is the
+# source of truth for it and he never edits it.
+#
+# Until 2026-10-14 no script delivered it at all, which is bead tla-nc6f. The
+# copy in the practice tree was placed by hand on 2026-10-12 and then went
+# stale on its own: it read "32 blank-page drills, four families" against 64
+# items in eight families, and it was the file he opened when he sat down to
+# practice. A document nothing refreshes is a document that lies eventually.
+#
+# A source with no drill/README.md is NOT an error, for the same reason a
+# source with no runner is not.
+#
+# ---------------------------------------------------------------------------
+# THE STUDY MODE
+#
+# Bead tla-ytv2.3. --study delivers the study-side configuration INSTEAD of the
+# prompts, into a different root, and the two modes share no destination.
+#
+#   drill/study/CLAUDE.md              -> <root>/CLAUDE.md
+#   drill/study/.claude/commands/*.md  -> <root>/.claude/commands/*.md
+#   drill/study/check                  -> <root>/check, mode 0755
+#
+# All three are ALWAYS overwritten. They are tooling in the runner's class, and
+# CLAUDE.md is a refusal contract, so a fix to it that cannot reach him is
+# worth nothing.
+#
+# IT IS A SEPARATE MODE RATHER THAN AN ADDITION TO A PLAIN RUN, because the two
+# roots differ and so does the rule about creating them. The prompt tree is
+# created on demand. The study root is REFUSED when it is absent.
+#
+# WHY THE REFUSAL. <root>/<slug>/ holds the attempts. That tree is not a git
+# repo and it is in no backup, so it is the only artifact in this system with
+# no copy anywhere. drill/drill.sh creates the root when it serves a drill, so
+# a missing root means no drill has been served yet, and creating one here
+# would put the configuration somewhere he never asked for and would not think
+# to look. Nothing under <root>/<slug>/ is written, read or removed at any
+# point, and every work directory the run finds is named on stdout so the
+# promise is visible rather than asserted.
+#
+# WHY THE SOURCE MIRRORS THE DESTINATION, DOT AND ALL. The commands land under
+# .claude/commands/ because that is where Claude Code reads a project slash
+# command from. The source carries the same path, so the delivery is a plain
+# copy with no rename to get wrong.
+#
+# It also has to carry it. An item is a directory two levels under drill/, and
+# four scripts resolve one with the same find: this one, harness/drill-gate.sh,
+# harness/test-drill.sh, and the count helpers in harness/test-deliver-drill.sh.
+# A visible drill/study/commands/ reads as an item to all four. Measured before
+# the layout moved: drill-gate.sh reported 65 items with 5 findings and rc 1,
+# harness/test-drill.sh failed its shape row, this script exited 1 calling
+# study/commands an item with no PROMPT.md, and the suite failed three rows on
+# 65 against 64. Under a leading dot all four skip it on the `! -name '.*'`
+# predicate they already carry, and not one of them needed changing.
+#
+# So the dot is load-bearing for four files. harness/test-deliver-drill.sh
+# asserts that drill/study/ carries no visible subdirectory, which is where the
+# tree goes red if somebody adds one.
+#
+# --study AND --refresh-prompts DO NOT COMPOSE. That flag is about prompts and
+# this mode delivers none, so the pair is a usage error rather than a no-op. A
+# silently ignored flag is how somebody comes away believing a prompt was
+# refreshed.
 
 set -uo pipefail
 
@@ -195,14 +268,19 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 usage() {
   cat <<USAGE >&2
 Usage: $0 [--check] [--refresh-prompts] [dest-root]
+       $0 --study [--check] [study-root]
 
   --check            print what would be delivered, and write nothing
   --refresh-prompts  replace a delivered PROMPT.md that differs from the
                      source. Off by default, and nothing else is overwritten.
+  --study            deliver the study-side configuration instead of the
+                     prompts. The root must already exist.
   dest-root          where to deliver into (default: \$HOME/tla-practice/drill)
+  study-root         --study only (default: \$HOME/Study/tla-drills)
 
 Env:
   DELIVER_DRILL_SRC_ROOT   override the source repo root (default: $REPO_ROOT)
+  DRILL_STUDY_ROOT         --study only: the study tree's root
 USAGE
 }
 
@@ -223,8 +301,21 @@ RUNNER_DEST_NAME="drill"
 # never opened.
 LEARNER_RECORD_NAMES=("PROGRESS.tsv" "LAST-SERVED")
 
+# The study tree, which --study delivers and a plain run never looks at. It
+# sits at drill/study, where a family sits, and its one subdirectory is hidden
+# on purpose. Read "THE STUDY MODE" above before changing either name.
+STUDY_DIR_NAME="study"
+STUDY_CONFIG_NAME="CLAUDE.md"
+STUDY_COMMANDS_REL=".claude/commands"
+STUDY_CHECK_NAME="check"
+
+# The corpus readme, in the runner's file class. Read "A FOURTH FILE CLASS"
+# above before changing this.
+README_NAME="README.md"
+
 CHECK_ONLY=0
 REFRESH_PROMPTS=0
+STUDY_MODE=0
 DEST_ROOT=""
 POSITIONAL=0
 
@@ -250,6 +341,10 @@ while [ "$#" -gt 0 ]; do
       REFRESH_PROMPTS=1
       shift
       ;;
+    --study)
+      STUDY_MODE=1
+      shift
+      ;;
     --)
       shift
       break
@@ -272,11 +367,180 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+SRC_DRILL="$SRC_ROOT/drill"
+
+# ---------------------------------------------------------------------------
+# THE STUDY MODE, dispatched here and exiting here.
+#
+# It runs BEFORE the item resolution below, on purpose. The study tree is not
+# an item corpus, so a source carrying no item is nothing to this mode, and
+# running it through a resolution that is fatal on an empty corpus would have
+# coupled two modes that share no destination.
+#
+# install_study_file <src> <dest> <label>
+#
+# The always-overwrite path, and the third one in this script after
+# install_runner() and refresh_prompt(). It is separate from both for the
+# reason install_runner()'s own comment gives: a flag on the function that
+# holds the never-overwrite rule is one typo away from clobbering a prompt.
+#
+# Returns 0 for a file that landed and 3 for one that replaced a copy already
+# there, matching the codes the prompt loop above counts off.
+# ---------------------------------------------------------------------------
+
+install_study_file() {
+  local src="$1" dest="$2" label="$3" existed=0
+  if [ -e "$dest" ]; then
+    existed=1
+  fi
+  mkdir -p -- "$(dirname -- "$dest")" || return 1
+  cp -- "$src" "$dest" || return 1
+  if [ "$existed" -eq 1 ]; then
+    echo "$label refreshed, overwriting the copy already there: $dest"
+    return 3
+  fi
+  echo "$label delivered: $dest"
+  return 0
+}
+
+if [ "$STUDY_MODE" -eq 1 ]; then
+  # A silently ignored flag is how somebody comes away believing a prompt was
+  # refreshed, so the pair is refused rather than tolerated.
+  if [ "$REFRESH_PROMPTS" -eq 1 ]; then
+    echo "$0: --refresh-prompts is about prompts, and --study delivers none." >&2
+    echo "$0: run them as two commands." >&2
+    exit 1
+  fi
+
+  STUDY_ROOT="$DEST_ROOT"
+  if [ -z "$STUDY_ROOT" ]; then
+    STUDY_ROOT="${DRILL_STUDY_ROOT:-}"
+  fi
+  if [ -z "$STUDY_ROOT" ]; then
+    STUDY_ROOT="$HOME/Study/tla-drills"
+  fi
+
+  SRC_STUDY="$SRC_DRILL/$STUDY_DIR_NAME"
+
+  if [ ! -d "$SRC_STUDY" ]; then
+    echo "$0: no study configuration at $SRC_STUDY" >&2
+    echo "$0: set DELIVER_DRILL_SRC_ROOT to the repo root that carries drill/." >&2
+    exit 1
+  fi
+
+  # THE REFUSAL. drill/drill.sh creates the root when it serves a drill, so an
+  # absent one means no drill has been served yet. Creating it here would put
+  # the configuration somewhere he never asked for.
+  if [ ! -d "$STUDY_ROOT" ]; then
+    echo "$0: no study root at $STUDY_ROOT" >&2
+    echo "$0: it does not create one. Serve a drill with ./drill first, or pass a root that exists." >&2
+    exit 1
+  fi
+
+  echo "study source: $SRC_STUDY"
+  echo "study destination: $STUDY_ROOT"
+
+  # Every work directory, named before anything is written. The promise that
+  # this mode never writes into one is worth more said out loud than asserted,
+  # and .claude/ is this script's own and not his.
+  while IFS= read -r work_dir; do
+    [ -n "$work_dir" ] || continue
+    echo "left alone (your work, never written here): $work_dir"
+  done < <(find "$STUDY_ROOT" -mindepth 1 -maxdepth 1 -type d \
+    ! -name '.claude' | LC_ALL=C sort)
+
+  # Resolve what lands before anything is written, so --check and a real run
+  # read the same list and a fatal path leaves the tree as it found it.
+  study_srcs=()
+  study_dests=()
+  study_labels=()
+
+  if [ -f "$SRC_STUDY/$STUDY_CONFIG_NAME" ]; then
+    study_srcs+=("$SRC_STUDY/$STUDY_CONFIG_NAME")
+    study_dests+=("$STUDY_ROOT/$STUDY_CONFIG_NAME")
+    study_labels+=("configuration")
+  else
+    echo "no configuration at $SRC_STUDY/$STUDY_CONFIG_NAME, so none lands"
+  fi
+
+  study_cmd_count=0
+  while IFS= read -r cmd; do
+    [ -n "$cmd" ] || continue
+    study_cmd_count=$((study_cmd_count + 1))
+    study_srcs+=("$cmd")
+    study_dests+=("$STUDY_ROOT/$STUDY_COMMANDS_REL/${cmd##*/}")
+    study_labels+=("command")
+  done < <(find "$SRC_STUDY/$STUDY_COMMANDS_REL" -mindepth 1 -maxdepth 1 \
+    -type f -name '*.md' 2>/dev/null | LC_ALL=C sort)
+
+  if [ "$study_cmd_count" -eq 0 ]; then
+    echo "no commands at $SRC_STUDY/$STUDY_COMMANDS_REL, so none land"
+  fi
+
+  # A source with no checker is not an error. Bead tla-ytv2.2 owns that file
+  # and a tree that predates it was fine yesterday.
+  HAVE_STUDY_CHECK=0
+  if [ -f "$SRC_STUDY/$STUDY_CHECK_NAME" ]; then
+    HAVE_STUDY_CHECK=1
+    study_srcs+=("$SRC_STUDY/$STUDY_CHECK_NAME")
+    study_dests+=("$STUDY_ROOT/$STUDY_CHECK_NAME")
+    study_labels+=("checker")
+  else
+    echo "no checker at $SRC_STUDY/$STUDY_CHECK_NAME, so none lands"
+  fi
+
+  if [ "$CHECK_ONLY" -eq 1 ]; then
+    study_to_land=0
+    study_to_overwrite=0
+    i=0
+    while [ "$i" -lt "${#study_dests[@]}" ]; do
+      if [ -e "${study_dests[$i]}" ]; then
+        echo "would deliver, OVERWRITING the copy already there: ${study_dests[$i]}"
+        study_to_overwrite=$((study_to_overwrite + 1))
+      else
+        echo "would deliver: ${study_dests[$i]}"
+        study_to_land=$((study_to_land + 1))
+      fi
+      i=$((i + 1))
+    done
+    echo "$study_to_land study file(s) to land, $study_to_overwrite to overwrite"
+    exit 0
+  fi
+
+  study_rc=0
+  study_landed=0
+  study_overwritten=0
+  i=0
+  while [ "$i" -lt "${#study_dests[@]}" ]; do
+    install_study_file "${study_srcs[$i]}" "${study_dests[$i]}" "${study_labels[$i]}"
+    outcome=$?
+    case "$outcome" in
+      0) study_landed=$((study_landed + 1)) ;;
+      3) study_overwritten=$((study_overwritten + 1)) ;;
+      *)
+        echo "$0: failed to deliver: ${study_dests[$i]}" >&2
+        study_rc=1
+        ;;
+    esac
+    i=$((i + 1))
+  done
+
+  # He runs it as ./check, so the bit matters. Set after the copy, because cp
+  # onto an existing file keeps the destination's mode rather than the source's.
+  if [ "$HAVE_STUDY_CHECK" -eq 1 ] && [ -f "$STUDY_ROOT/$STUDY_CHECK_NAME" ]; then
+    if ! chmod 0755 -- "$STUDY_ROOT/$STUDY_CHECK_NAME"; then
+      echo "$0: delivered the checker but could not make it executable: $STUDY_ROOT/$STUDY_CHECK_NAME" >&2
+      study_rc=1
+    fi
+  fi
+
+  echo "$study_landed study file(s) landed, $study_overwritten overwritten"
+  exit "$study_rc"
+fi
+
 if [ -z "$DEST_ROOT" ]; then
   DEST_ROOT="$HOME/tla-practice/drill"
 fi
-
-SRC_DRILL="$SRC_ROOT/drill"
 
 # ---------------------------------------------------------------------------
 # Resolve the source, before the destination is created, so every fatal path
@@ -372,6 +636,19 @@ else
   echo "no runner at $RUNNER_SRC, so none lands"
 fi
 
+# The readme, resolved beside the runner and in the same file class. Read
+# "A FOURTH FILE CLASS: THE README" above for why it is always overwritten.
+README_SRC="$SRC_DRILL/$README_NAME"
+README_DEST="$DEST_ROOT/$README_NAME"
+
+HAVE_README=0
+if [ -f "$README_SRC" ]; then
+  HAVE_README=1
+  echo "readme source: $README_SRC"
+else
+  echo "no readme at $README_SRC, so none lands"
+fi
+
 for record_name in "${LEARNER_RECORD_NAMES[@]}"; do
   echo "left alone (the learner's record, never written here): $DEST_ROOT/$record_name"
 done
@@ -410,6 +687,13 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
       echo "would deliver runner, OVERWRITING the copy already there: $RUNNER_DEST"
     else
       echo "would deliver runner: $RUNNER_DEST"
+    fi
+  fi
+  if [ "$HAVE_README" -eq 1 ]; then
+    if [ -e "$README_DEST" ]; then
+      echo "would deliver readme, OVERWRITING the copy already there: $README_DEST"
+    else
+      echo "would deliver readme: $README_DEST"
     fi
   fi
   # Two counts lines, because the refresh has a third outcome and a plain run
@@ -543,6 +827,19 @@ done
 if [ "$HAVE_RUNNER" -eq 1 ]; then
   if ! install_runner "$RUNNER_SRC" "$RUNNER_DEST"; then
     echo "$0: failed to deliver the runner: $RUNNER_DEST" >&2
+    rc=1
+  fi
+fi
+
+# The readme goes through install_study_file() rather than install_runner(),
+# because it needs no executable bit and the wording it prints is the one the
+# study files print. Both are always-overwrite paths and neither is
+# deliver_file(), which still refuses unconditionally.
+if [ "$HAVE_README" -eq 1 ]; then
+  install_study_file "$README_SRC" "$README_DEST" "readme"
+  readme_outcome=$?
+  if [ "$readme_outcome" -ne 0 ] && [ "$readme_outcome" -ne 3 ]; then
+    echo "$0: failed to deliver the readme: $README_DEST" >&2
     rc=1
   fi
 fi

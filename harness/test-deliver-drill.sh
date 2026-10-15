@@ -100,6 +100,66 @@
 # "nothing changed" only means something once the run it survived exited the
 # code the contract promised.
 #
+# ---------------------------------------------------------------------------
+# THE STUDY HALF, added 2026-10-14 by bead tla-ytv2.3
+#
+# Everything above is about the PROMPT half: one name lands per item and every
+# other entry is withheld. The sections at the bottom of this file are about a
+# second mode of the same script, and the two have almost nothing in common
+# beyond the file they live in.
+#
+#   scripts/deliver-drill.sh --study [--check] [study-root]
+#
+#   The study root resolves from the positional argument, else from
+#   DRILL_STUDY_ROOT, else from $HOME/Study/tla-drills. It MUST already exist.
+#   An absent root, or one that is not a directory, is refused on stderr with
+#   exit 1 and nothing is created. drill/drill.sh creates the root when it
+#   serves a drill, so a missing root means no drill has been served yet, and
+#   guessing a tree into place is how a delivery script writes somewhere nobody
+#   asked for.
+#
+#   Three classes land, and every one of them is ALWAYS overwritten:
+#
+#     drill/study/CLAUDE.md                  -> <root>/CLAUDE.md
+#     drill/study/.claude/commands/*.md      -> <root>/.claude/commands/*.md
+#     drill/study/check                      -> <root>/check, mode 0755
+#
+#   A source with no check script is NOT an error. Bead tla-ytv2.2 owns that
+#   file and a tree that predates it was fine yesterday.
+#
+#   NOTHING under <root>/<slug>/ is ever written, read or removed. Those hold
+#   Frank's attempts, that tree is not a git repo, and it is in no backup, so
+#   it is the only artifact in this system with no copy anywhere.
+#
+#   --study with --refresh-prompts is a usage error. That flag is about prompts
+#   and this mode delivers none.
+#
+#   A plain run additionally lands drill/README.md at <dest-root>/README.md,
+#   always overwriting. It is tooling, in the runner's file class: the repo is
+#   the source of truth for it and Frank never edits it. Until 2026-10-14 no
+#   script delivered it at all, so the copy in the practice tree still read
+#   "32 blank-page drills, four families" against 64 in eight (bead tla-nc6f).
+#
+# WHY THE COMMANDS LIVE UNDER A HIDDEN DIRECTORY IN THE SOURCE TREE. They land
+# at <root>/.claude/commands/ because that is where Claude Code reads a project
+# slash command from, and the source mirrors the destination so the delivery is
+# a plain copy with no rename to get wrong.
+#
+# It also has to mirror it. An item is a directory two levels under drill/, and
+# four scripts resolve one with the same find: this script, harness/drill-gate.sh,
+# harness/test-drill.sh, and the count helpers in this file. A visible
+# drill/study/commands/ reads as an item to all four. Measured on this tree
+# before the layout moved: drill-gate.sh reported 65 items with 5 findings and
+# returned rc 1, harness/test-drill.sh failed its shape row naming
+# drill/study/commands, this script exited 1 calling it an item with no
+# PROMPT.md, and this suite failed three rows on 65 against 64. Under a leading
+# dot all four skip it on the `! -name '.*'` predicate they already carry, and
+# none of them needed changing.
+#
+# That is a layout holding four gates up, so the row under "structural" asserts
+# that drill/study/ still carries no visible subdirectory. Add one and this
+# suite goes red here rather than in four other places at once.
+#
 # Usage:  harness/test-deliver-drill.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
 
@@ -111,10 +171,22 @@ cd "$REPO_ROOT" || exit 1
 SCRIPT="scripts/deliver-drill.sh"
 DRILL_SUITE="harness/test-drill.sh"
 TEST_RUNNER="scripts/test"
+GATE="harness/drill-gate.sh"
+
+STUDY_SRC="drill/study"
+STUDY_CONFIG="$STUDY_SRC/CLAUDE.md"
+STUDY_CHECK_CMD="$STUDY_SRC/.claude/commands/check.md"
+STUDY_HINT_CMD="$STUDY_SRC/.claude/commands/hint.md"
+DRILL_README="drill/README.md"
 
 # The real practice tree, captured before anything is sandboxed. Used only to
 # assert that no run ever names it. Nothing here reads or writes under it.
 REAL_PRACTICE="$HOME/tla-practice"
+
+# The real study tree, same rule and a sharper reason. It holds the only copy
+# of the work done in it, so no row here names it as a destination and the last
+# study row asserts that nothing created it.
+REAL_STUDY="$HOME/Study"
 
 pass_count=0
 fail_count=0
@@ -217,6 +289,86 @@ SANDBOX_REPO="$TMPROOT/repo-sandbox"
 mk_item "$SANDBOX_REPO" "core/01-omega-sandbox-only"
 
 # ---------------------------------------------------------------------------
+# Study fixtures, for the --study sections at the bottom.
+#
+# mk_study <repo-root>: the study tree in the shape the real one has. Its
+# contents are deliberately not the real file's, so a row that passed only
+# against the real CLAUDE.md would be asserting content where it means to
+# assert copying. The real files get their own rows further down.
+# ---------------------------------------------------------------------------
+
+mk_study() {
+  local root="$1"
+  local d="$root/drill/study"
+  mkdir -p "$d/.claude/commands"
+  printf 'fixture config, not the real one\n' >"$d/CLAUDE.md"
+  printf 'fixture check command\n'            >"$d/.claude/commands/check.md"
+  printf 'fixture hint command\n'             >"$d/.claude/commands/hint.md"
+  printf '#!/bin/sh\nexit 2\n'                >"$d/check"
+  chmod 0755 "$d/check"
+}
+
+mk_study "$FIX_REPO"
+
+# THE README FIXTURE IS ITS OWN SOURCE ROOT, and that is deliberate rather than
+# tidiness. $FIX_REPO is what the manifest and write-footprint rows above read,
+# and they assert an exact file set and an exact count of files written. A
+# drill/README.md in there lands a fourth file in $DEST_MAIN and those rows go
+# red over a delivery that is working correctly. Measured: three rows, two of
+# them the touched-count controls. So the readme rows get a source of their own
+# and the rows above keep meaning what they meant.
+README_REPO="$TMPROOT/repo-readme"
+mk_item  "$README_REPO" "core/01-alpha"
+mk_study "$README_REPO"
+printf 'the fixture readme\n' >"$README_REPO/drill/README.md"
+
+# A source whose study tree carries no check script. Bead tla-ytv2.2 owns that
+# file, so a source without it still has to deliver the rest.
+NOCHECK_REPO="$TMPROOT/repo-nocheck"
+mk_item  "$NOCHECK_REPO" "core/01-alpha"
+mk_study "$NOCHECK_REPO"
+rm -f "$NOCHECK_REPO/drill/study/check"
+
+# A source with no study tree at all, and one with no readme.
+NOSTUDY_REPO="$TMPROOT/repo-nostudy"
+mk_item "$NOSTUDY_REPO" "core/01-alpha"
+NOREADME_REPO="$TMPROOT/repo-noreadme"
+mk_item "$NOREADME_REPO" "core/01-alpha"
+
+# Study destination roots. Each is created here when the row wants an existing
+# root, and deliberately left absent when the row is about the refusal.
+STUDY_MAIN="$TMPROOT/study-main"       # the happy path
+STUDY_TWICE="$TMPROOT/study-twice"     # delivered, then delivered again
+STUDY_WORK="$TMPROOT/study-work"       # carries a per-slug work directory
+STUDY_CHECKONLY="$TMPROOT/study-check" # --check only, never written
+STUDY_NOCHECK="$TMPROOT/study-nochk"   # source carries no check script
+STUDY_ENV="$TMPROOT/study-env"         # resolved from DRILL_STUDY_ROOT
+STUDY_POS="$TMPROOT/study-pos"         # positional, overriding the env var
+STUDY_REAL="$TMPROOT/study-real"       # the real repo's study tree
+STUDY_ABSENT="$TMPROOT/study-absent"   # never created, on purpose
+STUDY_FILE="$TMPROOT/study-is-a-file"  # a regular file where a root should be
+
+mkdir -p "$STUDY_MAIN" "$STUDY_TWICE" "$STUDY_WORK" "$STUDY_CHECKONLY" \
+  "$STUDY_NOCHECK" "$STUDY_ENV" "$STUDY_POS" "$STUDY_REAL"
+printf 'not a directory\n' >"$STUDY_FILE"
+
+DEST_README="$TMPROOT/dest-readme"     # a plain run, for the readme rows
+DEST_README2="$TMPROOT/dest-readme2"   # delivered, then delivered again
+DEST_NOREADME="$TMPROOT/dest-noreadme" # source carries no readme
+
+# Frank's work, in the shape it has on his machine: a per-slug directory
+# holding an attempt. 01-slip-on-the-spike is the one that exists there.
+WORK_SLUG="01-slip-on-the-spike"
+mkdir -p "$STUDY_WORK/$WORK_SLUG"
+printf 'my attempt, such as it is\n' >"$STUDY_WORK/$WORK_SLUG/pickers.tla"
+printf 'SPECIFICATION Spec\n'        >"$STUDY_WORK/$WORK_SLUG/pickers.cfg"
+
+# Every study and readme run appends here, so the two rows that matter most can
+# be asked of the whole suite's output at once rather than one run at a time.
+STUDY_SEEN="$TMPROOT/study-seen.txt"
+: >"$STUDY_SEEN"
+
+# ---------------------------------------------------------------------------
 # Helpers.
 # ---------------------------------------------------------------------------
 
@@ -255,6 +407,73 @@ run_deliver_realrepo() {
   RUN_OUT=$(HOME="$SANDBOX_HOME" bash "$SCRIPT" "$@" 2>"$ERRFILE")
   RUN_RC=$?
   RUN_ERR=$(cat "$ERRFILE")
+}
+
+# --- the study runners ------------------------------------------------------
+#
+# DRILL_STUDY_ROOT is set on every one of them, empty unless the row is about
+# the environment. A run that inherited the real variable would resolve Frank's
+# own study tree as its destination, and that tree holds the only copy of the
+# work in it.
+
+# run_study [args...]: the fixture source, a sandboxed HOME, no root in the
+# environment.
+run_study() {
+  RUN_OUT=$(HOME="$SANDBOX_HOME" DELIVER_DRILL_SRC_ROOT="$FIX_REPO" \
+    DRILL_STUDY_ROOT="" bash "$SCRIPT" --study "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+}
+
+# run_study_from <src-root> [args...]
+run_study_from() {
+  local src="$1"
+  shift
+  RUN_OUT=$(HOME="$SANDBOX_HOME" DELIVER_DRILL_SRC_ROOT="$src" \
+    DRILL_STUDY_ROOT="" bash "$SCRIPT" --study "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+}
+
+# run_study_env <root> [args...]: the root comes from the environment and the
+# command line carries none.
+run_study_env() {
+  local root="$1"
+  shift
+  RUN_OUT=$(HOME="$SANDBOX_HOME" DELIVER_DRILL_SRC_ROOT="$FIX_REPO" \
+    DRILL_STUDY_ROOT="$root" bash "$SCRIPT" --study "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+}
+
+# run_study_realrepo <root> [args...]: the real repo as the source, a temp
+# directory as the destination. The source side is safe to read and the
+# destination side is the half that needs sandboxing.
+run_study_realrepo() {
+  local root="$1"
+  shift
+  RUN_OUT=$(HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="" \
+    bash "$SCRIPT" --study "$@" "$root" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+}
+
+# run_readme [args...]: a plain prompt-mode run against the readme fixture.
+# Separate from run_deliver for the reason $README_REPO exists, and it also
+# routes the output into STUDY_SEEN.
+run_readme() {
+  run_deliver_from "$README_REPO" "$@"
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+}
+
+# run_readme_from <src-root> [args...]: the same, against another source.
+run_readme_from() {
+  run_deliver_from "$@"
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
 }
 
 # relfiles <dir>: every file under a directory, sorted, relative to it.
@@ -500,6 +719,77 @@ assert_unchanged() {
     ok "$label"
   else
     nope "$label. The tree changed under $dir"
+  fi
+}
+
+# --- helpers the study sections add -----------------------------------------
+
+assert_executable() {
+  if [ ! -e "$2" ]; then
+    nope "$1. No file at $2"
+  elif [ -x "$2" ]; then
+    ok "$1"
+  else
+    nope "$1. It landed without the executable bit: $2"
+  fi
+}
+
+# assert_tree_is <label> <dest> <wanted-newline-list>
+#
+# The study half's manifest. It takes the wanted list rather than deriving it,
+# because three source names map to three destination names and one of the
+# three moves into a subdirectory, so there is nothing to derive it from.
+assert_tree_is() {
+  local label="$1" dest="$2" want="$3" got
+  if [ "$RUN_RC" -ne 0 ]; then
+    nope "$label. The delivery failed (rc=$RUN_RC), so the manifest proves nothing"
+    return
+  fi
+  got=$(relfiles "$dest")
+  if [ "$want" = "$got" ]; then
+    ok "$label"
+  else
+    nope "$label. Wanted [$(tr '\n' ' ' <<<"$want")] got [$(tr '\n' ' ' <<<"$got")]"
+  fi
+}
+
+# assert_contains <label> <file> <literal>
+#
+# A structural row over a tracked file. The prohibition rows below use it, and
+# they are shaped against SOFTENING rather than against deletion: a refusal
+# contract somebody has reworded into advice reads fine and gates nothing.
+assert_contains() {
+  local label="$1" file="$2" needle="$3"
+  if [ ! -f "$file" ]; then
+    nope "$label. $file does not exist"
+  elif grep -qF -- "$needle" "$file"; then
+    ok "$label"
+  else
+    nope "$label. $file never says: $needle"
+  fi
+}
+
+# assert_matches <label> <file> <extended-regex>
+assert_matches() {
+  local label="$1" file="$2" pattern="$3"
+  if [ ! -f "$file" ]; then
+    nope "$label. $file does not exist"
+  elif grep -qE -- "$pattern" "$file"; then
+    ok "$label"
+  else
+    nope "$label. Nothing in $file matched: $pattern"
+  fi
+}
+
+# assert_lacks <label> <file> <extended-regex>
+assert_lacks() {
+  local label="$1" file="$2" pattern="$3"
+  if [ ! -f "$file" ]; then
+    nope "$label. $file does not exist"
+  elif grep -qE -- "$pattern" "$file"; then
+    nope "$label. $file still matches: $pattern"
+  else
+    ok "$label"
   fi
 }
 
@@ -1018,6 +1308,454 @@ fi
 
 # ---------------------------------------------------------------------------
 echo
+echo "== --study lands the configuration and the two commands =="
+# ---------------------------------------------------------------------------
+
+STUDY_WANT=$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n./check\n')
+
+run_study "$STUDY_MAIN"
+
+assert_rc0 "a study delivery into an existing root exits 0"
+
+assert_tree_is "the study root holds exactly the configuration, both commands and the checker" \
+  "$STUDY_MAIN" "$STUDY_WANT"
+
+assert_file_is "the configuration lands byte for byte" \
+  "$STUDY_MAIN/CLAUDE.md" "$(cat "$FIX_REPO/drill/study/CLAUDE.md")"
+
+assert_file_is "the check command lands under .claude/commands/, where Claude Code reads one" \
+  "$STUDY_MAIN/.claude/commands/check.md" "$(cat "$FIX_REPO/drill/study/.claude/commands/check.md")"
+
+assert_file_is "the hint command lands beside it" \
+  "$STUDY_MAIN/.claude/commands/hint.md" "$(cat "$FIX_REPO/drill/study/.claude/commands/hint.md")"
+
+assert_executable "the checker lands executable, because he runs it as ./check" \
+  "$STUDY_MAIN/check"
+
+assert_says_literal "the run names the study source" \
+  "study source: $FIX_REPO/drill/study" "$RUN_OUT"
+
+assert_says_literal "and the destination it resolved" \
+  "study destination: $STUDY_MAIN" "$RUN_OUT"
+
+assert_says "the run ends on a counts line" \
+  'study file\(s\) landed' "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== every study file is ALWAYS overwritten =="
+# ---------------------------------------------------------------------------
+
+# The runner's file class, and for the same reason: the repo is the source of
+# truth, he never edits these, and a fix to a refusal contract is worth nothing
+# if it cannot reach him.
+
+run_study "$STUDY_TWICE"
+STUDY_FIRST_RC=$RUN_RC
+printf 'he edited this, or something did\n' >"$STUDY_TWICE/CLAUDE.md"
+predate_tree "$STUDY_TWICE"
+run_study "$STUDY_TWICE"
+
+if [ "$STUDY_FIRST_RC" -ne 0 ]; then
+  nope "a second study delivery exits 0. The first one exited $STUDY_FIRST_RC, so the row proves nothing"
+else
+  assert_rc0 "a second study delivery exits 0"
+fi
+
+assert_file_is "a changed configuration is replaced, not skipped" \
+  "$STUDY_TWICE/CLAUDE.md" "$(cat "$FIX_REPO/drill/study/CLAUDE.md")"
+
+assert_mtime_moved "the configuration was written rather than left alone" \
+  "$STUDY_TWICE/CLAUDE.md" "$REF_EPOCH"
+
+assert_says "the output says it overwrote rather than claiming a first delivery" \
+  'overwriting the copy already there' "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a per-slug work directory is never written =="
+# ---------------------------------------------------------------------------
+
+WORK_BEFORE=$(snapshot "$STUDY_WORK/$WORK_SLUG")
+predate_tree "$STUDY_WORK"
+run_study "$STUDY_WORK"
+
+assert_rc0 "a study delivery over a root holding work exits 0"
+
+assert_unchanged "the work directory is byte for byte what it was" \
+  "$STUDY_WORK/$WORK_SLUG" "$WORK_BEFORE" 0
+
+assert_mtime_is "and his attempt was not even opened" \
+  "$STUDY_WORK/$WORK_SLUG/pickers.tla" "$REF_EPOCH"
+
+# The non-vacuity control. "It wrote nothing there" is worth nothing unless the
+# same run wrote something somewhere.
+assert_mtime_moved "the same run did land the configuration, so the row above is not vacuous" \
+  "$STUDY_WORK/CLAUDE.md" "$REF_EPOCH"
+
+assert_says_literal "the run says which work directory it left alone" \
+  "left alone (your work, never written here): $STUDY_WORK/$WORK_SLUG" "$RUN_OUT"
+
+# .claude/ is this script's own, so calling it his work would be a lie the
+# second time the delivery runs. The first run creates it, so this row reads
+# the SECOND run's output.
+run_study "$STUDY_WORK"
+assert_never_names "and does not call its own .claude/ directory his work" \
+  "left alone (your work, never written here): $STUDY_WORK/.claude" "$RUN_OUT"
+assert_says_literal "while still naming the real one on that second run" \
+  "left alone (your work, never written here): $STUDY_WORK/$WORK_SLUG" "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a missing study root is REFUSED, and nothing is created =="
+# ---------------------------------------------------------------------------
+
+# drill/drill.sh creates the root when it serves a drill. A missing one means
+# no drill has been served yet, so guessing a tree into place would put the
+# configuration somewhere he never asked for and would not think to look.
+
+run_study "$STUDY_ABSENT"
+
+assert_rc "an absent study root exits 1" 1
+
+assert_absent "and no tree was created at it" "$STUDY_ABSENT"
+
+assert_says_literal "stderr names the root it refused" "$STUDY_ABSENT" "$RUN_ERR"
+
+assert_says "and says plainly that it does not create one" \
+  'does not create|will not create' "$RUN_ERR"
+
+run_study_env "$STUDY_ABSENT"
+assert_rc "the same refusal when the root came from DRILL_STUDY_ROOT" 1
+assert_absent "and still nothing was created" "$STUDY_ABSENT"
+
+run_study "$STUDY_FILE"
+assert_rc "a regular file where a root should be exits 1" 1
+assert_file_is "and the file is untouched" "$STUDY_FILE" "not a directory"
+
+run_study_from "$NOSTUDY_REPO" "$STUDY_MAIN"
+assert_rc "a source with no study tree at all exits 1" 1
+assert_says_literal "and names the directory it wanted" \
+  "$NOSTUDY_REPO/drill/study" "$RUN_ERR"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== --study --check writes nothing =="
+# ---------------------------------------------------------------------------
+
+STUDY_CHECK_BEFORE=$(snapshot "$STUDY_CHECKONLY")
+run_study --check "$STUDY_CHECKONLY"
+
+assert_rc0 "--study --check exits 0"
+
+assert_unchanged "--check created no file in the study root" \
+  "$STUDY_CHECKONLY" "$STUDY_CHECK_BEFORE" 0
+
+assert_absent "--check did not even create .claude/" "$STUDY_CHECKONLY/.claude"
+
+assert_says_literal "--check says what it would deliver" \
+  "would deliver: $STUDY_CHECKONLY/CLAUDE.md" "$RUN_OUT"
+
+assert_says "--check ends on its own counts line" \
+  'study file\(s\) to land' "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the study root resolves from the argument, then the environment =="
+# ---------------------------------------------------------------------------
+
+run_study_env "$STUDY_ENV"
+assert_rc0 "DRILL_STUDY_ROOT alone resolves a root"
+assert_file_is "and the configuration landed under it" \
+  "$STUDY_ENV/CLAUDE.md" "$(cat "$FIX_REPO/drill/study/CLAUDE.md")"
+
+RUN_OUT=$(HOME="$SANDBOX_HOME" DELIVER_DRILL_SRC_ROOT="$FIX_REPO" \
+  DRILL_STUDY_ROOT="$STUDY_ENV" bash "$SCRIPT" --study "$STUDY_POS" 2>"$ERRFILE")
+RUN_RC=$?
+RUN_ERR=$(cat "$ERRFILE")
+printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+
+assert_rc0 "a positional root is accepted alongside the environment"
+assert_file_is "and the positional one is what got written" \
+  "$STUDY_POS/CLAUDE.md" "$(cat "$FIX_REPO/drill/study/CLAUDE.md")"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a source with no checker still delivers the rest =="
+# ---------------------------------------------------------------------------
+
+run_study_from "$NOCHECK_REPO" "$STUDY_NOCHECK"
+
+assert_rc0 "a source carrying no check script is not an error"
+
+assert_tree_is "the configuration and both commands still land" \
+  "$STUDY_NOCHECK" "$(printf './.claude/commands/check.md\n./.claude/commands/hint.md\n./CLAUDE.md\n')"
+
+assert_says "and the run says no checker was found" \
+  'no checker at' "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== --study and --refresh-prompts do not compose =="
+# ---------------------------------------------------------------------------
+
+run_study --refresh-prompts "$STUDY_MAIN"
+assert_rc "--study --refresh-prompts is a usage error" 1
+assert_says "and says which flag it refused rather than only printing usage" \
+  'refresh-prompts' "$RUN_ERR"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the real study tree delivers =="
+# ---------------------------------------------------------------------------
+
+if [ "$SCRIPT_PRESENT" -eq 0 ]; then
+  nope "the real study tree delivers. $SCRIPT does not exist"
+else
+  run_study_realrepo "$STUDY_REAL"
+  assert_rc0 "the repo's own drill/study/ delivers into an existing root"
+  assert_file_is "the real configuration lands byte for byte" \
+    "$STUDY_REAL/CLAUDE.md" "$(cat "$STUDY_CONFIG")"
+  assert_file_is "the real check command lands byte for byte" \
+    "$STUDY_REAL/.claude/commands/check.md" "$(cat "$STUDY_CHECK_CMD")"
+  assert_file_is "the real hint command lands byte for byte" \
+    "$STUDY_REAL/.claude/commands/hint.md" "$(cat "$STUDY_HINT_CMD")"
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the readme is delivered, and always overwritten =="
+# ---------------------------------------------------------------------------
+
+# Bead tla-nc6f. No script delivered it until 2026-10-14, so the copy in the
+# practice tree was the one Frank read when he sat down and it told him he had
+# half the corpus he has.
+
+run_readme "$DEST_README"
+
+assert_rc0 "a plain delivery exits 0"
+
+assert_file_is "the readme lands at the root of the practice tree" \
+  "$DEST_README/README.md" "$(cat "$README_REPO/drill/README.md")"
+
+assert_says_literal "the run says the readme landed" \
+  "readme delivered: $DEST_README/README.md" "$RUN_OUT"
+
+run_readme "$DEST_README2"
+printf 'a stale readme\n' >"$DEST_README2/README.md"
+predate_tree "$DEST_README2"
+run_readme "$DEST_README2"
+
+assert_rc0 "a second plain delivery exits 0"
+
+assert_file_is "a stale readme is replaced" \
+  "$DEST_README2/README.md" "$(cat "$README_REPO/drill/README.md")"
+
+assert_mtime_moved "and it was written rather than skipped" \
+  "$DEST_README2/README.md" "$REF_EPOCH"
+
+# The control that makes the row above mean what it says. One file class is
+# always overwritten and another is never, in the same run.
+assert_mtime_is "while the prompt beside it was left alone" \
+  "$DEST_README2/core/01-alpha/PROMPT.md" "$REF_EPOCH"
+
+run_readme_from "$NOREADME_REPO" "$DEST_NOREADME"
+assert_rc0 "a source carrying no readme is not an error"
+assert_says "and the run says none landed" 'no readme at' "$RUN_OUT"
+assert_absent "nothing was invented in its place" "$DEST_NOREADME/README.md"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the refusal contract, asserted structurally =="
+# ---------------------------------------------------------------------------
+
+# drill/study/CLAUDE.md is the only thing standing between a session in the
+# study root and ANSWER.md. The withholding in this script is a delivery
+# boundary rather than an access boundary, and the withheld files sit one
+# absolute path away. So the prohibitions are gated here, against the softening
+# that would leave the file reading fine and gating nothing.
+
+# The tilde here is DATA, not a path this suite resolves. What the row asserts
+# is that drill/study/CLAUDE.md still carries that exact string, tilde and all,
+# because the tilde form is the one the house style writes and the one a reader
+# of the delivered file sees. Expanding it to $HOME would make the row assert a
+# string the file does not contain and has no reason to.
+# shellcheck disable=SC2088
+assert_contains "CLAUDE.md names the literal path it forbids reading" \
+  "$STUDY_CONFIG" "~/repos/tla-puzzles/drill/"
+
+assert_contains "and spells that path out, so no expansion is left to guess" \
+  "$STUDY_CONFIG" "/home/fkberthold/repos/tla-puzzles/drill/"
+
+assert_contains "and names the withheld files, so the boundary is concrete" \
+  "$STUDY_CONFIG" "ANSWER.md"
+
+assert_matches "the prohibition on reading is in the NEVER register" \
+  "$STUDY_CONFIG" 'NEVER read'
+
+assert_matches "the prohibition on writing TLA+ is in the NEVER register" \
+  "$STUDY_CONFIG" 'NEVER write'
+
+assert_matches "and closes the one-line and the code-fence loopholes by name" \
+  "$STUDY_CONFIG" 'one line|single line'
+
+assert_matches "the prohibition on naming the missing construct is in the NEVER register" \
+  "$STUDY_CONFIG" 'NEVER name'
+
+assert_matches "CLAUDE.md says the count comes from the checker" \
+  "$STUDY_CONFIG" './check'
+
+assert_matches "and forbids reaching one any other way" \
+  "$STUDY_CONFIG" 'never from|not from'
+
+assert_matches "CLAUDE.md gives the register a report is allowed to use" \
+  "$STUDY_CONFIG" 'admits|forbids'
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the two commands =="
+# ---------------------------------------------------------------------------
+
+assert_matches "check.md runs the checker rather than re-deriving its number" \
+  "$STUDY_CHECK_CMD" './check'
+
+# The wrong-model pass is the half a count check structurally cannot make, and
+# the mechanism is why: a distinct-state count is a property of Init, Next and
+# the state constraint, and not of the obligations. Measured 2026-10-14 on
+# drill/sequences/07-pneumatic-tube/verify/TubeRef.tla, whose prompt publishes
+# 129: drop InOrder from its config and TLC still reports no error at exactly
+# 129 distinct states. The file this cites is author-side and the command does
+# NOT name it, because naming a path under the withheld tree inside the file
+# that forbids reading it would be the leak wearing a citation.
+assert_matches "check.md says a matching count is not sufficient" \
+  "$STUDY_CHECK_CMD" 'not sufficient|cannot catch|structurally cannot'
+
+assert_matches "and names the mechanism rather than asserting it" \
+  "$STUDY_CHECK_CMD" 'Init'
+
+assert_matches "check.md reads his prose answers, for the prompts that end in a question" \
+  "$STUDY_CHECK_CMD" 'question|prose'
+
+assert_matches "hint.md refuses before it has seen an attempt" \
+  "$STUDY_HINT_CMD" 'REFUSE|[Rr]efuse'
+
+assert_matches "hint.md ladders rather than answering at once" \
+  "$STUDY_HINT_CMD" '[Rr]ung 1'
+
+assert_matches "and never hands over the text of the fix" \
+  "$STUDY_HINT_CMD" '[Nn]ever the text|not the text'
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the readme is no longer the one that said 32 drills and four families =="
+# ---------------------------------------------------------------------------
+
+# The counts are NOT asserted as literals, and that is the whole point of bead
+# tla-nc6f. A hardcoded corpus count in prose is the failure shape
+# .claude/rules/dispatched-agents.md records twice, where a suite count in that
+# file went out of date three times running. So these rows assert that the
+# family list still matches the tree and that the sentence carrying the old
+# count has not come back.
+
+README_FAMILIES_OK=1
+README_FAMILIES_MISSING=""
+FAMILY_COUNT=0
+while IFS= read -r fam; do
+  [ -n "$fam" ] || continue
+  [ "$fam" = "study" ] && continue
+  FAMILY_COUNT=$((FAMILY_COUNT + 1))
+  if ! grep -qF -- "$fam" "$DRILL_README"; then
+    README_FAMILIES_OK=0
+    README_FAMILIES_MISSING="$README_FAMILIES_MISSING $fam"
+  fi
+done < <(find drill -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | LC_ALL=C sort)
+
+if [ ! -f "$DRILL_README" ]; then
+  nope "the readme names every family. $DRILL_README does not exist"
+elif [ "$FAMILY_COUNT" -lt 5 ]; then
+  nope "the readme names every family. Only $FAMILY_COUNT family dir(s) found, so the row proves nothing"
+elif [ "$README_FAMILIES_OK" -eq 1 ]; then
+  ok "the readme names all $FAMILY_COUNT families found under drill/"
+else
+  nope "the readme names all $FAMILY_COUNT families found under drill/. Missing:$README_FAMILIES_MISSING"
+fi
+
+assert_lacks "the readme no longer claims a hardcoded drill count" \
+  "$DRILL_README" '[0-9]+ blank-page drills'
+
+assert_lacks "and no longer claims a hardcoded family count" \
+  "$DRILL_README" '(four|eight|[0-9]+) families'
+
+assert_matches "the readme tells him about the runner" \
+  "$DRILL_README" './drill'
+
+assert_matches "and about the study-side session that checks an attempt" \
+  "$DRILL_README" '/check|/hint'
+
+assert_matches "the readme still says the withheld files stay behind" \
+  "$DRILL_README" 'ANSWER\.md'
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the study layout is what keeps four item walks clean =="
+# ---------------------------------------------------------------------------
+
+# drill/study/ sits where an item family sits, so a VISIBLE subdirectory under
+# it reads as an item to this script, harness/drill-gate.sh, harness/test-drill.sh
+# and the count helpers above. Measured before the layout moved: 65 items, 5
+# gate findings, rc 1 from three of the four. Under a leading dot all four skip
+# it on the `! -name '.*'` predicate they already carry.
+#
+# So this row is load-bearing for four files, and it is the reason none of them
+# needed an exclusion added. Put a visible directory under drill/study/ and the
+# tree goes red HERE, with the reason, rather than in four places at once.
+STUDY_VISIBLE=$(find "$STUDY_SRC" -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null)
+if [ ! -d "$STUDY_SRC" ]; then
+  nope "drill/study/ carries no visible subdirectory. $STUDY_SRC does not exist"
+elif [ -z "$STUDY_VISIBLE" ]; then
+  ok "drill/study/ carries no visible subdirectory, so four item walks still see 64 items"
+else
+  nope "drill/study/ carries a visible subdirectory, which reads as an item at drill/<family>/<item>: $(tr '\n' ' ' <<<"$STUDY_VISIBLE")"
+fi
+
+# The live proof the row above is a proxy for, for THIS script's own walk.
+run_deliver_realrepo --check "$TMPROOT/dest-real-study-check"
+assert_rc0 "--check over the real corpus exits 0 with drill/study/ in the tree"
+assert_never_names "and no part of the study tree reads as an item" \
+  "drill/study" "$RUN_OUT"
+
+# THE OTHER THREE WALKS ARE NOT RE-PROVED HERE, and that is a cost decision
+# rather than an omission. harness/drill-gate.sh over the real tree is 3.1 s
+# measured, and harness/test-drill.sh --static already runs it in this same
+# fast tier at a 3.0 s budget, with harness/test-indeterminate.sh running it
+# twice more on the slow tier. A fourth invocation would have been two thirds
+# of this suite's wall time to re-establish what a sibling row establishes a
+# second later. So the layout row above is what carries the other three, and
+# what a reader should trust is that red here means red there.
+if [ ! -f "$GATE" ]; then
+  nope "the corpus gate exists to be run by its own suite. $GATE does not exist"
+else
+  ok "harness/drill-gate.sh exists, and harness/test-drill.sh --static is what runs it"
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the two real trees no study row may name =="
+# ---------------------------------------------------------------------------
+
+STUDY_ALL_SEEN=$(cat "$STUDY_SEEN")
+
+assert_never_names "no study or readme run ever named the real practice tree" \
+  "$REAL_PRACTICE" "$STUDY_ALL_SEEN"
+
+assert_never_names "and none ever named the real study tree" \
+  "$REAL_STUDY" "$STUDY_ALL_SEEN"
+
+assert_absent "nothing in this suite created a study tree under the sandboxed HOME" \
+  "$SANDBOX_HOME/Study"
+
+# ---------------------------------------------------------------------------
+echo
 echo "== structural: the deviation is argued, the shape is gated, the suite runs =="
 # ---------------------------------------------------------------------------
 
@@ -1048,6 +1786,17 @@ else
     '--refresh-prompts' "$SCRIPT_HEAD"
   assert_says "and says plainly that the default does not overwrite" \
     'OFF BY DEFAULT|[Oo]ff by default' "$SCRIPT_HEAD"
+  # The study mode's two load-bearing arguments. Both are the kind a later
+  # reader would otherwise undo as an inconsistency: a delivery script that
+  # refuses a missing destination, and a source path carrying a leading dot
+  # for no reason visible from the source tree.
+  SCRIPT_BODY=$(cat "$SCRIPT")
+  assert_says "the script argues why --study refuses a root it could create" \
+    'WHY THE REFUSAL' "$SCRIPT_BODY"
+  assert_says "and why the study source carries a hidden directory" \
+    'WHY THE SOURCE MIRRORS THE DESTINATION' "$SCRIPT_BODY"
+  assert_says "the script names the readme's file class rather than leaving it to be inferred" \
+    'A FOURTH FILE CLASS' "$SCRIPT_BODY"
 fi
 
 # Gate, don't advise. The shape assertion is the other half of this script's
