@@ -137,20 +137,65 @@
 # for, so it lands on exit 1.
 #
 # ---------------------------------------------------------------------------
-# WHICH MODULE GETS RUN
+# WHICH MODULE GETS RUN, AND WITH WHOSE CONFIG
 #
-# Every `.tla` at the top of the directory that has a `.cfg` of the same name.
-# If several qualify, each one is run and each one is reported, because Frank
-# keeps variants side by side: 01-slip-on-the-spike holds pickers.tla next to
-# pickers_collision.tla. Three kinds of leaving drop out, and two of them drop
-# out for free:
+# Every `.tla` at the top of the directory, less three kinds of leaving, two
+# of which drop out for free:
 #
 #   *_TTrace_*.tla      TLC's generated trace spec, skipped by name
 #   states/             TLC's fingerprint cache, never descended into
 #   *.tla.old           pcal's backup, which no *.tla glob matches
 #
-# A module with no config of its own name is skipped too, which is what
-# pickers_collision.tla actually is.
+# THE TRACE SKIP EARNS ITS KEEP NOW THAT CONFIGS ARE SHARED. Measured on this
+# build 2026-10-14: a run that violates writes Foo_TTrace_<n>.tla and no
+# config beside it. So TLC's own trace spec is itself an unpaired module, and
+# without the name skip it would borrow the directory's config and get checked
+# as though Frank had written it. The skip applies to the config side for the
+# same reason.
+#
+# A module with a `.cfg` of its own name runs with that one. A module without
+# one runs with the directory's config when all three of these hold:
+#
+#   1. exactly one config sits beside it, trace leavings not counted
+#   2. that config says what to run, through SPECIFICATION or INIT and NEXT
+#   3. the module defines every name it gave
+#
+# ONE CONFIG FOR TWO MODULES IS FRANK'S WORKFLOW rather than an oversight, and
+# that is the whole reason borrowing exists. The control-state family and
+# several others ask for two models: write it, run it, change one thing, run
+# it again. The second model declares the same constants and the same
+# invariants, so the first model's config is valid for it. What he ran by hand
+# was `tlc -config pickers.cfg pickers_collision`.
+#
+# BEFORE BEAD tla-rzvk.4 this script dropped that second model with no mention
+# at all. On his first drill, 2026-10-14, it reported one CLEAN module and
+# never named the one with the defect in it. That is a false reassurance from
+# the one tool in this loop whose job is to be objective.
+#
+# CONDITION 3 IS WHAT KEEPS THIS FROM GUESSING. A helper module that another
+# module EXTENDS is unpaired too, and handing it a config would run TLC over a
+# library rather than over a spec. The test is one grep for the operator the
+# config named, so a module that does not answer to that config never gets it.
+# A module that inherits the operator through an EXTENDS reads as not defining
+# it and lands in the unrun report. That is the conservative direction, and I
+# would rather be wrong in it than run a check nobody asked for.
+#
+# ANYTHING THAT FAILS A CONDITION IS NAMED, NOT RUN, AND CARRIES ITS REASON:
+#
+#   module=Variant NOT RUN: no Variant.cfg, and 2 configs to choose from: ...
+#   module=Helper NOT RUN: does not define Spec, which pickers.cfg names
+#
+# "Not run" with no reason would send Frank looking for a config he already
+# has, or writing a duplicate one he has no reason to keep.
+#
+# THE CONFIG IS ON EVERY MODULE LINE, borrowed or not. Printing it only when
+# it was borrowed would leave the fact in a silence, and a reader would have
+# to know this rule to read the output. That is the defect this bead fixes,
+# arriving one level up.
+#
+# AN UNRUN MODULE DOES NOT MOVE THE EXIT CODE, and a borrowed run counts as
+# any other run does. The count dimension still owns the exit, and an unrun
+# module is a report in the sense `run=` is.
 #
 # NO DEADLOCK FLAG IS PASSED, on purpose. Several prompts say to check with
 # deadlock checking off, and the learner says that in the config with
@@ -299,6 +344,76 @@ dedupe_csv() {
     out="${out:+${out},}${tok}"
   done
   printf '%s' "$out"
+}
+
+# ---------------------------------------------------------------------------
+# What a config says to run, and whether a module answers to it.
+# ---------------------------------------------------------------------------
+
+# config_runs <cfg>: the operator names the config says to run, one per line,
+# or nothing when it names none this script can read.
+#
+# SPECIFICATION gives one name. INIT and NEXT give two and both have to be
+# there, since a config carrying only one of them runs nothing either. 53 of
+# the 337 configs in the survey in .claude/rules/tla-practice.md use the
+# INIT/NEXT form, so a reader that only knows SPECIFICATION misreads a sixth
+# of them as naming nothing at all.
+#
+# The file is read as a token stream rather than line by line, because TLC
+# lets a keyword and its name sit on separate lines. `\*` opens a comment to
+# the end of the line here exactly as it does inside a module.
+config_runs() {
+  local tok want="" spec="" init="" nxt=""
+  while read -r tok; do
+    [ -n "$tok" ] || continue
+    case "$want" in
+    SPEC)
+      spec="$tok"
+      want=""
+      continue
+      ;;
+    INIT)
+      init="$tok"
+      want=""
+      continue
+      ;;
+    NEXT)
+      nxt="$tok"
+      want=""
+      continue
+      ;;
+    esac
+    case "$tok" in
+    SPECIFICATION) want=SPEC ;;
+    INIT) want=INIT ;;
+    NEXT) want=NEXT ;;
+    esac
+  done < <(sed 's/\\\*.*//' "$1" | tr -s '[:space:]' '\n')
+  if [ -n "$spec" ]; then
+    printf '%s\n' "$spec"
+    return 0
+  fi
+  if [ -n "$init" ] && [ -n "$nxt" ]; then
+    printf '%s\n%s\n' "$init" "$nxt"
+  fi
+}
+
+# defines_all <module.tla> <name>...: does the module define every operator
+# named? A definition opens a line with the name and `==`, so the pattern is
+# anchored at the line start and the name has to be the whole token.
+#
+# ITS LIMIT IS WORTH STATING. A module that gets the operator from an EXTENDS
+# instead of defining it reads here as not defining it, and falls to the unrun
+# report. Following the EXTENDS would be a second parser and a guess at what
+# resolves, and the cost of being wrong this way is a line Frank can read and
+# act on. The cost of being wrong the other way is TLC run over a library.
+defines_all() {
+  local module="$1" name
+  shift
+  for name in "$@"; do
+    grep -qE "^[[:space:]]*${name}[[:space:]]*==" "$module" || return 1
+  done
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -474,7 +589,31 @@ if [ ! -d "$WORK" ]; then
   exit 3
 fi
 
+# The configs this directory offers a module that has none of its own. Trace
+# leavings are left out for the reason in the header: TLC writes a *_TTrace_*
+# module with no config, so the leaving is an unpaired module and its own
+# config, when an older build wrote one, is a leaving too.
+CONFIGS=()
+for candidate in "$WORK"/*.cfg; do
+  [ -f "$candidate" ] || continue
+  cbase="${candidate##*/}"
+  case "$cbase" in
+  *_TTrace_*) continue ;;
+  esac
+  CONFIGS+=("$cbase")
+done
+
+CANDIDATES=""
+for cbase in ${CONFIGS[@]+"${CONFIGS[@]}"}; do
+  CANDIDATES="${CANDIDATES:+${CANDIDATES}, }${cbase}"
+done
+
+# MODULES and USING run in step: USING[i] is the config MODULES[i] runs with.
+# UNRUN and WHY run in step the same way.
 MODULES=()
+USING=()
+UNRUN=()
+WHY=()
 for candidate in "$WORK"/*.tla; do
   [ -f "$candidate" ] || continue
   base="${candidate##*/}"
@@ -482,12 +621,61 @@ for candidate in "$WORK"/*.tla; do
   case "$base" in
   *_TTrace_*) continue ;;
   esac
-  [ -f "${WORK}/${base}.cfg" ] || continue
-  MODULES+=("$base")
+
+  if [ -f "${WORK}/${base}.cfg" ]; then
+    MODULES+=("$base")
+    USING+=("${base}.cfg")
+    continue
+  fi
+
+  if [ "${#CONFIGS[@]}" -eq 0 ]; then
+    UNRUN+=("$base")
+    WHY+=("no ${base}.cfg, and no other config in the directory")
+    continue
+  fi
+  if [ "${#CONFIGS[@]}" -gt 1 ]; then
+    UNRUN+=("$base")
+    WHY+=("no ${base}.cfg, and ${#CONFIGS[@]} configs to choose from: ${CANDIDATES}")
+    continue
+  fi
+
+  only="${CONFIGS[0]}"
+  NAMES=()
+  while IFS= read -r one; do
+    [ -n "$one" ] && NAMES+=("$one")
+  done < <(config_runs "${WORK}/${only}")
+
+  if [ "${#NAMES[@]}" -eq 0 ]; then
+    UNRUN+=("$base")
+    WHY+=("${only} names no SPECIFICATION and no INIT/NEXT pair")
+    continue
+  fi
+
+  if defines_all "$candidate" ${NAMES[@]+"${NAMES[@]}"}; then
+    MODULES+=("$base")
+    USING+=("$only")
+    continue
+  fi
+
+  joined="${NAMES[0]}"
+  [ "${#NAMES[@]}" -gt 1 ] && joined="${NAMES[0]} and ${NAMES[1]}"
+  UNRUN+=("$base")
+  WHY+=("does not define ${joined}, which ${only} names")
+done
+
+# The unrun report comes before the toolchain check and before the exit for a
+# directory with nothing to run, because it is true whichever way those two
+# go. A directory whose only module is one this script will not run is where
+# the name matters most, and putting the report behind either gate would leave
+# that case silent again.
+u=0
+while [ "$u" -lt "${#UNRUN[@]}" ]; do
+  printf 'module=%s NOT RUN: %s\n' "${UNRUN[$u]}" "${WHY[$u]}"
+  u=$((u + 1))
 done
 
 if [ "${#MODULES[@]}" -eq 0 ]; then
-  echo "check: no module with a config of the same name under ${WORK}." >&2
+  echo "check: no module under ${WORK} that a config there can run." >&2
   exit 3
 fi
 
@@ -501,8 +689,11 @@ fi
 # ---------------------------------------------------------------------------
 
 MISSED=()
+mi=0
 for module in "${MODULES[@]}"; do
-  out="$(cd -- "$WORK" && tlc -config "${module}.cfg" "$module" 2>&1)"
+  cfg="${USING[$mi]}"
+  mi=$((mi + 1))
+  out="$(cd -- "$WORK" && tlc -config "$cfg" "$module" 2>&1)"
   rc=$?
 
   # The count dimension.
@@ -539,8 +730,8 @@ for module in "${MODULES[@]}"; do
     name="-"
   fi
 
-  printf 'module=%s rc=%s distinct=%s claimed=%s count=%s run=%s invariant=%s\n' \
-    "$module" "$rc" "$shown" "$CLAIMS" "$verdict" "$run" "$name"
+  printf 'module=%s config=%s rc=%s distinct=%s claimed=%s count=%s run=%s invariant=%s\n' \
+    "$module" "$cfg" "$rc" "$shown" "$CLAIMS" "$verdict" "$run" "$name"
 
   if [ "$run" = "VIOLATED" ]; then
     state="$(violating_state "$out")"

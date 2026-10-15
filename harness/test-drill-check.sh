@@ -41,6 +41,26 @@
 # that prints neither an error nor a count and asserts run=NOCOUNT, so the
 # classifier has to be total rather than optimistic.
 #
+# A FOURTH SHAPE IS A FALSE PASS NOBODY SEES: a module left out in silence.
+# Before bead tla-rzvk.4 a `.tla` with no `.cfg` of its own name was dropped
+# with no mention at all. So a two-model drill where Frank kept one config
+# reported CLEAN on the model that worked, and said nothing about the one that
+# broke. He hit it on 2026-10-14, the first drill he worked: pickers.tla ran,
+# pickers_collision.tla did not, and only the first appeared.
+#
+# ONE CONFIG FOR TWO MODULES IS HIS WORKFLOW, not an oversight, so the fix is
+# to run the second model rather than to report it. The two declare the same
+# constants and the same invariants, which is what makes one config valid for
+# both. Part 5 drives the three conditions that let a module borrow one, and
+# the three ways a module falls out of them. The condition I would watch is
+# the third: a helper module another module EXTENDS is unpaired too, and
+# handing it a config would check a library rather than a spec.
+#
+# THE CONFIG IS ON EVERY MODULE LINE after this bead, borrowed or not, and
+# 21-one-config asserts it on both. Printing it only when it was borrowed
+# would leave the fact in a silence, which is the defect above arriving one
+# level up.
+#
 # THE RC DOES NOT PREDICT THE COUNT, which is the measured fact this suite
 # exists to keep true. Part 2 runs a module that violates its invariant: rc 12
 # with a count printed anyway. drill/state-space/05-summary-record's G05Record
@@ -59,6 +79,7 @@
 # PART 2  the comparison itself, against real TLC runs
 # PART 3  which modules get run, and which leavings get skipped
 # PART 4  the run verdict, every value of it, and the violating state
+# PART 5  whose config a module runs with, and when it does not get one
 #
 # Usage:  harness/test-drill-check.sh
 # Exit:   0 if all assertions hold, 1 otherwise, 2 on a usage error or a
@@ -72,10 +93,15 @@
 # changes under it, which is the other half of why the fixtures are built
 # here.
 #
-# WHY SLOW TIER. Fourteen real TLC runs. By the rule in scripts/test's header
-# the boundary is the model checker, not the JVM, so this is slow whatever it
-# costs today. Its cost tracks the fixture count in parts 2 to 4 and nothing
-# about the real corpus, so it won't drift as drills land.
+# WHY SLOW TIER. Nearly every fixture here drives a real TLC run, and the stub
+# in part 4 is the one that does not. By the rule in scripts/test's header the
+# boundary is the model checker, not the JVM, so this is slow whatever it costs
+# today. Its cost tracks the fixture count in parts 2 to 5 and nothing about
+# the real corpus, so it won't drift as drills land.
+#
+# The run count used to sit in that first sentence as a number. It read
+# "Fourteen" against fifteen actual runs before bead tla-rzvk.4 touched a
+# fixture, which is what a hand-counted figure does when nothing gates it.
 # ---------------------------------------------------------------------------
 
 set -uo pipefail
@@ -221,6 +247,37 @@ field_is() {
 field_isnt() {
   if grep -qE -- "(^|[[:space:]])$2=$3([[:space:]]|$)" <<<"$OUT"; then
     nope "$1 (the whole field ${2}=${3} must NOT appear. output: ${OUT})"
+  else
+    ok "$1"
+  fi
+}
+
+# not_run_line <label> <module> <reason>: the WHOLE unrun line, anchored at
+# both ends, reason included.
+#
+# THE SUBSTRING HAZARD REACHES THIS LINE FROM A NEW DIRECTION. `grep -F RUN`
+# is satisfied by `NOT RUN`, so a suite that asks whether a module ran by
+# looking for the word gets a yes from the line that says it did not. Below,
+# a run line is counted by `rc=`, which only a run has, and an unrun line is
+# matched whole so its reason cannot drift unnoticed.
+#
+# The reason is part of the contract rather than decoration. "Not run" on its
+# own sends Frank looking for a config he already has, and the whole point of
+# bead tla-rzvk.4 is that the output stops hiding what it did.
+not_run_line() {
+  if grep -qE -- "^module=$2 NOT RUN: $3\$" <<<"$OUT"; then
+    ok "$1"
+  else
+    nope "$1 (expected the whole line 'module=$2 NOT RUN: $3'. output: ${OUT})"
+  fi
+}
+
+# not_run_line_absent <label> <module>: this module was not refused, whatever
+# the reason would have been. Asked by name rather than by counting unrun
+# lines, so it still means something in a directory holding several modules.
+not_run_line_absent() {
+  if grep -qE -- "^module=$2 NOT RUN:" <<<"$OUT"; then
+    nope "$1 (module=$2 was refused. output: ${OUT})"
   else
     ok "$1"
   fi
@@ -420,6 +477,86 @@ TLA
 INIT Init
 NEXT Next
 CFG
+}
+
+# mk_borrowed <dir> <name>: a second model with NO config of its own, which
+# declares the two names the paired model's config asks for and puts a
+# different rule under one of them.
+#
+# THIS IS FRANK'S OWN CASE, measured 2026-10-14. Run against mk_six's config:
+# rc 12, `4 distinct states found`, `Error: Invariant TypeOK is violated.` and
+# a last trace state of x = 3. The paired model beside it runs clean at 6, so
+# the two lines differ in every field that matters and a borrowed run cannot
+# pass by looking like the model next to it.
+mk_borrowed() {
+  local d="$1" name="${2:-Six_collision}"
+  mkdir -p "$d"
+  cat >"${d}/${name}.tla" <<TLA
+---- MODULE ${name} ----
+EXTENDS Naturals
+VARIABLE x
+Init == x = 0
+Next == x < 5 /\\ x' = x + 1
+Spec == Init /\\ [][Next]_x
+TypeOK == x < 3
+====
+TLA
+}
+
+# mk_helper <dir>: a module that is not a spec. It defines no Spec, no Init and
+# no Next, so no config in the directory has anything to say about it.
+#
+# A module like this is what EXTENDS is for, and it is the case that stops the
+# borrowing rule from being "hand the lone config to anything unpaired".
+# Running TLC over it would check a library. It is never run, so its body only
+# has to be a module that defines something other than what a config names.
+mk_helper() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Helper.tla" <<'TLA'
+---- MODULE Helper ----
+EXTENDS Naturals
+Double(n) == n * 2
+====
+TLA
+}
+
+# mk_pair <dir>: the INIT/NEXT config form rather than SPECIFICATION. 53 of the
+# 337 configs in the survey in .claude/rules/tla-practice.md use it, so a
+# reader of configs that only knows SPECIFICATION reads a sixth of them as
+# naming nothing. Measured: rc 0, `5 distinct states found`.
+mk_pair() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Pair.tla" <<'TLA'
+---- MODULE Pair ----
+EXTENDS Naturals
+VARIABLE x
+Init == x = 0
+Next == x < 4 /\ x' = x + 1
+====
+TLA
+  cat >"${d}/Pair.cfg" <<'CFG'
+INIT Init
+NEXT Next
+CHECK_DEADLOCK FALSE
+CFG
+}
+
+# mk_twin <dir>: an unpaired module that defines BOTH names Pair.cfg gives, so
+# it is a module that config can run. Measured against Pair.cfg: rc 0,
+# `7 distinct states found`.
+mk_twin() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Twin.tla" <<'TLA'
+---- MODULE Twin ----
+EXTENDS Naturals
+VARIABLE x
+Init == x = 0
+Next == x < 6 /\ x' = x + 1
+====
+TLA
 }
 
 # mk_prompt <family> <slug>, body on stdin.
@@ -625,6 +762,43 @@ mk_prompt fam-a 18-eval-fail <<'MD'
 Check it. A correct model finds 4 distinct states.
 MD
 
+# ---------------------------------------------------------------------------
+# PART 5's PROMPTS: whose config a module runs with. Bead tla-rzvk.4.
+#
+# 21 IS FRANK'S DIRECTORY, 2026-10-14. One paired model, one variant with no
+# config of its own, and TLC's trace leaving beside them. Both counts are
+# published, so both models match and the exit is 0 while the second model
+# reads VIOLATED. That is the row the locked exit-code decision rests on: a
+# borrowed run is an ordinary run, and a violation still does not move the
+# exit.
+#
+# Its two-count shape is the continuation parser's, which the comment on
+# 06-two-sizes covers.
+mk_prompt fam-a 21-one-config <<'MD'
+# One config, two models
+
+Write it, run it, then change one thing and run it again.
+A correct model finds 6 distinct states, and 4 with the second rule.
+MD
+
+# 22 is the condition that keeps borrowing from being a guess. A helper module
+# sits beside a real one, the directory has exactly one config, and the helper
+# still does not get it.
+mk_prompt fam-a 22-helper <<'MD'
+# Helper beside a spec
+
+Check it. A correct model finds 6 distinct states.
+MD
+
+# 23 is the same borrowing, through a config that names INIT and NEXT instead
+# of SPECIFICATION. Both names have to be defined, not one.
+mk_prompt fam-a 23-init-next <<'MD'
+# Init and Next
+
+Check it. A correct model finds 5 distinct states and 7 with the wider
+ceiling.
+MD
+
 # 19 and 20 share a prompt shape and differ in the toolchain they get.
 mk_prompt fam-a 20-silent-tlc <<'MD'
 # Silent toolchain
@@ -680,10 +854,25 @@ mkdir -p  "${WORK}/12-empty"
 # pickers_collision.tla with no config, pickers_TTrace_1792021269.tla, and a
 # states/ directory. The *.old entry is pcal's, named by that tree's own
 # .gitignore.
+#
+# THIS IS THE QUIET HALF OF BEAD tla-rzvk.4's CONTRACT, and the three unpaired
+# leavings below are what make it bite. Each one is a `.tla` with no `.cfg` of
+# its own name, which is the exact shape that now earns a module either a
+# borrowed config or a named unrun line. All three must get neither, so the
+# assertions in part 3 are that the output holds one module line and no unrun
+# line at all.
 mk_six   "${WORK}/04-leavings"
 mk_eight "${WORK}/04-leavings" "Six_TTrace_1792021269"
 cp "${WORK}/04-leavings/Six.tla" "${WORK}/04-leavings/Six.tla.old"
 mk_eight "${WORK}/04-leavings/states/Six_17_01" "Deep"
+
+# The unpaired forms of all three. Measured on this build 2026-10-14: a run
+# that violates writes Foo_TTrace_<n>.tla with NO config beside it, so a real
+# trace leaving IS an unpaired module and the name skip is the only thing
+# between it and a borrowed config.
+cp "${WORK}/04-leavings/Six.tla" "${WORK}/04-leavings/Six_TTrace_1792021270.tla"
+cp "${WORK}/04-leavings/Six.tla" "${WORK}/04-leavings/states/Six_17_01/Orphan.tla"
+cp "${WORK}/04-leavings/Six.tla" "${WORK}/04-leavings/Spare.tla.old"
 
 # 10-no-cfg: a module with no config of its own name, which is the shape
 # pickers_collision.tla has. On its own it leaves nothing to run.
@@ -702,6 +891,39 @@ mk_live     "${WORK}/16-liveness"
 mk_dead     "${WORK}/17-deadlock"
 mk_evalfail "${WORK}/18-eval-fail"
 mk_six      "${WORK}/20-silent-tlc"
+
+# Part 5's study directories. Bead tla-rzvk.4.
+#
+# 21 IS THE WHOLE BEAD IN ONE DIRECTORY: Frank's shape, with the trace leaving
+# in it. The leaving is there to prove it is not counted as a config candidate
+# and not run as a module, in the one directory where a miscount would change
+# a verdict rather than only add a line.
+#
+# MEASURED IN /home/fkberthold/Study/tla-drills/01-slip-on-the-spike ON
+# 2026-10-14: pickers.cfg, pickers.tla, pickers_collision.tla and
+# pickers_TTrace_1792021269.tla, with a states/ directory. The trace module
+# carries NO config of its own, which this build confirms it never writes, so
+# the leaving is itself an unpaired module.
+mk_six      "${WORK}/21-one-config"
+mk_borrowed "${WORK}/21-one-config"
+cp "${WORK}/21-one-config/Six.tla" "${WORK}/21-one-config/Six_TTrace_1792034839.tla"
+
+# THE CONFIG SIDE OF THE SAME SKIP, and this one guards a shape the current
+# build does not produce. TLC2 2026.07.31.184830 writes a trace module with no
+# config beside it, so a *_TTrace_*.cfg only turns up from an older build or
+# from a hand-copy. Counting one as a candidate would take this directory from
+# one config to two and flip Six_collision from a borrowed run to a refusal,
+# which is a false refusal on the exact case the bead exists for. The file is
+# here so that stays asserted rather than merely intended.
+cp "${WORK}/21-one-config/Six.cfg" "${WORK}/21-one-config/Six_TTrace_1792034839.cfg"
+
+# 22: one config, one real model, and a module that answers to no config.
+mk_six    "${WORK}/22-helper"
+mk_helper "${WORK}/22-helper"
+
+# 23: the INIT/NEXT form of the same borrowing.
+mk_pair "${WORK}/23-init-next"
+mk_twin "${WORK}/23-init-next"
 
 # ===========================================================================
 echo "== part 1: resolution, usage, and the ways to exit 3 =="
@@ -731,9 +953,15 @@ run_check 13-no-dir
 rc_is "a slug with no study directory is rc 3" 3
 has   "and the message names the directory it wanted" "${WORK}/13-no-dir"
 
+# A DIRECTORY WITH NO CONFIG AT ALL. Nothing is paired and there is nothing to
+# borrow, so this stays rc 3. What bead tla-rzvk.4 adds is the module's name:
+# the old message said a directory had no runnable module and left Frank to
+# work out which file it meant.
 run_check 10-no-cfg
 rc_is "a module with no config of its own name leaves nothing to run, rc 3" 3
 has   "and the message says so" "no module"
+not_run_line "and the module is named rather than left to be guessed at" \
+  Lone 'no Lone\.cfg, and no other config in the directory'
 
 run_check 12-empty
 rc_is "an empty study directory is rc 3" 3
@@ -780,7 +1008,7 @@ field_isnt "and it is not a match" count 'MATCH'
 field_isnt "and it is not a mismatch either" count 'MISMATCH'
 field_is   "TLC ran and its count is reported anyway" distinct '6'
 field_is   "and its rc is reported anyway" rc '0'
-lines_matching "one module line" 1 '^module='
+lines_matching "one run line" 1 '^module=[^[:space:]]+ config='
 lines_matching "one verdict line" 1 '^(MATCHED|MISMATCHED|UNCHECKED):'
 
 # NO CLAIM AND NO TLC IS NOW RC 3, AND THAT MOVED IN tla-rzvk.1. It used to be
@@ -801,12 +1029,18 @@ echo "== part 2: the comparison, against real TLC runs =="
 
 # The no-argument form, which is how Frank runs it: from in the directory.
 # EVERY FIELD OF THE LOCKED LINE IS ASSERTED HERE, in order, because this is
-# the one row where all seven carry their ordinary value. tla-rzvk.2 is being
+# the one row where all eight carry their ordinary value. tla-rzvk.2 is being
 # built against that line in parallel, so a field that drifts breaks a sibling
 # rather than only this suite.
+#
+# IT WAS SEVEN FIELDS UNTIL BEAD tla-rzvk.4, which put `config=` between
+# `module=` and `rc=`. That is a change to the epic's locked contract and not
+# a private one, so a parser reading the line by position rather than by key
+# has to be told. Reading by key survives it.
 run_check_in "${WORK}/01-six"
 rc_is "a model that reaches the claimed count is rc 0" 0
 has   "the line names the module" "module=Six"
+field_is "the line names the config it ran with" config 'Six\.cfg'
 field_is "the line carries TLC's rc" rc '0'
 field_is "the line carries the count TLC printed" distinct '6'
 field_is "the line carries the count the prompt claimed" claimed '6'
@@ -816,7 +1050,7 @@ field_is "the run verdict is CLEAN" run 'CLEAN'
 field_is "and no invariant is named on a clean run" invariant '-'
 hasnt "and no state block is printed when nothing violated" "  State "
 has   "the verdict line names the slug" "01-six"
-lines_matching "one module line" 1 '^module='
+lines_matching "one run line" 1 '^module=[^[:space:]]+ config='
 lines_matching "one verdict line" 1 '^(MATCHED|MISMATCHED|UNCHECKED):'
 
 run_check 02-eight-wanted
@@ -878,22 +1112,39 @@ hasnt "and the trace is not dumped whole" "  x = 0"
 echo "== part 3: which modules get run =="
 # ===========================================================================
 
+# THE QUIET HALF OF tla-rzvk.4. Three unpaired leavings sit in this directory
+# and all three are `.tla` files with no `.cfg` of their own, which after that
+# bead is the shape that earns a borrowed config or a named unrun line. None
+# of them may get either. The count of unrun lines is the assertion that
+# catches a leak, because a leaking *_TTrace_* would otherwise print a line
+# whose module name no `hasnt` below happens to spell.
 run_check 04-leavings
 rc_is "a directory of TLC leavings still checks the one real module, rc 0" 0
 has   "the real module ran" "module=Six"
-lines_matching "exactly one module line" 1 '^module='
+lines_matching "exactly one run line" 1 '^module=[^[:space:]]+ config='
+lines_matching "and no leaving is reported unrun" 0 '^module=[^[:space:]]+ NOT RUN:'
 hasnt "a *_TTrace_* module is not run" "TTrace"
 hasnt "a module under states/ is not run" "Deep"
+hasnt "and an unpaired one under states/ is not named either" "Orphan"
 hasnt "a *.old leaving is not run" ".old"
+hasnt "and an unpaired *.old is not named either" "Spare"
 
+# TWO CONFIGS AND AN UNPAIRED MODULE, which is the case borrowing refuses.
+# Lone has no config of its own and the directory offers two, so picking one
+# would be this script guessing which model Frank meant it for. It names both
+# and runs neither.
 run_check 11-variants
 rc_is "two variants side by side is rc 1 when one of them misses" 1
-lines_matching "both variants are reported" 2 '^module='
+lines_matching "both variants ran" 2 '^module=[^[:space:]]+ config='
 has   "the matching variant is named" "module=Six"
 has   "the missing variant is named" "module=Eight"
+field_is "the matching variant ran with its own config" config 'Six\.cfg'
+field_is "the missing variant ran with its own config" config 'Eight\.cfg'
 field_is "the matching count is printed" distinct '6'
 field_is "the missing count is printed" distinct '8'
-hasnt "a module with no config of its own name is skipped" "Lone"
+not_run_line "the unpaired module is named, with both candidates" \
+  Lone 'no Lone\.cfg, and 2 configs to choose from: Eight\.cfg, Six\.cfg'
+lines_matching "and only that one is unrun" 1 '^module=[^[:space:]]+ NOT RUN:'
 has   "the verdict names the variant that missed" "Eight"
 lines_matching "each variant carries its own run verdict" 2 'run=CLEAN([[:space:]]|$)'
 
@@ -969,6 +1220,70 @@ field_is   "and a log with neither an error nor a count is NOCOUNT" run 'NOCOUNT
 field_isnt "never CLEAN, which is the false pass this row exists for" run 'CLEAN'
 field_isnt "and not an error it cannot point at" run 'ERROR'
 field_is   "and nothing is named" invariant '-'
+
+# ===========================================================================
+echo "== part 5: whose config a module runs with =="
+# ===========================================================================
+
+# FRANK'S DIRECTORY, AND THE BEAD'S RED LINE. One config, two models, and the
+# second model is the one with the defect in it. Before bead tla-rzvk.4 only
+# the first appeared and the verdict read clean.
+#
+# Both published counts match, so the exit is 0 WHILE the second model reads
+# VIOLATED. That pairing is what the locked exit-code decision means: a
+# borrowed run is an ordinary run, and a violation still never moves the exit.
+# An implementation that folded an unpaired module into the failure count
+# passes 11-variants above and fails here.
+run_check 21-one-config
+rc_is "a borrowed config does not move the exit code" 0
+lines_matching "both models ran" 2 '^module=[^[:space:]]+ config='
+lines_matching "and neither is reported unrun" 0 '^module=[^[:space:]]+ NOT RUN:'
+has   "the paired model ran" "module=Six "
+has   "the unpaired model ran too, which is the bead" "module=Six_collision "
+lines_matching "and BOTH lines name the config, not just the borrowed one" \
+  2 '(^|[[:space:]])config=Six\.cfg([[:space:]]|$)'
+field_is   "the borrowed run reports TLC's rc" rc '12'
+field_is   "and the count it printed" distinct '4'
+field_is   "and the paired model's count beside it" distinct '6'
+field_is   "both counts were published, so both match" claimed '6,4'
+field_is   "the borrowed run's verdict is reported" run 'VIOLATED'
+field_is   "with the invariant it broke" invariant 'TypeOK'
+field_isnt "and no model reports a count mismatch" count 'MISMATCH'
+state_block_follows "the violating state sits under the borrowed run's line" Six_collision
+has   "and it is the state that broke the invariant" "  x = 3"
+hasnt "the trace leaving beside them is never named" "TTrace"
+not_run_line_absent "and its config is not counted as a second candidate" Six_collision
+has   "the verdict line still reads MATCHED" "MATCHED:"
+
+# THE CONDITION THAT KEEPS BORROWING FROM BEING A GUESS. Exactly one config
+# sits here, and Helper still does not get it: it defines no Spec, so running
+# it would check a library rather than a spec. The reason is on the line,
+# because "not run" alone sends Frank looking for a config he does not need.
+run_check 22-helper
+rc_is "a module that answers to no config does not fail the run, rc 0" 0
+has   "the real module ran" "module=Six "
+lines_matching "and it is the only run" 1 '^module=[^[:space:]]+ config='
+not_run_line "the helper is named, and the reason names the operator" \
+  Helper 'does not define Spec, which Six\.cfg names'
+hasnt "the helper was not handed the one config in the directory" "module=Helper config="
+has   "the verdict line still reads MATCHED" "MATCHED:"
+
+# THE SAME BORROWING THROUGH AN INIT/NEXT CONFIG. Twin defines both names
+# Pair.cfg gives, so it runs. A reader that only knows SPECIFICATION finds no
+# name here, which is the false-refusal direction: Twin would land in the unrun
+# report with a reason that is not true of it.
+run_check 23-init-next
+rc_is "an INIT/NEXT config borrows the same way, rc 0" 0
+lines_matching "both modules ran" 2 '^module=[^[:space:]]+ config='
+lines_matching "and neither is reported unrun" 0 '^module=[^[:space:]]+ NOT RUN:'
+has   "the paired module ran" "module=Pair "
+has   "the unpaired one borrowed the config" "module=Twin "
+lines_matching "and both lines name it" \
+  2 '(^|[[:space:]])config=Pair\.cfg([[:space:]]|$)'
+field_is "the paired count is TLC's" distinct '5'
+field_is "and the borrowed count is TLC's" distinct '7'
+field_is "both published counts are claimed" claimed '5,7'
+field_isnt "and neither is a mismatch" count 'MISMATCH'
 
 # ===========================================================================
 printf '\n'
