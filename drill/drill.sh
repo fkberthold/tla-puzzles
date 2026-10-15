@@ -17,8 +17,30 @@
 # ~/tla-practice is not a git repo. There is no harness beside this file, no
 # bd, no sibling script, and no guarantee that TLC is on the path. So this
 # script sources nothing, resolves no repo root, and reads nothing outside the
-# directory it sits in. Everything it needs it works out from
+# directory it sits in. Everything it reads it works out from
 # ${BASH_SOURCE[0]} and from the tree under it.
+#
+# THE ONE EXCEPTION, AND IT IS A WRITE RATHER THAN A READ. A serve creates the
+# study directory you work the drill in, at $DRILL_STUDY_ROOT/<slug>, which
+# defaults to $HOME/Study/tla-drills/<slug>. That is the only path outside
+# this directory that this script touches, it is created and never read, and
+# nothing in here opens a file under it.
+#
+# Why the exception is worth the narrowing: the work goes in a separate flat
+# tree on purpose, so ~/tla-practice stays written only by scripts and a
+# re-delivery can never land on top of a page Frank wrote in. Starting a drill
+# was then three commands, and the directory is the one of the three this
+# script already knows the name of.
+#
+# IT IS A CONVENIENCE AND THE SERVE IS THE JOB. A creation that fails warns on
+# stderr and the serve carries on: the prompt prints, the pointer is written,
+# and the exit code is 0. An unset HOME with no DRILL_STUDY_ROOT, a root that
+# is a regular file, a read-only disk: none of those is a reason to withhold
+# the prompt, because every one of them is fixed with one mkdir.
+#
+# AN EXISTING DIRECTORY IS NEVER TOUCHED. If it is already there the serve
+# names it and says nothing about creating it. It holds the only copy of work
+# that has no git behind it.
 #
 # It also has to work on a first run, with no state file and nothing marked.
 # An absent PROGRESS.tsv means "nothing done yet", which is the ordinary case
@@ -75,15 +97,18 @@
 # exactly, with no fork at all.
 #
 # ---------------------------------------------------------------------------
-# WHAT IT WRITES, WHICH IS TWO PATHS AND NOTHING ELSE
+# WHAT IT WRITES, WHICH IS THREE PATHS AND NOTHING ELSE
 #
 #   PROGRESS.tsv    appended to, one line per mark
 #   LAST-SERVED     the drill served last, so a mark takes no argument
+#   <study>/<slug>  created on a serve, and only ever created
 #
-# Both sit beside this file. There is no delete path anywhere in here, and
-# nothing is written outside this directory. ~/tla-practice holds the only
-# copy of the work done in it and has no git behind it, so a clobbered file
-# does not come back.
+# The first two sit beside this file. The third is the exception the section
+# above argues, and it is a bare mkdir: no file is written into it, now or
+# ever, by this script. There is no delete path anywhere in here.
+# ~/tla-practice holds the only copy of the work done in it and has no git
+# behind it, so a clobbered file does not come back, and the study tree is in
+# the same position.
 #
 # LAST-SERVED is the one file that gets replaced rather than appended to, and
 # that is sound because it holds no work. It is this script's own cursor, it
@@ -103,13 +128,34 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROGRESS="$HERE/PROGRESS.tsv"
 POINTER="$HERE/LAST-SERVED"
 
+# The study root, which is the one path resolved from outside this tree. See
+# the header for why the exception exists and why it cannot fail a serve.
+#
+# An EMPTY STUDY_ROOT means neither the variable nor HOME resolved, and a
+# serve says so rather than guessing. Defaulting to /Study/tla-drills on an
+# unset HOME would be a write at the filesystem root, which is the one place
+# an accident is worst and the one place a privileged shell would let it
+# through.
+#
+# The trailing slash comes off both forms, so DRILL_STUDY_ROOT=/tmp/x/ and
+# DRILL_STUDY_ROOT=/tmp/x name the same directory rather than two paths that
+# differ by a doubled separator in every message.
+#
+# `${HOME:+...}` rather than `${HOME:-}` and a test: the :+ form yields the
+# whole default path when HOME is set and the empty string when it is not, so
+# the fallback is one line and HOME is named in one place. The form is a
+# defined-ness test, so it does not trip `set -u` on an unset HOME.
+STUDY_ROOT="${DRILL_STUDY_ROOT:-}"
+[ -n "$STUDY_ROOT" ] || STUDY_ROOT="${HOME:+${HOME%/}/Study/tla-drills}"
+STUDY_ROOT="${STUDY_ROOT%/}"
+
 TAB=$'\t'
 
 usage() {
   cat <<'USAGE'
 Usage: ./drill [done|shaky|status|list|help] [<family>/<item>]
 
-  ./drill            serve the next drill: where it is, then its prompt
+  ./drill            serve the next drill: where to work, then its prompt
   ./drill done       mark the drill you were served done, then serve the next
   ./drill shaky      mark it shaky, then serve the next
   ./drill status     how many are done, shaky and untried
@@ -122,6 +168,10 @@ which is what you want when two terminals have drifted apart.
 
 done retires a drill. shaky puts it back after everything untried, so a drill
 you half got comes round again.
+
+A serve makes the directory to work the drill in, under ~/Study/tla-drills.
+Set DRILL_STUDY_ROOT to put it somewhere else. A directory already there is
+left exactly as it is, and a serve that cannot make one still serves.
 USAGE
 }
 
@@ -254,7 +304,57 @@ build_queue() {
 
 # ---------------------------------------------------------------------------
 # Serving.
+#
+# THE STUDY DIRECTORY, which is the exception the header argues. It is placed
+# flat, under the slug alone: the item with its family stripped, so
+# control-state/01-slip-on-the-spike works in 01-slip-on-the-spike. That is
+# unambiguous because all 64 delivered slugs are distinct across the eight
+# families, and it keeps the path short enough to type.
+#
+# `${item##*/}` rather than basename or a cut: it is exact on a two-segment
+# item name and it forks nothing. A serve already forks twice for the counts,
+# and this is the hot path a learner runs every day.
+#
+# STUDY_MADE is reported and never inferred from a timestamp. A directory
+# somebody else created a second earlier is still a directory this serve did
+# not create, and saying otherwise over a tree that holds the only copy of the
+# work is the wrong direction to be wrong in.
 # ---------------------------------------------------------------------------
+
+STUDY_DIR=""
+STUDY_MADE=0
+
+# ensure_study <item>: resolve the study directory for an item and create it
+# if it is absent. Never fails: STUDY_DIR comes back empty when there is
+# nothing to name, and the caller serves the drill either way.
+ensure_study() {
+  local item="$1" slug
+  STUDY_DIR=""
+  STUDY_MADE=0
+
+  if [ -z "$STUDY_ROOT" ]; then
+    echo "drill: no study directory this time: DRILL_STUDY_ROOT is unset and so is HOME," >&2
+    echo "drill: so there is no root to put one under. Set DRILL_STUDY_ROOT to choose one." >&2
+    return 0
+  fi
+
+  slug="${item##*/}"
+
+  if [ -d "$STUDY_ROOT/$slug" ]; then
+    STUDY_DIR="$STUDY_ROOT/$slug"
+    return 0
+  fi
+
+  if mkdir -p -- "$STUDY_ROOT/$slug" 2>/dev/null; then
+    STUDY_DIR="$STUDY_ROOT/$slug"
+    STUDY_MADE=1
+    return 0
+  fi
+
+  echo "drill: cannot create the study directory at $STUDY_ROOT/$slug, so work" >&2
+  echo "drill: wherever you like and set DRILL_STUDY_ROOT when you want one made." >&2
+  return 0
+}
 
 serve_next() {
   local total="${#ITEMS[@]}" done_n shaky_n item
@@ -274,12 +374,23 @@ serve_next() {
     return 1
   fi
 
+  # Before the prompt, so a warning about the directory is read next to the
+  # line that would have named it rather than scrolled off above the prompt.
+  ensure_study "$item"
+
   echo "== ${item} =="
   if [ "${MARK_OF[$item]:-}" = "shaky" ]; then
     echo "You marked this one shaky, so here it is again."
   fi
   printf '%s queued, %s done, %s shaky, %s drills in all\n' \
     "${#QUEUE[@]}" "$done_n" "$shaky_n" "$total"
+  if [ -n "$STUDY_DIR" ]; then
+    if [ "$STUDY_MADE" -eq 1 ]; then
+      printf 'work in: %s   (created)\n' "$STUDY_DIR"
+    else
+      printf 'work in: %s\n' "$STUDY_DIR"
+    fi
+  fi
   echo
   cat "$HERE/$item/PROMPT.md"
   echo
