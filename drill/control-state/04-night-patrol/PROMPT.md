@@ -17,6 +17,5 @@ the statement that the guard never stops for good, and run it. Report the
 verdict. If TLC reports a counter-example, say at which state the guard
 stopped and what the guard was able to do there.
 
-Then: the guard's position is not something the clock records. Say in two
-sentences whether it belongs in your specification's state at all, and
-whether it belongs in the statement that the guard never stops for good.
+Then: the guard's position is not something the clock records. Say in one
+sentence whether it belongs in your specification's state at all.

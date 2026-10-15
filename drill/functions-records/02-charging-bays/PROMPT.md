@@ -21,5 +21,4 @@ Write the specification and both rules from an empty file, and run it with
 deadlock checking on. A correct model finds 37 distinct states and reports
 no error.
 
-Then say which of the two rules you had to write down as a property, and
-which one your choice of state made impossible to break.
+Then say, for each rule, whether your model could have broken it, and why.

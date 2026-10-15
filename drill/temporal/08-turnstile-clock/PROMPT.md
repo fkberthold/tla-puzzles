@@ -1,8 +1,7 @@
 # Turnstile and clock
 
 A turnstile counts people entering a hall. A wall clock beside it ticks.
-The clock isn't the turnstile's business: the specification constrains the
-count and says nothing about the clock.
+The clock isn't the turnstile's business.
 
 Each row below is one step: the state before and the state after, written
 (count, clock).
