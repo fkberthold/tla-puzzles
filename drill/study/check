@@ -13,7 +13,8 @@
 #         2  UNCHECKED: the prompt publishes no count, so the count dimension
 #            has nothing to compare. The run still happened and its verdict
 #            is on the line
-#         3  usage, no prompt found, no model found, or no tlc on the path
+#         3  usage, no prompt found, no model found, no tlc on the path, or no
+#            scratch directory to run TLC in
 #
 # ---------------------------------------------------------------------------
 # WHAT IT ANSWERS, AND WHAT IT REFUSES TO ANSWER
@@ -98,10 +99,44 @@
 # verdict.sh to source, and no repo root to resolve. Everything it needs comes
 # from two environment variables with documented defaults, from the directory
 # it is pointed at, and from `tlc` on the path. An absent tlc is exit 3 with a
-# message, never a quiet pass.
+# message, never a quiet pass. The only other tools it reaches for are mktemp
+# and cp, for the copy the next section is about.
 #
 #   DRILL_PROMPT_ROOT   default $HOME/tla-practice/drill
 #   DRILL_STUDY_ROOT    default $HOME/Study/tla-drills
+#
+# ---------------------------------------------------------------------------
+# IT WRITES NOTHING IN THE DIRECTORY IT IS CHECKING, AND THAT TOOK A FIX
+#
+# TLC writes in whatever directory it runs in, and until bead tla-9y5h this
+# script ran it in the work directory. So a violated run left a trace module, a
+# .bin and a states/ fingerprint cache beside the spec, and a clean run left
+# the states/ cache. The study tree holds the only copy of Frank's work and has
+# no git behind it, and scripts/deliver-drill.sh prints "left alone (your work,
+# never written here):" about that tree while it delivers.
+#
+# MEASURED TWICE IN ~/Study/tla-drills/01-slip-on-the-spike, on 2026-10-14 and
+# again on 2026-10-15, both times by the session that was holding the bead
+# open. One check left pickers_collision_TTrace_1792036425.tla, its .bin, and
+# states/26-10-14-23-53-45.700/. The names carry a timestamp, so nothing
+# overwrites at any spacing a person works at and twenty checks leave twenty
+# pairs.
+#
+# WHAT IT DOES INSTEAD is copy the directory's modules and configs into a
+# scratch directory of its own, run TLC there, read the log and delete the
+# copy. EVERY module goes across rather than only the one being run, because a
+# module another one EXTENDS has to sit beside it or the run fails at the
+# parse. drill/study/style already had this property for free, since it reads
+# text and never starts TLC.
+#
+# THIS CHANGED WHAT THE *_TTrace_* SKIP BELOW IS FOR, and the skip is no less
+# load-bearing for it. Bead tla-rzvk.4 made the skip carry weight because a
+# trace leaving is itself an unpaired module, so without it the leaving borrows
+# the directory's config and gets checked as though Frank had written it. What
+# changed is where the leavings came from: this script was generating the exact
+# shape its own borrowing rule had to special-case. Now the skip guards only
+# what TLC left there BEFORE, from a hand run or an older session, which is
+# what it was always for.
 #
 # RESOLUTION NEEDS NO MAPPING DATA. The slug is the basename of the study
 # directory, and the prompt is the one hit of $DRILL_PROMPT_ROOT/*/<slug>/
@@ -152,6 +187,11 @@
 # without the name skip it would borrow the directory's config and get checked
 # as though Frank had written it. The skip applies to the config side for the
 # same reason.
+#
+# WHAT IT GUARDS IS NO LONGER THIS SCRIPT'S OWN MESS. Bead tla-9y5h moved the
+# run into a scratch copy, so the leavings reaching this glob are the ones TLC
+# left before, from a hand run of tlc or an older session. See the section on
+# the copy above.
 #
 # A module with a `.cfg` of its own name runs with that one. A module without
 # one runs with the directory's config when all three of these hold:
@@ -685,6 +725,41 @@ if ! command -v tlc >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
+# The scratch copy TLC runs in. See the header: TLC writes in whatever
+# directory it runs in, and the directory it would otherwise run in holds the
+# only copy of Frank's work.
+#
+# A scratch directory this script cannot make is exit 3 rather than a run in
+# the work directory. Falling back would put the defect back silently, on the
+# one tree that has no copy, and "could not run" is both true and safe.
+# ---------------------------------------------------------------------------
+
+SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/drill-check.XXXXXXXX" 2>/dev/null)"
+if [ -z "$SCRATCH" ] || [ ! -d "$SCRATCH" ]; then
+  echo "check: could not make a scratch directory to run TLC in, so nothing was checked." >&2
+  exit 3
+fi
+# shellcheck disable=SC2317  # reached through the EXIT trap on the next line
+drop_scratch() { rm -rf "$SCRATCH"; }
+trap drop_scratch EXIT
+
+# EVERY MODULE GOES ACROSS, not only the ones about to be run. A module another
+# one EXTENDS has to sit beside it or TLC reports `Cannot find source file for
+# module Lib` and the run fails at the parse. That turns a right model into
+# run=ERROR, which is the false-fail direction on a drill loop. Configs go
+# across for the same reason, since a borrowed one is named on the TLC line.
+#
+# Top level only, which is all the glob reaches anyway. Nothing under states/
+# is a module Frank wrote.
+for candidate in "$WORK"/*.tla "$WORK"/*.cfg; do
+  [ -f "$candidate" ] || continue
+  if ! cp -- "$candidate" "${SCRATCH}/"; then
+    echo "check: could not copy ${candidate} into ${SCRATCH}, so nothing was checked." >&2
+    exit 3
+  fi
+done
+
+# ---------------------------------------------------------------------------
 # Run each model and report it.
 # ---------------------------------------------------------------------------
 
@@ -693,7 +768,7 @@ mi=0
 for module in "${MODULES[@]}"; do
   cfg="${USING[$mi]}"
   mi=$((mi + 1))
-  out="$(cd -- "$WORK" && tlc -config "$cfg" "$module" 2>&1)"
+  out="$(cd -- "$SCRATCH" && tlc -config "$cfg" "$module" 2>&1)"
   rc=$?
 
   # The count dimension.

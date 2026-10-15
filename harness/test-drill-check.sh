@@ -304,6 +304,68 @@ state_block_follows() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# PART 6's INSTRUMENT: the directory snapshot. Bead tla-9y5h.
+#
+# The assertion part 6 makes is an assertion of ABSENCE, and absence goes
+# vacuous more easily than anything else in this file. The shape to watch was
+# found on this suite's own sibling: a snapshot of a directory that does not
+# exist returns one fixed value, and that value compares equal to a second
+# snapshot of the same absent directory, so "every file is untouched" reports
+# green over a tree nobody ever created.
+#
+# Two things answer it and both are needed. `dir_tree` makes the absence a
+# DISTINGUISHABLE value rather than an empty one, so a snapshot of nothing
+# cannot pass for a snapshot of something. And part 6 asserts its before-image
+# against the literal three entries it must hold, which proves in one line that
+# the directory is there, that it holds the violating model, and that the
+# instrument reads it.
+# ---------------------------------------------------------------------------
+
+# dir_tree <dir> [<find args>...]: every path under <dir>, relative to it and
+# sorted, one per line. An absent directory is reported as absent rather than
+# as an empty tree, for the reason above.
+dir_tree() {
+  local d="$1"
+  shift
+  if [ ! -d "$d" ]; then
+    printf 'ABSENT: %s\n' "$d"
+    return 0
+  fi
+  (cd -- "$d" && find . "$@" | sort)
+}
+
+# tree_unchanged <label> <dir> <before> [<find args>...]: <dir> holds exactly
+# what <before> says and nothing besides. The whole tree is compared rather
+# than a count, because TLC's leavings carry a timestamp in their names and a
+# count would be satisfied by a swap.
+tree_unchanged() {
+  local label="$1" dir="$2" before="$3" now
+  shift 3
+  now="$(dir_tree "$dir" "$@")"
+  if [ "$now" = "$before" ]; then
+    ok "$label"
+  else
+    nope "$label (the directory changed. before:
+${before}
+after:
+${now})"
+  fi
+}
+
+# tree_lacks <label> <dir> <pattern>: the named half of the same assertion. The
+# comparison above catches anything at all, and this says which shape it was,
+# so a failure reads as the defect rather than as a diff to decode.
+tree_lacks() {
+  local tree
+  tree="$(dir_tree "$2")"
+  if grep -qE -- "$3" <<<"$tree"; then
+    nope "$1 (a path matching '$3' is under $2: ${tree})"
+  else
+    ok "$1"
+  fi
+}
+
 # ===========================================================================
 # FIXTURE BUILDERS
 #
@@ -559,6 +621,48 @@ Next == x < 6 /\ x' = x + 1
 TLA
 }
 
+# mk_extends <dir>: a spec that EXTENDS a sibling module in the same directory,
+# which is the shape that decides how much of the directory a temp copy has to
+# carry. Bead tla-9y5h.
+#
+# MEASURED BOTH WAYS on TLC2 2026.07.31.184830, 2026-10-15. With Lib.tla beside
+# it: rc 0 and `4 distinct states found`. With only Main.tla and Main.cfg
+# copied, which is what a copy of the module being run would do:
+#
+#   Cannot find source file for module Lib imported in module Main.
+#   Error: Parsing or semantic analysis failed.
+#
+# so a copy that carries one module turns a correct model into distinct=-,
+# count=MISMATCH and run=ERROR. That is the FALSE FAIL direction on a right
+# model, which this suite's header calls the worse of the two on a drill loop.
+# Lib itself defines no Spec, so it lands in the unrun report, and the run has
+# to happen anyway.
+mk_extends() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Lib.tla" <<'TLA'
+---- MODULE Lib ----
+EXTENDS Naturals
+Limit == 3
+====
+TLA
+  cat >"${d}/Main.tla" <<'TLA'
+---- MODULE Main ----
+EXTENDS Naturals, Lib
+VARIABLE x
+Init == x = 0
+Next == x < Limit /\ x' = x + 1
+Spec == Init /\ [][Next]_x
+TypeOK == x \in 0..Limit
+====
+TLA
+  cat >"${d}/Main.cfg" <<'CFG'
+SPECIFICATION Spec
+INVARIANT TypeOK
+CHECK_DEADLOCK FALSE
+CFG
+}
+
 # mk_prompt <family> <slug>, body on stdin.
 mk_prompt() {
   mkdir -p "${PROMPTS}/${1}/${2}"
@@ -799,6 +903,29 @@ Check it. A correct model finds 5 distinct states and 7 with the wider
 ceiling.
 MD
 
+# ---------------------------------------------------------------------------
+# PART 6's PROMPTS: what check leaves behind. Bead tla-9y5h.
+#
+# 24 IS THE BEAD'S RED LINE. A model that violates its invariant, checked
+# twice, against a prompt that publishes the count it reaches. The count claim
+# is there so the run is an ordinary passing run and the only thing part 6 is
+# asking about is the directory.
+mk_prompt fam-a 24-litter <<'MD'
+# Litter
+
+Check it. A correct model finds 4 distinct states.
+MD
+
+# 25 is the other half of the fix rather than a second instance of the defect.
+# See mk_extends: a temp copy that carries only the module being run breaks an
+# EXTENDS of a sibling, so this prompt publishes the count the two modules
+# reach together.
+mk_prompt fam-a 25-extends <<'MD'
+# Extends a sibling
+
+Check it. A correct model finds 4 distinct states.
+MD
+
 # 19 and 20 share a prompt shape and differ in the toolchain they get.
 mk_prompt fam-a 20-silent-tlc <<'MD'
 # Silent toolchain
@@ -924,6 +1051,16 @@ mk_helper "${WORK}/22-helper"
 # 23: the INIT/NEXT form of the same borrowing.
 mk_pair "${WORK}/23-init-next"
 mk_twin "${WORK}/23-init-next"
+
+# Part 6's study directories. Bead tla-9y5h.
+#
+# NOTHING BETWEEN HERE AND PART 6 MAY RUN AGAINST EITHER OF THEM. Part 6 takes
+# its before-image at the top of the part rather than here, so a run earlier in
+# the file would be snapshotted as though its leavings had always been there,
+# and the comparison would hold over a directory already littered. Both slugs
+# are unique to part 6 for that reason.
+mk_viol    "${WORK}/24-litter"
+mk_extends "${WORK}/25-extends"
 
 # ===========================================================================
 echo "== part 1: resolution, usage, and the ways to exit 3 =="
@@ -1284,6 +1421,137 @@ field_is "the paired count is TLC's" distinct '5'
 field_is "and the borrowed count is TLC's" distinct '7'
 field_is "both published counts are claimed" claimed '5,7'
 field_isnt "and neither is a mismatch" count 'MISMATCH'
+
+# ===========================================================================
+echo "== part 6: check never writes in the directory it is checking =="
+# ===========================================================================
+
+# BEAD tla-9y5h, AND IT WAS MEASURED ON FRANK'S REAL DIRECTORY TWICE BEFORE IT
+# WAS WRITTEN HERE, forty minutes apart on 2026-10-14 and again on 2026-10-15,
+# in ~/Study/tla-drills/01-slip-on-the-spike. check ran TLC in the directory it
+# was checking, so a violated run left a trace module, its .bin and a
+# fingerprint cache beside the spec. The names carry a timestamp, so nothing
+# overwrites at any human spacing and twenty checks leave twenty pairs, in the
+# one tree that holds the only copy of his work and has no git behind it.
+# scripts/deliver-drill.sh calls that tree "left alone (your work, never
+# written here)" while it prints the delivery, which the checker was making
+# false.
+#
+# A SIBLING IN THE SAME TREE ALREADY HAS THE PROPERTY. drill/study/style was
+# run against that directory minutes later and wrote nothing at all, because it
+# reads text and never starts TLC. So the standard part 6 holds check to is one
+# another delivered tool already meets.
+#
+# THE DEFECT IS BROADER THAN A VIOLATED RUN, measured here on 2026-10-15: a
+# CLEAN run leaves a states/ directory too. 25-extends is clean and its tree is
+# asserted the same way, so the part gates every run rather than only the ones
+# that refute.
+#
+# WHAT THIS CHANGES ABOUT BEAD tla-rzvk.4's *_TTrace_* SKIP, which part 3
+# gates: the skip stops being self-inflicted. check was generating the exact
+# unpaired-module shape the borrowing rule has to special-case, so the skip was
+# guarding its own leavings. After this part it guards only what TLC left there
+# BEFORE, from a hand run of tlc or an older session, which is what it was
+# always for. The skip is no less load-bearing and 04-leavings and 21-one-config
+# still gate it.
+#
+# EVERY ASSERTION BELOW IS AN ASSERTION OF ABSENCE, so read the instrument's
+# comment above dir_tree first. The before-image is asserted against its
+# literal contents, and the run is asserted to have really refuted something,
+# because a run that did not violate would leave no trace to find and the
+# comparison would be green for the wrong reason.
+
+LITTER="${WORK}/24-litter"
+
+LITTER_BEFORE_WANT='.
+./Viol.cfg
+./Viol.tla'
+LITTER_BEFORE="$(dir_tree "$LITTER")"
+if [ "$LITTER_BEFORE" = "$LITTER_BEFORE_WANT" ]; then
+  ok "fixture control: the directory exists and holds exactly the violating model and its config"
+else
+  nope "FIXTURE: 24-litter is not the two-file directory part 6 compares against, so every row below is void (got: ${LITTER_BEFORE})"
+fi
+
+# The run itself first, in full, because a fix that stopped running TLC would
+# satisfy every absence row in this part. The verdict channel has to come back
+# unchanged through the copy.
+run_check 24-litter
+rc_is "a violating model still checks through the copy, rc 0" 0
+field_is "TLC ran: its rc is reported" rc '12'
+field_is "and the count it printed" distinct '4'
+field_is "and the count still matches" count 'MATCH'
+field_is "AND THE RUN REALLY DID REFUTE SOMETHING, which is what leaves a trace to find" run 'VIOLATED'
+field_is "with the invariant it broke" invariant 'Small'
+state_block_follows "and the violating state still comes back" Viol
+has "and it is the state that broke the invariant" "  x = 3"
+
+tree_unchanged "THE FIRST RUN ADDED NOTHING to the directory it checked" "$LITTER" "$LITTER_BEFORE"
+tree_lacks "no trace module and no .bin beside the spec" "$LITTER" '_TTrace_'
+tree_lacks "and no fingerprint cache" "$LITTER" '(^|/)states(/|$)'
+
+# TWICE IS THE BEAD'S RED LINE AND NOT A REPETITION. The leavings carry a
+# timestamp, so the second run is where they accumulate rather than overwrite:
+# measured here on 2026-10-15 against the unfixed script, two runs a third of a
+# second apart left one trace pair, because the name is stamped to the second,
+# and TWO states/ subdirectories, because that name is stamped to the
+# millisecond. At the forty-minute spacing Frank measured, both accumulate.
+run_check 24-litter
+rc_is "the second run reports the same verdict" 0
+field_is "and still refutes" run 'VIOLATED'
+field_is "at the same count" distinct '4'
+tree_unchanged "AND THE SECOND RUN ADDED NOTHING EITHER, which is where the leavings used to accumulate" "$LITTER" "$LITTER_BEFORE"
+tree_lacks "still no trace module after two runs" "$LITTER" '_TTrace_'
+tree_lacks "and still no fingerprint cache" "$LITTER" '(^|/)states(/|$)'
+
+# THE STUDY ROOT, ONE LEVEL UP, which the rows above cannot see: a scratch
+# directory made BESIDE the work directory leaves that directory clean and
+# still writes in the tree the bead is about.
+#
+# WHAT THIS ROW CATCHES IS A LEAK AND NOT A PLACEMENT, and I got that wrong on
+# the first attempt, so it is worth writing down. Pointing the fix's mktemp at
+# the study root did NOT redden this row, because the scratch directory is
+# removed on the way out and the snapshot is taken after the run. Dropping the
+# cleanup trap as well reddened it, alone, out of 211. So the claim it stands
+# behind is that nothing SURVIVES beside the work directory, which covers a
+# scratch directory that leaked and any other sibling write, and does not cover
+# a copy that lived under the study tree for the length of one run. I think
+# catching the placement would need the filesystem watched mid-run, and the
+# leak is the shape that costs Frank anything.
+STUDY_BEFORE="$(dir_tree "$WORK" -maxdepth 1)"
+run_check 24-litter
+tree_unchanged "and nothing was left beside the work directory either" \
+  "$WORK" "$STUDY_BEFORE" -maxdepth 1
+
+# THE OTHER HALF OF THE FIX. A copy that carries only the module being run
+# breaks an EXTENDS of a sibling, which is the false-fail direction on a right
+# model. See mk_extends for both measurements.
+EXT="${WORK}/25-extends"
+
+EXT_BEFORE_WANT='.
+./Lib.tla
+./Main.cfg
+./Main.tla'
+EXT_BEFORE="$(dir_tree "$EXT")"
+if [ "$EXT_BEFORE" = "$EXT_BEFORE_WANT" ]; then
+  ok "fixture control: the extending directory holds the spec, its config and the module it extends"
+else
+  nope "FIXTURE: 25-extends is not the three-file directory part 6 compares against, so the rows below are void (got: ${EXT_BEFORE})"
+fi
+
+run_check 25-extends
+rc_is "a spec that extends a sibling still resolves it through the copy, rc 0" 0
+has   "the spec ran" "module=Main "
+field_is   "at the count both modules reach together" distinct '4'
+field_is   "which matches" count 'MATCH'
+field_is   "and the run is clean" run 'CLEAN'
+field_isnt "never an error, which is what a one-module copy produces" run 'ERROR'
+field_isnt "and the count is never the absent marker" distinct '-'
+not_run_line "the extended module is named rather than run, as a library" \
+  Lib 'does not define Spec, which Main\.cfg names'
+tree_unchanged "A CLEAN RUN ADDS NOTHING EITHER, and before this bead it left a states/ directory" \
+  "$EXT" "$EXT_BEFORE"
+tree_lacks "no fingerprint cache after a clean run" "$EXT" '(^|/)states(/|$)'
 
 # ===========================================================================
 printf '\n'
