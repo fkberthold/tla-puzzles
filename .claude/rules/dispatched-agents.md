@@ -157,8 +157,10 @@ It dies with the worktree.
 
 ## The canonical commands — and the two that still bite
 
-**Run `bash scripts/test`.** It is this project's real gate: 28 suites, ~357 s,
-all runnable offline. `--fast` trims to an 18-suite, ~26 s tier.
+**Run `bash scripts/test`.** It is this project's real gate and every suite in
+it runs offline. `bash scripts/test --list` prints the registry with a budget per
+suite, and it is the only authority on how many there are. `--fast` trims to the
+tier that starts no JVM.
 
 The suite count moves as beads land, so `bash scripts/test --list` is the
 authority and the number here is a description rather than a check. It read 10
@@ -180,7 +182,7 @@ in. An empty verb here has always meant "no honest command exists yet", never
 
 | verb | command | notes |
 |---|---|---|
-| `test` | `bash scripts/test` | 28 suites, ~357 s; `--list` is the authority |
+| `test` | `bash scripts/test` | every suite, all offline. `--list` is the authority on the count |
 | `lint` | `bash scripts/lint` | shellcheck over `scripts/` + `harness/` — green since `tla-5r7` |
 | `dev` | `bash scripts/server` | regenerates `docs/`, then `mkdocs serve` |
 | `deploy` | `bash scripts/deploy` | **refuses without `--yes`** |
@@ -190,7 +192,7 @@ in. An empty verb here has always meant "no honest command exists yet", never
 Two of those will read as your bug if you do not know them going in.
 
 **`test` defaults to the FULL run, not the fast tier, and that is deliberate.**
-The fast tier is 18 of the 28 suites and about 7% of the wall time, so it skips
+The fast tier is under a tenth of the wall time, so it skips
 every TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
 refinement harness and the seeded-bug matrix. Recording it as the canonical
 command would be the same class of lie the empty verb was avoiding. Use `--fast`
