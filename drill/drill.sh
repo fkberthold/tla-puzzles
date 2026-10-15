@@ -595,7 +595,7 @@ run_checker() {
 # build_prompt <mode>: everything the one-shot gets, on stdout.
 #
 # MODE is the first line and the only instruction in here. Everything after it
-# is labelled material: the prompt as it was served, what the checker said, and
+# is labeled material: the prompt as it was served, what the checker said, and
 # the files of the attempt. No prohibition is restated, because the study
 # config holds all of them and a second copy drifts from the day it is written.
 build_prompt() {
