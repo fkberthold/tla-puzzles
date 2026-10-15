@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# check: does the model you wrote reach the distinct-state count the drill's
-# prompt publishes?
+# check: what did TLC say about the model you wrote, and does its
+# distinct-state count agree with the one the drill's prompt publishes?
 #
 # Delivered to the study root, with no extension, so the command reads
 # `./check` or `check <slug>`.
@@ -10,27 +10,86 @@
 #
 # Exit:   0  every module run reached a count the prompt publishes
 #         1  a module did not, or TLC never got far enough to print one
-#         2  UNCHECKED: the prompt publishes no count, so there is nothing
-#            to compare
+#         2  UNCHECKED: the prompt publishes no count, so the count dimension
+#            has nothing to compare. The run still happened and its verdict
+#            is on the line
 #         3  usage, no prompt found, no model found, or no tlc on the path
 #
 # ---------------------------------------------------------------------------
 # WHAT IT ANSWERS, AND WHAT IT REFUSES TO ANSWER
 #
-# One question, with no judgment in it: did TLC print a number the prompt
-# published? That is all. It cannot tell a right count reached by a wrong
-# model from a right count reached by a right one, and
-# drill/sequences/07-pneumatic-tube is the standing proof, where a rule true
-# of a stack and a queue alike runs clean at the published figure.
+# Two facts, with no judgment in either: what TLC's run came to, and whether
+# the number TLC printed is one the prompt published. That is all. It cannot
+# tell a right count reached by a wrong model from a right count reached by a
+# right one, and drill/sequences/07-pneumatic-tube is the standing proof,
+# where a rule true of a stack and a queue alike runs clean at the published
+# figure.
 #
 # So a 0 from this script means the count matched and nothing more. The
 # judgment half belongs to a session reading the model, which is why bead
 # tla-ytv2 split the two.
 #
+# ---------------------------------------------------------------------------
+# THE TWO DIMENSIONS ARE INDEPENDENT, AND ONLY ONE OF THEM MOVES THE EXIT CODE
+#
+# `count=` is the count dimension and it owns the exit code. `run=` is TLC's
+# verdict on the run and it never moves the exit, because a violation is the
+# RIGHT answer on some items: drill/control-state/01-slip-on-the-spike asks
+# for model 1 to fail. This script knows counts. It does not know intent, and
+# an exit code for VIOLATED would be it ruling on intent it cannot see.
+#
+# The clearest case for keeping them apart is rc 76, where TLC reports a real
+# count AND fails to evaluate the invariant. `count=MATCH run=ERROR` on one
+# line says both, and folding either into the other loses one of them.
+#
 # 43 of the 64 prompts publish a count and 21 do not (measured 2026-10-15
 # over both the repo tree and the delivered one). The 21 end in a prose
-# question, and on those this script says UNCHECKED and stops. An absent
-# count is never a count of zero.
+# question. BEFORE BEAD tla-rzvk.1 this script read that as nothing to do and
+# never started TLC, so on those 21 a session got no objective input at all --
+# and all eight of drill/control-state/ are among them, every one of which
+# asks for a verdict. A verdict is as checkable as a count. Now the run
+# happens, `claimed=` reads the absent marker, `count=` reads NONE, and the
+# exit stays 2. An absent count is never a count of zero.
+#
+# ---------------------------------------------------------------------------
+# THE RUN VERDICT, AND THE ONE DISTINCTION IT MUST NOT BLUR
+#
+#   CLEAN      TLC opened no error line and printed a count
+#   VIOLATED   TLC refuted something and has a trace for it: an invariant, an
+#              action property, a temporal property, or a deadlock
+#   ERROR      TLC opened an error line that is not a refutation
+#   NOCOUNT    neither an error line this script can read nor a count
+#
+# VIOLATED IS DECIDED BY THE WORD "violated", never by the rc and never by the
+# presence of a trace. rc 76 prints `Error: Evaluating invariant Bad failed.`
+# and a full trace, and it is NOT a violation: bead tla-i9m settled that for
+# harness/verdict.sh and the reason is the learner-facing one. 12 and 13 mean
+# the property was checked and came out false. 75, 76 and 77 mean the check
+# never happened, so nothing at all is known about whether it holds, and
+# "your invariant was violated" would be a false statement about a check that
+# never ran.
+#
+# THREE PHRASINGS carry the word, measured 2026-10-15 on TLC2
+# 2026.07.31.184830:
+#
+#   Error: Invariant Small is violated.
+#   Error: Action property NeverUp is violated.
+#   Error: Temporal property Reaches was violated.
+#
+# so the name is read as the word before the verb rather than the word after
+# a keyword that differs three ways. A deadlock is the fourth violation and
+# the only one with no name, so it reports invariant=- .
+#
+# NOCOUNT IS THE LEFTOVER, AND IT IS DELIBERATELY NOT CLEAN. No real failure
+# path measured on this build reaches it: every one opens a line with
+# `Error:`, the JVM's own `Error: Could not find or load main class tlc2.TLC`
+# included. It exists so that a log this script cannot read lands somewhere
+# honest instead of on CLEAN, which is the one value a session will act on
+# without looking.
+#
+# WHEN A MODULE VIOLATED, the violating state follows its line as an indented
+# block. That is the LAST state of TLC's trace, not the whole trace: the first
+# state is where the behavior started and says nothing about what broke.
 #
 # ---------------------------------------------------------------------------
 # IT DEPENDS ON NOTHING BUT TLC
@@ -145,7 +204,8 @@ Usage: check [<slug-or-dir>]
   check --help          this text
 
 Exit 0 if every module reached a count the prompt publishes, 1 if one did not,
-2 if the prompt publishes no count, 3 if it could not run.
+2 if the prompt publishes no count, 3 if it could not run. The run verdict is
+reported either way and never moves the exit code.
 USAGE
 }
 
@@ -266,6 +326,68 @@ claim_matches() {
   return 1
 }
 
+# violated_name <tlc output>: the name TLC said was violated, or nothing.
+#
+# The three phrasings in the header agree on the verb and disagree on the
+# keyword, so the name is the last word before `is violated` or `was
+# violated`. Every pattern here is anchored at the line start, because the
+# counterexample below `Error: The behavior up to this point is:` prints the
+# learner's own state values and those can hold any text at all.
+violated_name() {
+  local hits line
+  hits="$(grep -oE '^Error: .+[[:space:]](is|was)[[:space:]]+violated' <<<"$1")"
+  [ -n "$hits" ] || return 0
+  line="$(head -n 1 <<<"$hits")"
+  line="${line% violated}"
+  line="${line% is}"
+  line="${line% was}"
+  printf '%s' "${line##* }"
+}
+
+# deadlocked <tlc output>: a reachable state with no successor. Measured
+# `Error: Deadlock reached.` at rc 11. It is a violation with a trace and with
+# no name to give, so it is the one shape that leaves invariant= at the marker
+# on a violated run.
+deadlocked() {
+  grep -qE '^Error: Deadlock reached' <<<"$1"
+}
+
+# tlc_errored <tlc output>: TLC opened a line with `Error: `. Asked only after
+# the two refutation questions above, so the trace header `Error: The behavior
+# up to this point is:` never decides anything on its own.
+tlc_errored() {
+  grep -qE '^Error:' <<<"$1"
+}
+
+# violating_state <tlc output>: the LAST state of TLC's trace.
+#
+# A block opens with `State <n>: <where>` at column 0 and runs until a line
+# that is not part of a value. Stopping at a blank line alone is not enough:
+# a liveness counterexample ends `State 4: Stuttering` with no body at all and
+# TLC's next chatter line immediately under it, which a blank-line reader
+# swallows into the state. So a body line is recognized rather than a
+# terminator -- a `/\` conjunct, an indented continuation of a value that
+# wrapped, or `name = value` -- and anything else ends the block.
+violating_state() {
+  local line block="" collecting=0 nl=$'\n'
+  while IFS= read -r line; do
+    case "$line" in
+    'State '[0-9]*':'*)
+      block="$line"
+      collecting=1
+      continue
+      ;;
+    esac
+    [ "$collecting" = 1 ] || continue
+    case "$line" in
+    '') collecting=0 ;;
+    '/'* | ' '* | *' = '*) block="${block}${nl}${line}" ;;
+    *) collecting=0 ;;
+    esac
+  done <<<"$1"
+  printf '%s' "$block"
+}
+
 # ---------------------------------------------------------------------------
 # Resolve what to check.
 # ---------------------------------------------------------------------------
@@ -322,15 +444,25 @@ fi
 PROMPT="${HITS[0]}"
 
 # ---------------------------------------------------------------------------
-# The claim. No claim is exit 2, and it is decided before anything else is
-# needed, so a drill with nothing to compare never asks for tlc or a model.
+# The claim. No claim is still exit 2, but it NO LONGER SHORT-CIRCUITS the
+# run, which is the whole of bead tla-rzvk.1. It used to return here, before
+# asking for a model or for tlc, and that cost a session every objective fact
+# about the run on 21 of the 64 prompts. The claim becomes the absent marker,
+# the count verdict becomes NONE, and the exit is decided at the bottom.
+#
+# A consequence worth stating, because it moved an exit code: a no-claim
+# prompt with no tlc on the path is now 3 rather than 2. The run is the
+# deliverable on these prompts, so being unable to run it is "could not run".
+# Exit 2 keeps its meaning. What changed is that it's no longer reached by
+# declining to look.
 # ---------------------------------------------------------------------------
 
 CLAIMS="$(dedupe_csv "$(prose_claims "$PROMPT")$(table_claims "$PROMPT")")"
 
+NOCLAIM=""
 if [ -z "$CLAIMS" ]; then
-  printf 'UNCHECKED: %s publishes no distinct-state count, so there is nothing to compare.\n' "$SLUG"
-  exit 2
+  NOCLAIM=1
+  CLAIMS="-"
 fi
 
 # ---------------------------------------------------------------------------
@@ -372,21 +504,60 @@ MISSED=()
 for module in "${MODULES[@]}"; do
   out="$(cd -- "$WORK" && tlc -config "${module}.cfg" "$module" 2>&1)"
   rc=$?
+
+  # The count dimension.
   count="$(last_count "$out")"
-  if [ -z "$count" ]; then
-    shown="none"
+  shown="${count:--}"
+  if [ -n "$NOCLAIM" ]; then
+    verdict="NONE"
+  elif [ -z "$count" ]; then
     verdict="MISMATCH"
   elif claim_matches "$count" "$CLAIMS"; then
-    shown="$count"
     verdict="MATCH"
   else
-    shown="$count"
     verdict="MISMATCH"
   fi
-  printf 'module=%s rc=%s distinct=%s claimed=%s %s\n' \
-    "$module" "$rc" "$shown" "$CLAIMS" "$verdict"
+
+  # The run dimension. The order is the precedence: a refutation this script
+  # can name, then one it cannot, then any other error, then the two ways a
+  # run with no error ends. Nothing here reads rc, which does not predict
+  # either answer.
+  name="$(violated_name "$out")"
+  if [ -n "$name" ]; then
+    run="VIOLATED"
+  elif deadlocked "$out"; then
+    run="VIOLATED"
+    name="-"
+  elif tlc_errored "$out"; then
+    run="ERROR"
+    name="-"
+  elif [ -n "$count" ]; then
+    run="CLEAN"
+    name="-"
+  else
+    run="NOCOUNT"
+    name="-"
+  fi
+
+  printf 'module=%s rc=%s distinct=%s claimed=%s count=%s run=%s invariant=%s\n' \
+    "$module" "$rc" "$shown" "$CLAIMS" "$verdict" "$run" "$name"
+
+  if [ "$run" = "VIOLATED" ]; then
+    state="$(violating_state "$out")"
+    if [ -n "$state" ]; then
+      while IFS= read -r stateline; do
+        printf '  %s\n' "$stateline"
+      done <<<"$state"
+    fi
+  fi
+
   [ "$verdict" = "MISMATCH" ] && MISSED+=("$module")
 done
+
+if [ -n "$NOCLAIM" ]; then
+  printf 'UNCHECKED: %s publishes no distinct-state count, so nothing was compared. The run verdict on each line above still came from TLC.\n' "$SLUG"
+  exit 2
+fi
 
 if [ "${#MISSED[@]}" -eq 0 ]; then
   printf 'MATCHED: %s of %s module(s) reached a count %s publishes.\n' \

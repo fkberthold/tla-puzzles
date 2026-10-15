@@ -3,24 +3,43 @@
 # the study loop.
 #
 # WHAT check IS FOR, in one sentence, because every assertion below is an
-# assertion about that sentence: it answers whether the model Frank wrote
-# reaches a distinct-state count the prompt publishes, and it answers nothing
-# else. The judgment half (is this the right model, did it reach the number
-# for the right reason) belongs to a session, which bead tla-ytv2 splits out
-# on purpose and tla-ytv2.3 builds.
+# assertion about that sentence: it reports two independent facts about the
+# run, the count dimension and the run verdict, and it judges neither. The
+# judgment half (is this the right model, was this the right verdict to want)
+# belongs to a session, which bead tla-ytv2 splits out on purpose and
+# tla-ytv2.3 builds.
+#
+# THE TWO DIMENSIONS ARE INDEPENDENT, and bead tla-rzvk.1 is the bead that
+# made the second one reportable. The count dimension owns the exit code
+# (0 matched, 1 mismatched, 2 no claim to compare, 3 could not run). The run
+# dimension owns `run=` and never moves the exit. Part 4 drives the whole
+# matrix, and the row that matters most is 18-eval-fail: rc 76 with a count
+# that MATCHES, so count=MATCH sits beside run=ERROR on one line and the exit
+# is 0. An implementation that folds either dimension into the other fails
+# that row and passes almost everything else.
 #
 # THE DEFECT THIS EXISTS TO STOP has two shapes and they pull opposite ways.
 #
 #   A FALSE PASS tells Frank a wrong model is right. The one I'd watch is the
 #   invented zero: a prompt with no count claim, read as a claim of 0, matched
-#   by a run that printed nothing. So the no-claim case is asserted from both
-#   ends, exit 2 and no number anywhere in the output.
+#   by a run that printed nothing. The no-claim rows assert that from the
+#   claim end rather than by counting digits -- claimed=- and count=NONE, with
+#   claimed=0 and every count verdict ruled out by name. Before tla-rzvk.1 the
+#   same intent was asserted as "no number anywhere in the output", which a
+#   no-claim run now carries on purpose, since the whole point of that bead is
+#   that TLC runs there too.
 #
 #   A FALSE FAIL tells Frank a right model is wrong, and I think that's the
 #   worse of the two on a drill loop, because the drill's whole point is
 #   immediate feedback on a retrieval attempt. The parser shapes below are
 #   each in the corpus, and each one check cannot read is a drill that reports
 #   a mismatch at a correct model.
+#
+# A THIRD SHAPE ARRIVED WITH THE RUN VERDICT: a false CLEAN. A log check
+# cannot read must never report as a clean run, because CLEAN is the one
+# value a session will act on without looking. 20-silent-tlc drives a stub
+# that prints neither an error nor a count and asserts run=NOCOUNT, so the
+# classifier has to be total rather than optimistic.
 #
 # THE RC DOES NOT PREDICT THE COUNT, which is the measured fact this suite
 # exists to keep true. Part 2 runs a module that violates its invariant: rc 12
@@ -29,9 +48,17 @@
 # parser that reads the count only when the rc is 0 passes every other
 # assertion in this file.
 #
+# THE RC DOES NOT PREDICT THE VERDICT EITHER, which is the same fact wearing
+# the other hat. 17-deadlock is rc 11 and 16-liveness is rc 13, and both are
+# violations. 18-eval-fail is rc 76 and is NOT one, because TLC says
+# "Evaluating invariant Bad failed" rather than "violated" and nothing is
+# known about whether Bad holds. Bead tla-i9m settled that distinction for
+# harness/verdict.sh and the assertions below hold check to it.
+#
 # PART 1  resolution, usage, and the ways to exit 3, with no TLC
 # PART 2  the comparison itself, against real TLC runs
 # PART 3  which modules get run, and which leavings get skipped
+# PART 4  the run verdict, every value of it, and the violating state
 #
 # Usage:  harness/test-drill-check.sh
 # Exit:   0 if all assertions hold, 1 otherwise, 2 on a usage error or a
@@ -45,9 +72,9 @@
 # changes under it, which is the other half of why the fixtures are built
 # here.
 #
-# WHY SLOW TIER. Ten real TLC runs. By the rule in scripts/test's header the
-# boundary is the model checker, not the JVM, so this is slow whatever it
-# costs today. Its cost tracks the fixture count in parts 2 and 3 and nothing
+# WHY SLOW TIER. Fourteen real TLC runs. By the rule in scripts/test's header
+# the boundary is the model checker, not the JVM, so this is slow whatever it
+# costs today. Its cost tracks the fixture count in parts 2 to 4 and nothing
 # about the real corpus, so it won't drift as drills land.
 # ---------------------------------------------------------------------------
 
@@ -170,16 +197,53 @@ lines_matching() {
   n="$(grep -cE -- "$3" <<<"$OUT")"
   if [ "$n" = "$2" ]; then ok "$1"; else nope "$1 ($n lines match '$3', want $2. output: ${OUT})"; fi
 }
-# no_number_but_the_slug <label> <slug>: the slug carries digits of its own
-# (every real one begins with two), so "prints no number" has to be asked with
-# the slug removed first. A plain digit scan would fail on 03-no-claim's own
-# name and say nothing about an invented count.
-no_number_but_the_slug() {
-  local stripped="${OUT//$2/}"
-  if grep -qE '[0-9]' <<<"$stripped"; then
-    nope "$1 (a number survives with the slug removed: ${stripped})"
+# field_is <label> <field> <value>: assert a WHOLE field of a module line,
+# anchored at both ends, which is the only way to ask about these values.
+#
+# THE SUBSTRING HAZARD IS LIVE IN EXACTLY THE FIELDS tla-rzvk.1 ADDED. A
+# grep -F for `count=MATCH` is satisfied by `count=MISMATCH`, so an
+# implementation that reports every run as a mismatch passes a suite written
+# with `has`. The last round found that with its third RED stub and nothing
+# else found it. `run=` repeats the shape: NOCOUNT ends in COUNT, so an
+# unanchored test for one is a test for neither. Anchoring on a space or a
+# line boundary at both ends asks the question that catches it.
+#
+# field_isnt is the same anchor negated, and the no-claim rows need it: the
+# claim really is absent there, so `hasnt MATCH` would be satisfied by an
+# implementation printing count=MISMATCH and the row would prove nothing.
+field_is() {
+  if grep -qE -- "(^|[[:space:]])$2=$3([[:space:]]|$)" <<<"$OUT"; then
+    ok "$1"
+  else
+    nope "$1 (expected the whole field ${2}=${3}. output: ${OUT})"
+  fi
+}
+field_isnt() {
+  if grep -qE -- "(^|[[:space:]])$2=$3([[:space:]]|$)" <<<"$OUT"; then
+    nope "$1 (the whole field ${2}=${3} must NOT appear. output: ${OUT})"
   else
     ok "$1"
+  fi
+}
+
+# state_block_follows <label> <module>: the violating state is an indented
+# block under ITS OWN module line, which is what makes it readable when two
+# variants run side by side. Asserted as adjacency rather than as presence,
+# because a block printed once at the bottom of a two-module run satisfies a
+# presence test and tells the reader nothing about which module violated.
+state_block_follows() {
+  local line want="" seen=0
+  while IFS= read -r line; do
+    case "$line" in
+    "module=$2 "*) want=1 ;;
+    'module='*) want="" ;;
+    '  State '[0-9]*':'*) [ -n "$want" ] && seen=1 ;;
+    esac
+  done <<<"$OUT"
+  if [ "$seen" = 1 ]; then
+    ok "$1"
+  else
+    nope "$1 (no indented State block under module=$2. output: ${OUT})"
   fi
 }
 
@@ -253,6 +317,88 @@ TLA
   cat >"${d}/Viol.cfg" <<'CFG'
 SPECIFICATION Spec
 INVARIANT Small
+CHECK_DEADLOCK FALSE
+CFG
+}
+
+# mk_live <dir>: a temporal property that does not hold. Measured rc 13 with
+# `4 distinct states found`, and the log reads `Error: Temporal property
+# Reaches was violated.` -- a THIRD phrasing beside the invariant's `is
+# violated` and the implied action's `Action property NeverUp is violated`.
+# Three phrasings is why check reads the word rather than the sentence.
+#
+# Its last trace state is `State 4: Stuttering`, with no body and with TLC's
+# next chatter line on the very next line instead of a blank. A block reader
+# that stops at a blank line alone swallows that chatter into the state.
+mk_live() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Live.tla" <<'TLA'
+---- MODULE Live ----
+EXTENDS Naturals
+VARIABLE x
+Init == x = 0
+Next == x < 3 /\ x' = x + 1
+Spec == Init /\ [][Next]_x
+Reaches == <>(x = 3)
+====
+TLA
+  cat >"${d}/Live.cfg" <<'CFG'
+SPECIFICATION Spec
+PROPERTY Reaches
+CHECK_DEADLOCK FALSE
+CFG
+}
+
+# mk_dead <dir>: a terminal state with deadlock checking left ON, which is the
+# default and what the .cfg here deliberately does not turn off. Measured rc 11
+# with `3 distinct states found` and `Error: Deadlock reached.` -- a violation
+# with a trace and NO name, which is the only shape that drives invariant=- on
+# a violated run.
+mk_dead() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Dead.tla" <<'TLA'
+---- MODULE Dead ----
+EXTENDS Naturals
+VARIABLE x
+Init == x = 0
+Next == x < 2 /\ x' = x + 1
+Spec == Init /\ [][Next]_x
+====
+TLA
+  cat >"${d}/Dead.cfg" <<'CFG'
+SPECIFICATION Spec
+CFG
+}
+
+# mk_evalfail <dir>: an invariant that is not a boolean at every state, so TLC
+# gives up evaluating it. Measured rc 76 with `4 distinct states found`, a full
+# trace, and `Error: Evaluating invariant Bad failed.`
+#
+# THIS IS THE ROW THAT KEEPS THE WORD "VIOLATED" HONEST. The log names an
+# invariant and prints a trace, so every surface cue says violation, and it is
+# not one: bead tla-i9m settled that 76 means the check NEVER HAPPENED, so
+# nothing at all is known about whether Bad holds. Telling Frank his invariant
+# was violated here would be a false statement about a check that never ran.
+# It is also the independence row -- the count is real and matches while the
+# run errored.
+mk_evalfail() {
+  local d="$1"
+  mkdir -p "$d"
+  cat >"${d}/Bad.tla" <<'TLA'
+---- MODULE Bad ----
+EXTENDS Naturals
+VARIABLE x
+Init == x = 0
+Next == x < 5 /\ x' = x + 1
+Spec == Init /\ [][Next]_x
+Bad == IF x < 3 THEN TRUE ELSE x
+====
+TLA
+  cat >"${d}/Bad.cfg" <<'CFG'
+SPECIFICATION Spec
+INVARIANT Bad
 CHECK_DEADLOCK FALSE
 CFG
 }
@@ -438,6 +584,83 @@ MD
 mk_six "${TMP}/home/Study/tla-drills/14-default"
 
 # ---------------------------------------------------------------------------
+# PART 4's PROMPTS: the run verdict. Bead tla-rzvk.1.
+#
+# 15 IS THE BEAD'S RED LINE, word for word: a prompt that publishes no count,
+# against a model that violates its invariant. Before tla-rzvk.1 this returned
+# one line of prose and never started TLC, so on the 21 prompts of the 64 that
+# publish no count the session got no objective input at all. All eight of
+# drill/control-state/ are in that 21 and every one of them asks for a verdict.
+#
+# Its body is drill/control-state/02-pumps/PROMPT.md:23's shape, the same as
+# 03-no-claim, because the shape is what the 21 have in common.
+mk_prompt fam-a 15-no-claim-violation <<'MD'
+# No claim, and the model violates
+
+Write the specification and both rules from an empty file, and run it.
+Report the verdict and the number of distinct states.
+MD
+
+# 16 AND 17 ARE THE TWO VIOLATIONS THAT ARE NOT INVARIANTS, and both publish
+# a count that MATCHES, which is the half of the locked contract that says a
+# violation never moves the exit code. A violation is the right answer on some
+# items: drill/control-state/01-slip-on-the-spike asks for model 1 to fail.
+mk_prompt fam-a 16-liveness <<'MD'
+# Liveness
+
+Check it. A correct model finds 4 distinct states.
+MD
+
+mk_prompt fam-a 17-deadlock <<'MD'
+# Deadlock
+
+Check it. A correct model finds 3 distinct states.
+MD
+
+# 18 is the independence row. See mk_evalfail: rc 76, a matching count, a
+# trace, an invariant named in the log, and NOT a violation.
+mk_prompt fam-a 18-eval-fail <<'MD'
+# Evaluation failure
+
+Check it. A correct model finds 4 distinct states.
+MD
+
+# 19 and 20 share a prompt shape and differ in the toolchain they get.
+mk_prompt fam-a 20-silent-tlc <<'MD'
+# Silent toolchain
+
+Check it. A correct model finds 6 distinct states.
+MD
+
+# THE STUB TLC, and it is the one fixture here that is NOT a measurement. Every
+# real failure path measured on 2026-10-15 prints a line starting `Error:`,
+# including the JVM's own `Error: Could not find or load main class tlc2.TLC`
+# when the pinned wrapper cannot find its jar. So no real toolchain reaches
+# run=NOCOUNT, and NOCOUNT is nonetheless the value that has to be right: it is
+# where a log check cannot read has to land, and the alternative is a log that
+# says nothing reported as a clean run. That is the false-pass direction, on the
+# one field a session will act on without looking.
+#
+# So this stub stands in for an unreadable log rather than for any tool. It
+# prints plausible chatter with no error line and no count, and exits 0.
+mkdir -p "${TMP}/stub"
+cat >"${TMP}/stub/tlc" <<'STUB'
+#!/usr/bin/env bash
+echo "TLC2 Version 0.0.0 (stub)"
+echo "Starting... (nothing to report)"
+exit 0
+STUB
+chmod +x "${TMP}/stub/tlc"
+STUB_TLC_PATH="${TMP}/stub:${NO_TLC_PATH}"
+
+# run_check_with_stub_tlc <args...>: the same run with the stub ahead of a PATH
+# that carries no real tlc, so the stub is the only one reachable.
+run_check_with_stub_tlc() {
+  OUT="$(DRILL_PROMPT_ROOT="$PROMPTS" DRILL_STUDY_ROOT="$WORK" PATH="$STUB_TLC_PATH" "$CHECK" "$@" 2>&1)"
+  RC=$?
+}
+
+# ---------------------------------------------------------------------------
 # The study directories. 13-no-dir deliberately has none.
 # ---------------------------------------------------------------------------
 
@@ -472,6 +695,13 @@ cp "${WORK}/01-six/Six.tla" "${WORK}/10-no-cfg/Lone.tla"
 mk_six   "${WORK}/11-variants"
 mk_eight "${WORK}/11-variants"
 cp "${WORK}/01-six/Six.tla" "${WORK}/11-variants/Lone.tla"
+
+# Part 4's study directories.
+mk_viol     "${WORK}/15-no-claim-violation"
+mk_live     "${WORK}/16-liveness"
+mk_dead     "${WORK}/17-deadlock"
+mk_evalfail "${WORK}/18-eval-fail"
+mk_six      "${WORK}/20-silent-tlc"
 
 # ===========================================================================
 echo "== part 1: resolution, usage, and the ways to exit 3 =="
@@ -527,64 +757,96 @@ rc_is "an absent tlc is rc 3, never a silent pass" 3
 has   "and the message names tlc" "tlc"
 hasnt "and nothing is reported as matched" "MATCH"
 
-# THE NO-CLAIM CASE, from both ends. Exit 2, the word UNCHECKED, and no number
-# of any kind: not a claimed 0, not a distinct 0, not a count field at all.
+# THE NO-CLAIM CASE. Exit 2 and the word UNCHECKED, as before, and now a
+# module line too: the run happens and its verdict is reported, which is bead
+# tla-rzvk.1's whole subject. The count fields are the absent marker and the
+# count verdict is NONE.
+#
+# THE INVENTED ZERO IS STILL THE HAZARD and it is asked here from the claim
+# end. `claimed=-` positively, `claimed=0` ruled out, and both count verdicts
+# ruled out BY NAME rather than by the word MATCH, which MISMATCH contains.
+# What is gone is the old "no number anywhere" row: a no-claim run now prints
+# TLC's rc and TLC's count on purpose, so counting digits would assert against
+# the fix.
 run_check 03-no-claim
 rc_is "a prompt with no count claim is rc 2" 2
 has   "and says UNCHECKED" "UNCHECKED"
 has   "and names the slug" "03-no-claim"
-hasnt "and invents no claim field" "claimed="
-hasnt "and invents no count field" "distinct="
-hasnt "and reports no match" "MATCH"
-no_number_but_the_slug "and invents no number at all" "03-no-claim"
-lines_matching "one verdict line and nothing else" 1 '.'
+field_is   "the claim field is the absent marker" claimed '-'
+field_isnt "and no zero is invented as a claim" claimed '0'
+field_isnt "and TLC's own count is not read back as the claim" claimed '6'
+field_is   "the count verdict is NONE" count 'NONE'
+field_isnt "and it is not a match" count 'MATCH'
+field_isnt "and it is not a mismatch either" count 'MISMATCH'
+field_is   "TLC ran and its count is reported anyway" distinct '6'
+field_is   "and its rc is reported anyway" rc '0'
+lines_matching "one module line" 1 '^module='
+lines_matching "one verdict line" 1 '^(MATCHED|MISMATCHED|UNCHECKED):'
 
-# UNCHECKED is decided by the prompt alone, so it needs no tlc. This pins the
-# order: the claim scan happens before the toolchain check.
+# NO CLAIM AND NO TLC IS NOW RC 3, AND THAT MOVED IN tla-rzvk.1. It used to be
+# rc 2: the claim scan ran before the toolchain check, so a no-claim prompt
+# never asked whether tlc was there. Now the run IS the deliverable on these
+# 21 prompts, so being unable to run it is "could not run" -- the same exit 3
+# an absent tlc earns on every other prompt. Exit 2 keeps its meaning, that
+# the prompt publishes no count. What changed is that it's no longer reached
+# by declining to look.
 run_check_without_tlc 03-no-claim
-rc_is "no claim and no tlc is still rc 2" 2
-has   "and still says UNCHECKED" "UNCHECKED"
+rc_is "no claim and no tlc is rc 3, because the verdict is the deliverable" 3
+has   "and the message names tlc" "tlc"
+hasnt "and it does not report an UNCHECKED it could not stand behind" "UNCHECKED"
 
 # ===========================================================================
 echo "== part 2: the comparison, against real TLC runs =="
 # ===========================================================================
 
 # The no-argument form, which is how Frank runs it: from in the directory.
+# EVERY FIELD OF THE LOCKED LINE IS ASSERTED HERE, in order, because this is
+# the one row where all seven carry their ordinary value. tla-rzvk.2 is being
+# built against that line in parallel, so a field that drifts breaks a sibling
+# rather than only this suite.
 run_check_in "${WORK}/01-six"
 rc_is "a model that reaches the claimed count is rc 0" 0
 has   "the line names the module" "module=Six"
-has   "the line carries TLC's rc" "rc=0"
-has   "the line carries the count TLC printed" "distinct=6"
-has   "the line carries the count the prompt claimed" "claimed=6"
-has   "and calls it a match" "MATCH"
-hasnt "and calls it nothing else" "MISMATCH"
+field_is "the line carries TLC's rc" rc '0'
+field_is "the line carries the count TLC printed" distinct '6'
+field_is "the line carries the count the prompt claimed" claimed '6'
+field_is "and calls it a match" count 'MATCH'
+field_isnt "and calls it nothing else" count 'MISMATCH'
+field_is "the run verdict is CLEAN" run 'CLEAN'
+field_is "and no invariant is named on a clean run" invariant '-'
+hasnt "and no state block is printed when nothing violated" "  State "
 has   "the verdict line names the slug" "01-six"
 lines_matching "one module line" 1 '^module='
 lines_matching "one verdict line" 1 '^(MATCHED|MISMATCHED|UNCHECKED):'
 
 run_check 02-eight-wanted
 rc_is "a model that reaches a different count is rc 1" 1
-has   "the count TLC printed is there" "distinct=8"
-has   "the count the prompt claimed is there" "claimed=6"
-has   "and it is called a mismatch" "MISMATCH"
+field_is "the count TLC printed is there" distinct '8'
+field_is "the count the prompt claimed is there" claimed '6'
+field_is "and it is called a mismatch" count 'MISMATCH'
+field_isnt "and not a match" count 'MATCH'
+field_is "a wrong count on a clean run is still a clean run" run 'CLEAN'
 
 # The explicit-directory form.
 run_check "${WORK}/05-table"
 rc_is "a count published in a table matches, rc 0" 0
-has   "every count in the column is claimed, comma grouping and all" "claimed=3,6,9,1024"
-has   "and the printed count is TLC's" "distinct=6"
-has   "and it is a match" "MATCH"
+field_is "every count in the column is claimed, comma grouping and all" claimed '3,6,9,1024'
+field_is "and the printed count is TLC's" distinct '6'
+field_is "and it is a match" count 'MATCH'
 
 run_check 06-two-sizes
 rc_is "the second of two counts at two model sizes matches, rc 0" 0
-has   "both published counts are claimed" "claimed=3,6"
-has   "and the printed count is TLC's" "distinct=6"
+field_is "both published counts are claimed" claimed '3,6'
+field_is "and the printed count is TLC's" distinct '6'
 
 run_check 07-unparsable
 rc_is "a module TLC cannot parse is rc 1" 1
-has   "and the count reads none rather than zero" "distinct=none"
-hasnt "and no zero is invented" "distinct=0"
-has   "and it is a mismatch" "MISMATCH"
+field_is   "and the count reads the absent marker rather than zero" distinct '-'
+field_isnt "and no zero is invented" distinct '0'
+field_is   "and it is a mismatch" count 'MISMATCH'
+field_is   "and the run is an error rather than a violation" run 'ERROR'
+field_isnt "a parse failure is not a violation" run 'VIOLATED'
+field_is   "and no invariant is named" invariant '-'
 
 # THE DEFAULT ROOTS, with neither environment variable set. The control first:
 # a fixture home with no jar in it fails for the wrong reason, so the symlink
@@ -603,9 +865,14 @@ has   "and the count came from the prompt under the default prompt root" "claime
 # THE ROW THE RC TABLE EXISTS FOR. rc 12, with a count in the log.
 run_check 08-violation
 rc_is "a count printed at a failing rc still matches, rc 0" 0
-has   "TLC's rc is reported as it was" "rc=12"
-has   "and the count is read out of the log" "distinct=4"
-has   "and it is a match" "MATCH"
+field_is "TLC's rc is reported as it was" rc '12'
+field_is "and the count is read out of the log" distinct '4'
+field_is "and it is a match" count 'MATCH'
+field_is "and the run verdict is VIOLATED beside it" run 'VIOLATED'
+field_is "and the violating invariant is named" invariant 'Small'
+state_block_follows "and the violating state sits under the module line" Viol
+has "the violating state is the LAST state of the trace, not the first" "  x = 3"
+hasnt "and the trace is not dumped whole" "  x = 0"
 
 # ===========================================================================
 echo "== part 3: which modules get run =="
@@ -624,10 +891,84 @@ rc_is "two variants side by side is rc 1 when one of them misses" 1
 lines_matching "both variants are reported" 2 '^module='
 has   "the matching variant is named" "module=Six"
 has   "the missing variant is named" "module=Eight"
-has   "the matching count is printed" "distinct=6"
-has   "the missing count is printed" "distinct=8"
+field_is "the matching count is printed" distinct '6'
+field_is "the missing count is printed" distinct '8'
 hasnt "a module with no config of its own name is skipped" "Lone"
 has   "the verdict names the variant that missed" "Eight"
+lines_matching "each variant carries its own run verdict" 2 'run=CLEAN([[:space:]]|$)'
+
+# ===========================================================================
+echo "== part 4: the run verdict, and the violating state =="
+# ===========================================================================
+
+# THE BEAD'S RED LINE, and the defect it names. Before tla-rzvk.1 this printed
+# one line of prose, started no TLC, and gave the session nothing objective at
+# all on 21 of the 64 prompts.
+run_check 15-no-claim-violation
+rc_is "a no-claim prompt still exits 2, whatever the run did" 2
+field_is "the claim is absent" claimed '-'
+field_is "and the count dimension says so" count 'NONE'
+field_is "and TLC ran: the count it printed is reported" distinct '4'
+field_is "and TLC's rc is reported" rc '12'
+field_is "AND THE VERDICT IS REPORTED, which is the bead" run 'VIOLATED'
+field_is "with the violating invariant's name" invariant 'Small'
+state_block_follows "and the violating state under the module line" Viol
+has "the violating state is the one that violated" "  x = 3"
+has "and the verdict line still says UNCHECKED" "UNCHECKED"
+
+# A VIOLATION NEVER MOVES THE EXIT CODE, which is the locked decision the next
+# three rows gate. 16 and 17 publish counts their models reach, so each is a
+# match at rc 0 while the run verdict reads VIOLATED. A violation is the right
+# answer on some items: drill/control-state/01-slip-on-the-spike asks for
+# model 1 to fail, so an exit code for VIOLATED would gate on intent check
+# cannot see.
+run_check 16-liveness
+rc_is "a violated temporal property at a matching count is still rc 0" 0
+field_is "TLC's rc is 13 here" rc '13'
+field_is "the count matched" count 'MATCH'
+field_is "and the run verdict is VIOLATED" run 'VIOLATED'
+field_is 'the name is read out of "was violated" as well as "is violated"' invariant 'Reaches'
+state_block_follows "and the counter-example's last state is shown" Live
+has "a Stuttering last state is reported as TLC wrote it" "  State 4: Stuttering"
+hasnt "and TLC's next chatter line is not swallowed into the block" "  Finished checking"
+
+run_check 17-deadlock
+rc_is "a deadlock at a matching count is still rc 0" 0
+field_is "TLC's rc is 11 here" rc '11'
+field_is "the count matched" count 'MATCH'
+field_is "a deadlock is a violation" run 'VIOLATED'
+field_is "and it has no name to give, so the marker stands" invariant '-'
+state_block_follows "the deadlocked state is still shown" Dead
+has "and it is the terminal state" "  x = 2"
+
+# THE INDEPENDENCE ROW, and the one that keeps the word VIOLATED honest.
+# rc 76: the count is real and matches, the log names an invariant and prints a
+# trace, and NOTHING is known about whether that invariant holds. Bead tla-i9m
+# settled this for harness/verdict.sh and the reason is the learner-facing one:
+# "your invariant was violated" would be a false statement about a check that
+# never ran.
+run_check 18-eval-fail
+rc_is "an evaluation failure at a matching count is rc 0" 0
+field_is   "TLC's rc is 76 here" rc '76'
+field_is   "the count printed after the error is read" distinct '4'
+field_is   "and it matches" count 'MATCH'
+field_is   "the run verdict is ERROR" run 'ERROR'
+field_isnt "an evaluation failure is NOT a violation" run 'VIOLATED'
+field_isnt "nor is it clean" run 'CLEAN'
+field_is   "and the invariant TLC named is not reported as violated" invariant '-'
+hasnt "and no violating state is claimed, because nothing violated" "  State "
+
+# THE FALSE-CLEAN GUARD. See the stub's comment: no real toolchain reaches this
+# value, and that is the reason to gate it. A log check cannot read must land
+# somewhere that is not CLEAN.
+run_check_with_stub_tlc 20-silent-tlc
+rc_is "a run that printed no count is a count mismatch, rc 1" 1
+field_is   "the count is the absent marker" distinct '-'
+field_is   "and the count dimension says mismatch" count 'MISMATCH'
+field_is   "and a log with neither an error nor a count is NOCOUNT" run 'NOCOUNT'
+field_isnt "never CLEAN, which is the false pass this row exists for" run 'CLEAN'
+field_isnt "and not an error it cannot point at" run 'ERROR'
+field_is   "and nothing is named" invariant '-'
 
 # ===========================================================================
 printf '\n'
