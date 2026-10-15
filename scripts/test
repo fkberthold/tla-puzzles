@@ -67,7 +67,7 @@
 #   fast   0.3 s  harness/test-spelling.sh                (added, bead tla-nv5q)
 #   fast   0.7 s  harness/test-build-docs-chapter.sh
 #   fast   0.7 s  harness/test-number-problems.sh
-#   fast   1.0 s  harness/test-deliver-drill.sh         (re-based, bead tla-emzu)
+#   fast   1.7 s  harness/test-deliver-drill.sh        (re-based, bead tla-ytv2.3)
 #   fast   1.5 s  harness/test-drill-runner.sh        (re-based, bead tla-ytv2.1)
 #   fast   0.9 s  harness/test-deliver-problems.sh
 #   fast   1.0 s  harness/test-build-docs-exercises.sh
@@ -97,11 +97,11 @@
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
-#         39.0 s  fast tier, 22 suites   (measured --fast totals: 26.9 s at 18,
+#         39.7 s  fast tier, 22 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
 #        422.4 s  slow tier, 12 suites
-#        461.4 s  whole registry
+#        462.1 s  whole registry
 #
 # A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
 # are a comment. The enforced number is the second field of the row's own
@@ -548,7 +548,7 @@ SUITES=(
   # tree, under --check, and it derives its expected counts from a second walk
   # of the tree rather than carrying a literal, so the row's cost tracks the
   # corpus while its assertions do not go stale as the 29 pending items land.
-  "fast|1.0|drill delivery|./harness/test-deliver-drill.sh"
+  "fast|1.7|drill delivery|./harness/test-deliver-drill.sh"
   # Added 2026-10-14 by bead tla-t9de, which built drill/drill.sh and the
   # runner half of scripts/deliver-drill.sh. Placed next to the delivery row
   # because the two split one script between them: that row owns the prompt
