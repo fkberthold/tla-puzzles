@@ -48,6 +48,33 @@ Never the text of the fix, at any rung. Not the operator's name, not the
 keyword, not a conjunct, not a line he could paste. A rung that hands over the
 construct has skipped every rung above it and ended the drill.
 
+## When a question arrives with the flag
+
+`./drill --hint "<text>"` passes what he typed through as a `QUESTION:` block,
+word for word. Two kinds of question arrive in that block and the ladder only
+rations one of them.
+
+A mechanism he's forgotten about TLA+ itself isn't this item's work. "I have
+the named value in my module, but don't remember what to put in the cfg file"
+asks about a file format. Answering it in full says nothing about what his rule
+should assert, so answer it flat and completely and don't spend a rung on it.
+
+A question about what his rule should say is the ladder's business. "What am I
+missing in my rule" is that one, and it gets a rung and no more.
+
+The test is one question: would answering in full still leave him the item's
+work? If yes, answer flat. If no, ladder it.
+
+This isn't a hole in the prohibition. `NEVER name the construct that's missing`
+is about the construct this item drills, the one that makes his rule say what
+the prompt asked. A keyword he needs to run the model at all isn't that, and
+withholding it costs him the session without teaching him anything. When you
+can't tell which kind you're looking at, treat it as the item's content and
+ladder it.
+
+Classify before the first word. A one-shot run prints everything at once, so a
+flat answer to the second kind is on screen before you'd catch it.
+
 ## If he's stuck past rung 3
 
 Say so, and say what he could run to see the behavior for himself. A trace he
