@@ -5,26 +5,30 @@
 # extension, so the command reads `./drill`.
 #
 # Usage:  ./drill [done|shaky|status|list|help] [<family>/<item>]
+#         ./drill --check
+#         ./drill --hint [<question>]
 #
 # Exit:   0 on a served drill, a recorded mark, a status or a list, and on an
 #           empty queue, which is finishing rather than failing
 #         1 on a usage error, a drill name that is not in the tree, a mark with
 #           nothing served to attach it to, or a failed write
+#         1 on a coaching run refused for a missing dependency, and otherwise
+#           whatever the one-shot itself exited with
 #
 # ---------------------------------------------------------------------------
-# WHERE THIS RUNS, WHICH IS WHY IT DEPENDS ON NOTHING
+# WHERE THIS RUNS, WHICH IS WHY IT DEPENDS ON ALMOST NOTHING
 #
 # ~/tla-practice is not a git repo. There is no harness beside this file, no
 # bd, no sibling script, and no guarantee that TLC is on the path. So this
-# script sources nothing, resolves no repo root, and reads nothing outside the
-# directory it sits in. Everything it reads it works out from
-# ${BASH_SOURCE[0]} and from the tree under it.
+# script sources nothing, resolves no repo root, and confines its reads:
+# a serve reads nothing outside the directory it sits in, and works out
+# everything it does read from ${BASH_SOURCE[0]} and from the tree under it.
 #
-# THE ONE EXCEPTION, AND IT IS A WRITE RATHER THAN A READ. A serve creates the
-# study directory you work the drill in, at $DRILL_STUDY_ROOT/<slug>, which
-# defaults to $HOME/Study/tla-drills/<slug>. That is the only path outside
-# this directory that this script touches, it is created and never read, and
-# nothing in here opens a file under it.
+# THE FIRST EXCEPTION, AND IT IS A WRITE RATHER THAN A READ. A serve creates
+# the study directory you work the drill in, at $DRILL_STUDY_ROOT/<slug>,
+# which defaults to $HOME/Study/tla-drills/<slug>. A serve touches no other
+# path outside this directory, it is created and never read, and no serve
+# opens a file under it.
 #
 # Why the exception is worth the narrowing: the work goes in a separate flat
 # tree on purpose, so ~/tla-practice stays written only by scripts and a
@@ -45,6 +49,53 @@
 # It also has to work on a first run, with no state file and nothing marked.
 # An absent PROGRESS.tsv means "nothing done yet", which is the ordinary case
 # the morning a corpus lands, not an error.
+#
+# ---------------------------------------------------------------------------
+# NARROWED AGAIN, AND SAID OUT LOUD BECAUSE AN INVARIANT NARROWED TWICE IN
+# SILENCE STOPS MEANING ANYTHING
+#
+# The clause above used to cover the whole script: it read nothing outside the
+# directory it sits in, full stop. The two coaching flags, --check and --hint,
+# read three things outside it. So the clause is now about a serve, and here
+# are the three, each one named rather than tucked into the code:
+#
+#   $STUDY_ROOT/check   executed, and its output read back
+#   $STUDY_ROOT/<slug>  the attempt's .tla and .cfg files, read
+#   claude              executed, found on PATH rather than at a known path
+#
+# WHY THE THREE ARE WORTH IT, which is one argument rather than three. The
+# one-shot runs as `claude -p --tools ""`, and the empty tool set is what makes
+# the read prohibition in the study config structural rather than advisory: the
+# model cannot reach the worked answer because it cannot reach anything. The
+# cost of that is that it cannot fetch its own material either. So either this
+# script fetches the prompt, the attempt and the checker's numbers, or the
+# one-shot has nothing to read and the coaching is worthless. Measured
+# 2026-10-14 against claude 2.1.300, bead tla-rzvk.
+#
+# The first two resolve the same way the study directory already did, off
+# $DRILL_STUDY_ROOT with the documented default. claude comes off PATH because
+# a model binary has no fixed home, which is the one of the three that could
+# surprise somebody reading this and so is the one worth naming twice.
+#
+# THE ONE-SHOT'S CWD IS THE SLUG DIRECTORY AND THAT IS LOAD-BEARING. The study
+# config at the study root loads by itself from there, and it is the single
+# source of what the one-shot may and may not say. This script restates none of
+# it. It assembles material, labels it, and ships it on stdin.
+#
+# THAT CWD IS RESOLVED FROM THE DRILL AND NOT FROM WHERE YOU STAND, and the two
+# are easy to run together. WHICH drill comes from LAST-SERVED, exactly as it
+# does for done and shaky, with an explicit <family>/<item> on --check for when
+# two terminals have drifted. WHERE the one-shot runs is then
+# $STUDY_ROOT/<slug> for whichever drill that was. Your own cwd decides
+# nothing, so --check works from the study root where you land.
+#
+# EVERY ONE OF THE THREE FAILS SOFT, AND THE SERVE PATH IS WHY. Serving is the
+# job and coaching is the convenience. No claude on the path, no checker at
+# the study root, no attempt in the directory: each is one message on stderr
+# and exit 1, decided BEFORE anything is executed, so there is never a half-run
+# that ships a block from a command that did not run. A model handed an empty
+# checker block cannot tell it from a clean one, which is the wrong direction
+# to be wrong in. A serve still works with none of the three present.
 #
 # ---------------------------------------------------------------------------
 # THE QUEUE IS DERIVED FROM THE TREE, NEVER FROM A LIST
@@ -100,7 +151,8 @@
 # WHAT IT WRITES, WHICH IS THREE PATHS AND NOTHING ELSE
 #
 #   PROGRESS.tsv    appended to, one line per mark
-#   LAST-SERVED     the drill served last, so a mark takes no argument
+#   LAST-SERVED     the drill served last, so a mark and a coaching run both
+#                   take no argument
 #   <study>/<slug>  created on a serve, and only ever created
 #
 # The first two sit beside this file. The third is the exception the section
@@ -110,11 +162,21 @@
 # behind it, so a clobbered file does not come back, and the study tree is in
 # the same position.
 #
+# THE COACHING FLAGS ADD NO FOURTH PATH. --check and --hint read, execute and
+# print. Neither touches PROGRESS.tsv, LAST-SERVED or the study directory, and
+# neither is a mark: reading your attempt back to you is not finishing the
+# drill, and deciding that is yours.
+#
 # LAST-SERVED is the one file that gets replaced rather than appended to, and
 # that is sound because it holds no work. It is this script's own cursor, it
 # is rewritten on every serve, and the record of what happened is in
 # PROGRESS.tsv. A pointer can go stale if you work two terminals, which is why
-# both marks also take an explicit <family>/<item>.
+# both marks and --check also take an explicit <family>/<item>.
+#
+# --hint does not, and that is the one asymmetry here. The rest of its line is
+# the question, so a drill name typed there is a question about that text. The
+# override exists for a drifted pointer, and ./drill --check names the drill
+# just as well while the hint is one command behind it.
 
 set -uo pipefail
 
@@ -154,12 +216,16 @@ TAB=$'\t'
 usage() {
   cat <<'USAGE'
 Usage: ./drill [done|shaky|status|list|help] [<family>/<item>]
+       ./drill --check [<family>/<item>]
+       ./drill --hint [<question>]
 
   ./drill            serve the next drill: where to work, then its prompt
   ./drill done       mark the drill you were served done, then serve the next
   ./drill shaky      mark it shaky, then serve the next
   ./drill status     how many are done, shaky and untried
   ./drill list       the queue, in the order it gets served
+  ./drill --check    run the checker over your attempt, then read it back
+  ./drill --hint     one rung of a hint about your attempt
   ./drill help       this text
 
 A mark takes no argument, because the point is one command per drill. The
@@ -172,6 +238,18 @@ you half got comes round again.
 A serve makes the directory to work the drill in, under ~/Study/tla-drills.
 Set DRILL_STUDY_ROOT to put it somewhere else. A directory already there is
 left exactly as it is, and a serve that cannot make one still serves.
+
+--check and --hint coach the drill that was served last, the same way a mark
+does, and --check takes a name when two terminals have drifted apart. Every
+run prints the drill and the directory it read, so a stale pointer shows up
+before you read the answer rather than after. It does not matter where you are
+standing.
+
+--hint takes no drill name, because the rest of the line is the question:
+./drill --hint why does this one keep failing. The quotes are optional.
+
+Both need claude on the path and the checker at the study root, and both
+refuse rather than half-run when either is missing. Serving never does.
 USAGE
 }
 
@@ -400,16 +478,236 @@ serve_next() {
 }
 
 # ---------------------------------------------------------------------------
-# Marking. The drill to mark comes from the argument if there is one, and from
-# the pointer otherwise. Either way it has to be a drill that is in the tree:
-# a name that is not gets refused rather than written, so the record never
-# holds an entry for something that does not exist.
+# Coaching: --check and --hint.
+#
+# This assembles and ships. What the two modes MEAN is the study config's, and
+# the first line of the prompt is the whole of the seam: MODE: check or
+# MODE: hint, plus a QUESTION block when a hint was steered. Nothing here
+# decides a rung or a register.
+# ---------------------------------------------------------------------------
+
+COACH_ITEM=""
+COACH_DIR=""
+COACH_HOW=""
+COACH_FILES=()
+COACH_MODULES=0
+QUESTION=""
+CHECK_OUT=""
+CHECK_RC=0
+PROMPT_TEXT=""
+
+# resolve_coach <flag> <arg>: which drill, and which directory holds it.
+#
+# The drill comes from resolve_target, so --check and --hint answer the
+# question exactly where done and shaky answer it, in one function with one
+# set of messages. A second phrasing for the same condition is a fork that
+# drifts.
+#
+# THE DIRECTORY IS RESOLVED FROM THE DRILL, NEVER FROM WHERE YOU STAND. It is
+# $STUDY_ROOT/<slug> whatever your cwd is, because that is the directory the
+# one-shot has to run in for the study config above it to load. Resolution and
+# cwd were always independent and they stay that way.
+resolve_coach() {
+  local flag="$1" arg="${2:-}"
+  COACH_ITEM=""
+  COACH_DIR=""
+  COACH_HOW=""
+
+  resolve_target "$flag" "$arg" || return 1
+  COACH_ITEM="$TARGET"
+  if [ -n "$arg" ]; then
+    COACH_HOW="the name you gave"
+  else
+    COACH_HOW="LAST-SERVED, so it is the drill that was served last"
+  fi
+
+  if [ -z "$STUDY_ROOT" ]; then
+    echo "drill: DRILL_STUDY_ROOT is unset and so is HOME, so there is no root to look" >&2
+    echo "drill: for ${COACH_ITEM} under. Set DRILL_STUDY_ROOT and try again." >&2
+    return 1
+  fi
+  COACH_DIR="$STUDY_ROOT/${COACH_ITEM##*/}"
+  if [ ! -d "$COACH_DIR" ]; then
+    echo "drill: there is no directory at $COACH_DIR, so the attempt at ${COACH_ITEM}" >&2
+    echo "drill: has nowhere to be. Run ./drill to have one made." >&2
+    return 1
+  fi
+  return 0
+}
+
+# collect_attempt <dir>: the attempt's own files, in one C-locale order so a
+# module and its config read next to each other.
+#
+# A TLC TRACE DUMP IS NOT PART OF THE ATTEMPT. *_TTrace_*.tla is TLC's output
+# rather than anything you wrote, and shipping one spends the prompt on a file
+# the drill is not about. The study config also excludes a name ending `.old`,
+# and there is no arm for that here because `Pickers.tla.old` matches neither
+# glob to begin with.
+#
+# PRESENCE IS ALL A GLOB CAN JUDGE. The study config calls a module header with
+# nothing under it not an attempt, which takes a reader rather than a glob. So
+# that half of the gate stays where it is and this half is only about whether
+# there is a module here at all.
+collect_attempt() {
+  local dir="$1" p base line
+  local -a raw=()
+  COACH_FILES=()
+  COACH_MODULES=0
+  shopt -s nullglob
+  for p in "$dir"/*.tla "$dir"/*.cfg; do
+    [ -f "$p" ] || continue
+    base="${p##*/}"
+    case "$base" in
+      *_TTrace_*) continue ;;
+    esac
+    raw+=("$base")
+    case "$base" in
+      *.tla) COACH_MODULES=$((COACH_MODULES + 1)) ;;
+    esac
+  done
+  shopt -u nullglob
+  [ "${#raw[@]}" -gt 0 ] || return 0
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    COACH_FILES+=("$line")
+  done < <(printf '%s\n' "${raw[@]}" | LC_ALL=C sort)
+}
+
+# run_checker <dir>: the checker, with its two streams joined.
+#
+# JOINED ON PURPOSE. A checker that failed on stderr and printed nothing on
+# stdout would otherwise ship an empty block, and a model with no tools cannot
+# tell an empty block from a clean silent run. The exit code goes on the label
+# beside it and neither is derived from the other, which is the rule the
+# checker's own header argues at length.
+#
+# DRILL_PROMPT_ROOT is named rather than left to the checker's default, because
+# this script reads the prompt out of $HERE and the two have to be reading the
+# same file. A checker resolving some other tree would quote claims the model
+# is not being shown.
+run_checker() {
+  CHECK_OUT=""
+  CHECK_RC=0
+  CHECK_OUT="$(DRILL_PROMPT_ROOT="$HERE" "$STUDY_ROOT/check" "$1" 2>&1)"
+  CHECK_RC=$?
+}
+
+# build_prompt <mode>: everything the one-shot gets, on stdout.
+#
+# MODE is the first line and the only instruction in here. Everything after it
+# is labelled material: the prompt as it was served, what the checker said, and
+# the files of the attempt. No prohibition is restated, because the study
+# config holds all of them and a second copy drifts from the day it is written.
+build_prompt() {
+  local mode="$1" base
+  printf 'MODE: %s\n' "$mode"
+  printf 'DRILL: %s\n' "$COACH_ITEM"
+  printf 'DIRECTORY: %s\n' "$COACH_DIR"
+  if [ -n "$QUESTION" ]; then
+    printf '\nQUESTION:\n%s\n' "$QUESTION"
+  fi
+  printf '\n== PROMPT.md ==\n'
+  cat "$HERE/$COACH_ITEM/PROMPT.md"
+  printf '\n== CHECKER, exit %s, output verbatim ==\n' "$CHECK_RC"
+  printf '%s\n' "$CHECK_OUT"
+  for base in "${COACH_FILES[@]}"; do
+    printf '\n== ATTEMPT %s ==\n' "$base"
+    cat "$COACH_DIR/$base"
+  done
+}
+
+# coach <mode>: the whole of --check and --hint.
+#
+# EVERY GATE IS DECIDED BEFORE ANYTHING IS EXECUTED, and the order is the
+# cheapest refusal first: a box with no claude on it never pays for a TLC run
+# to find that out.
+coach() {
+  local mode="$1" arg="${2:-}" flag="--$1"
+
+  resolve_coach "$flag" "$arg" || return 1
+
+  collect_attempt "$COACH_DIR"
+  if [ "$COACH_MODULES" -eq 0 ]; then
+    echo "drill: no attempt at $COACH_DIR: there is no .tla file there to read." >&2
+    echo "drill: write the module first. Feedback with no attempt in front of it is the" >&2
+    echo "drill: lookup these drills are written to replace." >&2
+    return 1
+  fi
+
+  if [ -z "$STUDY_ROOT" ]; then
+    echo "drill: DRILL_STUDY_ROOT is unset and so is HOME, so there is no study root to" >&2
+    echo "drill: find the checker in. Set DRILL_STUDY_ROOT and try again." >&2
+    return 1
+  fi
+
+  if [ ! -x "$STUDY_ROOT/check" ]; then
+    echo "drill: no runnable checker at $STUDY_ROOT/check, so there is nothing objective" >&2
+    echo "drill: to send and I would rather send nothing than a blank. Deliver the study" >&2
+    echo "drill: tree, then try again." >&2
+    return 1
+  fi
+
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "drill: no claude on the path, so there is no one-shot to run." >&2
+    echo "drill: ./drill, ./drill done and ./drill shaky all work without it." >&2
+    return 1
+  fi
+
+  run_checker "$COACH_DIR"
+
+  printf -- '-- %s: %s --\n' "$mode" "$COACH_ITEM"
+  printf 'chosen from %s\n' "$COACH_HOW"
+  printf 'reading in:   %s\n' "$COACH_DIR"
+  printf 'attempt:      %s\n' "${COACH_FILES[*]}"
+  printf 'checker:      exit %s\n' "$CHECK_RC"
+  echo
+
+  PROMPT_TEXT="$(build_prompt "$mode")"
+  # The prompt goes on STDIN and never on argv. --tools is variadic, so a
+  # positional prompt after `--tools ""` is read as a tool name and the run
+  # dies asking for input it was handed. Measured 2026-10-14, bead tla-rzvk.
+  ( cd -- "$COACH_DIR" && claude -p --tools "" ) <<<"$PROMPT_TEXT"
+}
+
+# ---------------------------------------------------------------------------
+# WHICH DRILL, FOR ALL FOUR VERBS THAT NEED ONE
+#
+# done, shaky, --check and --hint all answer the same question, so they ask it
+# in the same place. The drill comes from the argument if there is one, and
+# from the pointer otherwise. Either way it has to be a drill that is in the
+# tree: a name that is not gets refused rather than written, so the record
+# never holds an entry for something that does not exist.
+#
+# THE COACHING FLAGS USED TO RESOLVE OFF THE DIRECTORY YOU WERE STANDING IN,
+# and that was wrong. The argument for it was borrowed from why a mark takes an
+# explicit name, and it does not carry: a mark WRITES the record, so a wrong
+# drill corrupts the log, while a check only READS, so a wrong drill costs ten
+# seconds and the printed name shows it. Standing-in also forced a cd into the
+# slug directory, when the study ROOT is where you land.
+#
+# WHAT VARIES BY VERB IS TWO WORDS OF THE MESSAGE, and both come off the verb
+# rather than off a second parameter. `noun` is what you were about to do.
+# `named` is the command form that takes an explicit drill, and an empty one
+# drops the suggestion entirely, which is what --hint needs: the rest of its
+# line is the question, so there is no room left for a drill name and offering
+# one would be advice that does not work.
 # ---------------------------------------------------------------------------
 
 TARGET=""
 
 resolve_target() {
-  local verb="$1" arg="${2:-}" item=""
+  local verb="$1"
+  local arg="${2:-}"
+  local item="" noun="mark" named="$verb"
+  case "$verb" in
+    --check) noun="check" ;;
+    --hint)
+      noun="hint"
+      named=""
+      ;;
+  esac
+  local tail=""
+  [ -z "$named" ] || tail=", or name it: ./drill $named <family>/<item>"
   TARGET=""
   if [ -n "$arg" ]; then
     item="${arg%/}"
@@ -417,13 +715,13 @@ resolve_target() {
   elif [ -f "$POINTER" ]; then
     IFS= read -r item <"$POINTER" || item=""
     if [ -z "$item" ]; then
-      echo "drill: the pointer at $POINTER is empty, so there is nothing to mark." >&2
-      echo "drill: run ./drill to be served one, or name it: ./drill $verb <family>/<item>" >&2
+      echo "drill: the pointer at $POINTER is empty, so there is nothing to ${noun}." >&2
+      echo "drill: run ./drill to be served one${tail}" >&2
       return 1
     fi
   else
-    echo "drill: nothing has been served yet, so there is nothing to mark." >&2
-    echo "drill: run ./drill first, or name it: ./drill $verb <family>/<item>" >&2
+    echo "drill: nothing has been served yet, so there is nothing to ${noun}." >&2
+    echo "drill: run ./drill first${tail}" >&2
     return 1
   fi
   if ! is_item "$item"; then
@@ -486,6 +784,8 @@ ARG=""
 case "${1:-}" in
   "") VERB="serve" ;;
   done | shaky | status | list) VERB="$1" ;;
+  --check) VERB="check" ;;
+  --hint) VERB="hint" ;;
   help | -h | --help)
     usage
     exit 0
@@ -504,6 +804,16 @@ esac
 
 if [ "$#" -gt 0 ]; then
   shift
+fi
+
+# --hint takes THE REST OF THE LINE as the question, joined by single spaces.
+# A question typed at a shell prompt is not reliably quoted, and refusing an
+# unquoted one would be refusing the ordinary case to protect against a
+# quoting hazard that is not there: the question goes to the one-shot on
+# stdin, where it is text rather than a command line.
+if [ "$VERB" = "hint" ]; then
+  QUESTION="$*"
+  set --
 fi
 
 if [ "$#" -gt 0 ]; then
@@ -552,5 +862,13 @@ case "$VERB" in
     mark_target "$VERB" "$TARGET" || exit 1
     read_progress
     serve_next
+    ;;
+  check | hint)
+    # The one-shot's own exit status is this script's, because a coaching run
+    # that reached the model has nothing of its own left to report. A gate
+    # refusal returns 1 from coach and exits 1 here.
+    coach "$VERB" "$ARG"
+    COACH_RC=$?
+    exit "$COACH_RC"
     ;;
 esac

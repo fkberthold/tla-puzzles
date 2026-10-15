@@ -14,6 +14,19 @@
 #   runner, refreshes a stale copy of it, leaves an existing PROMPT.md alone,
 #   and never goes near PROGRESS.tsv.
 #
+#   Then, from bead tla-rzvk.2: --check and --hint ship a one-shot with no
+#   tools at all. The invocation carries -p and --tools with an empty value,
+#   the prompt arrives on STDIN rather than argv, the cwd is the slug directory
+#   so the study config loads by itself, and the prompt carries the item's
+#   PROMPT.md, the attempt's modules and configs, and the checker's output
+#   verbatim. Which drill comes from LAST-SERVED, the way a mark's does, with
+#   an optional explicit <family>/<item> on --check and none on --hint, whose
+#   rest-of-line is the question. Every run prints the drill and the directory,
+#   since that is the only thing between a stale pointer and a wasted read. The
+#   cwd of the one-shot is the drill's own directory either way. Each of the
+#   three new dependencies is refused with one message before anything is
+#   executed, and the serve path works with none of them present.
+#
 # ---------------------------------------------------------------------------
 # WHY THE MUTANTS ARE HERE, AND WHY THEY ARE THE POINT
 #
@@ -21,12 +34,16 @@
 # contract says", which is also what a suite driving a runner that silently
 # stopped working would report if the comparison went slack. So part 5 copies
 # the real runner, breaks ONE line of it, and requires the row that owns that
-# line to go red. Four mutants, four rows:
+# line to go red. Eight mutants:
 #
 #   family-major order   the index drops out of the sort key
 #   shaky retires        shaky behaves like done and never comes back
 #   truncating record    the log is written rather than appended to
 #   a pointer outside    LAST-SERVED lands one directory up
+#   a fatal study mkdir  a creation that fails takes the serve with it
+#   a claimed creation   every serve reports making the directory
+#   a coached half-run   the checker gate drops out and it ships anyway
+#   a prompt on argv     the prompt goes positional instead of on stdin
 #
 # A mutant that passes means the row above it is vacuous. That is a stronger
 # control than a planted fixture, because it exercises the real code path with
@@ -813,6 +830,570 @@ assert_says_literal "and the header still argues the confinement it narrows" \
 
 # ---------------------------------------------------------------------------
 echo
+echo "== part 4c: --check and --hint, a one-shot with no tools =="
+# ---------------------------------------------------------------------------
+#
+# NO ROW BELOW CALLS A REAL MODEL, AND NO ROW RUNS TLC. Two stubs stand in: a
+# `claude` first on PATH that records its argv, its stdin and the directory it
+# ran from, and a `check` at the study root that prints two known lines and
+# exits with a code this suite picks. Every gate here runs offline, and a suite
+# that reached out to a model would be neither offline nor repeatable.
+#
+# THE RECORDER FILES ARE WHAT KEEPS THE STUB HONEST. Each row that expects the
+# model to be called asserts that the recording landed, so an invocation that
+# somehow reached a different binary reddens the row rather than passing
+# quietly. Each row that expects NO call asserts the recording is absent, and
+# the rows above it are the control for that: the same stub, the same path, one
+# file that appears when claude runs and does not when it does not.
+#
+# WHY ARGV IS RECORDED ONE BRACKETED ELEMENT PER LINE. `--tools ""` ends the
+# command line with an EMPTY argument, and a bare newline for it would be eaten
+# by the command substitution that reads the file back. `ARG[]` survives, so
+# the row can assert the empty value is there as its own element rather than
+# absent.
+
+STUB_BIN="$TMPROOT/stub-bin"
+mkdir -p "$STUB_BIN"
+STUB_REC="$TMPROOT/stub-rec"
+mkdir -p "$STUB_REC"
+
+cat >"$STUB_BIN/claude" <<'CLAUDE_STUB'
+#!/usr/bin/env bash
+# The stand-in for the model. It reads no file of its own and reaches no
+# network. CLAUDE_STUB_REC is required rather than defaulted, so a run that
+# forgot to set it fails loudly instead of recording into nowhere.
+rec="${CLAUDE_STUB_REC:?the claude stub needs CLAUDE_STUB_REC}"
+: >"$rec.argv"
+for a in "$@"; do printf 'ARG[%s]\n' "$a" >>"$rec.argv"; done
+printf '%s\n' "$#" >"$rec.argc"
+printf '%s\n' "$PWD" >"$rec.cwd"
+cat >"$rec.stdin"
+printf 'STUB MODEL SPOKE\n'
+exit "${CLAUDE_STUB_RC:-0}"
+CLAUDE_STUB
+chmod +x "$STUB_BIN/claude"
+
+# The checker stub. It writes on BOTH streams, because the runner joins them
+# and a row below asserts the stderr line reached the model.
+#
+# TWO MODULE LINES, AND THE SECOND ONE IS THE POINT. It carries the absent
+# marker in three fields, which is `-` and not `none`: the contract locked on
+# bead tla-rzvk uses one marker everywhere, and tla-rzvk.1 brought the
+# checker's old spelling into line with it. A stub printing the old spelling
+# would be a fixture the real checker no longer matches.
+write_check_stub() {
+  cat >"$1" <<'CHECK_STUB'
+#!/usr/bin/env bash
+rec="${CHECK_STUB_REC:?the check stub needs CHECK_STUB_REC}"
+: >"$rec.argv"
+for a in "$@"; do printf 'ARG[%s]\n' "$a" >>"$rec.argv"; done
+printf '%s\n' "$PWD" >"$rec.cwd"
+printf '%s\n' "${DRILL_PROMPT_ROOT:-<unset>}" >"$rec.promptroot"
+printf 'module=Pickers rc=0 distinct=12 claimed=12 count=MATCH run=CLEAN invariant=-\n'
+printf 'module=Hoist rc=3 distinct=- claimed=- count=NONE run=NOCOUNT invariant=-\n'
+printf 'MATCHED: 1 of 1 module(s) reached a count the prompt publishes.\n'
+printf 'a line the checker wrote on stderr\n' >&2
+exit "${CHECK_STUB_RC:-0}"
+CHECK_STUB
+  chmod +x "$1"
+}
+
+# run_coach_path <path> <study-root> <cwd> <tree> [args...]
+#
+# The recorder is cleared first, so every "no model was called" row below is
+# about the run under it rather than about a file an earlier run left behind.
+# COACH_CHECK_RC is what the checker stub will exit with. It is a global rather
+# than a parameter because exactly one row varies it, and the runner is not
+# supposed to care either way.
+COACH_CHECK_RC=0
+
+run_coach_path() {
+  local path="$1" root="$2" dir="$3" tree="$4"
+  shift 4
+  rm -f "$STUB_REC"/*
+  RUN_OUT=$(cd "$dir" && HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$root" \
+    PATH="$path" CLAUDE_STUB_REC="$STUB_REC/claude" \
+    CHECK_STUB_REC="$STUB_REC/check" CHECK_STUB_RC="$COACH_CHECK_RC" \
+    "$tree/drill" "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+}
+
+# run_coach <study-root> <cwd> <tree> [args...]: the ordinary form, with the
+# stub directory first on PATH and the real one behind it, so the runner still
+# finds cat, sort, date and mkdir.
+run_coach() {
+  local root="$1" dir="$2" tree="$3"
+  shift 3
+  run_coach_path "$STUB_BIN:$PATH" "$root" "$dir" "$tree" "$@"
+}
+
+# run_coach_rootless <cwd> <tree> [args...]: no DRILL_STUDY_ROOT and no HOME,
+# which is the case where no study root can be resolved at all. `env -u`
+# rather than an assignment, because an empty HOME and an unset HOME are
+# different things and this row wants unset.
+run_coach_rootless() {
+  local dir="$1" tree="$2"
+  shift 2
+  rm -f "$STUB_REC"/*
+  RUN_OUT=$(cd "$dir" && env -u HOME -u DRILL_STUDY_ROOT \
+    PATH="$STUB_BIN:$PATH" CLAUDE_STUB_REC="$STUB_REC/claude" \
+    CHECK_STUB_REC="$STUB_REC/check" "$tree/drill" "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+}
+
+T_COACH="$TMPROOT/coach-tree"
+mk_tree "$T_COACH" "$RUNNER"
+
+STUDY_COACH="$TMPROOT/coach-study"
+ATTEMPT_DIR="$STUDY_COACH/$SLUG0"
+mkdir -p "$ATTEMPT_DIR"
+write_check_stub "$STUDY_COACH/check"
+
+printf '%s\n' '---- MODULE Pickers ----' 'VARIABLE held' 'Init == held = 0' '====' \
+  >"$ATTEMPT_DIR/Pickers.tla"
+printf 'SPECIFICATION Spec\nINVARIANT TypeOK\n' >"$ATTEMPT_DIR/Pickers.cfg"
+# Three files that are NOT the attempt. The first is TLC's own output, the
+# second is a superseded go, the third is neither a module nor a config.
+printf 'a trace dump TLC wrote\n' >"$ATTEMPT_DIR/Pickers_TTrace_1760000000.tla"
+printf 'an earlier go at it\n' >"$ATTEMPT_DIR/Pickers.tla.old"
+printf 'scratch notes to himself\n' >"$ATTEMPT_DIR/NOTES.md"
+
+# A second drill with an attempt of its own, which is what the explicit
+# override below is aimed at.
+OVERRIDE_ITEM="${CANONICAL[2]}"
+OVERRIDE_DIR="$STUDY_COACH/${OVERRIDE_ITEM##*/}"
+mkdir -p "$OVERRIDE_DIR"
+printf '%s\n' '---- MODULE Ballast ----' 'VARIABLE n' 'Init == n = 0' '====' \
+  >"$OVERRIDE_DIR/Ballast.tla"
+
+# Somewhere to stand that is not a drill directory. Nothing below depends on
+# the cwd deciding anything, and two rows depend on it deciding nothing.
+OUTSIDE="$TMPROOT/coach-elsewhere"
+mkdir -p "$OUTSIDE"
+
+# --- LAST-SERVED IS THE RESOLUTION, so a serve comes first ------------------
+#
+# This mirrors `done` and `shaky` exactly, and the argument that it should not
+# was mine and was wrong. The two-terminal drift case is why a MARK takes an
+# explicit name, and a mark writes the record, so being wrong corrupts the log.
+# A check only reads, so being wrong costs ten seconds and the printed drill
+# name shows it. Frank also lands at the study ROOT rather than inside a slug
+# directory, so resolving off the cwd would have forced a cd he does not need.
+
+run_drill_study "$STUDY_COACH" "$T_COACH"
+assert_eq "a serve points LAST-SERVED at the queue head" \
+  "${CANONICAL[0]}" "$(cat "$T_COACH/LAST-SERVED")"
+
+# --- the invocation, which is the measured part -----------------------------
+#
+# All three of these were measured on 2026-10-14 against claude 2.1.300 and
+# recorded on bead tla-rzvk: --tools "" removes file access, the prompt has to
+# arrive on stdin because --tools is variadic and swallows a positional one,
+# and the cwd decides which CLAUDE.md loads.
+
+ATTEMPT_SNAP_BEFORE=$(snapshot "$ATTEMPT_DIR")
+# The non-vacuity control for the untouched-ness row at the end of this part.
+# snapshot() of a directory that is not there reads `<absent>`, which compares
+# equal to itself, so without this the comparison is green over a directory
+# holding nothing.
+assert_says_literal "the attempt fixture really holds a module and a config to leave alone" \
+  "./Pickers.cfg :: SPECIFICATION Spec" "$ATTEMPT_SNAP_BEFORE"
+
+COACH_TREE_SNAP=$(snapshot "$T_COACH")
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "--check exits 0" 0
+
+if [ -f "$STUB_REC/claude.argv" ]; then
+  ok "the stub model was the thing called, so the rows below read a real invocation"
+else
+  nope "no invocation was recorded at $STUB_REC/claude.argv, so nothing below is evidence"
+fi
+
+assert_eq "the invocation is -p and --tools with an empty value, and nothing else" \
+  "ARG[-p]
+ARG[--tools]
+ARG[]" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
+assert_eq "the model was handed exactly three arguments" \
+  "3" "$(cat "$STUB_REC/claude.argc" 2>/dev/null)"
+assert_eq "it ran from the slug directory, so the study config above it loads by itself" \
+  "$ATTEMPT_DIR" "$(cat "$STUB_REC/claude.cwd" 2>/dev/null)"
+
+COACH_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_eq "the mode is the very first line of what arrived on stdin" \
+  "MODE: check" "$(awk 'NR == 1' <<<"$COACH_STDIN")"
+assert_never_names "and the prompt is not on argv, which --tools would swallow" \
+  "MODE: check" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
+
+# --- what the prompt carries ------------------------------------------------
+
+assert_says_literal "stdin carries the item's own PROMPT.md text" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$COACH_STDIN"
+assert_says_literal "stdin names which drill it is about" \
+  "${CANONICAL[0]}" "$COACH_STDIN"
+assert_says_literal "stdin carries the attempt's module" "MODULE Pickers" "$COACH_STDIN"
+assert_says_literal "and the attempt's config" "SPECIFICATION Spec" "$COACH_STDIN"
+assert_says_literal "stdin carries the checker's output verbatim" \
+  "module=Pickers rc=0 distinct=12 claimed=12 count=MATCH run=CLEAN invariant=-" "$COACH_STDIN"
+assert_says_literal "every line of it, not just the first" \
+  "module=Hoist rc=3 distinct=- claimed=- count=NONE run=NOCOUNT invariant=-" "$COACH_STDIN"
+assert_never_names "and the absent marker reaches the model as the dash, never as a word" \
+  "distinct=none" "$COACH_STDIN"
+assert_says_literal "and the checker's summary line with it" \
+  "MATCHED: 1 of 1 module(s)" "$COACH_STDIN"
+assert_says_literal "and what the checker said on stderr, so a silent failure is not read as a clean run" \
+  "a line the checker wrote on stderr" "$COACH_STDIN"
+assert_says_literal "and the checker's exit code, which the model has no way to derive" \
+  "exit 0" "$COACH_STDIN"
+
+assert_never_names "a TLC trace dump is not part of the attempt" \
+  "a trace dump TLC wrote" "$COACH_STDIN"
+assert_never_names "nor is a superseded .old module" "an earlier go at it" "$COACH_STDIN"
+assert_never_names "nor a file that is neither a module nor a config" \
+  "scratch notes to himself" "$COACH_STDIN"
+
+# --- the checker call -------------------------------------------------------
+
+assert_eq "the checker was handed the attempt directory" \
+  "ARG[$ATTEMPT_DIR]" "$(cat "$STUB_REC/check.argv" 2>/dev/null)"
+assert_eq "and told where the prompts are, so it reads the same prompt the runner read" \
+  "$T_COACH" "$(cat "$STUB_REC/check.promptroot" 2>/dev/null)"
+
+# --- what the run says for itself -------------------------------------------
+
+# NOT OPTIONAL OUTPUT. With the cwd out of the resolution, the printed name and
+# directory are the only thing between Frank and a stale pointer.
+assert_says_literal "the run says which drill it used" "${CANONICAL[0]}" "$RUN_OUT"
+assert_says_literal "and says it came off the pointer" "LAST-SERVED" "$RUN_OUT"
+assert_says_literal "and names the directory it read" "$ATTEMPT_DIR" "$RUN_OUT"
+assert_says_literal "and the model's own answer reaches stdout" "STUB MODEL SPOKE" "$RUN_OUT"
+
+assert_eq "a coaching run writes nothing into the attempt directory" \
+  "$ATTEMPT_SNAP_BEFORE" "$(snapshot "$ATTEMPT_DIR")"
+assert_eq "and nothing beside the runner either, so coaching is not a serve" \
+  "$COACH_TREE_SNAP" "$(snapshot "$T_COACH")"
+
+# --- --hint, plain and steered ----------------------------------------------
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint
+assert_rc "--hint exits 0" 0
+HINT_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_eq "the mode reads hint, on the first line" \
+  "MODE: hint" "$(awk 'NR == 1' <<<"$HINT_STDIN")"
+assert_never_names "an unsteered hint carries no QUESTION block" "QUESTION:" "$HINT_STDIN"
+assert_eq "the invocation does not change with the mode" \
+  "ARG[-p]
+ARG[--tools]
+ARG[]" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
+assert_says_literal "and a hint gets the checker's numbers too" \
+  "module=Pickers rc=0 distinct=12 claimed=12 count=MATCH run=CLEAN invariant=-" "$HINT_STDIN"
+
+# The free text is the reason the prompt goes on stdin at all: a heredoc
+# sidesteps every quoting question a command line would raise, so the row
+# carries a double quote and a question mark on purpose.
+HINT_Q='why does my Next admit an empty pile, and what does "fairness" buy here?'
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint "$HINT_Q"
+assert_rc "a steered hint exits 0" 0
+HINT2_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "a steered hint carries a QUESTION block" "QUESTION:" "$HINT2_STDIN"
+assert_says_literal "and his text arrives verbatim, quotes and all" "$HINT_Q" "$HINT2_STDIN"
+assert_never_names "and the question is not on argv either" \
+  "$HINT_Q" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
+assert_eq "the invocation still carries three arguments" \
+  "3" "$(cat "$STUB_REC/claude.argc" 2>/dev/null)"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint why is this one shaky
+assert_rc "a question typed without quotes is taken whole rather than refused" 0
+assert_says_literal "and arrives as one line of question" \
+  "why is this one shaky" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# --- the cwd decides nothing about WHICH drill ------------------------------
+#
+# The row that would catch a regression to resolving off the cwd. It stands in
+# a real drill's directory, 01-mid-drill, while the pointer names another, and
+# the pointer has to win. Under cwd-first this run would have coached
+# mid/01-mid-drill and then died on the attempt gate, because that directory
+# holds no module.
+
+CWD_DECOY="$STUDY_COACH/${CANONICAL[1]##*/}"
+mkdir -p "$CWD_DECOY"
+run_coach "$STUDY_COACH" "$CWD_DECOY" "$T_COACH" --check
+assert_rc "standing in another drill's directory changes nothing" 0
+assert_says_literal "the pointer's drill is the one coached" "${CANONICAL[0]}" "$RUN_OUT"
+assert_never_names "and not the one whose directory he happened to be in" \
+  "${CANONICAL[1]}" "$RUN_OUT"
+assert_eq "and the model ran from the pointer's directory, not from his cwd" \
+  "$ATTEMPT_DIR" "$(cat "$STUB_REC/claude.cwd" 2>/dev/null)"
+
+# --- --check takes an explicit drill, the way the marks do ------------------
+#
+# The documented override for a drifted pointer, and the same sentence usage()
+# already carries for done and shaky.
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "$OVERRIDE_ITEM"
+assert_rc "--check with an explicit drill name exits 0" 0
+assert_says_literal "it coaches the drill it was handed" "$OVERRIDE_ITEM" "$RUN_OUT"
+assert_never_names "and not the one the pointer named" "${CANONICAL[0]}" "$RUN_OUT"
+assert_says_literal "and says the name came off the command line" \
+  "the name you gave" "$RUN_OUT"
+assert_eq "the model ran from the named drill's own directory" \
+  "$OVERRIDE_DIR" "$(cat "$STUB_REC/claude.cwd" 2>/dev/null)"
+assert_says_literal "and stdin carries the named drill's prompt" \
+  "PROMPT BODY for $OVERRIDE_ITEM" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+assert_eq "an override does not move the pointer, because coaching is not a mark" \
+  "${CANONICAL[0]}" "$(cat "$T_COACH/LAST-SERVED")"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "alpha/99-not-a-drill"
+assert_rc "--check with a name that is not a drill is refused" 1
+assert_says_literal "and the refusal says what to run instead, the way a mark does" \
+  "./drill list" "$RUN_ERR"
+assert_absent "and no model was called over it" "$STUB_REC/claude.argv"
+
+# The spelling rule is the marks' spelling rule, so a bare slug is refused by
+# both. The control is the mark itself rather than a planted fixture, because
+# "the same as the marks" is the claim.
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "${OVERRIDE_ITEM##*/}"
+assert_rc "a bare slug is refused, since the marks take <family>/<item>" 1
+run_drill "$T_COACH" "done" "${OVERRIDE_ITEM##*/}"
+assert_rc "control: done refuses a bare slug too, so --check matches the marks" 1
+
+# --hint has NO drill override. The rest of the line is the question, and a
+# drill name typed there is a question about that text.
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint "$OVERRIDE_ITEM"
+assert_rc "--hint with something that looks like a drill name exits 0" 0
+HINT4_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "the text goes into the question block" "QUESTION:" "$HINT4_STDIN"
+assert_says_literal "carrying what he typed" "$OVERRIDE_ITEM" "$HINT4_STDIN"
+assert_eq "and the drill is still the one that was served" \
+  "$ATTEMPT_DIR" "$(cat "$STUB_REC/claude.cwd" 2>/dev/null)"
+assert_says_literal "and the run still says which drill that is" \
+  "${CANONICAL[0]}" "$RUN_OUT"
+
+# --- an absent or empty pointer says what a mark says -----------------------
+
+T_NOPTR="$TMPROOT/coach-no-pointer"
+mk_tree "$T_NOPTR" "$RUNNER"
+assert_absent "the fixture starts with no pointer" "$T_NOPTR/LAST-SERVED"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_NOPTR" --check
+assert_rc "--check with nothing served yet is refused" 1
+assert_says_literal "and says nothing has been served yet" \
+  "nothing has been served yet" "$RUN_ERR"
+assert_says_literal "and points at the override that exists" \
+  "./drill --check <family>/<item>" "$RUN_ERR"
+assert_absent "and no model was called" "$STUB_REC/claude.argv"
+
+# The control for "reuse its wording": the mark hits the same condition and has
+# to produce the same sentence, or the two have forked.
+run_drill "$T_NOPTR" "done"
+assert_says_literal "control: a mark with no pointer says the same sentence" \
+  "nothing has been served yet" "$RUN_ERR"
+
+: >"$T_NOPTR/LAST-SERVED"
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_NOPTR" --hint
+assert_rc "--hint over an empty pointer is refused" 1
+assert_says_literal "and says the pointer is empty, the way a mark does" \
+  "is empty" "$RUN_ERR"
+assert_never_names "and offers no drill name, because --hint has no override" \
+  "./drill --hint <family>/<item>" "$RUN_ERR"
+run_drill "$T_NOPTR" shaky
+assert_says_literal "control: a mark over an empty pointer says the same sentence" \
+  "is empty" "$RUN_ERR"
+
+# --- the checker's exit code is not the runner's ----------------------------
+#
+# tla-rzvk.1 moved a no-claim prompt with no tlc from exit 2 to exit 3. The
+# runner exits with the one-shot's status and relays neither, so this is a
+# no-op, and the row is here because that was worth checking rather than
+# assuming.
+
+COACH_CHECK_RC=3
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+COACH_CHECK_RC=0
+assert_rc "a checker exiting 3 does not become the runner's exit code" 0
+assert_says_literal "and the code reaches the model on the label instead" \
+  "== CHECKER, exit 3," "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# --- the three gates, each one message and a nonzero exit -------------------
+#
+# EVERY GATE RUNS BEFORE ANYTHING IS EXECUTED, so a missing dependency never
+# costs a TLC run and never leaves a half-run: a prompt shipped with an
+# unrun checker in it would be worse than no prompt, because the model cannot
+# tell an empty block from a clean one.
+
+# The decoy directory from the cwd rows is this drill's study directory, and it
+# holds no module. The override names it, so the gate fires on a directory that
+# really is the resolved one.
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "${CANONICAL[1]}"
+assert_rc "a drill whose directory holds no module is refused" 1
+assert_says_literal "and says there is no attempt to read" "no attempt" "$RUN_ERR"
+assert_says_literal "and names the directory it looked in" "$CWD_DECOY" "$RUN_ERR"
+assert_absent "and no model was called over nothing" "$STUB_REC/claude.argv"
+assert_absent "and the checker was not run either" "$STUB_REC/check.argv"
+
+printf 'SPECIFICATION Spec\n' >"$CWD_DECOY/Lonely.cfg"
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "${CANONICAL[1]}"
+assert_rc "a config with no module beside it is not an attempt" 1
+assert_absent "and still no model was called" "$STUB_REC/claude.argv"
+rm -f "$CWD_DECOY/Lonely.cfg"
+
+# A drill that has never been served has no study directory at all, which is a
+# different thing from one holding no module.
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "${CANONICAL[5]}"
+assert_rc "a drill with no study directory yet is refused" 1
+assert_says_literal "and the refusal names the directory that is not there" \
+  "$STUDY_COACH/${CANONICAL[5]##*/}" "$RUN_ERR"
+assert_absent "and no model was called" "$STUB_REC/claude.argv"
+
+STUDY_NOCHECK="$TMPROOT/coach-study-nocheck"
+mkdir -p "$STUDY_NOCHECK/$SLUG0"
+cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_NOCHECK/$SLUG0/Pickers.tla"
+assert_absent "the no-checker study root really has no checker in it" "$STUDY_NOCHECK/check"
+run_coach "$STUDY_NOCHECK" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a study root with no checker in it is refused" 1
+assert_says_literal "and the refusal names the path the checker should be at" \
+  "$STUDY_NOCHECK/check" "$RUN_ERR"
+assert_absent "and no model was called, so nothing half-ran" "$STUB_REC/claude.argv"
+
+write_check_stub "$STUDY_NOCHECK/check"
+chmod -x "$STUDY_NOCHECK/check"
+run_coach "$STUDY_NOCHECK" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a checker that is there but not executable is refused too" 1
+assert_absent "and still no model was called" "$STUB_REC/claude.argv"
+chmod +x "$STUDY_NOCHECK/check"
+
+# A PATH carrying what the runner needs and no claude. Built by resolving the
+# real ones rather than by guessing at /bin, so the row is about the absence of
+# claude and not about a broken PATH.
+#
+# `bash` IS ON THE LIST, and leaving it off is how the first run of this part
+# went red for the wrong reason: the runner's own `#!/usr/bin/env bash` line
+# resolves through PATH, so a shim without bash fails the runner at exec with
+# rc 127 and `env: 'bash': No such file or directory`, which looks like a
+# refusal the runner issued and is not one.
+NOCLAUDE_BIN="$TMPROOT/bin-no-claude"
+mkdir -p "$NOCLAUDE_BIN"
+for coach_util in bash cat sort date mkdir dirname env; do
+  coach_util_path=$(command -v "$coach_util") || continue
+  ln -s -- "$coach_util_path" "$NOCLAUDE_BIN/$coach_util"
+done
+assert_absent "the no-claude PATH holds no claude" "$NOCLAUDE_BIN/claude"
+if [ -e "$NOCLAUDE_BIN/bash" ] && [ -e "$NOCLAUDE_BIN/cat" ] && [ -e "$NOCLAUDE_BIN/sort" ]; then
+  ok "and it does hold what the runner needs, so the rows below are about claude alone"
+else
+  nope "the no-claude PATH is missing bash, cat or sort, so a refusal there proves nothing"
+fi
+
+run_coach_path "$NOCLAUDE_BIN" "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "no claude on the path is refused" 1
+assert_says_literal "and the refusal names what is missing" "no claude on the path" "$RUN_ERR"
+assert_absent "and the checker was not run, so a missing model costs no TLC run" \
+  "$STUB_REC/check.argv"
+
+run_coach_rootless "$OUTSIDE" "$T_COACH" --check
+assert_rc "a coaching run with neither DRILL_STUDY_ROOT nor HOME is refused" 1
+assert_says_literal "and the refusal names the variable that would fix it" \
+  "DRILL_STUDY_ROOT" "$RUN_ERR"
+assert_never_names "and it is a message rather than a crash under set -u" \
+  "unbound variable" "$RUN_ERR"
+assert_absent "and no model was called" "$STUB_REC/claude.argv"
+
+# --- THE SERVE PATH KEEPS WORKING WITH NONE OF THEM PRESENT -----------------
+#
+# This is the half of the fail-soft rule that matters most. Serving is the job
+# and coaching is the convenience, so a box with no claude and no study tree
+# delivered still hands over the prompt.
+
+T_BARE="$TMPROOT/coach-serve-bare"
+mk_tree "$T_BARE" "$RUNNER"
+STUDY_BARE="$TMPROOT/coach-study-bare"
+mkdir -p "$STUDY_BARE"
+assert_absent "the bare study root has no checker in it" "$STUDY_BARE/check"
+RUN_OUT=$(cd "$OUTSIDE" && HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$STUDY_BARE" \
+  PATH="$NOCLAUDE_BIN" "$T_BARE/drill" 2>"$ERRFILE")
+RUN_RC=$?
+RUN_ERR=$(cat "$ERRFILE")
+assert_rc "a serve exits 0 with no claude on the path and no checker delivered" 0
+assert_says_literal "and still prints the prompt" \
+  "PROMPT BODY for ${CANONICAL[0]}" "$RUN_OUT"
+assert_says_literal "and still names the directory to work in" \
+  "$STUDY_BARE/$SLUG0" "$RUN_OUT"
+
+# --- usage -------------------------------------------------------------------
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check "${CANONICAL[0]}" extra
+assert_rc "--check refuses a second argument" 1
+assert_says_literal "and says which one it did not expect" \
+  "unexpected extra argument" "$RUN_ERR"
+assert_absent "and no model was called over a usage error" "$STUB_REC/claude.argv"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" help
+assert_says_literal "help names --check and its optional drill" \
+  "./drill --check [<family>/<item>]" "$RUN_OUT"
+assert_says_literal "and names --hint" "./drill --hint" "$RUN_OUT"
+assert_says_literal "and says --hint takes no drill name, since the text owns that slot" \
+  "--hint takes no drill name" "$RUN_OUT"
+
+# --- the header carries the SECOND narrowing --------------------------------
+#
+# Gate, don't advise. The header argued at length that the script reads nothing
+# outside the directory it sits in, and the two coaching flags read three
+# things outside it. An invariant narrowed twice in one day without saying so
+# stops meaning anything, so the narrowing is a row rather than a note.
+
+COACH_HEAD=$(awk '/^set -uo pipefail/ { exit } { print }' "$RUNNER")
+assert_says_literal "the header still says it sources nothing and resolves no repo root" \
+  "sources nothing, resolves no repo root" "$COACH_HEAD"
+assert_says_literal "and the second narrowing is named rather than slipped in" \
+  "NARROWED AGAIN" "$COACH_HEAD"
+assert_says_literal "and it says the confinement is now about a serve" \
+  "a serve reads nothing outside" "$COACH_HEAD"
+# Single-quoted: these are lines of the runner's SOURCE TEXT read back, so an
+# expansion here would put this suite's own environment into the needle and the
+# rows would be asserting nothing about the runner.
+# shellcheck disable=SC2016
+COACH_HEAD_CHECKER='$STUDY_ROOT/check'
+assert_says_literal "and names the checker it executes outside this tree" \
+  "$COACH_HEAD_CHECKER" "$COACH_HEAD"
+assert_says_literal "and names the invocation it ships, flags and all" \
+  "claude -p --tools" "$COACH_HEAD"
+assert_says_literal "and argues why a missing dependency is refused rather than half-run" \
+  "never a half-run" "$COACH_HEAD"
+assert_says_literal "and says the resolution is the pointer, the way a mark's is" \
+  "LAST-SERVED" "$COACH_HEAD"
+assert_never_names "and no longer claims the cwd decides which drill" \
+  "the directory you are standing in" "$COACH_HEAD"
+
+# ONE SOURCE FOR THE REGISTER RULES, AND IT IS NOT THE RUNNER.
+#
+# drill/study/CLAUDE.md is the single source of what the model must not do, and
+# it loads by itself because the one-shot runs from the attempt directory. A
+# runner that restated one of those prohibitions would have forked the file
+# that holds them, and a fork drifts from the moment it is written.
+#
+# Checked over the WHOLE runner rather than over code alone, because a header
+# paragraph restating the rules forks them exactly as a string would. The
+# control is a PLANTED line rather than the study config itself: the config is
+# another bead's file, and a control that read it would go red on an edit there
+# that is none of this row's business.
+CTRL_RESTATE='# NEVER read ANSWER.md or META.md, and never hand over the construct.'
+RUNNER_RAW=$(cat "$RUNNER")
+for coach_needle in "ANSWER.md" "META.md"; do
+  if grep -qF -- "$coach_needle" <<<"$CTRL_RESTATE"; then
+    ok "control: a restated prohibition naming $coach_needle is DETECTED"
+  else
+    nope "control: the needle $coach_needle matched nothing, so the row below is vacuous"
+  fi
+  assert_never_names "the runner restates no prohibition naming $coach_needle" \
+    "$coach_needle" "$RUNNER_RAW"
+done
+assert_never_names "and the prompt it ships restates none either" \
+  "ANSWER.md" "$COACH_STDIN"
+
+# ---------------------------------------------------------------------------
+echo
 echo "== part 5: the mutants, which is what makes part 1 and part 3 mean something =="
 # ---------------------------------------------------------------------------
 
@@ -956,6 +1537,53 @@ if [ -n "$M6" ]; then
     ok "control: a runner claiming a creation over an existing directory is DETECTED"
   else
     nope "control: the false creation claim was NOT detected, so the no-claim row is vacuous"
+  fi
+fi
+
+# M7 AND M8 BACK PART 4c'S TWO NEGATIVE ROWS, for the reason M5 and M6 exist.
+# "No model was called" and "the prompt is not on argv" both hold over a runner
+# with no coaching path at all, which is what they held over the day before
+# this feature landed. A negative row needs a runner that gets it wrong.
+#
+# M7. the checker gate drops out, so a run with no checker ships anyway and the
+# model gets a block from a command that never ran. That is the half-run the
+# header argues against, and part 4c's "nothing half-ran" rows are what catch
+# it.
+# shellcheck disable=SC2016
+M7=$(mutate coach-ships-without-checker 's|^  if \[ ! -x "\$STUDY_ROOT/check" \]; then$|  if false; then|')
+if [ -n "$M7" ]; then
+  T_M7="$TMPROOT/tree-m7"
+  mk_tree "$T_M7" "$M7"
+  # A mutant tree starts with no pointer, and the resolution reads one, so the
+  # run would be refused before it ever reached the gate under test.
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M7/LAST-SERVED"
+  STUDY_M7="$TMPROOT/study-root-m7"
+  mkdir -p "$STUDY_M7/$SLUG0"
+  cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_M7/$SLUG0/Pickers.tla"
+  run_coach "$STUDY_M7" "$OUTSIDE" "$T_M7" --check
+  if [ -e "$STUB_REC/claude.argv" ]; then
+    ok "control: a runner shipping with no checker run is DETECTED as a half-run"
+  else
+    nope "control: a half-run was NOT detected, so part 4c's no-model-called rows are vacuous"
+  fi
+fi
+
+# M8. the prompt goes on argv instead of stdin, which is the one thing F3
+# measured as fatal: --tools is variadic and eats a positional prompt. The row
+# that says the prompt is absent from argv is green over any runner that never
+# builds a prompt, so it needs this.
+# shellcheck disable=SC2016
+M8=$(mutate coach-prompt-on-argv \
+  's|^  ( cd -- "\$COACH_DIR" && claude -p --tools "" ) <<<"\$PROMPT_TEXT"$|  ( cd -- "$COACH_DIR" \&\& claude -p --tools "" "$PROMPT_TEXT" ) </dev/null|')
+if [ -n "$M8" ]; then
+  T_M8="$TMPROOT/tree-m8"
+  mk_tree "$T_M8" "$M8"
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M8/LAST-SERVED"
+  run_coach "$STUDY_COACH" "$OUTSIDE" "$T_M8" --check
+  if grep -qF -- "MODE: check" "$STUB_REC/claude.argv"; then
+    ok "control: a runner putting the prompt on argv is DETECTED"
+  else
+    nope "control: the prompt on argv was NOT detected, so part 4c's stdin rows are vacuous"
   fi
 fi
 
