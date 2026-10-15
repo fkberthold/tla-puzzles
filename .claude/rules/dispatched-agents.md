@@ -296,6 +296,44 @@ Lineage: bead `tla-kr9`.
 
 ---
 
+## Hazard: the Bash tool's `grep` is ugrep, and a negated class next to an anchor returns 0
+
+`type grep` in the Bash tool reports a shell function from
+`~/.claude/shell-snapshots/snapshot-zsh-*.sh`. It runs ugrep 7.8.4 out of the claude
+binary with `-G --ignore-files --hidden -I --exclude-dir=.git`. `find` is the same story
+(bfs), and it agreed with GNU on every count tried. `sed`, `awk`, `wc`, `sort`, `uniq`,
+`head`, `tail`, `cut` and `tr` are real binaries. A script with a bash shebang gets GNU
+for all of them, so the gates are unaffected. Interactive measurement is not.
+
+Measured 2026-10-15 (bead `tla-uiut`) on a 13-line fixture, wrapper against `command grep`:
+
+| shape | wrapper | GNU |
+|---|---|---|
+| `(^\|[^A-Za-z_])CASE` | 0 | 6 |
+| `[^A-Za-z_]*CASE` | 0 | 7 |
+| `^[^ ]+ ==` | 1 | 2 |
+| `(x\|$)` | 1 | 13 |
+| `-co CASE` | 8 matches | 7 lines |
+| `(ab)\1` | error | 1 |
+| `\bCASE\b`, `-w CASE`, `(^\|[[:space:]])CASE`, `CASE([^A-Za-z_]\|$)` | same | same |
+
+So the word-boundary idiom `(^|[^class])TOKEN` is the one that lies, in ERE, BRE and
+with `-o`, and a negated class under `*` or `?` can lie on its own. I don't know the
+mechanism, and excluding `\n` from the class doesn't fix it. `\b`, `\<`, `-w`, `\W`,
+`[[:space:]]` and `-P` all agreed with GNU, and so did a trailing negated class.
+
+Two more that aren't regex. `-r` honors `.gitignore`, so `grep -rl --include='*.tla'`
+read 1474 files here against GNU's 1481, the gap being the `*_TTrace_*.tla` modules.
+And GNU `-r` walks `.git` unless you pass `--exclude-dir=.git`, so a bare `command grep -r`
+can overcount the other way.
+
+When a count matters, put the scan in a scratch script with a bash shebang, which is
+the route this file already recommends for refused command lines. `command grep` gets
+GNU for one call. Run the count both ways before you write it down, and if they
+disagree, GNU is the number every script and gate will see.
+
+---
+
 ## Hazard — the isolation harness refuses a command line it cannot statically verify
 
 The refusal is about **command complexity**, not about any one token. Command substitution
