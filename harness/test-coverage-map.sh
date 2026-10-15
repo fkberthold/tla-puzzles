@@ -15,12 +15,13 @@
 #
 # WHAT MUTATION BUYS OVER A GREEN RUN. A gate over a generated file is easy to
 # write vacuously, because the generator and the gate agree with each other by
-# construction. Parts 3 to 6 mutate a copy of the real corpora and require the
-# gate to redden, one defect at a time. A control that passes means the check
-# is blind to that defect, and it is reported as a failure.
+# construction. 18 of the assertions below are controls: they break a copy of
+# the real corpora one defect at a time and require the gate to redden. A
+# control that passes means the check is blind to that defect, and it is
+# reported as a failure.
 #
 # THE MIRROR. Mutation runs against a metadata-only copy of both corpora: 64
-# META.md, 25 USES.md and the inventory, about 168 KB. The real tree is never
+# META.md, 25 USES.md and the inventory, about 164 KB. The real tree is never
 # written. Copying the .tla and .cfg files would multiply the cost for nothing,
 # since the generator reads neither.
 #
