@@ -57,16 +57,18 @@
 #
 # The clause above used to cover the whole script: it read nothing outside the
 # directory it sits in, full stop. The three coaching flags, --check, --hint
-# and --style, read five things outside it. So the clause is now about a serve,
-# and here are the five, each one named rather than tucked into the code:
+# and --style, read six things outside it. So the clause is now about a serve,
+# and here are the six, each one named rather than tucked into the code:
 #
 #   $STUDY_ROOT/check     executed, and its output read back
 #   $STUDY_ROOT/style     executed, and its output read back
 #   $STUDY_ROOT/STYLE.md  read, and cat whole into the style prompt
 #   $STUDY_ROOT/<slug>    the attempt's .tla and .cfg files, read
 #   claude                executed, found on PATH rather than at a known path
+#   $STUDY_ROOT/.claude/commands/hint.md
+#                         read, and cat whole into the hint prompt
 #
-# WHY THEY ARE WORTH IT, which is one argument rather than five. The one-shot
+# WHY THEY ARE WORTH IT, which is one argument rather than six. The one-shot
 # runs as `claude -p --tools ""`, and the empty tool set is what makes the read
 # prohibition in the study config structural rather than advisory: the model
 # cannot reach the worked answer because it cannot reach anything. The cost of
@@ -82,6 +84,18 @@
 # because a list that says three while the code reads five is worse than no
 # list. The one thing worth saying on top is that STYLE.md is READ rather than
 # executed, and it is the only input here that is prose rather than a number.
+#
+# THE HINT SHEET IS THE SIXTH, AND IT WAS THE ARGUMENT'S OWN COUNTEREXAMPLE.
+# Bead tla-1sh7.1. The paragraph above says a register the model cannot open
+# is a register that is not there, and the same held for the hint sheet from
+# the day --hint landed: the study config tells a hint run to classify the
+# question and leaves the worked cases and the tiebreak in
+# $STUDY_ROOT/.claude/commands/hint.md, which a one-shot cannot open either.
+# So a hint classified on the summary alone, with no example in front of it.
+# On 2026-10-16 that laddered a question Frank had marked in his own text as a
+# mechanism question, and cost him the hour. The sheet now ships the way the
+# register does, and this is a sixth read under the root the other five
+# already resolve from rather than a new argument.
 #
 # The paths resolve the same way the study directory already did, off
 # $DRILL_STUDY_ROOT with the documented default. claude comes off PATH because
@@ -100,15 +114,18 @@
 # $STUDY_ROOT/<slug> for whichever drill that was. Your own cwd decides
 # nothing, so --check works from the study root where you land.
 #
-# EVERY ONE OF THE FIVE FAILS SOFT, AND THE SERVE PATH IS WHY. Serving is the
+# EVERY ONE OF THE SIX FAILS SOFT, AND THE SERVE PATH IS WHY. Serving is the
 # job and coaching is the convenience. No claude on the path, no checker at
-# the study root, no style script, no register beside it, no attempt in the
-# directory: each is one message on stderr and exit 1, decided BEFORE anything
-# is executed, so there is never a half-run that ships a block from a command
-# that did not run. A model handed an empty checker block cannot tell it from a
-# clean one, and one handed measurements with no register cannot tell an absent
-# register from an empty one, which is the wrong direction to be wrong in
-# twice. A serve still works with none of the five present.
+# the study root, no style script, no register beside it, no hint sheet under
+# .claude/commands, no attempt in the directory: each is one message on stderr
+# and exit 1, decided BEFORE anything is executed. So there is
+# never a half-run that ships a block from a command that did not run.
+#
+# A model handed an empty checker block cannot tell it from a clean one, one
+# handed measurements with no register cannot tell an absent register from an
+# empty one, and one handed a question with no sheet cannot tell that the
+# worked case it is missing exists. That is the wrong direction to be wrong in
+# three times. A serve still works with none of the six present.
 #
 # ---------------------------------------------------------------------------
 # THE QUEUE IS DERIVED FROM THE TREE, NEVER FROM A LIST
@@ -201,19 +218,53 @@
 # run does not execute the style script. One line to change here if the two
 # are ever wanted together.
 #
-# IT CATS THE REGISTER INTO THE PROMPT, which is the one thing it does that
-# neither other mode has an equivalent of. $STUDY_ROOT/STYLE.md is where the
+# IT CATS THE REGISTER INTO THE PROMPT. $STUDY_ROOT/STYLE.md is where the
 # survey counts and Lamport's page citations live, and a model under
 # `--tools ""` cannot open it however plainly it is told to. So the register
 # ships with the measurements, and the style prompt is the largest of the
 # three by a wide margin. That is the cost of the separation and it is paid
 # only by the runs that ask for it.
 #
+# THIS USED TO READ "the one thing it does that neither other mode has an
+# equivalent of", and bead tla-1sh7.1 made that false rather than merely
+# dated: --hint cats its own prose file now, for the same reason and in the
+# same shape. The section below is the other half of the pair.
+#
 # THE STYLE SCRIPT'S EXIT CODE IS NOT A VERDICT AND NOT THIS SCRIPT'S. Bead
 # tla-iiow.2 locks 0 for measured-something and 3 for could-not-run, with no 1
 # at all, because a style pass that can fail becomes a gate on the work. It
 # goes on the block's label where the model can read it, exactly as the
 # checker's does, and this script still exits with the one-shot's status.
+#
+# ---------------------------------------------------------------------------
+# --hint CATS ITS SHEET THE WAY --style CATS THE REGISTER
+#
+# Bead tla-1sh7.1, and it is the register's argument with one file swapped.
+# $STUDY_ROOT/.claude/commands/hint.md is where the ladder, the two worked
+# cases and the tiebreak live. Claude Code reads a project command from there
+# when somebody TYPES it, and nobody types anything here: the prompt arrives
+# on stdin and the run has no tools, so the sheet is as unreachable as the
+# register was. The study config does say to classify the question, in four
+# sentences with no example under them, which is enough to sound certain with
+# and not enough to classify with.
+#
+# WHAT IT COST, because this is the one place in the file where the failure is
+# measured rather than argued. 2026-10-16. Frank asked for "a high level
+# description of how this is done in general, not this specific application",
+# and said in the same sentence that he was fuzzy on the notation rather than
+# on the problem. He got a rung and the sentence "Explaining the general
+# syntax would do the item's work for you." That is the tiebreak firing on a
+# question the sheet's own worked case answers flat.
+#
+# SO THE GATE IS THE REGISTER'S GATE. A hint over a study root with no sheet
+# in it refuses before the checker runs, because with no tools the model
+# cannot tell an absent sheet from an empty one and would classify on the
+# summary and sound exactly as sure. --check and --style read no sheet, so
+# neither is gated on one and a root with no sheet still serves both.
+#
+# IT IS HINT-ONLY IN THE PROMPT TOO. A check prompt carries no sheet, for the
+# reason a style prompt carries no checker block: the ladder is what rations a
+# hint, and a check hands back the whole report.
 
 set -uo pipefail
 
@@ -292,9 +343,9 @@ runs on its own and a check never pays for it. It has no pass and no fail.
 ./drill --hint why does this one keep failing. The quotes are optional.
 
 All three need claude on the path. --check needs the checker at the study
-root, --style needs the style script and the register beside it, and each one
-refuses rather than half-running when what it needs is missing. Serving never
-does.
+root, --style needs the style script and the register beside it, --hint needs
+the checker and its own sheet under .claude/commands, and each one refuses
+rather than half-running when what it needs is missing. Serving never does.
 USAGE
 }
 
@@ -662,11 +713,12 @@ run_styler() {
 # because the study config holds all of them and a second copy drifts from the
 # day it is written.
 #
-# THE MIDDLE BLOCK IS THE ONLY THING THAT VARIES BY MODE, and a style run gets
-# two where the other two get one: the register, whole, and then the
-# measurements. The register comes FIRST because it is what the numbers are
-# read against, and a model handed figures before the frame reads the figures
-# twice.
+# THE MIDDLE BLOCK IS THE ONLY THING THAT VARIES BY MODE, and only --check
+# gets one block. A style run gets the register, whole, and then the
+# measurements. A hint run gets its sheet, whole, and then the checker's
+# numbers. The prose comes FIRST in both, because it is what the material
+# after it is read against, and a model handed the material before the frame
+# reads the material twice.
 build_prompt() {
   local mode="$1" base
   printf 'MODE: %s\n' "$mode"
@@ -683,6 +735,13 @@ build_prompt() {
     printf '\n== STYLE, exit %s, output verbatim ==\n' "$STYLE_RC"
     printf '%s\n' "$STYLE_OUT"
   else
+    # The sheet goes BEFORE the checker's numbers, for the reason the register
+    # goes before the measurements. It is what the question is classified
+    # against, and the classification happens before the first word.
+    if [ "$mode" = "hint" ]; then
+      printf '\n== hint.md, the ladder and the worked cases, verbatim ==\n'
+      cat "$STUDY_ROOT/.claude/commands/hint.md"
+    fi
     printf '\n== CHECKER, exit %s, output verbatim ==\n' "$CHECK_RC"
     printf '%s\n' "$CHECK_OUT"
   fi
@@ -716,11 +775,12 @@ coach() {
     return 1
   fi
 
-  # WHICH DEPENDENCY EACH MODE NEEDS, and the two sets do not overlap. A style
+  # WHICH DEPENDENCY EACH MODE NEEDS, and no two sets are the same. A style
   # run never executes the checker, so a study root with no checker in it
-  # styles an attempt perfectly well, and a check run never reads the
-  # register. Gating on both would refuse a run over a tree that holds
-  # everything that run needs.
+  # styles an attempt perfectly well. A check run reads neither the register
+  # nor the hint's sheet. A hint run needs the checker and the sheet and not
+  # the style pair. Gating on all of them would refuse a run over a tree that
+  # holds everything that run needs.
   if [ "$mode" = "style" ]; then
     if [ ! -x "$STUDY_ROOT/style" ]; then
       echo "drill: no runnable style script at $STUDY_ROOT/style, so there is nothing" >&2
@@ -742,6 +802,19 @@ coach() {
     echo "drill: no runnable checker at $STUDY_ROOT/check, so there is nothing objective" >&2
     echo "drill: to send and I would rather send nothing than a blank. Deliver the study" >&2
     echo "drill: tree, then try again." >&2
+    return 1
+  fi
+
+  # The hint's sheet, gated for the register's reason and not a new one. It
+  # carries the ladder, the two worked cases and the tiebreak, the one-shot
+  # cannot open it, and a hint handed the study config's four-sentence summary
+  # alone classifies on no example and sounds exactly as certain. --check and
+  # --style read no sheet, so a root with no sheet in it still serves both.
+  if [ "$mode" = "hint" ] && [ ! -r "$STUDY_ROOT/.claude/commands/hint.md" ]; then
+    echo "drill: no hint sheet at $STUDY_ROOT/.claude/commands/hint.md, and the" >&2
+    echo "drill: one-shot runs with no tools, so it cannot open one itself. A hint with" >&2
+    echo "drill: no worked case in front of it ladders a question that wanted an answer." >&2
+    echo "drill: Deliver the study tree first." >&2
     return 1
   fi
 
@@ -769,6 +842,11 @@ coach() {
     printf 'register:     %s\n' "$STUDY_ROOT/STYLE.md"
   else
     printf 'checker:      exit %s\n' "$CHECK_RC"
+    # Named for the register's reason: it is prose from a file no other mode
+    # ships, so a reader cannot otherwise account for it.
+    if [ "$mode" = "hint" ]; then
+      printf 'sheet:        %s\n' "$STUDY_ROOT/.claude/commands/hint.md"
+    fi
   fi
   echo
 

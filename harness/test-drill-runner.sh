@@ -36,6 +36,15 @@
 #   same way the first three do, before the script is executed rather than
 #   after, and the style script's own exit code never becomes the runner's.
 #
+#   Then, from bead tla-1sh7.1: --hint CATS ITS SHEET into the prompt, the way
+#   --style cats the register and for the same reason. The ladder, the two
+#   worked cases and the tiebreak live in
+#   drill/study/.claude/commands/hint.md, which a one-shot under `--tools ""`
+#   cannot open any more than it can open the register. The sheet is
+#   hint-only, so neither a check prompt nor a style prompt carries it, and a
+#   hint over a study root with no sheet in it refuses before the checker is
+#   executed.
+#
 # ---------------------------------------------------------------------------
 # WHY THE MUTANTS ARE HERE, AND WHY THEY ARE THE POINT
 #
@@ -43,7 +52,7 @@
 # contract says", which is also what a suite driving a runner that silently
 # stopped working would report if the comparison went slack. So part 5 copies
 # the real runner, breaks ONE line of it, and requires the row that owns that
-# line to go red. Nine mutants:
+# line to go red. Ten mutants:
 #
 #   family-major order   the index drops out of the sort key
 #   shaky retires        shaky behaves like done and never comes back
@@ -54,6 +63,7 @@
 #   a coached half-run   the checker gate drops out and it ships anyway
 #   a prompt on argv     the prompt goes positional instead of on stdin
 #   a styled half-run    the register gate drops out and it ships anyway
+#   a hinted half-run    the sheet gate drops out and it ships anyway
 #
 # A mutant that passes means the row above it is vacuous. That is a stronger
 # control than a planted fixture, because it exercises the real code path with
@@ -944,6 +954,28 @@ write_style_register() {
     'C2: Specifying Systems 14.5.3 p. 259, so TLC names the conjunct.' >"$1"
 }
 
+# The hint sheet, which is the register's shape with one file swapped: prose
+# the one-shot cannot read off disk, because it runs with no tools. Bead
+# tla-1sh7.1.
+#
+# THE PATH IS HIDDEN, and that is where Claude Code reads a project command
+# from and where scripts/deliver-drill.sh puts it. The writer makes the
+# directory, since a fixture root that has never been delivered to has no
+# .claude in it at all.
+#
+# Its sentinel is a whole sentence rather than a token, so a row asserting it
+# arrived is asserting the file's body and not a path the runner could have
+# printed on its own.
+HINT_SHEET_REL=".claude/commands/hint.md"
+HINT_SHEET_SENTINEL="Would answering in full still leave him the item's work?"
+write_hint_sheet() {
+  mkdir -p "${1%/*}"
+  printf '%s\n' \
+    '# The hint sheet, fixture copy' \
+    "$HINT_SHEET_SENTINEL" \
+    "When you cannot tell which kind it is, answer the mechanism flat." >"$1"
+}
+
 # run_coach_path <path> <study-root> <cwd> <tree> [args...]
 #
 # The recorder is cleared first, so every "no model was called" row below is
@@ -1005,6 +1037,7 @@ mkdir -p "$ATTEMPT_DIR"
 write_check_stub "$STUDY_COACH/check"
 write_style_stub "$STUDY_COACH/style"
 write_style_register "$STUDY_COACH/STYLE.md"
+write_hint_sheet "$STUDY_COACH/$HINT_SHEET_REL"
 
 printf '%s\n' '---- MODULE Pickers ----' 'VARIABLE held' 'Init == held = 0' '====' \
   >"$ATTEMPT_DIR/Pickers.tla"
@@ -1144,6 +1177,30 @@ ARG[--tools]
 ARG[]" "$(cat "$STUB_REC/claude.argv" 2>/dev/null)"
 assert_says_literal "and a hint gets the checker's numbers too" \
   "module=Pickers rc=0 distinct=12 claimed=12 count=MATCH run=CLEAN invariant=-" "$HINT_STDIN"
+
+# THE SHEET, WHICH IS THE WHOLE OF BEAD tla-1sh7.1. What separates a mechanism
+# question from a question about his rule lives in
+# drill/study/.claude/commands/hint.md, with the ladder, the two worked cases
+# and the tiebreak. A one-shot under `--tools ""` cannot open it, exactly as
+# it cannot open the register, so for as long as --hint existed the model
+# classified on the study config's four-sentence summary with no example under
+# it. On 2026-10-16 that laddered a question Frank had marked in his own text
+# as a mechanism question, and it cost him the hour this bead was filed over.
+#
+# The needle is a sentence of the file's BODY rather than its path, so the row
+# cannot pass on a runner that merely names the sheet in its banner.
+assert_says_literal "a hint carries the sheet's own text, since the model cannot open it" \
+  "$HINT_SHEET_SENTINEL" "$HINT_STDIN"
+# The sheet is prose from a sixth file and the one input a reader cannot
+# otherwise account for, which is the argument the register's banner line
+# already carries.
+assert_says_literal "and the run names the sheet it shipped" \
+  "$STUDY_COACH/$HINT_SHEET_REL" "$RUN_OUT"
+# HINT-ONLY, and the check prompt is where that is asserted. A check hands
+# back the whole report, so rationing it would be the ladder reaching a mode
+# it has no business in.
+assert_never_names "and a check prompt carries no sheet, since only a hint is rationed" \
+  "$HINT_SHEET_SENTINEL" "$COACH_STDIN"
 
 # The free text is the reason the prompt goes on stdin at all: a heredoc
 # sidesteps every quoting question a command line would raise, so the row
@@ -1319,6 +1376,52 @@ assert_rc "a checker that is there but not executable is refused too" 1
 assert_absent "and still no model was called" "$STUB_REC/claude.argv"
 chmod +x "$STUDY_NOCHECK/check"
 
+# --- THE SHEET GATE, WHICH IS THE REGISTER GATE IN THE HINT'S SHAPE ---------
+#
+# Bead tla-1sh7.1. A hint over a study root with no sheet in it is refused
+# before the checker is executed, for the register's reason exactly: with no
+# tools the model cannot tell an absent sheet from an empty one, so it would
+# classify the question on a four-sentence summary and sound just as sure.
+# That is the run that cost the hour.
+#
+# The root carries a WORKING CHECKER and no sheet, so the refusal is about the
+# file it names and not about anything else the root is missing.
+
+STUDY_NOSHEET="$TMPROOT/coach-study-nosheet"
+mkdir -p "$STUDY_NOSHEET/$SLUG0"
+cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_NOSHEET/$SLUG0/Pickers.tla"
+write_check_stub "$STUDY_NOSHEET/check"
+assert_absent "the no-sheet study root really has no hint sheet in it" \
+  "$STUDY_NOSHEET/$HINT_SHEET_REL"
+
+run_coach "$STUDY_NOSHEET" "$OUTSIDE" "$T_COACH" --hint
+assert_rc "a hint over a study root with no sheet is refused" 1
+assert_says_literal "and the refusal names the path the sheet should be at" \
+  "$STUDY_NOSHEET/$HINT_SHEET_REL" "$RUN_ERR"
+assert_says_literal "and says why a model with no tools cannot be sent to read it" \
+  "no tools" "$RUN_ERR"
+assert_absent "and no model was called, so nothing half-ran" "$STUB_REC/claude.argv"
+# THE HALF-RUN GUARD, and the direction it is wrong in is the expensive one. A
+# refusal decided after the checker ran would have spent a TLC run and thrown
+# the numbers away.
+assert_absent "and the checker was not run either, so nothing was checked for nothing" \
+  "$STUB_REC/check.argv"
+
+# THE GATE IS THE HINT'S ALONE, and without this row the one above it is
+# indistinguishable from a root that is broken for every mode.
+run_coach "$STUDY_NOSHEET" "$OUTSIDE" "$T_COACH" --check
+assert_rc "the same root checks fine with no sheet in it, since --check reads none" 0
+assert_says_literal "and the model was handed the checker's numbers over it" \
+  "module=Pickers rc=0" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+write_hint_sheet "$STUDY_NOSHEET/$HINT_SHEET_REL"
+run_coach "$STUDY_NOSHEET" "$OUTSIDE" "$T_COACH" --hint
+assert_rc "with the sheet delivered, the hint runs" 0
+assert_says_literal "and the sheet it shipped is that root's" \
+  "$STUDY_NOSHEET/$HINT_SHEET_REL" "$RUN_OUT"
+assert_says_literal "and its text reached the model" \
+  "$HINT_SHEET_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
 # A PATH carrying what the runner needs and no claude. Built by resolving the
 # real ones rather than by guessing at /bin, so the row is about the absence of
 # claude and not about a broken PATH.
@@ -1446,6 +1549,17 @@ assert_says_literal "and the register it reads, which no other flag reads" \
 assert_never_names "and the list no longer says there are three of them" \
   "read three things outside it" "$COACH_HEAD"
 
+# THE SIXTH ENTRY, same reasoning one bead later. tla-1sh7.1 adds the hint
+# sheet, under the SAME study root the other five resolve from, so the
+# argument that buys the narrowing is the one already written and the list is
+# what has to grow.
+# shellcheck disable=SC2016
+COACH_HEAD_SHEET='$STUDY_ROOT/.claude/commands/hint.md'
+assert_says_literal "and the sheet a hint ships, which no other flag ships" \
+  "$COACH_HEAD_SHEET" "$COACH_HEAD"
+assert_never_names "and the list no longer says there are five of them either" \
+  "read five things outside it" "$COACH_HEAD"
+
 # ONE SOURCE FOR THE REGISTER RULES, AND IT IS NOT THE RUNNER.
 #
 # drill/study/CLAUDE.md is the single source of what the model must not do, and
@@ -1481,6 +1595,8 @@ echo "== part 4d: --style, the register and the measuring script =="
 # the differences from --check are the whole of what these rows are about.
 #
 # IT CATS THE REGISTER INTO THE PROMPT, which --check has no equivalent of.
+# AMENDED by bead tla-1sh7.1: --hint now has one, so the clause is about
+# --check rather than about the other two flags.
 # The one-shot runs with no tools, so the model cannot open drill/study/STYLE.md
 # however plainly it is told to, and a register it cannot read is a register
 # that is not there. So the runner ships it, and that makes the style prompt
@@ -1566,6 +1682,11 @@ assert_absent "the checker was not run, because style is a different question" \
   "$STUB_REC/check.argv"
 assert_never_names "and no checker block reaches the model" "== CHECKER" "$STYLE_STDIN"
 assert_never_names "nor any of its numbers" "count=MATCH" "$STYLE_STDIN"
+# Nor the hint's sheet, which is the third mode's own prose. The fixture root
+# carries one, so this row is about what --style ships rather than about what
+# the root holds.
+assert_never_names "nor the hint sheet, since a style pass rations nothing" \
+  "$HINT_SHEET_SENTINEL" "$STYLE_STDIN"
 
 # --- the style call ---------------------------------------------------------
 
@@ -2002,6 +2123,65 @@ if [ -n "$M9" ]; then
     ok "control: a runner shipping a style prompt with no register is DETECTED as a half-run"
   else
     nope "control: the register half-run was NOT detected, so part 4d's no-model-called rows are vacuous"
+  fi
+fi
+
+# M10 BACKS THE SHEET GATE, for the reason M9 backs the register's, and the
+# day before is sharper here than it was there. `./drill --hint` over a root
+# with no sheet in it RAN, exited 0 and shipped a prompt, so part 4c's rc and
+# no-model-called rows held over a runner that injected nothing at all. A
+# negative row needs a runner that gets it wrong.
+#
+# M10. the sheet gate drops out, so a hint with no sheet ships a prompt
+# carrying no ladder and no worked case. The model then classifies the
+# question on the study config's four-sentence summary, which is the run that
+# laddered a question Frank had marked as a mechanism question and cost him
+# the hour.
+# shellcheck disable=SC2016
+M10=$(mutate hint-ships-without-sheet \
+  's|^  if \[ "\$mode" = "hint" \] && \[ ! -r "\$STUDY_ROOT/\.claude/commands/hint\.md" \]; then$|  if false; then|')
+if [ -n "$M10" ]; then
+  T_M10="$TMPROOT/tree-m10"
+  mk_tree "$T_M10" "$M10"
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M10/LAST-SERVED"
+  STUDY_M10="$TMPROOT/study-root-m10"
+  mkdir -p "$STUDY_M10/$SLUG0"
+  cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_M10/$SLUG0/Pickers.tla"
+  write_check_stub "$STUDY_M10/check"
+  assert_absent "the M10 root has no sheet in it" "$STUDY_M10/$HINT_SHEET_REL"
+  run_coach "$STUDY_M10" "$OUTSIDE" "$T_M10" --hint
+  if [ -e "$STUB_REC/claude.argv" ]; then
+    ok "control: a runner shipping a hint prompt with no sheet is DETECTED as a half-run"
+  else
+    nope "control: the sheet half-run was NOT detected, so part 4c's no-model-called rows are vacuous"
+  fi
+fi
+
+# M11 BACKS THE OTHER HALF OF tla-1sh7.1, which is that the sheet is the
+# HINT'S. Two rows say a check prompt and a style prompt carry none, and both
+# were green the day before this bead, over a runner that shipped the sheet
+# nowhere. So they need a runner that ships it everywhere.
+#
+# M11. the mode test in the prompt builder goes true, so every check prompt
+# carries the ladder. That is the ladder reaching a mode that hands back the
+# whole report, which is the direction the rations were never meant to run in.
+#
+# THE SUBSTITUTION IS ADDRESSED TO build_prompt, because the same test spells
+# the same way in the banner block and an unaddressed script would change two
+# lines. A mutant is one line by convention, and two of them cannot say which
+# one the row below caught.
+# shellcheck disable=SC2016
+M11=$(mutate check-ships-the-sheet \
+  '/^build_prompt() {$/,/^}$/ s|^    if \[ "\$mode" = "hint" \]; then$|    if true; then|')
+if [ -n "$M11" ]; then
+  T_M11="$TMPROOT/tree-m11"
+  mk_tree "$T_M11" "$M11"
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M11/LAST-SERVED"
+  run_coach "$STUDY_COACH" "$OUTSIDE" "$T_M11" --check
+  if grep -qF -- "$HINT_SHEET_SENTINEL" "$STUB_REC/claude.stdin"; then
+    ok "control: a runner shipping the sheet to --check is DETECTED"
+  else
+    nope "control: the sheet in a check prompt was NOT detected, so the hint-only rows are vacuous"
   fi
 fi
 

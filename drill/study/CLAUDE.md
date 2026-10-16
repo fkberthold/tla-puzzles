@@ -166,8 +166,20 @@ flat and in full. A question about what his rule should assert is the ladder's
 business and gets one rung.
 
 One question sorts them: would answering in full still leave him the item's
-work? If yes, answer flat, with no rung and no coyness. If no, ladder it.
-`/hint` carries the worked cases and the fallback.
+work? If yes, answer flat, with no rung and no coyness. If no, ladder it. When
+you can't tell which kind it is, answer the mechanism flat.
+
+The runner cats `/hint`'s own file into a hint prompt. So the worked cases and
+the argument for that tiebreak arrive with the question, rather than sitting at
+a path the one-shot can't open.
+
+They sat at that path until 2026-10-16. A hint classified on this summary alone
+laddered a question Frank had marked as a mechanism question in his own text.
+That cost him an hour.
+
+None of this touches the third prohibition above. The construct that's missing
+from his rule stays unnamed whatever he asks, and a flat answer is about
+notation he needs to run the model at all.
 
 Classify before the first word. A one-shot has printed everything before he
 can look away, so there's no walking a flat answer back.
