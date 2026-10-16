@@ -1,0 +1,30 @@
+# Graded cases for harness/test-recall-runner.sh (bead tla-wekw).
+#
+# One row per answer submitted against a rep in REPS.tsv beside this file.
+# Tab-delimited, literal first field CASE. Six fields, in order:
+#
+#   1  marker    the literal CASE
+#   2  id        stable
+#   3  rep       a REP id in REPS.tsv
+#   4  grade     correct | incorrect | parse-error | other
+#   5  rc        the exit code harness/verdict.sh returns on this answer
+#   6  answer    the TLA+ submitted
+#
+# FIELD 5 IS A MEASURED NUMBER, NOT A PREFERENCE. Each row was run on TLC2
+# 2026.07.31.184830 on 2026-10-16. The suite asserts the raw code and not only
+# the grade, so a TLC that renumbered ASSUMPTION_FAILED breaks the build
+# instead of quietly relabeling itself. That is the same reason
+# harness/test-verdict.sh pins numbers rather than tokens.
+#
+# C001 to C004 are the epic's four measured rows. C005 and C006 are the
+# non-set rep, where Cardinality errors and the count is skipped. C007 never
+# parses, which has to report as its own thing: telling somebody their answer
+# is wrong when nothing was graded is a false statement about a check that did
+# not run.
+CASE	C001	R001	correct	0	[Wagons -> Tracks]
+CASE	C002	R001	correct	0	{f \in [Wagons -> Tracks] : TRUE}
+CASE	C003	R001	incorrect	10	[w \in Wagons |-> Tracks]
+CASE	C004	R001	incorrect	10	[Tracks -> Wagons]
+CASE	C005	R002	correct	0	[w \in Wagons |-> 1]
+CASE	C006	R002	incorrect	10	[w \in Wagons |-> 2]
+CASE	C007	R001	parse-error	150	[Wagons ->
