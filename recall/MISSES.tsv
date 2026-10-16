@@ -1,0 +1,89 @@
+# The recall miss table (bead tla-1sh7.3, epic tla-1sh7).
+#
+# A wrong answer somebody actually writes, and what that answer says. 30 rows
+# over 30 of the 120 reps in recall/REPS.tsv, reaching 25 of the 37 constructs.
+#
+# Rows are tab-delimited and carry the literal first field MISS, so prose in
+# this file can never be read as data. Four fields, in order:
+#
+#   1  marker       the literal MISS
+#   2  rep id       a REP row in recall/REPS.tsv
+#   3  wrong        the wrong answer, as TLA+, verbatim
+#   4  explanation  what that answer says
+#
+#   awk -F'\t' '$1 == "MISS" && $2 == "R107"' recall/MISSES.tsv
+#   grep '^MISS' recall/MISSES.tsv | cut -f2
+#
+# Read rows with awk -F'\t' or cut, never with IFS=$'\t' read. Tab is an IFS
+# whitespace character, so read folds a run of tabs into one delimiter.
+#
+# FIELD 4 SAYS WHAT THE WRONG ANSWER IS, NOT WHAT TO WRITE INSTEAD. The runner
+# already prints both values side by side, and drill/SHEET.md already names the
+# construct's syntax, so the right answer is on screen before this file speaks.
+# "You wrote one function whose value at each element is the whole set" is the
+# register. "You need a function set" is not.
+#
+# EVERY FIELD 3 SCORES rc 10 THROUGH recall/recall.sh AGAINST ITS OWN REP, and
+# each was watched doing it on 2026-10-16 before its row was written. An answer
+# that scores 0 is not a miss. One that scores 150 never parsed, so it reports
+# on the text rather than on the idea behind it, which is other feedback.
+#
+# A REP WITH NO ROW IS THE NORMAL CASE. 90 of the 120 have none. A rep that
+# finds no row here falls through to the model call, which is the fourth layer
+# and is safe at this rung because the answer is already on screen. Padding
+# this file to reach coverage would cost that safety and buy nothing.
+#
+# WHERE THE ROWS CAME FROM. 406 of the 498 modules under drill/*/*/verify/
+# carry a leading comment naming one wrong move and what it does. Those are
+# construct-level explanations wearing an item's variable names, so the work
+# was re-keying them to constructs and rewriting each to name no module and no
+# variable. scripts/gen-misses.sh harvests the candidates by construct. It is
+# an aid and not the authority, because that rewrite is a judgment.
+MISS	R002	LET Solvent(acct) == Balance[acct] > 0 IN Solvent("ann") /\ Solvent("bo")	That asks for more than nothing. An account holding nothing sits at zero rather than below it, and this reads it as in the red.
+MISS	R006	IF Balance = 0 THEN "owing" ELSE "fine"	That compares the whole balance against the number nothing, which is false. It's the one word fine, one word for the ledger rather than a word per account.
+MISS	R021	Train[1] = "a" /\ Train[3] = "b"	That asks for both at once. The train doesn't begin with wagon a, so it's false even though the half about the back of the train holds.
+MISS	R025	Train[1] = "a" /\ Cardinality(Wagons) = 4	That asks whether both hold, and neither does. An implication whose left-hand side is false is true whatever the right-hand side says.
+MISS	R033	\E acct \in Accounts : Balance[acct] > 0	That says at least one account is holding something, which is true here with one account empty. It never asks about the rest.
+MISS	R048	[w \in Wagons |-> CASE Parking[w] = 1 -> "near" [] Parking[w] = 2 -> "middle"]	This gives a word for the first two tracks and nothing at all for the third. A case with no arm true has no value, so there's nothing to compare.
+MISS	R049	{"c", "a"}	That's a set, so it holds no order and reads the same written the other way round. Which wagon stands at the front is gone.
+MISS	R056	Head(Train)	That's the leading wagon itself, one wagon. It's what got uncoupled, not the train left standing after it went.
+MISS	R058	SubSeq(Entries, 2, 2)	That's one amount, the second. Both numbers are positions, so the second says where the run stops rather than how many to take.
+MISS	R062	{{}}	That's a set with one member in it, and that member is the empty set. A box with an empty box inside isn't empty.
+MISS	R067	{Wagons, "d"}	That's a two-member set. The first member is this yard's wagons taken as one value, so the three of them never stand alongside d.
+MISS	R068	{1, 3} \in Tracks	That asks whether the two occupied tracks, taken together as one value, are themselves one of this yard's tracks. A set of two numbers isn't a number.
+MISS	R071	Cardinality(Wagons)	That counts the wagons. Two wagons on one track are two wagons and one track, so this can only agree when no track is shared.
+MISS	R077	Tracks \X Wagons	Those are the pairs the other way round, track first. A pair is ordered, so this isn't the same collection of pairings.
+MISS	R079	SUBSET SUBSET Wagons	That's the groups of groups, 256 of them. Every member is a set whose own members are groups of wagons, one step above a group.
+MISS	R081	{w \in Wagons : Parking[w] \in Tracks}	That's the wagons that pass a test, and every wagon passes this one. It never says which tracks they stand on.
+MISS	R084	{Parking[w] = 3 : w \in Wagons}	That's a set of truth values with at most two members. It says whether each wagon is on the third track and never which wagons those were.
+MISS	R088	{w \in Wagons : Parking[w] = 1}	That's a set holding one wagon. A set of one isn't its member, so nothing has been picked from it yet.
+MISS	R090	[dest : {"Bristol"}, weight : {12}]	Colons build the set of every label with those fields. That's a set holding one label rather than the label.
+MISS	R093	[acct |-> Accounts, amnt |-> Amounts, kind |-> Kinds]	That's a single entry. Its account field holds the whole set of accounts and its amount field holds the whole set of amounts.
+MISS	R095	Accounts \X Amounts	Those are ordered pairs. Nothing in them is labelled, so the two halves are told apart by position rather than by name.
+MISS	R096	{Parking[w] : w \in Wagons}	Those are the tracks the parking hands back. They're what it says, not what it has something to say about.
+MISS	R097	Len(Train)	That's how many positions there are, a single number, rather than the positions themselves.
+MISS	R099	[Wagons -> {1}]	That's a set with one parking in it rather than the parking. An arrow between two sets builds every function across them, and here only one fits.
+MISS	R100	{Cardinality({w \in Wagons : Parking[w] = t}) : t \in Tracks}	Those are the counts gathered loose, with nothing saying which track each one belongs to. A set has no keys to look up.
+MISS	R103	[Balance EXCEPT !["ann"] = 3]	That's the whole balance with ann's entry changed, so it still says what bo holds. Its domain covers both accounts.
+MISS	R106	Parking @@ ("b" :> 1)	A merge keeps the left side on a key both sides carry, and the yard is on the left here. Wagon b stays where it was.
+MISS	R107	[w \in Wagons |-> Tracks]	That's one parking, and what it gives back for every wagon is the whole set of tracks rather than a single track.
+MISS	R114	[b |-> 1]	That's a parking covering wagon b alone. The other two wagons aren't held still. They've gone from the domain.
+MISS	R118	[Parking EXCEPT !["a"] = @["a"] + 1]	Inside the update @ is already wagon a's old track, which is a number. This applies that number as though it were a lookup.
+# TWELVE OF THE 37 CONSTRUCTS HAVE NO ROW, and the reasons split three ways.
+#
+# K071 RECURSIVE, K072 higher-order operator parameter, K073 LAMBDA, K075
+# bracket function definition and K076 recursive function definition: the
+# mistakes the drill corpus records against these do not parse. An operator
+# that refers to itself with no declaration ahead of it scores 150, and so
+# does a boolean expression where an operator is wanted. Measured 2026-10-16:
+# LET Doubled(t) == t * 2 IN Doubled on R110 comes back 150, not 10.
+#
+# K021 LET-IN and K074 custom binary operator: value equality cannot see that
+# a name was introduced, so a wrong answer against these reps is wrong about
+# the body rather than about the construct. R002 carries the one row of that
+# kind worth having, and it belongs to K001 for the same reason.
+#
+# K003, K005, K006, K015 and K038: I found no mistake in the drill corpus that
+# these reps would catch. The near misses I tried either scored 0 against value
+# equality, which means they are a correct form, or were a misreading of the
+# prompt rather than a misreading of the notation.
