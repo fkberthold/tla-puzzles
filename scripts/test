@@ -70,6 +70,7 @@
 #   fast   2.3 s  harness/test-deliver-drill.sh        (re-based, bead tla-iiow.3)
 #   fast   1.7 s  harness/test-drill-style.sh             (added, bead tla-iiow.2)
 #   fast   1.4 s  harness/test-coverage-map.sh            (added, bead tla-zhfc)
+#   fast   1.2 s  harness/test-sheet.sh                   (added, bead tla-ucbs)
 #   fast   2.9 s  harness/test-drill-runner.sh        (re-based, bead tla-iiow.3)
 #   fast   0.9 s  harness/test-deliver-problems.sh
 #   fast   1.0 s  harness/test-build-docs-exercises.sh
@@ -99,11 +100,11 @@
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
 #   ----  ------
-#         44.8 s  fast tier, 24 suites   (measured --fast totals: 26.9 s at 18,
+#         46.0 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
 #        433.4 s  slow tier, 12 suites
-#        478.2 s  whole registry
+#        479.4 s  whole registry
 #
 # A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
 # are a comment. The enforced number is the second field of the row's own
@@ -553,6 +554,48 @@ SUITES=(
   "fast|2.3|drill delivery|./harness/test-deliver-drill.sh"
   "fast|1.7|drill style measure|./harness/test-drill-style.sh"
   "fast|1.4|construct coverage map|./harness/test-coverage-map.sh"
+  # Added 2026-10-16 by bead tla-ucbs, which built scripts/gen-sheet.sh and
+  # drill/SHEET.md. Placed next to the coverage-map row because the two are the
+  # same shape over the same population: both gate a generated file derived
+  # from the 105 constructs, both run the generator's own --check form, and
+  # both mutate a metadata mirror rather than the real tree.
+  #
+  # Measured standalone over two sets of three back-to-back serial runs, taken
+  # after the full gate finished so the box was quiet: 1.143 / 1.059 / 1.078 s,
+  # then 1.064 / 1.007 / 0.929 s. So 1.2 is the slowest of the six rounded up
+  # and the spread across them is 23%.
+  #
+  # IT WAS REGISTERED AT 1.1 FIRST and that is kept here, because the reason it
+  # moved is worth more than the number. 1.1 came from six runs of a
+  # 39-assertion version of the suite, slowest 1.055. Three argument-handling
+  # assertions were added after that, each one a generator exec, and the
+  # slowest went to 1.143. So the budget was re-measured rather than carried,
+  # and a budget taken before the last assertion landed is a budget for a suite
+  # that no longer exists.
+  #
+  # ONE READING IN BETWEEN WAS THROWN AWAY: three runs read 3.395 / 3.555 /
+  # 3.707 s while the full gate held the box. Four new assertions cannot cost
+  # 2.6 s, and nothing else moved, so that set is the box rather than the
+  # suite. It is named here because a 4x reading is exactly the shape that
+  # looks like a regression you caused.
+  #
+  # It builds a 102 KB mirror of the twelve cheat sheets, the inventory and the
+  # sheet, copies it 22 times with one defect each, and execs the generator 28
+  # times. The 28 is COUNTED UNDER strace rather than read off the call sites,
+  # because redden() and stay_clean() both call run_gen and a static count of
+  # `run_gen "` double-counts them. The hand-count said 23. No TLC, so it
+  # belongs in fast by the rule in this header: the boundary is the model
+  # checker. Its cost tracks the size of exercises/ and the 105 rows, not
+  # anything about itself.
+  #
+  # 24 OF ITS 42 ASSERTIONS ARE CONTROLS, which is the ratio a gate over a
+  # generated file needs. The generator and the gate agree by construction, so
+  # the ones worth having are the ones that break the tree and require a red.
+  # Three of those 24 run the other way and require a GREEN: a changed Section
+  # anchor, a changed Toolbox equivalent and a changed inventory weight are all
+  # material the sheet does not carry, so a gate that reddened on them would
+  # churn the sheet on every unrelated edit.
+  "fast|1.2|construct sheet|./harness/test-sheet.sh"
   # Added 2026-10-14 by bead tla-t9de, which built drill/drill.sh and the
   # runner half of scripts/deliver-drill.sh. Placed next to the delivery row
   # because the two split one script between them: that row owns the prompt
