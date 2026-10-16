@@ -8,10 +8,16 @@ twelve minutes an item, so this is the one that runs at flow speed.
 
 ```bash
 recall/recall.sh R001 '[Wagons -> Tracks]'
+recall/recall.sh R012 '-4'
 ```
 
 Quote the answer. Almost every TLA+ expression carries a character your shell
 wants for itself.
+
+A leading dash is fine, and the second line above is why. Negative integers
+are ordinary answers at this rung, so once the rep id is in hand the next
+argument is the answer whatever it starts with. The cost is that flags go
+before the rep id, which is where you would put them anyway.
 
 Correct answers stop there. A wrong one prints both values, and TLC's own
 printout of them is usually the whole explanation:
@@ -30,13 +36,35 @@ you typed   [w \in Wagons |-> Tracks]
 
 the answer  [Wagons -> Tracks]
   { [a |-> 1, b |-> 1, c |-> 1],
-    ... 25 more ...
+    [a |-> 1, b |-> 1, c |-> 2],
+    ... 24 more lines, and --full shows them all ...
     [a |-> 3, b |-> 3, c |-> 3] }
   27
 ```
 
 One function against a set of 27 of them. Nobody wrote that comparison. It is
 what the two values look like.
+
+## The value block is capped
+
+Two members, the elision, the closing member, then the count. The whole run
+above is 17 lines, and `--full` prints the same thing at 40.
+
+The cap is there because the point of the block is the contrast, and a value
+that scrolls the terminal pushes the two halves apart. Before the cap, 27 of
+R107's 40 lines were the members of `[Wagons -> Tracks]` one per line, and the
+count that makes the point sat underneath them.
+
+Both halves are capped on the same rule. I had expected the typed value to be
+the small one, and at R108 and R109 it is not: the characteristic mistake
+there is to swap the domain and the range, which gives a set of exactly the
+size of the right answer. Five lines is still enough to recognize as yours.
+
+The elision counts lines rather than members, and says so. TLC prints a small
+value on one line and breaks a large one at about 80 columns, one member per
+line, so on a flat set a line is a member. On a nested value it is not:
+`[ a |->` opens at one indent and the set under it sits at another. The member
+count never goes missing either way, because it is on a line of its own below.
 
 ## Any correct form passes
 
@@ -50,20 +78,60 @@ The grade is value equality, so these all score 0 on R001:
 That property is the reason the grade is a TLA+ assumption rather than a
 string comparison, and it is what keeps a rep from being a spelling test.
 
-## The four verdicts
+## The construct gate
+
+Value equality grades the value, so it cannot see how the value was reached.
+A rep that drills `LET` wants a `LET` written, and a learner who computes the
+same answer without one has done a different rep. Field 7 closes that: an ERE
+matched against the raw answer before a correct value is accepted.
+
+```
+REP  R003  K001  shunting  <prompt>  LET Twice(t) == t * 2 IN ...  \bLET\b
+```
+
+A row without field 7 grades exactly as it did before the field existed, so
+none of the 120 live rows changed. Empty and absent both mean no gate.
+
+The pattern names the construct's own keyword and nothing else. All three of
+these are the same answer, and `\bLET\b` takes all three:
+
+```
+LET Twice(t) == t * 2 IN [t \in Tracks |-> Twice(t)]
+LET Doubled(n) == n + n IN [t \in Tracks |-> Doubled(t)]
+LET F == [t \in Tracks |-> t * 2] IN F
+```
+
+A pattern reaching for the shape of the whole answer, say
+`^LET [A-Za-z]+\(t\) ==`, takes the first and refuses the other two. That
+trades the gate for a spelling test, which is the thing value equality exists
+to avoid, so measure a correct alternate against every pattern you write.
+
+The match runs before TLC and the refusal after it. Matching first means a
+pattern grep will not read is exit `3` rather than a grade, since a gate that
+falls open on a malformed pattern is worse than no gate. Refusing afterwards
+means a wrong value still gets its value block, and the gate only ever speaks
+about an answer the grading run already accepted.
+
+## The five verdicts
 
 | grade | code | what it means |
 |---|---|---|
 | `correct` | 0 | the two values are equal |
+| `construct-missing` | 4 | the value is right and the construct is not there |
 | `incorrect` | 10 | the assumption came back false |
 | `parse-error` | 150 | SANY rejected it, so nothing was graded |
 | `other` | whatever came back | a report about the run, not about the answer |
 
 The exit code is the raw code `harness/verdict.sh` returned, never one read
-back out of anything TLC printed. Two codes belong to the runner instead, and
-both happen before TLC starts, so neither collides: `2` is a usage error and
-`3` is "could not run" -- no such rep, no environment file, no scratch
-directory.
+back out of anything TLC printed. Three codes belong to the runner instead and
+none of them collides with a code of TLC's. `2` is a usage error and `3` is
+"could not run", meaning no such rep, no environment file, no scratch
+directory. Both happen before TLC starts.
+
+`4` is the one that happens after a run, and it replaces a grading run that
+came back `0`. The status line carries `4` and the runner's own token, and the
+line under it names the rc and token the verdict channel returned, so nothing
+the channel said goes missing.
 
 `parse-error` is its own row on purpose. Telling somebody their answer is
 wrong when it never parsed is a false statement about a check that did not
@@ -86,6 +154,7 @@ file can never be read as data. The convention is `drill/INVENTORY.md`'s.
 | 4 | environment | resolves to `env/<name>.tla` |
 | 5 | prompt | English, naming none of the notation it asks for |
 | 6 | canonical | the answer, as TLA+ |
+| 7 | requires | optional, an ERE the raw answer has to match |
 
 ```bash
 awk -F'\t' '$1 == "REP" && $2 == "R001"' recall/REPS.tsv
@@ -174,3 +243,7 @@ About 320 ms for the grading run, measured three times on 2026-10-16 at 316,
 388 and 351 ms. A correct answer is one run. A wrong one is three, because
 each value gets a probe of its own, and by then you are reading rather than
 drilling.
+
+A construct-gate refusal is one run. The pattern match costs a `grep` against
+one line and the block it would have printed is not printed, since the two
+values are equal and showing them twice would say nothing.

@@ -4,7 +4,7 @@
 # real rep table is bead tla-1sh7.2's and is authored against this shape.
 #
 # Rows are tab-delimited and carry the literal first field REP, so prose in
-# this file can never be read as data. Six fields, in order:
+# this file can never be read as data. Six fields, and an optional seventh:
 #
 #   1  marker       the literal REP
 #   2  id           stable, never renumbered
@@ -12,11 +12,23 @@
 #   4  environment  resolves to <env-dir>/<name>.tla
 #   5  prompt       English, naming none of the notation it asks for
 #   6  canonical    the answer, as TLA+
+#   7  requires     OPTIONAL. An ERE the raw answer text has to match before a
+#                   correct value is accepted. Absent or empty means no gate,
+#                   and such a row grades exactly as it did before field 7
+#                   existed, which is why R001 and R002 below still carry six.
 #
 #   awk -F'\t' '$1 == "REP" && $2 == "R001"' harness/fixtures/recall/REPS.tsv
 #
-# Two reps. R001's value is a set, so the value block counts it. R002's value
+# Four reps. R001's value is a set, so the value block counts it. R002's value
 # is a function, so Cardinality errors and the count is skipped -- which is the
 # case the fixture exists to exercise.
+#
+# R003 and R004 carry field 7, and they are the two shapes it has to survive.
+# Both gate on the construct's OWN KEYWORD and on nothing else, because a
+# pattern that reaches for the shape of the whole answer stops accepting the
+# alternate spellings that make this rung gradeable without a model in the
+# loop. The suite measures a correct alternate against each one.
 REP	R001	K050	shunting	the set of all the ways the wagons could be parked, one track each	[Wagons -> Tracks]
 REP	R002	K047	shunting	the parking that leaves every wagon on the first track	[w \in Wagons |-> 1]
+REP	R003	K001	shunting	for each track, twice its number, with the doubling given a name of its own rather than written out twice	LET Twice(t) == t * 2 IN [t \in Tracks |-> Twice(t)]	\bLET\b
+REP	R004	K087	shunting	a count for each track, zero everywhere, after the first track alone has been set to nine	[[t \in Tracks |-> 0] EXCEPT ![1] = 9]	\bEXCEPT\b

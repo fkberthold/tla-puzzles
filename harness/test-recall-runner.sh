@@ -138,12 +138,21 @@ field_of() {
   awk -F'\t' -v id="$1" -v n="$2" '$1 == "CASE" && $2 == id { print $n; exit }' "$CASES"
 }
 
-# The three verdict.sh tokens a grading run can reach. Named here rather than
-# scraped, so the suite asserts the pairing of code to token and not just the
-# code. Anything else is a row this fixture does not carry.
+# The three verdict.sh tokens a grading run can reach, and one that is the
+# runner's own. Named here rather than scraped, so the suite asserts the
+# pairing of code to token and not just the code. Anything else is a row this
+# fixture does not carry.
+#
+# 4 is the odd one and it is deliberately not a verdict.sh code. It says the
+# value was right and the construct the rep drills was not written, which is a
+# statement about the submission that no exit code of TLC's could carry. It
+# sits in the 3-to-7 range harness/vacuity.sh:320 already reserves for
+# statements about the submission, and it collides with nothing in
+# harness/verdict.sh's table. Part 10 asserts the non-collision.
 token_for() {
   case "$1" in
     0)   printf 'OK\n' ;;
+    4)   printf 'CONSTRUCT_NOT_WRITTEN\n' ;;
     10)  printf 'ASSUMPTION_FAILED\n' ;;
     150) printf 'PARSE_ERROR\n' ;;
     *)   printf 'UNKNOWN_%s\n' "$1" ;;
@@ -485,10 +494,45 @@ RUN_RC=0
 OUT=$("$RUNNER" --reps "$TMPROOT/no-such-reps.tsv" -- R001 '1' 2>&1) || RUN_RC=$?
 assert_eq "a missing rep table is exit 3, not a grade" "3" "$RUN_RC"
 
-# An answer beginning with a dash is reachable through `--`, which is the only
-# reason the argument loop has a second half.
+# ---------------------------------------------------------------------------
+# AN ANSWER BEGINNING WITH A DASH, WITH NOTHING IN FRONT OF IT.
+#
+# Negative integers are ordinary answers at this rung. The `--` escape below
+# works and still has to, but a learner typing the right answer to a
+# thermometer rep has no way to guess it, and a usage dump in place of a grade
+# costs more than the parser change does.
+# ---------------------------------------------------------------------------
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" R001 '-1' 2>&1) || RUN_RC=$?
+assert_eq "an answer beginning with a dash needs no -- escape" "10" "$RUN_RC"
+if has "$OUT" 'unknown option'; then
+  nope "and it is never reported as an unknown option"
+else
+  ok "and it is never reported as an unknown option"
+fi
+
+# The escape still reaches the same grade, so nothing that already ran stops
+# running. Every other call in this suite goes through it.
 run_runner "$RUNNER" R001 '-1'
-assert_eq "an answer beginning with a dash is graded, not read as a flag" "10" "$RUN_RC"
+assert_eq "the -- escape still reaches the same grade" "10" "$RUN_RC"
+
+# An answer that happens to spell one of this script's own flags is the answer.
+# `-q` is not TLA+, so it reaches SANY and comes back 150, and that number is
+# what proves the argument was consumed as an answer rather than as a flag.
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" R001 '-q' 2>&1) || RUN_RC=$?
+assert_eq "an answer that spells a flag is still the answer" "150" "$RUN_RC"
+
+# The other half of the change, which is that a flag BEFORE the rep id is
+# still a flag. Quiet prints the status line and nothing else, so one line out
+# is the whole assertion.
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" -q R001 '[Wagons -> Tracks]' 2>&1) || RUN_RC=$?
+assert_eq "a flag before the rep id still takes effect" "1" "$(wc -l <<<"$OUT")"
+
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" R001 '-1' spare 2>&1) || RUN_RC=$?
+assert_eq "a third positional argument is still a usage error" "2" "$RUN_RC"
 
 echo
 echo "== part 8: static, over the runner's own source =="
@@ -581,8 +625,16 @@ fi
 echo
 echo "== part 9: the fixture's own shape =="
 
-assert_eq "every REP row has six fields" "" \
-  "$(awk -F'\t' '$1 == "REP" && NF != 6 { print $2 }' "$REPS")"
+# Six fields, or seven when the row carries a construct gate. Both shapes have
+# to stay legal in one table: a six-field row is what "no pattern behaves
+# exactly as it did before field 7 existed" means, and recall/REPS.tsv's 120
+# live rows are all six.
+assert_eq "every REP row has six or seven fields" "" \
+  "$(awk -F'\t' '$1 == "REP" && (NF < 6 || NF > 7) { print $2 }' "$REPS")"
+assert_eq "the fixture still carries a six-field row, so the no-gate path is covered" \
+  "2" "$(awk -F'\t' '$1 == "REP" && NF == 6' "$REPS" | wc -l)"
+assert_eq "and a seven-field row, so the gate path is covered" \
+  "2" "$(awk -F'\t' '$1 == "REP" && NF == 7' "$REPS" | wc -l)"
 assert_eq "every CASE row has six fields" "" \
   "$(awk -F'\t' '$1 == "CASE" && NF != 6 { print $2 }' "$CASES")"
 assert_eq "every CASE names a REP that exists" "" \
@@ -610,6 +662,191 @@ assert_eq "no fixture prompt carries TLA+ notation" "" \
   "$(awk -F'\t' '$1 == "REP" && $5 ~ /[|<>\[\]{}\\]/ { print $2 }' "$REPS")"
 assert_eq "both measured grades appear in the fixture" "correct incorrect parse-error" \
   "$(awk -F'\t' '$1 == "CASE" { print $4 }' "$CASES" | sort -u | tr '\n' ' ' | sed 's/ $//')"
+
+echo
+echo "== part 10: the construct gate, field 7 =="
+# ---------------------------------------------------------------------------
+# Value equality grades the value, so it cannot see how the value was reached.
+# A rep that drills a construct rather than a result needs one more thing: the
+# construct has to be in what was typed.
+#
+# THE TRAP THIS PART EXISTS TO CATCH. A pattern strict enough to require a LET
+# is also strict enough to refuse a correct alternate spelling, and any correct
+# form passing is the property that lets this rung grade without a model in the
+# loop. So every gated row below is measured THREE ways: the canonical answer,
+# a correct alternate that still carries the construct, and the right value
+# written without it. The first two have to score 0 and the third has to be
+# refused. A pattern that fails the middle row has taken the rung back to
+# being a spelling test, and the row above it would not say so on its own.
+# ---------------------------------------------------------------------------
+
+gate_rc() {
+  local rc=0
+  "$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" -q "$1" "$2" >/dev/null 2>&1 || rc=$?
+  printf '%s\n' "$rc"
+}
+
+# R003 gates on LET, over field 7 `\bLET\b`.
+assert_eq "R003: the canonical answer, which carries a LET" \
+  "0" "$(gate_rc R003 'LET Twice(t) == t * 2 IN [t \in Tracks |-> Twice(t)]')"
+assert_eq "R003: a correct alternate with the operator renamed and its body changed" \
+  "0" "$(gate_rc R003 'LET Doubled(n) == n + n IN [t \in Tracks |-> Doubled(t)]')"
+assert_eq "R003: a correct alternate defining the whole function rather than the element" \
+  "0" "$(gate_rc R003 'LET F == [t \in Tracks |-> t * 2] IN F')"
+assert_eq "R003: the right value with no definition written at all is refused" \
+  "4" "$(gate_rc R003 '[t \in Tracks |-> t * 2]')"
+assert_eq "R003: a wrong value is a wrong value, and the gate does not reach it" \
+  "10" "$(gate_rc R003 'Tracks')"
+
+# R004 gates on EXCEPT, over field 7 `\bEXCEPT\b`. A second construct, so the
+# rows above are not one keyword's accident.
+assert_eq "R004: the canonical answer, which carries an EXCEPT" \
+  "0" "$(gate_rc R004 '[[t \in Tracks |-> 0] EXCEPT ![1] = 9]')"
+assert_eq "R004: a correct alternate with the new value written differently" \
+  "0" "$(gate_rc R004 '[[t \in Tracks |-> 0] EXCEPT ![1] = 3 + 6]')"
+assert_eq "R004: the right value built without EXCEPT is refused" \
+  "4" "$(gate_rc R004 '[t \in Tracks |-> IF t = 1 THEN 9 ELSE 0]')"
+
+# A row with no pattern behaves as it did before field 7 existed. R002's
+# canonical carries neither keyword, so a gate leaking onto an ungated row
+# would show up here as a 4.
+assert_eq "R001 carries no pattern, so a correct answer is still 0" \
+  "0" "$(gate_rc R001 '[Wagons -> Tracks]')"
+assert_eq "R002 carries no pattern, so a correct answer with no keyword in it is still 0" \
+  "0" "$(gate_rc R002 '[w \in Wagons |-> 1]')"
+
+# What a refusal says. The grading run's own code and token stay on the page,
+# because the runner's 4 replaces them on the status line and a reader should
+# still be able to see that TLC said the value was right.
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" R003 '[t \in Tracks |-> t * 2]' 2>&1) || RUN_RC=$?
+if has "$OUT" '^rep=R003 rc=4 token=CONSTRUCT_NOT_WRITTEN grade=construct-missing$'; then
+  ok "a refusal reports the runner's own code and token on the status line"
+else
+  nope "a refusal reports the runner's own code and token on the status line"
+fi
+if has "$OUT" 'the grading run came back rc=0 token=OK'; then
+  ok "and names the grading run's own code, which was 0"
+else
+  nope "and names the grading run's own code, which was 0"
+fi
+if has "$OUT" 'LET'; then
+  ok "and echoes the pattern, so the construct that was wanted is on the page"
+else
+  nope "and echoes the pattern, so the construct that was wanted is on the page"
+fi
+# No value block. The two values are equal, so printing them twice says
+# nothing, and the thing that IS wrong would be buried under them.
+if has "$OUT" '^you typed '; then
+  nope "and shows no value block, since the two values are equal"
+else
+  ok "and shows no value block, since the two values are equal"
+fi
+
+# A pattern grep will not read is could-not-run, never a pass. A gate that
+# fell open on a malformed pattern would be worse than no gate, because the
+# row would look gated and would not be.
+BADREPS="$TMPROOT/bad-pattern.tsv"
+printf 'REP\tR900\tK001\tshunting\tfor each track, twice its number\t[t \\in Tracks |-> t * 2]\t[\n' >"$BADREPS"
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$BADREPS" --env-dir "$ENV_DIR" -q R900 '[t \in Tracks |-> t * 2]' 2>&1) || RUN_RC=$?
+assert_eq "a field-7 pattern that is not a regex is exit 3, could-not-run" "3" "$RUN_RC"
+if has "$OUT" 'nothing was graded'; then
+  ok "and it says nothing was graded, rather than letting the answer through"
+else
+  nope "and it says nothing was graded, rather than letting the answer through"
+fi
+
+# 4 is the runner's own code and must not be a code verdict.sh documents,
+# because a caller branching on the number has to be able to tell a statement
+# about the submission from a verdict about the run.
+assert_eq "4 appears in no row of harness/verdict.sh's exit-code table" "" \
+  "$(grep -hE -- '^#[[:space:]]+4[[:space:]]+[A-Z_]{3,}' "$VERDICT")"
+
+echo
+echo "== part 11: the value block is capped, and --full lifts the cap =="
+# ---------------------------------------------------------------------------
+# One wrong answer to the function-set rep ran to 40 lines, 27 of them the
+# members of [Wagons -> Tracks] one per line, with the count that makes the
+# point underneath them. The contrast a learner needs is between a function
+# and a set of 27 of them, and the enumeration pushes the two halves apart
+# instead of putting them side by side.
+#
+# The numbers below are measured on TLC2 2026.07.31.184830 and pinned the way
+# part 1 pins raw exit codes: a layout change that quietly stopped capping
+# would otherwise pass.
+# ---------------------------------------------------------------------------
+
+run_runner "$RUNNER" R001 '[w \in Wagons |-> Tracks]'
+CAPPED_OUT="$RUN_OUT"
+FULL_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --full -- R001 '[w \in Wagons |-> Tracks]' 2>&1) || true
+
+assert_eq "the whole block is 40 lines when --full asks for it" "40" "$(wc -l <<<"$FULL_OUT")"
+assert_eq "and 17 by default" "17" "$(wc -l <<<"$CAPPED_OUT")"
+
+# Two members, then the elision, then the closing member and the count. Two
+# rather than one because the second is what shows which position moves first,
+# which is the whole content of a function set.
+assert_eq "two leading members survive the cap" "2" \
+  "$(grep -cE '^ +\{? *\[a \|-> 1, b \|-> 1,' <<<"$CAPPED_OUT")"
+if has "$CAPPED_OUT" '\[a \|-> 3, b \|-> 3, c \|-> 3\] \}$'; then
+  ok "the closing member survives, so the block still reads as a set"
+else
+  nope "the closing member survives, so the block still reads as a set"
+fi
+if has "$CAPPED_OUT" '\.\.\. 24 more lines, and --full shows them all \.\.\.'; then
+  ok "the elision says how many lines went and how to get them back"
+else
+  nope "the elision says how many lines went and how to get them back"
+fi
+assert_eq "the count is kept, which is the number the contrast turns on" "1" \
+  "$(grep -cE '^ +27$' <<<"$CAPPED_OUT")"
+# The middle is what went. A member from the interior must not be there.
+if has "$CAPPED_OUT" '\[a \|-> 2, b \|-> 2, c \|-> 2\]'; then
+  nope "an interior member is elided rather than shown"
+else
+  ok "an interior member is elided rather than shown"
+fi
+assert_eq "--full shows all 27 members" "27" \
+  "$(grep -cE 'c \|-> [0-9]\]' <<<"$FULL_OUT")"
+
+# A block already short enough to read is left alone, byte for byte. That is
+# the half the bead warned about: the answer the learner typed is usually
+# small, and it is the half they have to recognize as theirs.
+run_runner "$RUNNER" R002 '[w \in Wagons |-> 2]'
+SHORT_DEFAULT="$RUN_OUT"
+SHORT_FULL=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --full -- R002 '[w \in Wagons |-> 2]' 2>&1) || true
+assert_eq "a short block is identical with and without --full" "$SHORT_DEFAULT" "$SHORT_FULL"
+
+# AND THE WRONG ANSWER'S OWN BLOCK IS CAPPED TOO, which is a correction to the
+# bead rather than an echo of it. The bead expected the typed value to be
+# small. At R108 and R109 of recall/REPS.tsv the characteristic mistake is to
+# swap the domain and the range, and that produces a set of exactly the same
+# size, so "usually small" does not hold for the family this rung exists for.
+run_runner "$RUNNER" R001 '[Tracks -> Wagons]'
+SWAP_OUT="$RUN_OUT"
+if has "$SWAP_OUT" '^you typed +\[Tracks -> Wagons\]$'; then
+  ok "a swapped-domain answer is still labeled as what was typed"
+else
+  nope "a swapped-domain answer is still labeled as what was typed"
+fi
+assert_eq "and its own 27-member block is capped on the same rule" "2" \
+  "$(grep -cE '\.\.\. 24 more lines' <<<"$SWAP_OUT")"
+
+# The mutant for the cap. Lifting the head past any block disables the
+# elision, and part 11's elision row has to go red when it does.
+# shellcheck disable=SC2016
+M5=$(mutate cap-disabled 's|^VALUE_HEAD=2$|VALUE_HEAD=9999|') || M5=""
+if [ -n "$M5" ]; then
+  run_runner "$M5" R001 '[w \in Wagons |-> Tracks]'
+  if has "$RUN_OUT" 'more lines'; then
+    nope "control: a runner that stopped capping is DETECTED by part 11"
+  else
+    ok "control: a runner that stopped capping is DETECTED by part 11"
+  fi
+  assert_eq "and it fails the way the mutation says, the whole 40 lines" "40" \
+    "$(wc -l <<<"$RUN_OUT")"
+fi
 
 echo
 printf 'test-recall-runner.sh: %d passed, %d failed\n' "$pass_count" "$fail_count"
