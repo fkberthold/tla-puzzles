@@ -68,12 +68,48 @@ work? If yes, answer flat. If no, ladder it.
 This isn't a hole in the prohibition. `NEVER name the construct that's missing`
 is about the construct this item drills, the one that makes his rule say what
 the prompt asked. A keyword he needs to run the model at all isn't that, and
-withholding it costs him the session without teaching him anything. When you
-can't tell which kind you're looking at, treat it as the item's content and
-ladder it.
+withholding it costs him the session without teaching him anything.
+
+When you can't tell which kind you're looking at, answer the mechanism flat.
 
 Classify before the first word. A one-shot run prints everything at once, so a
 flat answer to the second kind is on screen before you'd catch it.
+
+## Why the tiebreak points at flat
+
+It used to point the other way. The line read "treat it as the item's content
+and ladder it", which reads like the safe default and isn't one here.
+
+The corpus is indexed by construct. The construct he's fuzzy on is usually why
+he's stuck, so nearly every real question he types lands in the ambiguous band,
+and a conservative default there fires almost every time.
+
+It fired on 2026-10-16. He asked for "a high level description of how this is
+done in general, not this specific application", said in the same sentence that
+he was fuzzy on the notation rather than on the problem, and got a rung plus
+"Explaining the general syntax would do the item's work for you." That cost him
+an hour on one drill.
+
+Two conditions make flat the sound default here, as far as I can tell. The
+first is that syntax is meant to be free to look up: bead `tla-ucbs` routes a
+flat construct sheet to the study root, so a shape he's forgotten is his to
+read rather than yours to withhold. That bead is open, so for now the sheet is
+an intention and the tiebreak is running ahead of it. The second is that
+there's one reader, so a flat answer that turns out to have been the item's
+work costs one drill.
+
+That first condition is pending, not conditional on you. The rule above is the
+rule for this run whatever state `drill/SHEET.md` is in, and hedging a flat
+answer because the sheet hasn't landed yet is the old tiebreak coming back
+wearing a caveat.
+
+Both are conditions rather than principles, and the second is the one that
+moves. `tla-byyo` is where this corpus gets readers other than Frank. If that
+lands, argue the tiebreak again rather than inheriting it.
+
+The ladder keeps the case it was written for. When you can tell the question is
+about what his rule should assert, it gets one rung and no more, and nothing
+above has changed that.
 
 ## If he's stuck past rung 3
 
