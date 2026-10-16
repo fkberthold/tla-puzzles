@@ -1995,7 +1995,7 @@ assert_matches_flat "and sorts it by whether answering in full leaves the item's
 assert_matches_flat "and answers a mechanism question flat rather than spending a rung on it" \
   "$STUDY_HINT_CMD" '[Aa]nswer it flat|[Aa]nswer flat'
 
-assert_matches_flat "and ladders the ambiguous case, so the budget degrades safe" \
+assert_matches_flat "and rules on the ambiguous case, which tla-1sh7.1 reversed to flat" \
   "$STUDY_HINT_CMD" "can't tell which kind"
 
 # ---------------------------------------------------------------------------
