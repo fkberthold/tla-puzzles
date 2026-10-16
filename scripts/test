@@ -20,12 +20,12 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is ~450 s wall (measured below), and the fast tier is 22
-# of the 33 suites but only about 8% of the wall clock. It skips every
+# Here the full run is ~480 s wall (measured below), and the fast tier is 25
+# of the 37 suites but only about 10% of the wall clock. It skips every
 # TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
 # refinement harness, the seeded-bug matrix, the indeterminate census and the
 # drill corpus's rc verification. Defaulting to that would make
-# canonical_commands.test name a command that runs a fourteenth of the cost
+# canonical_commands.test name a command that runs a tenth of the cost
 # and none of the model checking, which is the same class of lie as naming a
 # command that fails by design. So the default is the whole thing, and --fast
 # is the opt-in for tight iteration.
