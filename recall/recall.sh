@@ -10,19 +10,36 @@
 # Usage:
 #   recall/recall.sh [OPTIONS] <rep-id> <answer>
 #
-# OPTIONS
+# OPTIONS, and every one of them goes BEFORE the rep id. Once the rep id is in
+# hand the next argument is the answer, whatever it starts with.
 #   --reps FILE       rep table (default: recall/REPS.tsv beside this script)
 #   --env-dir DIR     constant environments (default: recall/env)
+#   --full            print each value whole, however long it runs
 #   -q, --quiet       the status line only, no prompt and no value block
 #   -h, --help        this text
 #
+# AN ANSWER BEGINNING WITH A DASH NEEDS NOTHING IN FRONT OF IT. Negative
+# integers are ordinary answers at this rung -- R012 is a thermometer reading
+# below zero and R075 is a negative interval -- so `recall.sh R012 -4` grades.
+# The `--` escape still works wherever it appears, and it was the only route
+# until 2026-10-16, which cost a learner typing the right answer a usage dump.
+#
 # EXIT, and this is the contract the gate depends on: the exit code is the
 # RAW CODE harness/verdict.sh RETURNED on the grading run, never a code
-# inferred from anything TLC printed. Two codes are this script's own, and
-# neither collides with a TLC code because both happen before TLC starts:
+# inferred from anything TLC printed. Three codes are this script's own and
+# none of them collides with a code of TLC's:
 #
 #     2   usage error -- a missing argument or an unknown flag
 #     3   could not run -- no rep, no environment, no verdict.sh, no scratch
+#     4   the value is right and the construct the rep drills is not in what
+#         was typed. See THE CONSTRUCT GATE below
+#
+# 2 and 3 happen before TLC starts, so there is no verdict to be faithful to.
+# 4 is the one that happens after a run, and it replaces a grading run that
+# came back 0: the status line carries 4 and the runner's own token, and the
+# line under it names the rc and token verdict.sh returned, so nothing the
+# channel said is hidden. 4 sits in the 3-to-7 range harness/vacuity.sh:320
+# reserves for statements about the submission.
 #
 # THE GRADING SCAFFOLD, measured on TLC2 2026.07.31.184830:
 #
@@ -55,6 +72,31 @@
 # The last one is the useful surprise: comparing a number to a set of
 # functions is not an evaluation failure, it is simply false, so a type
 # mismatch grades as a wrong answer and gets the value block like any other.
+#
+# THE CONSTRUCT GATE, field 7 of the rep table.
+#
+# Value equality grades the value, so it cannot see how the value was reached.
+# A learner who computes the right answer without writing the construct the rep
+# drills has not done the rep. Field 7 carries an ERE matched against the RAW
+# ANSWER TEXT, and a rep without one grades exactly as it did before the field
+# existed, which is why nothing in recall/REPS.tsv had to change.
+#
+# THE PATTERN NAMES THE CONSTRUCT'S OWN KEYWORD AND NOTHING ELSE. Any correct
+# form passing is what lets this rung grade without a model in the loop, and a
+# pattern that reaches for the shape of the whole answer gives that away. All
+# three of these are the same answer to a LET rep, and `\bLET\b` takes all
+# three where `^LET [A-Za-z]+\(t\) ==` takes one:
+#
+#     LET Twice(t) == t * 2 IN [t \in Tracks |-> Twice(t)]
+#     LET Doubled(n) == n + n IN [t \in Tracks |-> Doubled(t)]
+#     LET F == [t \in Tracks |-> t * 2] IN F
+#
+# THE MATCH RUNS BEFORE TLC AND THE REFUSAL AFTER IT. Matching first means a
+# pattern grep will not read is "could not run" at exit 3 rather than a grade,
+# and a gate that fell open on a malformed pattern would be worse than no gate.
+# Refusing afterwards means a WRONG value still gets the dual value block,
+# which is the half of this script that teaches, and the gate only ever speaks
+# about an answer the grading run already accepted.
 #
 # THE DUAL VALUE BLOCK. On a wrong answer the script runs one more module per
 # value, each one
@@ -111,8 +153,29 @@
 # rather than anything about the rep: `Answer` and `Canonical` in the grading
 # scaffold, `Shown` in the value probe.
 #
+# THE VALUE BLOCK IS CAPPED, because this rung is seconds a rep and a block
+# that scrolls the terminal costs more attention than the mistake did. One
+# wrong answer to the function-set rep ran to 40 lines, 27 of them the members
+# of [Wagons -> Tracks] one per line, with the count that makes the point
+# underneath them. `--full` prints the whole thing.
+#
+# The cap counts LINES rather than members, and the wording on the elision
+# says so. TLC prints a small value on one line and breaks a large one at
+# about 80 columns, one member per line, so on a flat set a line is a member
+# and the two readings agree. They part company on a nested value, where
+# `[ a |->` opens at one indent and the set under it sits at another, and a
+# cap claiming to count members there would be counting something else. The
+# member count survives either way: the probe prints it on a line of its own
+# and that line is inside the tail the cap keeps.
+#
+# BOTH HALVES ARE CAPPED ON THE SAME RULE. The typed value is usually the
+# small one, but it is not always: at R108 and R109 the characteristic mistake
+# is to swap the domain and the range, and that produces a set of exactly the
+# size of the right answer. Two members, the elision, the closing member and
+# the count comes to five lines, which is still enough to recognize as yours.
+#
 # THE REP TABLE is tab-delimited with the literal first field REP, so prose in
-# the file can never be read as data. Six fields:
+# the file can never be read as data. Six fields, and an optional seventh:
 #
 #     1  REP          the literal marker
 #     2  rep id       stable, never renumbered
@@ -120,6 +183,8 @@
 #     4  environment  resolves to <env-dir>/<name>.tla
 #     5  prompt       English, naming none of the notation it asks for
 #     6  canonical    the answer, as TLA+
+#     7  requires     OPTIONAL. An ERE the raw answer has to match before a
+#                     correct value is accepted. Absent or empty is no gate
 #
 # Rows are read with awk -F'\t', never with `IFS=$'\t' read`. Tab is an IFS
 # whitespace character, so read collapses a run of tabs into one delimiter and
@@ -133,15 +198,33 @@ EXTENDS_LIST="Naturals, Integers, Sequences, FiniteSets, TLC"
 SENTINEL='"recall-value"'
 TIMEOUT=60
 
+# The runner's own code for "the value is right and the construct is not in
+# what was typed". Bound to a name rather than written as a literal at the exit
+# site, which is the convention harness/verdict.sh uses for its own 99.
+EXIT_CONSTRUCT_MISSING=4
+CONSTRUCT_TOKEN="CONSTRUCT_NOT_WRITTEN"
+
+# How much of a value survives the cap: the first two lines and the last two.
+# Two at the head because the second is what shows which position moves first,
+# which is the whole content of a function set. Two at the tail because the
+# last two lines of a set's block are the closing member, which carries the
+# ` }`, and the count underneath it.
+VALUE_HEAD=2
+VALUE_TAIL=2
+
 VERDICT="${REPO_ROOT}/harness/verdict.sh"
 REPS="${SCRIPT_DIR}/REPS.tsv"
 ENV_DIR="${SCRIPT_DIR}/env"
 QUIET=0
+FULL=0
 REP_ID=""
 ANSWER=""
 HAVE_ANSWER=0
 
-usage() { sed -n '2,12p' "${BASH_SOURCE[0]}"; }
+# Lines 2 to 19 of this file: what the script is, how it is called, and the
+# flags. The range is a line number and nothing gates it, so moving the OPTIONS
+# block means moving this too.
+usage() { sed -n '2,19p' "${BASH_SOURCE[0]}"; }
 
 die_usage() {
   printf 'recall.sh: %s\n' "$1" >&2
@@ -158,18 +241,30 @@ die_cannot_run() {
 }
 
 while [ "$#" -gt 0 ]; do
+  # `--` ends the options wherever it stands, so every call that already used
+  # the escape keeps working. It is checked first for that reason: the rule
+  # under it would otherwise swallow a `--` typed after the rep id.
+  if [ "$1" = "--" ]; then shift; break; fi
+
+  # ONCE THE REP ID IS IN HAND THE NEXT ARGUMENT IS THE ANSWER, whatever it
+  # starts with. This is the whole fix for a negative-integer rep: `-4` is the
+  # right answer to R012, and a learner who types it has no way to guess an
+  # escape. The cost is that a flag goes before the rep id, which is where
+  # every caller already puts it.
+  if [ -n "$REP_ID" ] && [ "$HAVE_ANSWER" = "0" ]; then
+    ANSWER="$1"; HAVE_ANSWER=1; shift; continue
+  fi
+
   case "$1" in
     --reps)    [ "$#" -ge 2 ] || die_usage "--reps needs a file"; REPS="$2"; shift 2 ;;
     --env-dir) [ "$#" -ge 2 ] || die_usage "--env-dir needs a directory"; ENV_DIR="$2"; shift 2 ;;
+    --full)     FULL=1; shift ;;
     -q|--quiet) QUIET=1; shift ;;
     -h|--help)  usage; exit 0 ;;
-    --)         shift; break ;;
     -*)         die_usage "unknown option: $1" ;;
     *)
       if [ -z "$REP_ID" ]; then
         REP_ID="$1"
-      elif [ "$HAVE_ANSWER" = "0" ]; then
-        ANSWER="$1"; HAVE_ANSWER=1
       else
         die_usage "unexpected extra argument: $1"
       fi
@@ -206,9 +301,33 @@ fi
 ENV_NAME="$(cut -f4 <<<"$ROW")"
 PROMPT="$(cut -f5 <<<"$ROW")"
 CANON="$(cut -f6 <<<"$ROW")"
+# A six-field row has no field 7 and cut returns the empty string for it, which
+# is the same thing an empty field 7 says: no gate.
+REQUIRES="$(cut -f7 <<<"$ROW")"
 
 [ -n "$ENV_NAME" ] || die_cannot_run "rep ${REP_ID} names no environment, so nothing was graded."
 [ -n "$CANON" ]    || die_cannot_run "rep ${REP_ID} carries no canonical answer, so nothing was graded."
+
+# The construct gate's match, run here rather than after the grading run so
+# that a pattern grep will not read is "could not run" instead of a grade. A
+# gate that fell open on a malformed pattern would be worse than no gate: the
+# row would look gated and would not be. What the match DOES happens further
+# down, after TLC has said whether the value is right.
+#
+# A here-string, never a pipe into a quiet grep. Under pipefail an
+# early-exiting consumer closes the pipe, the producer takes SIGPIPE, the
+# pipeline reports 141, and inside an `if` that is merely falsy. So a PRESENT
+# pattern would report as ABSENT and the gate would fire on a correct answer.
+REQUIRES_MET=1
+if [ -n "$REQUIRES" ]; then
+  MATCH_RC=0
+  grep -qE -- "$REQUIRES" <<<"$ANSWER" || MATCH_RC=$?
+  case "$MATCH_RC" in
+    0) REQUIRES_MET=1 ;;
+    1) REQUIRES_MET=0 ;;
+    *) die_cannot_run "rep ${REP_ID} carries a field-7 pattern grep will not read as an expression, so nothing was graded." ;;
+  esac
+fi
 
 ENV_FILE="${ENV_DIR}/${ENV_NAME}.tla"
 [ -r "$ENV_FILE" ] || die_cannot_run "rep ${REP_ID} names environment ${ENV_NAME}, and ${ENV_FILE} is not there, so nothing was graded."
@@ -324,20 +443,41 @@ case "$GRADE_RC" in
   *)   GRADE="other" ;;
 esac
 
+# The construct gate's refusal. It only ever replaces a grading run that came
+# back 0, so a wrong value keeps its value block and the gate has nothing to
+# say about it. REPORT_RC is what leaves this script; GRADE_RC stays the
+# verdict channel's own number and is printed under the refusal.
+REPORT_RC="$GRADE_RC"
+REPORT_TOKEN="$GRADE_TOKEN"
+if [ "$GRADE" = "correct" ] && [ "$REQUIRES_MET" = "0" ]; then
+  GRADE="construct-missing"
+  REPORT_RC="$EXIT_CONSTRUCT_MISSING"
+  REPORT_TOKEN="$CONSTRUCT_TOKEN"
+fi
+
 if [ "$QUIET" = "0" ]; then
   printf '%s  %s\n' "$REP_ID" "$PROMPT"
 fi
-printf 'rep=%s rc=%s token=%s grade=%s\n' "$REP_ID" "$GRADE_RC" "$GRADE_TOKEN" "$GRADE"
+printf 'rep=%s rc=%s token=%s grade=%s\n' "$REP_ID" "$REPORT_RC" "$REPORT_TOKEN" "$GRADE"
 
 if [ "$QUIET" = "1" ]; then
-  exit "$GRADE_RC"
+  exit "$REPORT_RC"
 fi
 
 echo
 
 if [ "$GRADE" = "correct" ]; then
   echo "correct."
-  exit "$GRADE_RC"
+  exit "$REPORT_RC"
+fi
+
+if [ "$GRADE" = "construct-missing" ]; then
+  echo "the value is right. the construct this rep drills is not in what you typed."
+  echo
+  printf '  wanted somewhere in the answer:  %s\n' "$REQUIRES"
+  printf '  the grading run came back rc=%s token=%s, so only the form is at issue.\n' \
+    "$GRADE_RC" "$GRADE_TOKEN"
+  exit "$REPORT_RC"
 fi
 
 if [ "$GRADE" = "parse-error" ]; then
@@ -346,13 +486,13 @@ if [ "$GRADE" = "parse-error" ]; then
   # SANY's own sentence, which names the line and the operator. Display only.
   grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error|Was expecting' \
     "${SCRATCH}/Recall.log" 2>/dev/null | sed -n 's/^[[:space:]]*/  /p' | sort -u
-  exit "$GRADE_RC"
+  exit "$REPORT_RC"
 fi
 
 if [ "$GRADE" = "other" ]; then
   printf 'the grading run came back %s, which is neither correct nor a wrong answer.\n' "$GRADE_RC"
   printf 'that is a report about the run rather than about the answer.\n'
-  exit "$GRADE_RC"
+  exit "$REPORT_RC"
 fi
 
 # ---------------------------------------------------------------------------
@@ -360,6 +500,32 @@ fi
 # cannot cost the other side its value.
 # ---------------------------------------------------------------------------
 echo "not correct. what you typed, then the answer."
+
+# The cap. A region short enough to read comes back untouched, byte for byte,
+# and so does every region under --full.
+#
+# head and tail take a HERE-STRING rather than a pipe. The region is already
+# in a variable, and piping a printf into either one would hand an
+# early-exiting consumer a live pipe: the consumer closes it on its last line,
+# the producer takes SIGPIPE, and under pipefail the whole thing comes back
+# 141. A here-string is materialised before the consumer is exec'd, so there
+# is no writer left to signal.
+#
+# The elision carries two leading spaces because the region's own continuation
+# lines do, and show_value indents the lot by two more. That puts the three
+# dots under the members rather than under the opening brace.
+cap_region() {
+  local region="$1" n elided
+  n="$(wc -l <<<"$region")"
+  if [ "$FULL" = "1" ] || [ "$n" -le "$((VALUE_HEAD + VALUE_TAIL + 1))" ]; then
+    printf '%s\n' "$region"
+    return
+  fi
+  elided="$((n - VALUE_HEAD - VALUE_TAIL))"
+  head -n "$VALUE_HEAD" <<<"$region"
+  printf '  ... %s more lines, and --full shows them all ...\n' "$elided"
+  tail -n "$VALUE_TAIL" <<<"$region"
+}
 
 show_value() {
   local label="$1" name="$2" expr="$3"
@@ -374,6 +540,7 @@ show_value() {
     echo "  that value could not be evaluated at all, so there is nothing to show."
     return
   fi
+  region="$(cap_region "$region")"
   sed -n 's/^/  /p' <<<"$region"
   # The count is skipped exactly when the probe exited nonzero. Keyed on the
   # code, not on the error text above it.
@@ -385,4 +552,4 @@ show_value() {
 show_value "you typed" "Yours" "$ANSWER"
 show_value "the answer" "Canon" "$CANON"
 
-exit "$GRADE_RC"
+exit "$REPORT_RC"
