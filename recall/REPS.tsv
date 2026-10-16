@@ -1,0 +1,163 @@
+# The recall rep table (bead tla-1sh7.2, epic tla-1sh7).
+#
+# 120 reps over 37 of the 38 constructs in the four value-producing families
+# of drill/INVENTORY.md: core 16, functions-records 11, sets 9, sequences 2.
+# K008, bullet-point boolean notation, has no row, and why is at the bottom.
+#
+# Rows are tab-delimited and carry the literal first field REP, so prose in
+# this file can never be read as data. Six fields, in order:
+#
+#   1  marker       the literal REP
+#   2  id           stable, never renumbered
+#   3  construct     K001-K105, resolving to a drill/INVENTORY.md row
+#   4  environment  resolves to recall/env/<name>.tla
+#   5  prompt       English, naming none of the notation it asks for
+#   6  canonical    the answer, as TLA+
+#
+#   awk -F'\t' '$1 == "REP" && $2 == "R001"' recall/REPS.tsv
+#   grep '^REP' recall/REPS.tsv | cut -f2,3
+#
+# Read rows with awk -F'\t' or cut, never with IFS=$'\t' read.
+#
+# FIELD 5 IS THE FIELD THAT DECIDES WHETHER A REP IS A REP. It states a need
+# and names none of the notation that answers it. Several reps share a
+# construct on purpose and are phrased differently each time, so what gets
+# retrieved is the fact rather than the sentence.
+#
+# THE GRADE IS VALUE EQUALITY, so any expression with the canonical's value
+# scores 0. For most of these constructs that is the point. For the seven
+# definition forms, K001 K071 K072 K073 K074 K075 K076, it is a real limit:
+# each canonical is wrapped in a LET, because a bare definition is not an
+# expression and scores 150, and each one returns a function or a set rather
+# than a scalar so that the short way round is at least expensive. Even so,
+# value equality cannot see that a definition was written. Those rows drill
+# the construct; they do not gate it.
+REP	R001	K001	shunting	for each track, the wagons standing on it, with the per-track lookup given a name of its own rather than written out twice	LET Occupants(t) == {w \in Wagons : Parking[w] = t} IN [t \in Tracks |-> Occupants(t)]
+REP	R002	K001	ledger	whether ann and bo are both out of the red, where what it takes to be out of the red is spelled out once and then asked of each	LET Solvent(acct) == Balance[acct] >= 0 IN Solvent("ann") /\ Solvent("bo")
+REP	R003	K001	shunting	the tracks holding more than one wagon, with the count of a track's occupants named rather than repeated	LET Count(t) == Cardinality({w \in Wagons : Parking[w] = t}) IN {t \in Tracks : Count(t) > 1}
+REP	R004	K002	shunting	for each wagon, the number one when it stands on the first track and zero when it does not	[w \in Wagons |-> IF Parking[w] = 1 THEN 1 ELSE 0]
+REP	R005	K002	shunting	the yard's capacity when that is more than three, and three otherwise	IF Capacity > 3 THEN Capacity ELSE 3
+REP	R006	K002	ledger	for each account, the word owing when it holds nothing and the word fine when it holds something	[acct \in Accounts |-> IF Balance[acct] = 0 THEN "owing" ELSE "fine"]
+REP	R007	K003	shunting	whether wagon b and wagon c are standing on the same track	Parking.b = Parking.c
+REP	R008	K003	shunting	whether the wagon at the front of the train is wagon a	Train[1] = "a"
+REP	R009	K003	ledger	whether ann and bo are holding different amounts	Balance["ann"] # Balance["bo"]
+REP	R010	K003	shunting	whether wagon a is standing anywhere other than the third track	Parking.a # 3
+REP	R011	K005	shunting	how many more wagons a track could take, given the yard's capacity and the one wagon already standing on the first track	Capacity - 1
+REP	R012	K005	shunting	a thermometer reading of four degrees below zero	-4
+REP	R013	K005	ledger	ann's holding and bo's holding added together	Balance["ann"] + Balance["bo"]
+REP	R014	K005	shunting	the capacity shared out evenly between two tracks, with no remainder kept	Capacity \div 2
+REP	R015	K006	shunting	the wagon at the front of the train, written out as a value rather than read off the train	"c"
+REP	R016	K006	shunting	a label with nothing written on it at all	""
+REP	R017	K006	ledger	the word this ledger uses for money going in	"deposit"
+REP	R018	K007	shunting	whether wagon b is on the third track and wagon c is there too	Parking.b = 3 /\ Parking.c = 3
+REP	R019	K007	shunting	whether wagon a and wagon b are both on the third track	Parking.a = 3 /\ Parking.b = 3
+REP	R020	K007	shunting	whether the claim that wagon a is on the third track fails to hold	~(Parking.a = 3)
+REP	R021	K007	shunting	whether the train begins with wagon a or else ends with wagon b	Train[1] = "a" \/ Train[3] = "b"
+REP	R022	K007	ledger	whether bo is holding nothing while ann is holding something	Balance["bo"] = 0 /\ Balance["ann"] > 0
+REP	R023	K009	shunting	whether wagon b being on the third track would mean wagon c is on it too	Parking.b = 3 => Parking.c = 3
+REP	R024	K009	shunting	whether wagon c being on the third track would mean that wagon c is wagon b	Parking.c = 3 => "c" = "b"
+REP	R025	K009	shunting	whether the train beginning with wagon a would mean the yard holds four wagons	Train[1] = "a" => Cardinality(Wagons) = 4
+REP	R026	K009	ledger	whether an account holding nothing would have to be bo	\A acct \in Accounts : Balance[acct] = 0 => acct = "bo"
+REP	R027	K021	shunting	the number of wagons sharing the third track, multiplied by itself, with that crowd worked out only once	LET Crowd == Cardinality({w \in Wagons : Parking[w] = 3}) IN Crowd * Crowd
+REP	R028	K021	shunting	how far wagon a and wagon b would each have to move to reach the highest numbered track, added together, with that track named once	LET Top == 3 IN (Top - Parking.a) + (Top - Parking.b)
+REP	R029	K021	ledger	the total held across both accounts, followed by that same total doubled, the two kept in that order	LET Total == Balance["ann"] + Balance["bo"] IN <<Total, 2 * Total>>
+REP	R030	K037	shunting	whether every wagon is standing on a real track of this yard	\A w \in Wagons : Parking[w] \in Tracks
+REP	R031	K037	shunting	whether the second track is empty of wagons	\A w \in Wagons : Parking[w] # 2
+REP	R032	K037	shunting	whether all three wagons are standing together on one track	\A w \in Wagons : Parking[w] = Parking["a"]
+REP	R033	K037	ledger	whether every account is holding something	\A acct \in Accounts : Balance[acct] > 0
+REP	R034	K037	ledger	whether no account has been let into the red	\A acct \in Accounts : Balance[acct] >= 0
+REP	R035	K038	shunting	whether some wagon is standing on the first track	\E w \in Wagons : Parking[w] = 1
+REP	R036	K038	shunting	whether any wagon at all has reached the second track	\E w \in Wagons : Parking[w] = 2
+REP	R037	K038	ledger	whether some account has been emptied	\E acct \in Accounts : Balance[acct] = 0
+REP	R038	K038	shunting	whether two different wagons are sharing a track	\E v \in Wagons : \E w \in Wagons : v # w /\ Parking[v] = Parking[w]
+REP	R039	K071	shunting	every whole number from one up to the highest track, built by taking one off the top at a time until there is none left	LET RECURSIVE Below(_) Below(n) == IF n = 0 THEN {} ELSE {n} \union Below(n - 1) IN Below(3)
+REP	R040	K071	ledger	the ledger's amounts added up, taken one at a time off the front until none are left	LET RECURSIVE Total(_) Total(s) == IF s = <<>> THEN 0 ELSE Head(s) + Total(Tail(s)) IN Total(Entries)
+REP	R041	K072	shunting	every track number doubled, where the doubling is written as a rule of its own and handed to a second rule that applies it across them	LET Twice(n) == n * 2 MapOver(Op(_), S) == {Op(x) : x \in S} IN MapOver(Twice, Tracks)
+REP	R042	K072	ledger	the ledger's amounts each doubled and left in order, where the doubling is a named rule handed to a second rule that walks the entries	LET Doubled(n) == n * 2 Through(Op(_), s) == [i \in DOMAIN s |-> Op(s[i])] IN Through(Doubled, Entries)
+REP	R043	K073	shunting	every track number doubled, with the doubling written out at the point it is handed over rather than named first	LET MapOver(Op(_), S) == {Op(x) : x \in S} IN MapOver(LAMBDA n : n * 2, Tracks)
+REP	R044	K073	ledger	the accounts that have been emptied, with the test written out where it is handed over rather than named first	LET Keep(Op(_), S) == {x \in S : Op(x)} IN Keep(LAMBDA acct : Balance[acct] = 0, Accounts)
+REP	R045	K074	shunting	the tracks that are in one of two groups but not in both, joined by a new symbol of your own standing between the two groups	LET S ++ T == (S \union T) \ (S \intersect T) IN Tracks ++ {2, 3, 4}
+REP	R046	K074	ledger	ann's holding and bo's holding combined by a rule of your own that adds them and then doubles the total, that rule standing between the two	LET a ++ b == 2 * (a + b) IN Balance["ann"] ++ Balance["bo"]
+REP	R047	K077	shunting	a word for where wagon a stands: near on the first track, middle on the second, and far on anything else	CASE Parking.a = 1 -> "near" [] Parking.a = 2 -> "middle" [] OTHER -> "far"
+REP	R048	K077	shunting	for each wagon, a word for its track: near, middle, or far, picked by which track it is on	[w \in Wagons |-> CASE Parking[w] = 1 -> "near" [] Parking[w] = 2 -> "middle" [] OTHER -> "far"]
+REP	R049	K010	shunting	the first two wagons of the train, kept in the order they stand	<<"c", "a">>
+REP	R050	K010	shunting	the wagon standing in the middle of the train	Train[2]
+REP	R051	K010	shunting	a train with no wagons on it at all	<<>>
+REP	R052	K010	shunting	the three track numbers running upward, kept in that order rather than loose	<<1, 2, 3>>
+REP	R053	K010	ledger	the amount written in the fourth place of the ledger	Entries[4]
+REP	R054	K011	shunting	the train with wagon b coupled on at the back	Append(Train, "b")
+REP	R055	K011	shunting	how many wagons the train is carrying	Len(Train)
+REP	R056	K011	shunting	the train with its leading wagon uncoupled and left behind	Tail(Train)
+REP	R057	K011	shunting	the leading wagon of the train, taken off the front	Head(Train)
+REP	R058	K011	ledger	the middle two amounts of the ledger, kept in order	SubSeq(Entries, 2, 3)
+REP	R059	K011	shunting	the train run twice over, the second pass following straight on from the first	Train \o Train
+REP	R060	K012	shunting	the three wagons gathered together with no order between them	{"a", "b", "c"}
+REP	R061	K012	shunting	the tracks that have a wagon standing on them, written out rather than worked out	{1, 3}
+REP	R062	K012	shunting	nothing at all, an empty gathering	{}
+REP	R063	K012	ledger	the two words this ledger uses for a kind of entry, written out	{"deposit", "withdraw"}
+REP	R064	K013	shunting	whether wagon a is one of this yard's wagons	"a" \in Wagons
+REP	R065	K013	shunting	whether a wagon called d is not one of this yard's	"d" \notin Wagons
+REP	R066	K013	shunting	the tracks with no wagon standing on them, taking the occupied ones away from all of them	Tracks \ {1, 3}
+REP	R067	K013	shunting	this yard's wagons with a fourth one, called d, brought in alongside	Wagons \union {"d"}
+REP	R068	K013	shunting	whether the occupied tracks are all genuine tracks of this yard	{1, 3} \subseteq Tracks
+REP	R069	K013	ledger	the amounts this ledger allows that are also among one, two and five	Amounts \intersect {1, 2, 5}
+REP	R070	K014	shunting	how many wagons this yard holds	Cardinality(Wagons)
+REP	R071	K014	shunting	how many different tracks are in use	Cardinality({Parking[w] : w \in Wagons})
+REP	R072	K014	ledger	how many kinds of entry this ledger knows about	Cardinality(Kinds)
+REP	R073	K015	shunting	every whole number from one up to the yard's capacity	1..Capacity
+REP	R074	K015	shunting	both of the truth values, taken together	BOOLEAN
+REP	R075	K015	shunting	every whole number from two below zero up to two above it	-2..2
+REP	R076	K015	ledger	every whole number this ledger allows as an amount, written as a run rather than listed	1..4
+REP	R077	K016	shunting	every pairing of a wagon with a track, the wagon first in each pair	Wagons \X Tracks
+REP	R078	K016	ledger	every pairing of an account with a kind of entry, the account first	Accounts \X Kinds
+REP	R079	K017	shunting	every group of wagons that could be shunted together, counting the empty group and the whole lot	SUBSET Wagons
+REP	R080	K017	shunting	every way of picking out some of the tracks, including picking none	SUBSET Tracks
+REP	R081	K018	shunting	the tracks in use, each named once however many wagons are standing on it	{Parking[w] : w \in Wagons}
+REP	R082	K018	shunting	every track number doubled	{2 * t : t \in Tracks}
+REP	R083	K018	ledger	the amounts that appear in the ledger, each one named once however often it was written	{Entries[i] : i \in DOMAIN Entries}
+REP	R084	K019	shunting	the wagons standing on the third track	{w \in Wagons : Parking[w] = 3}
+REP	R085	K019	shunting	the tracks numbered above the first	{t \in Tracks : t > 1}
+REP	R086	K019	ledger	the accounts that have been emptied	{acct \in Accounts : Balance[acct] = 0}
+REP	R087	K020	shunting	the one highest numbered track in the yard, as a track rather than as a one-track group	CHOOSE t \in Tracks : \A u \in Tracks : t >= u
+REP	R088	K020	shunting	the single wagon standing on the first track, as a wagon rather than as a group of one	CHOOSE w \in Wagons : Parking[w] = 1
+REP	R089	K020	ledger	the single account that has been emptied, as an account rather than as a group of one	CHOOSE acct \in Accounts : Balance[acct] = 0
+REP	R090	K044	shunting	a label for a wagon saying it is bound for Bristol and weighs twelve tonnes	[dest |-> "Bristol", weight |-> 12]
+REP	R091	K044	shunting	where each of the three wagons stands, written out as one labelled value rather than read off the yard	[a |-> 1, b |-> 3, c |-> 3]
+REP	R092	K044	ledger	one entry of the ledger: ann putting two in	[acct |-> "ann", amnt |-> 2, kind |-> "deposit"]
+REP	R093	K045	ledger	every entry this ledger could ever hold, each carrying an account, an amount and a kind	[acct: Accounts, amnt: Amounts, kind: Kinds]
+REP	R094	K045	shunting	every way of labelling a wagon with the track it is on and whether it is loaded	[track: Tracks, loaded: BOOLEAN]
+REP	R095	K045	ledger	every pairing of an account with an allowed amount, each one labelled by which is which	[acct: Accounts, amnt: Amounts]
+REP	R096	K046	shunting	the things the parking has something to say about	DOMAIN Parking
+REP	R097	K046	shunting	the positions the train has a wagon standing in	DOMAIN Train
+REP	R098	K046	ledger	the accounts this balance covers	DOMAIN Balance
+REP	R099	K047	shunting	a parking that puts every wagon on the first track	[w \in Wagons |-> 1]
+REP	R100	K047	shunting	for each track, how many wagons are standing on it	[t \in Tracks |-> Cardinality({w \in Wagons : Parking[w] = t})]
+REP	R101	K047	ledger	a balance that starts every account off holding nothing	[acct \in Accounts |-> 0]
+REP	R102	K048	shunting	a parking that says where wagon a stands and says nothing whatever about any other wagon	"a" :> 1
+REP	R103	K048	ledger	a balance that mentions ann alone, holding three	"ann" :> 3
+REP	R104	K049	shunting	a parking covering wagon a on the first track and wagon b on the third, built by putting two one-wagon readings together	("a" :> 1) @@ ("b" :> 3)
+REP	R105	K049	ledger	a balance covering ann with three and bo with nothing, built by putting two one-account readings together	("ann" :> 3) @@ ("bo" :> 0)
+REP	R106	K049	shunting	where each wagon stands, with a fresh reading that puts wagon b on the first track taking precedence over the yard's	("b" :> 1) @@ Parking
+REP	R107	K050	shunting	every possible parking of this yard, each wagon on exactly one track	[Wagons -> Tracks]
+REP	R108	K050	shunting	every way of saying, for each track, whether it is free	[Tracks -> BOOLEAN]
+REP	R109	K050	ledger	every way of giving each account one of the allowed amounts	[Accounts -> Amounts]
+REP	R110	K075	shunting	for each track, that track doubled, the whole lookup given a name as it is built	LET Doubled[t \in Tracks] == t * 2 IN Doubled
+REP	R111	K075	ledger	for each account, twice what it holds, the whole lookup given a name as it is built	LET Twice[acct \in Accounts] == 2 * Balance[acct] IN Twice
+REP	R112	K076	shunting	for each number from none up to four, the product of every number up to it, each answer worked out from the one below	LET Fact[n \in 0..4] == IF n = 0 THEN 1 ELSE n * Fact[n - 1] IN Fact
+REP	R113	K076	shunting	for each number from none up to three, the total of every number up to it, each total built on the one below	LET Upto[t \in 0..3] == IF t = 0 THEN 0 ELSE t + Upto[t - 1] IN Upto
+REP	R114	K087	shunting	the parking after wagon b has been moved to the first track, everything else left as it was	[Parking EXCEPT !["b"] = 1]
+REP	R115	K087	shunting	the train after its leading wagon has been swapped for wagon b	[Train EXCEPT ![1] = "b"]
+REP	R116	K087	ledger	the balance after ann's account has been cleared to nothing	[Balance EXCEPT !["ann"] = 0]
+REP	R117	K087	shunting	the parking after wagon a has gone to the second track and wagon b to the first, both in the one move	[Parking EXCEPT !["a"] = 2, !["b"] = 1]
+REP	R118	K088	shunting	the parking after wagon a has moved up one track from wherever it happened to be	[Parking EXCEPT !["a"] = @ + 1]
+REP	R119	K088	ledger	the balance after two has been paid into ann's account on top of whatever was already there	[Balance EXCEPT !["ann"] = @ + 2]
+REP	R120	K088	ledger	the balance after every account has had one added to whatever it was already holding	[Balance EXCEPT !["ann"] = @ + 1, !["bo"] = @ + 1]
+# K008, bullet-point boolean notation, has no row and cannot have one here.
+# The construct IS the layout: stacked /\ or \/ lines whose indentation is
+# meaningful. Two things stop it. A tab-delimited row is one line, so field 6
+# cannot carry the line breaks the layout is made of. And value equality
+# grades the value, which is a truth value either way, so even folded onto one
+# line the bulleted form and the infix form are the same answer. Measured:
+# a canonical of (/\ TRUE /\ 1 = 1) = TRUE scores rc 0, exactly as the infix
+# form does, so nothing distinguishes them. Grading it needs a check on the
+# submitted TEXT rather than on its value.
