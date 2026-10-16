@@ -7,7 +7,7 @@ twelve minutes an item, so this is the one that runs at flow speed.
 ## How to work one
 
 ```bash
-recall/recall.sh R001 '[Wagons -> Tracks]'
+recall/recall.sh R107 '[Wagons -> Tracks]'
 recall/recall.sh R012 '-4'
 ```
 
@@ -19,12 +19,12 @@ are ordinary answers at this rung, so once the rep id is in hand the next
 argument is the answer whatever it starts with. The cost is that flags go
 before the rep id, which is where you would put them anyway.
 
-Correct answers stop there. A wrong one prints both values, and TLC's own
-printout of them is usually the whole explanation:
+Correct answers stop there. A wrong one prints both values, then what that
+answer says, then what the construct is:
 
 ```
-R001  the set of all the ways the wagons could be parked, one track each
-rep=R001 rc=10 token=ASSUMPTION_FAILED grade=incorrect
+R107  every possible parking of this yard, each wagon on exactly one track
+rep=R107 rc=10 token=ASSUMPTION_FAILED grade=incorrect
 
 not correct. what you typed, then the answer.
 
@@ -40,15 +40,95 @@ the answer  [Wagons -> Tracks]
     ... 24 more lines, and --full shows them all ...
     [a |-> 3, b |-> 3, c |-> 3] }
   27
+
+what you wrote says
+  That's one parking, and what it gives back for every wagon is the whole set
+  of tracks rather than a single track.
+
+K050  ch06  function set
+  [S -> T] is the set of all functions from S to T
 ```
 
-One function against a set of 27 of them. Nobody wrote that comparison. It is
-what the two values look like.
+The top half is one function against a set of 27 of them. Nobody wrote that
+comparison; it is what the two values look like. The bottom half is the next
+section.
+
+## The three layers under a wrong answer
+
+The values are the first and they are not the whole of it. Two more come out
+of files this script only reads, and neither one can change a grade:
+
+| layer | source | keyed on | says |
+|---|---|---|---|
+| the two values | TLC | the answer and the canonical | what each one is |
+| the misconception | `MISSES.tsv` | the text that was typed | what that answer says |
+| the construct | `drill/SHEET.md` | the rep's field 3 | what the construct is |
+
+`--sheet` and `--misses` point either one somewhere else, and a file that is
+not there is silence rather than a refusal. An explanation is not a verdict,
+so a delivered tree without them still grades every rep in it. What stops a
+path quietly breaking is the gate instead: `harness/test-recall-runner.sh`
+runs one live rep through the shipped defaults, and checks that every rep's
+construct has an entry and every miss row names a rep that exists.
+
+**The miss row goes above the sheet entry**, and the reason is the 90 reps
+with no row rather than the 30 that have one. This order ends on the sheet
+entry at all 120. The other order ends on the sheet at 90 and on the
+misconception at 30, so the bottom of the block moves under you. Reading R099
+both ways is the clearest single case: its entry, `F == [x \in S |-> expr]`,
+sitting directly under the canonical answer `[w \in Wagons |-> 1]` restates
+the line above it, and the same entry after the misconception reads as the
+general form of what was just explained.
+
+**Nothing announces an absence.** 90 of the 120 reps carry no miss row, so no
+row is the ordinary case and not the fallback. Two values and a sheet entry
+is a whole answer, and you are not told that a table you cannot see had
+nothing to say.
+
+**A construct-gate refusal gets the sheet entry too**, because that is the
+one grade whose entire content is that a construct was not written, and field
+7 is an ERE rather than notation. It gets no miss row: the value was right,
+and that table is about wrong ones.
+
+## The miss table is matched on tokens, not on text
+
+`MISSES.tsv` field 3 is the wrong answer verbatim, and the lookup normalises
+whitespace before comparing. The rule is one sentence: **a space is kept only
+where it stands between two word characters, and dropped everywhere else.**
+That is the only place TLA+ needs one. So all four of these reach the same
+row, and the fifth does not:
+
+```
+[w \in Wagons |-> Tracks]       the row's own spelling
+[w \in Wagons|->Tracks]         no spaces round the arrow
+[ w  \in  Wagons  |->  Tracks ] padded and doubled
+[w \in Wagons |->	Tracks]     a tab
+[w \inWagons |-> Tracks]        a different token sequence, so no row
+```
+
+Exact text was the other candidate and it loses on this script's own
+argument. The grade is value equality precisely so that any correct form
+passes and a rep is not a spelling test. Keying the explanation on the
+byte-for-byte shape of a wrong answer puts the spelling test back one layer
+down, where it costs a row somebody wrote and nobody sees. 30 rows is small
+enough to match exactly; it is not small enough to be worth missing one.
+
+Normalising gives up one thing: TLA+'s bullet-list alignment, since a run of
+whitespace is what groups a stacked `/\` and `\/` list. Re-grouping a list of
+one operator cannot change what it says, so the condition that makes this
+safe is that no row mixes the two operators. That is a gate rather than a
+note.
+
+It is not keyed on the *value*. A second grading run against the row's own
+expression would fire on any answer that evaluates the same, which is a wider
+net than field 4 is written for: "that's a set, so it holds no order" is a
+sentence about a shape somebody typed.
 
 ## The value block is capped
 
-Two members, the elision, the closing member, then the count. The whole run
-above is 17 lines, and `--full` prints the same thing at 40.
+Two members, the elision, the closing member, then the count. The run above
+is 24 lines, and `--full` prints the same thing at 47. The cap is doing the
+work in both: without it the value block alone runs to 40.
 
 The cap is there because the point of the block is the contrast, and a value
 that scrolls the terminal pushes the two halves apart. Before the cap, 27 of
@@ -66,9 +146,32 @@ line, so on a flat set a line is a member. On a nested value it is not:
 `[ a |->` opens at one indent and the set under it sits at another. The member
 count never goes missing either way, because it is on a line of its own below.
 
+## What a whole block costs in lines
+
+Measured over the shipped tables on 2026-10-16, with the two prose sections
+wrapped at 76 columns:
+
+| block | lines |
+|---|---|
+| a wrong answer with a miss row and an entry | 21 to 25 |
+| a wrong answer with an entry and no row | 17 to 21 |
+| the same block before the two layers | 17 |
+| the same block before the cap, layer 1 alone | 40 |
+
+The worst is 25, at R006 and R114, and R006 is the one to look at: its
+explanation is the longest in the table at 155 characters, which wraps to
+three lines. The ordinary case is 21 to 24.
+
+**Neither prose section is capped**, and that is a decision rather than an
+omission. The value block is capped because an enumeration has a middle
+nobody needs; an explanation cut mid-sentence costs more than the line it
+saves. So the budget is held at the data instead: the suite refuses a miss
+explanation or a sheet body that wraps past three lines, which is where
+today's longest of each already sits.
+
 ## Any correct form passes
 
-The grade is value equality, so these all score 0 on R001:
+The grade is value equality, so these all score 0 on R107:
 
 ```
 [Wagons -> Tracks]
@@ -170,6 +273,18 @@ Field 5 is the field that decides whether a rep is a rep. "The set of all the
 ways the wagons could be parked" asks for recall. "Write a function set" hands
 over the construct, and the answer is then a transcription.
 
+Field 3 is the join to `drill/SHEET.md`, which is keyed on the same `K` ids.
+That is the whole of the sheet lookup: no matching, just the entry.
+
+## The miss table
+
+`MISSES.tsv`, beside this file, same tab-delimited convention with the
+literal first field `MISS`. 30 rows over 30 of the 120 reps, reaching 25 of
+the 37 constructs. Its own header says what each field is, where the rows
+came from, and which twelve constructs have none and why. Field 4 says what
+the wrong answer *is*, never what to write instead, which is what lets it be
+printed under two values that already show the right answer.
+
 ## An environment file is a fragment, not a module
 
 `env/<name>.tla` holds bare definitions: no module header, no `EXTENDS`, no
@@ -247,3 +362,7 @@ drilling.
 A construct-gate refusal is one run. The pattern match costs a `grep` against
 one line and the block it would have printed is not printed, since the two
 values are equal and showing them twice would say nothing.
+
+The two explanation layers add no run at all. Both are one `awk` over a file
+of a few hundred lines, and they happen after the grade is already decided,
+so nothing a learner waits for got slower.

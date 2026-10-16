@@ -23,6 +23,13 @@
 #   A scratch directory the runner cannot make is a hard error, never a run in
 #   the working directory, and a run leaves nothing behind anywhere.
 #
+#   A wrong answer also gets the two explanation layers that are not values
+#   (bead tla-1sh7.6): the construct's entry from the sheet, keyed on the
+#   rep's field 3, and the miss table's row for the answer, keyed on the text
+#   that was typed and matched with whitespace normalised. A wrong answer the
+#   table has no row for gets the sheet entry and no hole where a row would
+#   have gone, which is the path 90 of the 120 real reps take.
+#
 # ---------------------------------------------------------------------------
 # WHY THE FIXTURE CARRIES RAW CODES AND NOT ONLY GRADES
 #
@@ -96,8 +103,16 @@ FIXTURE="$REPO_ROOT/harness/fixtures/recall"
 REPS="$FIXTURE/REPS.tsv"
 CASES="$FIXTURE/CASES.tsv"
 ENV_DIR="$FIXTURE/env"
+# The two explanation layers get fixture files of their own, and the block
+# lengths below are pinned against those rather than against the shipped
+# ones. drill/SHEET.md is generated from the chapter cheat sheets, so a
+# sentence added to a cheat sheet would otherwise turn a length row red for a
+# reason that has nothing to do with the runner. The shipped files are
+# reached instead by part 13, which runs one live rep through the defaults.
+MISSES="$FIXTURE/MISSES.tsv"
+SHEET="$FIXTURE/SHEET.md"
 
-for required in "$RUNNER" "$VERDICT" "$REPS" "$CASES" "$ENV_DIR"; do
+for required in "$RUNNER" "$VERDICT" "$REPS" "$CASES" "$ENV_DIR" "$MISSES" "$SHEET"; do
   if [ ! -e "$required" ]; then
     printf 'test-recall-runner.sh: missing %s\n' "$required" >&2
     exit 1
@@ -118,7 +133,8 @@ RUN_RC=0
 run_runner() {
   local script="$1" rep="$2" answer="$3"
   RUN_RC=0
-  RUN_OUT=$("$script" --reps "$REPS" --env-dir "$ENV_DIR" -- "$rep" "$answer" 2>&1) || RUN_RC=$?
+  RUN_OUT=$("$script" --reps "$REPS" --env-dir "$ENV_DIR" \
+    --misses "$MISSES" --sheet "$SHEET" -- "$rep" "$answer" 2>&1) || RUN_RC=$?
 }
 
 # Rows, read with awk -F'\t'. Never `IFS=$'\t' read`: tab is an IFS whitespace
@@ -719,7 +735,8 @@ assert_eq "R002 carries no pattern, so a correct answer with no keyword in it is
 # because the runner's 4 replaces them on the status line and a reader should
 # still be able to see that TLC said the value was right.
 RUN_RC=0
-OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" R003 '[t \in Tracks |-> t * 2]' 2>&1) || RUN_RC=$?
+OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+  R003 '[t \in Tracks |-> t * 2]' 2>&1) || RUN_RC=$?
 if has "$OUT" '^rep=R003 rc=4 token=CONSTRUCT_NOT_WRITTEN grade=construct-missing$'; then
   ok "a refusal reports the runner's own code and token on the status line"
 else
@@ -779,10 +796,16 @@ echo "== part 11: the value block is capped, and --full lifts the cap =="
 
 run_runner "$RUNNER" R001 '[w \in Wagons |-> Tracks]'
 CAPPED_OUT="$RUN_OUT"
-FULL_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --full -- R001 '[w \in Wagons |-> Tracks]' 2>&1) || true
+FULL_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+  --full -- R001 '[w \in Wagons |-> Tracks]' 2>&1) || true
 
-assert_eq "the whole block is 40 lines when --full asks for it" "40" "$(wc -l <<<"$FULL_OUT")"
-assert_eq "and 17 by default" "17" "$(wc -l <<<"$CAPPED_OUT")"
+# 47 and 24 were 40 and 17 before bead tla-1sh7.6, and the 7 lines between
+# them are the two explanation layers: a blank, a label and two wrapped lines
+# of the miss row, then a blank, the sheet header and its one line. The cap
+# itself is untouched -- the value block is the same 5 lines a side it was
+# cut to -- and that is what the rows under these two check.
+assert_eq "the whole block is 47 lines when --full asks for it" "47" "$(wc -l <<<"$FULL_OUT")"
+assert_eq "and 24 by default" "24" "$(wc -l <<<"$CAPPED_OUT")"
 
 # Two members, then the elision, then the closing member and the count. Two
 # rather than one because the second is what shows which position moves first,
@@ -815,7 +838,8 @@ assert_eq "--full shows all 27 members" "27" \
 # small, and it is the half they have to recognize as theirs.
 run_runner "$RUNNER" R002 '[w \in Wagons |-> 2]'
 SHORT_DEFAULT="$RUN_OUT"
-SHORT_FULL=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --full -- R002 '[w \in Wagons |-> 2]' 2>&1) || true
+SHORT_FULL=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+  --full -- R002 '[w \in Wagons |-> 2]' 2>&1) || true
 assert_eq "a short block is identical with and without --full" "$SHORT_DEFAULT" "$SHORT_FULL"
 
 # AND THE WRONG ANSWER'S OWN BLOCK IS CAPPED TOO, which is a correction to the
@@ -844,8 +868,353 @@ if [ -n "$M5" ]; then
   else
     ok "control: a runner that stopped capping is DETECTED by part 11"
   fi
-  assert_eq "and it fails the way the mutation says, the whole 40 lines" "40" \
+  assert_eq "and it fails the way the mutation says, the whole 47 lines" "47" \
     "$(wc -l <<<"$RUN_OUT")"
+fi
+
+echo
+echo "== part 12: the sheet entry and the miss row, layers 2 and 3 =="
+# ---------------------------------------------------------------------------
+# The two values are the first layer of the explanation and were the only one
+# the runner showed. Bead tla-1sh7.6 wires the other two: the construct's
+# entry from the sheet, keyed on the rep's field 3, and the miss table's row
+# for this answer, keyed on the text that was typed.
+#
+# THE ROW THAT MATTERS MOST HERE IS THE SILENT ONE. 90 of the 120 real reps
+# carry no miss row, so no row is the ordinary case rather than the fallback,
+# and a block that reads as though something went missing would be wrong 3
+# times out of 4. The no-row rows below assert an absence of apology as well
+# as an absence of a row.
+# ---------------------------------------------------------------------------
+
+run_runner "$RUNNER" R001 '[w \in Wagons |-> Tracks]'
+LAYERS_OUT="$RUN_OUT"
+
+if has "$LAYERS_OUT" '^K050  ch06  function set$'; then
+  ok "the sheet entry's header carries the id, the chapter and the name"
+else
+  nope "the sheet entry's header carries the id, the chapter and the name"
+fi
+if has "$LAYERS_OUT" '^  \[S -> T\] is the set of all functions from S to T$'; then
+  ok "and its syntax line, with the markdown backticks dropped for a terminal"
+else
+  nope "and its syntax line, with the markdown backticks dropped for a terminal"
+fi
+if has "$LAYERS_OUT" '`'; then
+  nope "no backtick survives into the printed entry"
+else
+  ok "no backtick survives into the printed entry"
+fi
+if has "$LAYERS_OUT" 'what it gives back for every wagon is the whole set'; then
+  ok "the miss row's explanation is printed for the answer that was typed"
+else
+  nope "the miss row's explanation is printed for the answer that was typed"
+fi
+
+# THE ORDER, which is a judgment and so is asserted rather than left to read
+# well by accident. Values, then what this answer says, then what the
+# construct is. What settles it is the 90 reps with no row: this order ends
+# on the sheet entry at all 120, so the bottom of the block does not move
+# under a learner working at seconds a rep.
+MISS_LINE=$(awk '/^what you wrote says$/ { print NR; exit }' <<<"$LAYERS_OUT")
+SHEET_LINE=$(awk '/^K050  ch06  function set$/ { print NR; exit }' <<<"$LAYERS_OUT")
+if [ -n "$MISS_LINE" ] && [ -n "$SHEET_LINE" ] && [ "$MISS_LINE" -lt "$SHEET_LINE" ]; then
+  ok "the miss row is above the sheet entry, so every block ends on the sheet"
+else
+  nope "the miss row is above the sheet entry, so every block ends on the sheet (miss=$MISS_LINE sheet=$SHEET_LINE)"
+fi
+
+# THE COMMON CASE. C004 is a wrong answer to R001 that the fixture table has
+# no row for, which is the path 90 of the 120 real reps take.
+run_runner "$RUNNER" R001 '[Tracks -> Wagons]'
+NOROW_OUT="$RUN_OUT"
+if has "$NOROW_OUT" '^K050  ch06  function set$'; then
+  ok "a wrong answer with no miss row still gets the construct's entry"
+else
+  nope "a wrong answer with no miss row still gets the construct's entry"
+fi
+if has "$NOROW_OUT" 'what you wrote says'; then
+  nope "and no misconception section, since the table has nothing to say"
+else
+  ok "and no misconception section, since the table has nothing to say"
+fi
+# Nothing announces the absence. A learner holding both values and a sheet
+# entry has had a whole answer, and should not be told that a table they
+# cannot see declined to speak.
+if has "$NOROW_OUT" '(no (misconception|row|explanation))|not recorded|nothing known|no entry'; then
+  nope "and says nothing about a row it did not find"
+else
+  ok "and says nothing about a row it did not find"
+fi
+
+# A construct the sheet does not carry. R004 drills K087 and the fixture
+# sheet leaves it out on purpose, so this is the other silence.
+run_runner "$RUNNER" R004 'Tracks'
+NOENTRY_OUT="$RUN_OUT"
+if has "$NOENTRY_OUT" '^K0[0-9][0-9]  ch'; then
+  nope "a construct the sheet does not carry prints no entry"
+else
+  ok "a construct the sheet does not carry prints no entry"
+fi
+if has "$NOENTRY_OUT" '^the answer +\[\[t \\in Tracks \|-> 0\] EXCEPT'; then
+  ok "and the values are untouched by either layer being absent"
+else
+  nope "and the values are untouched by either layer being absent"
+fi
+
+echo
+echo "-- the match is normalised for whitespace, not exact --"
+# ---------------------------------------------------------------------------
+# The rule: a space is kept only where it stands between two word characters,
+# and dropped everywhere else. That is the only place TLA+ needs one.
+#
+# Exact text was the other candidate. It loses on this script's own argument:
+# the grade is value equality precisely so that any correct form passes, and
+# keying the explanation on the byte-for-byte shape of a wrong answer puts
+# the spelling test back one layer down, where it costs a row somebody wrote
+# and nobody sees.
+# ---------------------------------------------------------------------------
+
+fires() {
+  run_runner "$RUNNER" R001 "$1"
+  if has "$RUN_OUT" 'what you wrote says'; then printf 'yes\n'; else printf 'no\n'; fi
+}
+
+assert_eq "the row's own spacing reaches it" "yes" \
+  "$(fires '[w \in Wagons |-> Tracks]')"
+assert_eq "the same mistake with the spaces taken out reaches it" "yes" \
+  "$(fires '[w \in Wagons|->Tracks]')"
+assert_eq "the same mistake with spaces doubled and the brackets padded" "yes" \
+  "$(fires '[ w  \in  Wagons  |->  Tracks ]')"
+# Built with printf rather than typed, so the tab cannot be read as an indent
+# by anything that touches this file later.
+TABBED=$(printf '[w \\in Wagons |->\tTracks]')
+assert_eq "and with a tab in it, since a tab is whitespace like any other" "yes" \
+  "$(fires "$TABBED")"
+# The other half of the rule. `\in Wagons` is a space between two word
+# characters, so it carries a token boundary and must NOT be dropped: the
+# answer below is a different token sequence and reaches no row.
+assert_eq "a space between two word characters is kept, so \\inWagons is not it" "no" \
+  "$(fires '[w \inWagons |-> Tracks]')"
+assert_eq "a different wrong answer reaches no row" "no" \
+  "$(fires '[w \in Wagons |-> Wagons]')"
+assert_eq "and neither does the one the fixture deliberately has no row for" "no" \
+  "$(fires '[Tracks -> Wagons]')"
+
+echo
+echo "-- the construct gate's refusal gets the entry too --"
+# The one grade whose entire content is that a construct was not written, and
+# field 7 is an ERE rather than notation. No miss row there: the value was
+# right, and that table is about wrong ones.
+RUN_RC=0
+GATE_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+  R003 '[t \in Tracks |-> t * 2]' 2>&1) || RUN_RC=$?
+assert_eq "a refusal still exits 4" "4" "$RUN_RC"
+if has "$GATE_OUT" '^K001  ch02  Operator definition$'; then
+  ok "and carries the entry for the construct it says was not written"
+else
+  nope "and carries the entry for the construct it says was not written"
+fi
+if has "$GATE_OUT" 'what you wrote says'; then
+  nope "and no miss row, since the value was right"
+else
+  ok "and no miss row, since the value was right"
+fi
+
+echo
+echo "-- neither layer can refuse a grade --"
+# A delivered practice tree can arrive without either file and every rep in
+# it still grades, because an explanation is not a verdict. That is the same
+# posture an absent field 7 has.
+RUN_RC=0
+GONE_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" \
+  --misses "$TMPROOT/no-such-misses.tsv" --sheet "$TMPROOT/no-such-sheet.md" \
+  -- R001 '[w \in Wagons |-> Tracks]' 2>&1) || RUN_RC=$?
+assert_eq "both files missing is still the verdict channel's own code" "10" "$RUN_RC"
+if has "$GONE_OUT" '^the answer +\[Wagons -> Tracks\]$'; then
+  ok "and the value block is unaffected"
+else
+  nope "and the value block is unaffected"
+fi
+if has "$GONE_OUT" 'nothing was graded'; then
+  nope "and a missing explanation file is never a could-not-run"
+else
+  ok "and a missing explanation file is never a could-not-run"
+fi
+
+# Quiet is the status line and nothing else, which has to keep holding now
+# that there are two more sections below it.
+RUN_RC=0
+QUIET_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+  -q R001 '[w \in Wagons |-> Tracks]' 2>&1) || RUN_RC=$?
+assert_eq "quiet is still one line with both layers wired" "1" "$(wc -l <<<"$QUIET_OUT")"
+
+echo
+echo "-- the mutants for the two layers --"
+
+# M6. the sheet entry never prints. The column-0 call is the one on the wrong
+# answer path; the indented one belongs to the construct-gate refusal.
+# shellcheck disable=SC2016
+M6=$(mutate sheet-dropped 's|^show_sheet "\$CONSTRUCT"$|:|') || M6=""
+if [ -n "$M6" ]; then
+  run_runner "$M6" R001 '[w \in Wagons |-> Tracks]'
+  if has "$RUN_OUT" '^K050  ch06'; then
+    nope "control: a runner that stopped printing the sheet entry is DETECTED"
+  else
+    ok "control: a runner that stopped printing the sheet entry is DETECTED"
+  fi
+  if has "$RUN_OUT" 'what you wrote says'; then
+    ok "and it fails the way the mutation says, the miss row still prints"
+  else
+    nope "and it fails the way the mutation says, the miss row still prints"
+  fi
+fi
+
+# M7. the miss row never prints.
+# shellcheck disable=SC2016
+M7=$(mutate miss-dropped 's|^show_misconception "\$REP_ID"$|:|') || M7=""
+if [ -n "$M7" ]; then
+  run_runner "$M7" R001 '[w \in Wagons |-> Tracks]'
+  if has "$RUN_OUT" 'what you wrote says'; then
+    nope "control: a runner that stopped printing the miss row is DETECTED"
+  else
+    ok "control: a runner that stopped printing the miss row is DETECTED"
+  fi
+  if has "$RUN_OUT" '^K050  ch06'; then
+    ok "and it fails the way the mutation says, the sheet entry still prints"
+  else
+    nope "and it fails the way the mutation says, the sheet entry still prints"
+  fi
+fi
+
+# M8. the normalisation stops normalising, so the match is back to text. The
+# spaced-out answers have to stop reaching the row and the row's own spelling
+# has to keep reaching it -- a mutant that broke BOTH would prove nothing
+# about the rule, only that the lookup ran.
+M8=$(mutate match-exact 's|^      return out$|      return s|') || M8=""
+if [ -n "$M8" ]; then
+  run_runner "$M8" R001 '[w \in Wagons|->Tracks]'
+  if has "$RUN_OUT" 'what you wrote says'; then
+    nope "control: a runner matching text rather than tokens is DETECTED"
+  else
+    ok "control: a runner matching text rather than tokens is DETECTED"
+  fi
+  run_runner "$M8" R001 '[w \in Wagons |-> Tracks]'
+  if has "$RUN_OUT" 'what you wrote says'; then
+    ok "and it fails the way the mutation says, the row's own spelling still hits"
+  else
+    nope "and it fails the way the mutation says, the row's own spelling still hits"
+  fi
+fi
+
+echo
+echo "== part 13: the shipped files, which the fixture deliberately stands in for =="
+# ---------------------------------------------------------------------------
+# Everything above runs against fixture copies, so a sheet or a miss table
+# that stopped resolving at the path the runner ships with would pass every
+# row of it. One live rep closes that, and the rest of this part is text over
+# the real files.
+#
+# R107 is the rep the epic's measured table is taken over. Its construct is
+# K050 and recall/MISSES.tsv carries a row for this answer, so one run proves
+# both shipped defaults resolve.
+# ---------------------------------------------------------------------------
+
+LIVE_REPS="$REPO_ROOT/recall/REPS.tsv"
+LIVE_MISSES="$REPO_ROOT/recall/MISSES.tsv"
+LIVE_SHEET="$REPO_ROOT/drill/SHEET.md"
+
+RUN_RC=0
+LIVE_OUT=$("$RUNNER" R107 '[w \in Wagons |-> Tracks]' 2>&1) || RUN_RC=$?
+assert_eq "a live rep through the shipped defaults still grades" "10" "$RUN_RC"
+if has "$LIVE_OUT" '^K050  ch06'; then
+  ok "and drill/SHEET.md resolves at the path the runner ships with"
+else
+  nope "and drill/SHEET.md resolves at the path the runner ships with"
+fi
+if has "$LIVE_OUT" 'what you wrote says'; then
+  ok "and so does recall/MISSES.tsv"
+else
+  nope "and so does recall/MISSES.tsv"
+fi
+
+# Every rep's construct has an entry, so no rep is quietly short a layer.
+assert_eq "every construct in recall/REPS.tsv has a drill/SHEET.md entry" "" \
+  "$(awk 'FNR == NR { if ($0 ~ /^- K[0-9][0-9][0-9]  /) { split($0, a, " "); have[a[2]] = 1 } next }
+          { n = split($0, f, "\t"); if (f[1] == "REP" && !(f[3] in have)) print f[2] }' \
+       "$LIVE_SHEET" "$LIVE_REPS")"
+assert_eq "every rep id in recall/MISSES.tsv is a row of recall/REPS.tsv" "" \
+  "$(awk -F'\t' 'NR == FNR && $1 == "REP" { have[$2] = 1; next }
+                 $1 == "MISS" && !($2 in have) { print $2 }' "$LIVE_REPS" "$LIVE_MISSES")"
+assert_eq "and the same holds inside the fixture" "" \
+  "$(awk -F'\t' 'NR == FNR && $1 == "REP" { have[$2] = 1; next }
+                 $1 == "MISS" && !($2 in have) { print $2 }' "$REPS" "$MISSES")"
+
+# ---------------------------------------------------------------------------
+# THE CONDITION UNDER WHICH NORMALISING IS SAFE, GATED RATHER THAN ASSERTED
+# IN PROSE.
+#
+# Collapsing whitespace erases TLA+'s bullet-list alignment, which is the one
+# place a run of spaces carries meaning: indentation groups a stacked /\ and
+# \/ list. Re-grouping a list of ONE operator cannot change what it says,
+# because both are associative. A row carrying BOTH is the shape where a
+# learner's differently-grouped list could flatten onto it and be handed an
+# explanation of something else, and there is no such row today.
+# ---------------------------------------------------------------------------
+assert_eq "no miss row mixes /\\ and \\/, which is what makes flattening safe" "" \
+  "$(awk -F'\t' '$1 == "MISS" && index($3, "/\\") > 0 && index($3, "\\/") > 0 { print FILENAME ": " $2 }' \
+       "$LIVE_MISSES" "$MISSES")"
+
+# ---------------------------------------------------------------------------
+# THE LENGTH BUDGET, held at the data rather than at the display.
+#
+# Bead tla-1sh7.5 cut a 40-line block to 17 and this bead adds two sections
+# to it. Neither section is capped, because an explanation cut mid-sentence
+# costs more than the line it saves, so what bounds the block instead is the
+# length of what the two files carry. Measured over the shipped tables on
+# 2026-10-16: the longest field 4 is R006's at 155 characters, which wraps to
+# 3 lines, and the longest sheet body a rep reaches is K087's at 185, which
+# wraps to 3. That puts the worst real block at 25 lines and the ordinary one
+# at 21 to 24.
+#
+# 4 wrapped lines in either file would put a block past 26, so that is where
+# the gate sits: close enough to today's worst to mean something, far enough
+# not to fire on an ordinary rewrite.
+# ---------------------------------------------------------------------------
+# Read out of the runner rather than written down twice. A width that moved
+# in one file and not the other would make this gate measure a block nobody
+# is shown.
+PROSE_WIDTH=$(awk -F= '/^PROSE_WIDTH=/ { print $2; exit }' "$RUNNER")
+assert_ne "the runner still names a prose width for these two gates to use" "" "$PROSE_WIDTH"
+
+# BOTH GATES BELOW ARE GUARDED ON THAT WIDTH, and the guard is not decoration.
+# A runner with no PROSE_WIDTH leaves the variable empty, `fold` then refuses
+# the column count and prints nothing, `wc -l` answers 0, and 0 is under
+# every budget -- so both gates would report success over a measurement that
+# never happened. Watched doing exactly that during this bead's red run.
+wrapped_lines() { fold -s -w "$PROSE_WIDTH" <<<"$1" | wc -l; }
+
+if [ -z "$PROSE_WIDTH" ]; then
+  nope "no miss explanation wraps past 3 lines (not measured: no prose width)"
+  nope "no sheet body a rep reaches wraps past 3 lines (not measured: no prose width)"
+else
+  LONG_MISS=""
+  while IFS= read -r rep_id; do
+    [ -n "$rep_id" ] || continue
+    text=$(awk -F'\t' -v id="$rep_id" '$1 == "MISS" && $2 == id { print $4; exit }' "$LIVE_MISSES")
+    n=$(wrapped_lines "$text")
+    [ "$n" -ge 1 ] && [ "$n" -le 3 ] || LONG_MISS="$LONG_MISS $rep_id($n)"
+  done < <(awk -F'\t' '$1 == "MISS" { print $2 }' "$LIVE_MISSES")
+  assert_eq "no miss explanation wraps past 3 lines at the runner's prose width" "" "$LONG_MISS"
+
+  LONG_SHEET=""
+  while IFS= read -r k_id; do
+    [ -n "$k_id" ] || continue
+    body=$(awk -v want="$k_id" 'index($0, "- " want "  ") == 1 { getline b; sub(/^[ \t]+/, "", b); print b; exit }' "$LIVE_SHEET")
+    n=$(wrapped_lines "$body")
+    [ "$n" -ge 1 ] && [ "$n" -le 3 ] || LONG_SHEET="$LONG_SHEET $k_id($n)"
+  done < <(awk -F'\t' '$1 == "REP" { print $3 }' "$LIVE_REPS" | sort -u)
+  assert_eq "no sheet body a rep reaches wraps past 3 lines either" "" "$LONG_SHEET"
 fi
 
 echo

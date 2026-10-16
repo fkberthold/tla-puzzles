@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # recall.sh: grade one recall rep, and explain a wrong answer with the two
-# values side by side (bead tla-wekw, epic tla-1sh7).
+# values side by side, what that answer says, and what the construct is
+# (beads tla-wekw and tla-1sh7.6, epic tla-1sh7).
 #
 # A rep states a need in English and asks for the notation. This script takes
 # the rep id and what was typed, drops the answer into a scaffold module beside
@@ -14,6 +15,8 @@
 # hand the next argument is the answer, whatever it starts with.
 #   --reps FILE       rep table (default: recall/REPS.tsv beside this script)
 #   --env-dir DIR     constant environments (default: recall/env)
+#   --sheet FILE      construct sheet (default: drill/SHEET.md)
+#   --misses FILE     miss table (default: recall/MISSES.tsv beside this file)
 #   --full            print each value whole, however long it runs
 #   -q, --quiet       the status line only, no prompt and no value block
 #   -h, --help        this text
@@ -174,6 +177,79 @@
 # size of the right answer. Two members, the elision, the closing member and
 # the count comes to five lines, which is still enough to recognize as yours.
 #
+# WHAT ELSE A WRONG ANSWER GETS, AND WHERE IT COMES FROM. The two values are
+# the first layer of the explanation and they are not the whole of it. Two
+# more are files this script reads and neither is a verdict:
+#
+#     drill/SHEET.md       the construct's own entry, found by the rep's
+#                          field 3, which is the K id both files are keyed on
+#     recall/MISSES.tsv    the explanation for THIS wrong answer, if the
+#                          table carries a row for it
+#
+# EITHER FILE MISSING IS SILENCE, NEVER A REFUSAL. A delivered practice tree
+# can arrive without them and every rep in it still grades, because an
+# explanation is not a grade. That is the same posture an absent field 7 has.
+# What the gate does instead is assert that the shipped files resolve, so a
+# sheet that quietly stopped being found is a red suite rather than a learner
+# wondering where the entry went.
+#
+# A SHEET ENTRY IS A HEADER LINE AND THE ONE LINE UNDER IT. The id, the
+# chapter and the construct's name, then its syntax. Backticks are dropped on
+# the way out: the file is markdown and this is a terminal.
+#
+# THE MISS TABLE IS KEYED ON THE TEXT THAT WAS TYPED, and the match is
+# NORMALISED FOR WHITESPACE rather than exact. The rule is one sentence: a
+# space is kept only where it stands between two word characters, and dropped
+# everywhere else. So `{"c","a"}` reaches the row written `{"c", "a"}`, and
+# `IN A` can never collapse into `INA`.
+#
+# EXACT TEXT WAS THE OTHER CANDIDATE AND IT LOSES ON THIS SCRIPT'S OWN
+# ARGUMENT. The grade is value equality precisely so that any correct form
+# passes and the rung is not a spelling test. Keying the explanation on the
+# byte-for-byte shape of a wrong answer reintroduces the spelling test one
+# layer down, where it costs a row that somebody wrote and nobody sees. 30
+# rows is small enough to match exactly; it is not small enough to be worth
+# missing one.
+#
+# THE ONE THING NORMALISING GIVES UP is TLA+'s bullet-list alignment, since a
+# run of whitespace carries the indentation that groups a stacked /\ and \/
+# list. That costs nothing against this table and the gate says why: no row's
+# field 3 carries both operators, and re-grouping a list of one operator
+# cannot change what it means. A row carrying both would be the shape where
+# flattening could merge two different answers, and harness/test-recall-runner.sh
+# refuses one.
+#
+# WHAT IT IS NOT KEYED ON IS THE VALUE. A second grading run against the
+# row's expression would fire on any answer with the same value, which is a
+# wider net than field 4 is written for: "that's a set, so it holds no order"
+# is a sentence about a shape somebody typed.
+#
+# THE MISS ROW GOES ABOVE THE SHEET ENTRY, and the reason is the 90 reps that
+# have no row rather than the 30 that do. Whole blocks were read both ways at
+# R107, R099, R049 and R118. Either order reads tolerably on its own, so what
+# settles it is that this one ENDS THE SAME WAY AT ALL 120 REPS: the sheet
+# entry last, the variable section in the middle. A learner drilling at
+# seconds a rep learns where to look once. The other order puts the sheet
+# entry last at 90 reps and the miss row last at 30, so the bottom of the
+# block moves under them.
+#
+# Reading R099 the other way is the clearest single case. Its sheet entry,
+# `F == [x \in S |-> expr]`, landing directly under the canonical answer
+# `[w \in Wagons |-> 1]` is a restatement of the line above it. The same
+# entry after the misconception reads as the general form of what was just
+# explained. Specific, then general, is also the movement the value block
+# already starts.
+#
+# THE SHEET ENTRY ALSO PRINTS ON A CONSTRUCT-GATE REFUSAL, which is the one
+# grade whose entire content is that a construct was not written. The miss
+# row does not: the value was right, and the miss table is about wrong ones.
+#
+# NINETY OF THE 120 REPS CARRY NO MISS ROW, so no row is the common case and
+# not the fallback. Nothing announces an absence -- no "(no misconception
+# recorded)" line -- because a learner who gets both values and a sheet entry
+# has had a complete answer and should not be told that a table they cannot
+# see declined to speak.
+#
 # THE REP TABLE is tab-delimited with the literal first field REP, so prose in
 # the file can never be read as data. Six fields, and an optional seventh:
 #
@@ -212,19 +288,27 @@ CONSTRUCT_TOKEN="CONSTRUCT_NOT_WRITTEN"
 VALUE_HEAD=2
 VALUE_TAIL=2
 
+# How wide the two prose sections wrap. The value block is not wrapped: TLC
+# chose its own line breaks there and re-flowing them would move members
+# across lines the cap counts. Prose has no such constraint, and 76 plus the
+# two-space indent leaves a column clear of an 80-column terminal.
+PROSE_WIDTH=76
+
 VERDICT="${REPO_ROOT}/harness/verdict.sh"
 REPS="${SCRIPT_DIR}/REPS.tsv"
 ENV_DIR="${SCRIPT_DIR}/env"
+SHEET="${REPO_ROOT}/drill/SHEET.md"
+MISSES="${SCRIPT_DIR}/MISSES.tsv"
 QUIET=0
 FULL=0
 REP_ID=""
 ANSWER=""
 HAVE_ANSWER=0
 
-# Lines 2 to 19 of this file: what the script is, how it is called, and the
+# Lines 2 to 22 of this file: what the script is, how it is called, and the
 # flags. The range is a line number and nothing gates it, so moving the OPTIONS
 # block means moving this too.
-usage() { sed -n '2,19p' "${BASH_SOURCE[0]}"; }
+usage() { sed -n '2,22p' "${BASH_SOURCE[0]}"; }
 
 die_usage() {
   printf 'recall.sh: %s\n' "$1" >&2
@@ -258,6 +342,8 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --reps)    [ "$#" -ge 2 ] || die_usage "--reps needs a file"; REPS="$2"; shift 2 ;;
     --env-dir) [ "$#" -ge 2 ] || die_usage "--env-dir needs a directory"; ENV_DIR="$2"; shift 2 ;;
+    --sheet)   [ "$#" -ge 2 ] || die_usage "--sheet needs a file"; SHEET="$2"; shift 2 ;;
+    --misses)  [ "$#" -ge 2 ] || die_usage "--misses needs a file"; MISSES="$2"; shift 2 ;;
     --full)     FULL=1; shift ;;
     -q|--quiet) QUIET=1; shift ;;
     -h|--help)  usage; exit 0 ;;
@@ -298,6 +384,10 @@ if [ -z "$ROW" ]; then
   die_cannot_run "${REPS} has no REP row with id ${REP_ID}, so nothing was graded."
 fi
 
+# Field 3 is the K id, and it is the join to drill/SHEET.md. A rep with no
+# construct id reaches no entry and the rest of the run is unaffected, which
+# is why this is not checked the way the environment and the canonical are.
+CONSTRUCT="$(cut -f3 <<<"$ROW")"
 ENV_NAME="$(cut -f4 <<<"$ROW")"
 PROMPT="$(cut -f5 <<<"$ROW")"
 CANON="$(cut -f6 <<<"$ROW")"
@@ -411,6 +501,106 @@ printed_region() {
   ' "$1"
 }
 
+# ---------------------------------------------------------------------------
+# The two explanation layers that are not values. Both are lookups into files
+# this script only ever reads, and neither one can change a grade.
+#
+# Defined up here rather than beside show_value because the construct-gate
+# refusal prints a sheet entry and returns before show_value is ever defined.
+# ---------------------------------------------------------------------------
+
+# Two spaces of indent, wrapped to PROSE_WIDTH, with the trailing space
+# `fold -s` leaves at each break taken back off. A here-string rather than a
+# pipe at every step: under pipefail a consumer that closes early makes the
+# producer take SIGPIPE and the whole pipeline report 141.
+show_prose() {
+  local wrapped
+  wrapped="$(fold -s -w "$PROSE_WIDTH" <<<"$1")"
+  sed -e 's/[[:space:]]*$//' -e 's/^/  /' <<<"$wrapped"
+}
+
+# The construct's entry in the sheet. An entry is the `- Kxxx  chNN  Name`
+# line and the single line under it, and `index(...) == 1` anchors the id so
+# K05 can never reach K050. Two lines out: a header this script assembles,
+# then the syntax with its markdown backticks dropped.
+sheet_entry() {
+  [ -r "$SHEET" ] || return 1
+  awk -v want="$1" '
+    index($0, "- " want "  ") == 1 {
+      n = split($0, a, "  ")
+      name = a[3]
+      for (i = 4; i <= n; i++) name = name "  " a[i]
+      if ((getline body) > 0) {
+        gsub(/^[ \t]+/, "", body)
+        gsub(/[ \t]+$/, "", body)
+        gsub(/`/, "", body)
+        if (body != "") {
+          printf "%s  %s  %s\n", substr(a[1], 3), a[2], name
+          printf "%s\n", body
+        }
+      }
+      exit
+    }
+  ' "$SHEET"
+}
+
+# The miss row for this rep and this answer, normalised for whitespace.
+#
+# THE ANSWER ARRIVES THROUGH THE ENVIRONMENT, NOT THROUGH -v. awk processes
+# escape sequences in a -v assignment, so `\in` would reach the program as
+# `in` and no TLA+ answer would ever match. ENVIRON hands the bytes over
+# untouched.
+#
+# norm() keeps a space only where it separates two word characters, which is
+# the only place TLA+ needs one. Everywhere else it goes, so a learner's
+# spacing is not part of the key.
+miss_row() {
+  [ -r "$MISSES" ] || return 1
+  RECALL_ANSWER="$ANSWER" awk -F'\t' -v rep="$1" '
+    function norm(s,   out, i, c, n, prev, nxt) {
+      gsub(/[ \t\r\n]+/, " ", s)
+      sub(/^ /, "", s)
+      sub(/ $/, "", s)
+      n = length(s)
+      out = ""
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1)
+        if (c != " ") { out = out c; continue }
+        prev = substr(s, i - 1, 1)
+        nxt  = substr(s, i + 1, 1)
+        if (prev ~ /[A-Za-z0-9_]/ && nxt ~ /[A-Za-z0-9_]/) out = out " "
+      }
+      return out
+    }
+    BEGIN { want = norm(ENVIRON["RECALL_ANSWER"]) }
+    $1 == "MISS" && $2 == rep && norm($3) == want { print $4; exit }
+  ' "$MISSES"
+}
+
+# Layer 3. Silent when the table has no row for what was typed, which is the
+# case at 90 of the 120 reps, and silent in a way that leaves no hole: a
+# learner with both values and a sheet entry has a whole answer and is not
+# told that a table they cannot see had nothing to say.
+show_misconception() {
+  local text
+  text="$(miss_row "$1")" || return 0
+  [ -n "$text" ] || return 0
+  echo
+  echo "what you wrote says"
+  show_prose "$text"
+}
+
+# Layer 2. Keyed on the rep's construct rather than on the answer, so it is
+# the same entry however the rep was got wrong.
+show_sheet() {
+  local entry
+  entry="$(sheet_entry "$1")" || return 0
+  [ -n "$entry" ] || return 0
+  echo
+  sed -n '1p' <<<"$entry"
+  show_prose "$(sed -n '2,$p' <<<"$entry")"
+}
+
 # One TLC run, through the one verdict channel. The token comes back on
 # verdict.sh's stdout and the code comes back as its exit status, so neither is
 # this script's opinion: verdict.sh owns the exit-code table, including the
@@ -477,6 +667,10 @@ if [ "$GRADE" = "construct-missing" ]; then
   printf '  wanted somewhere in the answer:  %s\n' "$REQUIRES"
   printf '  the grading run came back rc=%s token=%s, so only the form is at issue.\n' \
     "$GRADE_RC" "$GRADE_TOKEN"
+  # The sheet entry, because this is the one grade whose whole content is that
+  # a construct was not written, and field 7 is an ERE rather than notation.
+  # No miss row: the value was right, and that table is about wrong ones.
+  show_sheet "$CONSTRUCT"
   exit "$REPORT_RC"
 fi
 
@@ -551,5 +745,11 @@ show_value() {
 
 show_value "you typed" "Yours" "$ANSWER"
 show_value "the answer" "Canon" "$CANON"
+
+# Values, then what this answer says, then what the construct is. One widening
+# movement, and the order was settled by reading whole blocks both ways rather
+# than by argument. The header's note names the reps.
+show_misconception "$REP_ID"
+show_sheet "$CONSTRUCT"
 
 exit "$REPORT_RC"

@@ -1,0 +1,33 @@
+# Fixture miss table for harness/test-recall-runner.sh (bead tla-1sh7.6).
+#
+# This file pins the FORMAT recall/MISSES.tsv uses. It is not the corpus; the
+# real table is bead tla-1sh7.3's, carries 30 rows, and is reached by one
+# live row at the end of the suite rather than by the fixture cases.
+#
+# Rows are tab-delimited and carry the literal first field MISS, so prose in
+# this file can never be read as data. Four fields, in order:
+#
+#   1  marker       the literal MISS
+#   2  rep id       a REP row in REPS.tsv beside this file
+#   3  wrong        the wrong answer, as TLA+, verbatim
+#   4  explanation  what that answer says
+#
+# WHAT EACH ROW IS FOR, since this is a fixture and not a corpus:
+#
+#   R001  the answer every other part of the suite already submits as its
+#         wrong one, so the layer rides on a value the fixture has measured.
+#         It is also the row the whitespace rows aim at: the suite submits
+#         the same mistake spaced three ways and requires all three to reach
+#         this row, and the exact-match mutant requires two of them to stop.
+#   R002  a second rep, so a row firing is not one rep's accident.
+#
+# NO ROW FOR `[Tracks -> Wagons]`, WHICH IS DELIBERATE. That is case C004, a
+# wrong answer to R001 that this table has nothing to say about, and it is
+# how the suite reaches the path 90 of the 120 real reps take. A table that
+# answered every fixture case would leave that path untested.
+#
+# FIELD 4 SAYS WHAT THE WRONG ANSWER IS, NOT WHAT TO WRITE INSTEAD, which is
+# the register recall/MISSES.tsv sets and the reason it can be printed under
+# two values that already show the right answer.
+MISS	R001	[w \in Wagons |-> Tracks]	That's one parking, and what it gives back for every wagon is the whole set of tracks rather than a single track.
+MISS	R002	[w \in Wagons |-> 2]	That parks every wagon on the second track. It is a parking of the right shape standing in the wrong place.
