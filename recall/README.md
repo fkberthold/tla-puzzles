@@ -265,9 +265,6 @@ not correct. what you typed, then the answer.
 
 you typed   [w \in Wagons |-> Tracks]
   [a |-> 1..3, b |-> 1..3, c |-> 1..3]
-  Attempted to compute cardinality of the value
-  [a |-> 1..3, b |-> 1..3, c |-> 1..3]
-  (no count: TLC will not count that value, so it is not a set)
 
 the answer  [Wagons -> Tracks]
   { [a |-> 1, b |-> 1, c |-> 1],
@@ -812,21 +809,30 @@ A rep needing something outside the list is a one-line change to
 
 ## Why the count is attempted rather than guarded
 
-`Cardinality` errors on a value that is not a set, and the error is the
-clearest statement of the mistake there is: a function was written where a set
-was asked for. So the runner prints the value, lets the count fail, and says
-the count was skipped.
-
-There is no guard to reach for instead, and that was measured rather than
-assumed. `IsFiniteSet([w \in Wagons |-> 1])` returns `TRUE`, exit 0, on the
-very value whose `Cardinality` errors, so an `IF IsFiniteSet(x) THEN
+`Cardinality` errors on a value that is not a set. The runner attempts it
+anyway, because there's no guard to reach for instead, and that was measured
+rather than assumed. `IsFiniteSet([w \in Wagons |-> 1])` returns `TRUE`, exit
+0, on the very value whose `Cardinality` errors, so an `IF IsFiniteSet(x) THEN
 Cardinality(x)` would skip nothing.
 
-The value and its count are a separate TLC run per value. A probe that exits
-non-zero printed no count, so the skip is keyed on an exit code and nothing
-reads TLC's prose to decide it. It also means the probe's own `10` -- the same
-number a wrong answer scores -- can never leak out as a grade, because the
-grade comes from a different run.
+What you see when the count fails turns on whether the value itself survived.
+84 of the 120 value reps answer with something that is not a set. Booleans,
+strings and numbers are most of that, so a refused count is the ordinary case
+here rather than an edge. There the value prints alone and TLC's complaint
+goes, because it's about the runner's own probe rather than about anything you
+wrote.
+
+Where the value never evaluated, TLC's sentence is the only thing there is to
+say, so all of it stays. A `CASE` with no true arm is the shape to picture.
+
+The discriminator is what printed, not the exit code. A value that evaluates
+prints before TLC's first `Error:` line and a value that doesn't prints
+nothing there. I keyed this on the exit code first and that was wrong, since
+the probe exits 10 either way.
+
+The value and its count are a separate TLC run per value. That's also why the
+probe's own `10`, the same number a wrong answer scores, can never leak out as
+a grade. The grade comes from a different run.
 
 ## Cost
 
