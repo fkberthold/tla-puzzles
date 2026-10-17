@@ -131,20 +131,32 @@
 # ---------------------------------------------------------------------------
 # EXIT, and this is the contract the gate depends on: the exit code is the
 # RAW CODE THE GRADING RUN RETURNED, never a code inferred from anything TLC
-# printed. Three codes are this script's own and none of them collides with a
+# printed. Four codes are this script's own and none of them collides with a
 # code of TLC's:
 #
 #     2   usage error -- a missing argument or an unknown flag
-#     3   could not run -- no rep, no environment, no tlc, no scratch
-#     4   the value is right and the construct the rep drills is not in what
-#         was typed. See THE CONSTRUCT GATE below
+#     3   could not run -- no rep, no environment, no scaffold, no tlc, no
+#         scratch
+#     4   the answer was accepted and the construct the rep drills is not in
+#         what was typed. See THE CONSTRUCT GATE below
+#     5   a SPEC rep whose scaffolds all ran and whose exit codes did not
+#         match the vector field 8 names. See A SPEC REP below
 #
 # 2 and 3 happen before TLC starts, so there is no verdict to be faithful to.
 # 4 is the one that happens after a run, and it replaces a grading run that
 # came back 0: the status line carries 4 and the runner's own token, and the
 # line under it names the rc and token the grading run returned, so nothing
-# the run said is hidden. 4 sits in the 3-to-7 range harness/vacuity.sh:320
-# reserves for statements about the submission.
+# the run said is hidden. 4 and 5 sit in the 3-to-7 range
+# harness/vacuity.sh:320 reserves for statements about the submission.
+#
+# 5 IS A CODE OF THIS SCRIPT'S RATHER THAN A CODE OF TLC'S, AND THAT IS A
+# CHOICE WORTH SEEING. A spec rep runs between one and four TLCs, so there is
+# no single raw code to be faithful to, and reporting the first disagreeing
+# run's own code would put `rc=0` on a status line reading `grade=incorrect`
+# whenever the answer PASSED a spec it was supposed to fail. The number that
+# is true of a vector is a number about the vector. Every code each run
+# returned is printed under the status line, so nothing any run said is
+# hidden -- the same arrangement 4 already uses.
 #
 # ---------------------------------------------------------------------------
 # IT DEPENDS ON NOTHING BUT TLC
@@ -423,8 +435,11 @@
 # has had a complete answer and should not be told that a table they cannot
 # see declined to speak.
 #
-# THE REP TABLE is tab-delimited with the literal first field REP, so prose in
-# the file can never be read as data. Six fields, and an optional seventh:
+# THE REP TABLE is tab-delimited and carries the row kind in field 1, so prose
+# in the file can never be read as data. There are TWO kinds and the marker is
+# how they are told apart.
+#
+# A REP ROW. Six fields, and an optional seventh:
 #
 #     1  REP          the literal marker
 #     2  rep id       stable, never renumbered
@@ -435,9 +450,141 @@
 #     7  requires     OPTIONAL. An ERE the raw answer has to match before a
 #                     correct value is accepted. Absent or empty is no gate
 #
+# A SPEC ROW. Eight fields, and an optional ninth:
+#
+#     1  SPEC         the literal marker
+#     2  rep id       stable, never renumbered
+#     3  construct    K001-K105, a drill/INVENTORY.md row
+#     4  scaffolds    comma-separated, each resolving to a PAIR of files,
+#                     <env-dir>/spec/<name>.tla and <env-dir>/spec/<name>.cfg
+#     5  prompt       English, naming none of the notation it asks for
+#     6  canonical    the answer, as TLA+
+#     7  requires     OPTIONAL, and the SAME FIELD IT IS ON A REP ROW. See
+#                     THE CONSTRUCT GATE. On a spec row it is usually not
+#                     optional in practice; the reason is below
+#     8  expect       comma-separated exit codes, one per scaffold, in the
+#                     scaffolds' own order. This is the KEY
+#     9  check        OPTIONAL. the text that fills a scaffold's __CHECK__
+#                     hole, if it has one
+#
 # Rows are read with awk -F'\t', never with `IFS=$'\t' read`. Tab is an IFS
 # whitespace character, so read collapses a run of tabs into one delimiter and
 # drops a trailing empty field, which silently shifts every later field.
+#
+# ---------------------------------------------------------------------------
+# A SPEC REP, AND WHY VALUE EQUALITY CANNOT REACH ONE (bead tla-03ep.1)
+#
+# 68 of the inventory's 105 constructs say nothing about a value. `WF_v(A)` is
+# not an expression with a value; it is a promise about a behavior, and
+# `ASSUME Answer = Canonical` over it is not false, it is meaningless. The 20
+# constructs of the `temporal` family are the whole of that problem: nothing
+# in them has a value to compare.
+#
+# So a spec rep grades the answer by PUTTING IT IN A MACHINE AND RUNNING THE
+# MACHINE. The answer fills a hole in a scaffold, TLC checks the scaffold, and
+# the KEY IS THE EXIT CODE -- the same contract the value rung has, read off a
+# model check instead of off an assumption.
+#
+# A SCAFFOLD IS A WHOLE MODULE WITH HOLES IN IT, not a fragment. Both halves
+# of it ship:
+#
+#     <env-dir>/spec/<name>.tla    the module, named `Scaffold`, with a line
+#                                  whose only content is `__ANSWER__` and at
+#                                  most one whose only content is `__CHECK__`
+#     <env-dir>/spec/<name>.cfg    the obligations TLC is given over it
+#
+# THE HOLE IS A WHOLE LINE AND THE FILL IS NEVER PASSED THROUGH A REGEX. The
+# runner reads the template a line at a time and emits the answer in place of
+# the line whose trimmed text is `__ANSWER__`. A learner's answer therefore
+# never meets sed, awk or the shell as a program, which is the same posture
+# the value scaffold's `printf '%s'` takes. The scaffold author decides what
+# the hole is: a fairness conjunct, a temporal property, an action, a Spec
+# body, a `vars` tuple, or the VARIABLE declaration itself.
+#
+# THE MODULE IS ALWAYS CALLED `Scaffold`, so the runner copies it to
+# `Scaffold.tla` beside `Scaffold.cfg` in a directory of its own and rewrites
+# nothing. A battery of three scaffolds is three directories.
+#
+# THE KEY IS THE VECTOR, NOT A CODE, AND THAT IS THE WHOLE DESIGN. A single
+# run cannot grade a temporal property, because a property WEAKER than the one
+# asked for also holds: `[]TRUE` passes any machine. Two runs catch too-weak
+# and too-strong. Even two miss a near neighbor -- measured 2026-10-17, the
+# answer `<>(level = 1)` has the same two-sided profile as `<>(level = 2)` and
+# needed a fourth spec to separate. So field 8 is a vector and field 4 is a
+# list, and the grade is whether the two agree position by position.
+#
+#     correct      every run returned the code field 8 names for it
+#     incorrect    every run was gradeable and at least one disagreed
+#
+# WHICH CODES ARE GRADEABLE, measured on TLC2 2026.07.31.184830 over the 29
+# shipped scaffolds and every wrong answer in recall/MISSES.tsv:
+#
+#     0   OK                  the obligation held
+#     10  ASSUMPTION_FAILED   a POSTCONDITION came back FALSE. This is how a
+#                             state-graph fingerprint reports a mismatch
+#     12  SAFETY_VIOLATION    an INVARIANT was broken, OR a PROPERTY that is
+#                             a bare state predicate under [] was. Measured:
+#                             `[](level =< 2)` against a lift that reaches a
+#                             third floor is 12 and not 13, because TLC reads
+#                             a box-of-state-predicate as an invariant
+#     13  LIVENESS_VIOLATION  a temporal PROPERTY did not hold
+#
+# 11 DEADLOCK IS NOT IN THAT LIST and the reason is the invocation rather than
+# the table: every run here carries TLC's `-deadlock`, which means do NOT
+# check, so a terminal state is never an error.
+#
+# EVERYTHING ELSE IS A REPORT ABOUT THE RUN RATHER THAN ABOUT THE ANSWER, and
+# four were reached from real wrong answers rather than imagined:
+#
+#     150  PARSE_ERROR        SANY rejected the filled scaffold. A temporal
+#                             formula in an ACTION hole lands here as a LEVEL
+#                             error rather than a syntax one
+#     151  CONFIG_ERROR       an ACTION in a PROPERTY hole, which is the
+#                             mirror of the level error above. Also
+#                             `CONSTANTS level, lamp` where VARIABLES was
+#                             wanted: the .cfg then assigns nothing
+#     255  TLC_EXCEPTION      `WF_vars(Init)` -- fairness over the initial
+#                             predicate rather than over an action. Also a
+#                             VARIABLES line declaring a name nothing
+#                             constrains
+#     75   SPEC_EVAL_FAILURE  an action that leaves a variable unspecified,
+#                             `level' = 0 \/ level' = 2` with nothing said
+#                             about the lamp
+#
+# A run outside the gradeable set OUTRANKS a disagreement, so a rep whose
+# first scaffold blew up is never reported as a wrong answer. Telling somebody
+# their answer is wrong when nothing was checked is the same false statement
+# rc 150 already exists to avoid on the value rung.
+#
+# WHY FIELD 7 IS NOT REALLY OPTIONAL HERE. Value equality cannot see how a
+# value was reached and an exit code cannot see how a verdict was reached, so
+# the construct gate is load-bearing on a spec row in a way it is not on a
+# value row. Measured: `<>(level = 2)` conjoined into the fairness hole of
+# `fair-lift` PASSES at rc 0. It is not a fairness condition at all -- it is
+# the goal asserted as a hypothesis -- and the run cannot tell. `\bWF_` in
+# field 7 is what closes it, and the refusal says the value was right and the
+# construct was not written, which is exactly true.
+#
+# WHAT THE VECTOR STILL CANNOT SEE, stated here rather than left to be
+# discovered. Two measured holes:
+#
+#   - A WRONG SUBSCRIPT IN A Spec BODY. `Init /\ [][Next]_level` and
+#     `Init /\ [][Next]_vars` give the identical state graph, 6 distinct
+#     states at diameter 4 generating 11, because TLC builds successors from
+#     Next and the subscript only decides which steps count as stuttering.
+#     No fingerprint reaches it. The `vars` tuple has reps of its own, where
+#     the key is a battery over two machines that stop moving in different
+#     places.
+#   - A PROPERTY ABOUT THE ONLY PERPETUAL MOVER. On a two-machine battery
+#     that separates "something really moves, for ever" from its ENABLED
+#     form, `[]<>(lamp = 1)` shares the canonical's vector, because the lamp
+#     is the thing that moves. It is not recorded as a miss for that rep,
+#     because it is not caught.
+#
+# A ROW THAT WAS NEVER SUBMITTED WRONG IS NOT EVIDENCE. Every wrong answer
+# recall/MISSES.tsv records against a spec rep was run against the battery
+# that rep actually ships, and the vector it produced was read before the row
+# was written.
 set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -465,6 +612,41 @@ TIMEOUT=60
 # site, which is the convention harness/verdict.sh uses for its own 99.
 EXIT_CONSTRUCT_MISSING=4
 CONSTRUCT_TOKEN="CONSTRUCT_NOT_WRITTEN"
+
+# The runner's own code for "every scaffold of a SPEC rep ran and the vector
+# of codes is not the vector field 8 names". Bound to a name for the same
+# reason 4 is, and it carries a token of its own because verdict_token() maps
+# TLC's codes and 5 is not one of them.
+EXIT_SPEC_NOT_MATCHED=5
+SPEC_TOKEN="SPEC_NOT_MATCHED"
+
+# Where a SPEC row's scaffolds resolve, under the environment directory. A
+# scaffold is a WHOLE MODULE and an environment file is a FRAGMENT, so the two
+# kinds live apart rather than sharing a directory and a suffix.
+SPEC_SUBDIR="spec"
+
+# The module every scaffold declares, and the basename the runner copies it to.
+# Fixed rather than derived from the scaffold name, because a scaffold name
+# carries hyphens and a TLA+ module name cannot.
+SPEC_MODULE="Scaffold"
+
+# The two holes. A line whose trimmed content is one of these is replaced; any
+# other line is emitted byte for byte.
+HOLE_ANSWER="__ANSWER__"
+HOLE_CHECK="__CHECK__"
+
+# The codes a SPEC run may return that are a statement about the spec the
+# answer built. Anything else is a report about the run. All four were reached
+# from a real wrong answer on TLC2 2026.07.31.184830; see A SPEC REP in the
+# header for which answer reaches which.
+#
+# 11 DEADLOCK IS DELIBERATELY NOT IN THIS LIST, and its absence is a fact
+# about the runner rather than about the codes. Every run here carries TLC's
+# `-deadlock`, which means do NOT check, so a terminal state is never an error
+# and 11 cannot be reached from any scaffold. A rep whose whole question is
+# about a terminal state needs the runner to stop passing that flag, and that
+# is a change to the invocation rather than a row in a table.
+SPEC_GRADEABLE="0 10 12 13"
 
 # How much of a value survives the cap: the first two lines and the last two.
 # Two at the head because the second is what shows which position moves first,
@@ -632,11 +814,16 @@ WALK_KI=0
 WALK_ID=""
 WALK_PROMPT=""
 
+# BOTH ROW KINDS ARE IN ONE POOL, so a session interleaves a spec rep with a
+# value rep. That is not a convenience: the window below draws the next rep
+# from a construct within two positions of the last, and the families sit in
+# file order, so a spec family appended to the table is reached across one
+# boundary rather than sealed off behind a flag.
 walk_load() {
   local v k i
-  while IFS= read -r v; do WALK_IDS+=("$v"); done < <(awk -F'\t' '$1 == "REP" { print $2 }' "$REPS")
-  while IFS= read -r v; do WALK_KS+=("$v"); done < <(awk -F'\t' '$1 == "REP" { print $3 }' "$REPS")
-  while IFS= read -r v; do WALK_PROMPTS+=("$v"); done < <(awk -F'\t' '$1 == "REP" { print $5 }' "$REPS")
+  while IFS= read -r v; do WALK_IDS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $2 }' "$REPS")
+  while IFS= read -r v; do WALK_KS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $3 }' "$REPS")
+  while IFS= read -r v; do WALK_PROMPTS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $5 }' "$REPS")
 
   # The construct order IS the file order, which is what makes a window of two
   # positions a window of one family. See the header.
@@ -655,7 +842,7 @@ walk_load() {
 # The canonical answer for a rep, read at the moment a skip needs it and never
 # held in a table. There is no list of answers anywhere in a session.
 walk_canon() {
-  awk -F'\t' -v id="$1" '$1 == "REP" && $2 == id { print $6; exit }' "$REPS"
+  awk -F'\t' -v id="$1" '($1 == "REP" || $1 == "SPEC") && $2 == id { print $6; exit }' "$REPS"
 }
 
 # Sets WALK_PICK to the index of the next rep, or returns 1 when every rep has
@@ -768,9 +955,11 @@ run_session() {
     rc=0
     "$SELF" "${child[@]}" --reps "$REPS" --env-dir "$ENV_DIR" \
       --sheet "$SHEET" --misses "$MISSES" -- "$WALK_ID" "$answer" </dev/null || rc=$?
+    # 5 joins 4 and 10 as a wrong answer: a spec rep whose vector did not
+    # match is wrong in the same sense a value that is not equal is.
     case "$rc" in
       0)      right=$(( right + 1 )) ;;
-      4|10)   wrong=$(( wrong + 1 )) ;;
+      4|5|10) wrong=$(( wrong + 1 )) ;;
       *)      ungraded=$(( ungraded + 1 )) ;;
     esac
     served=$(( served + 1 ))
@@ -807,24 +996,38 @@ fi
 # ---------------------------------------------------------------------------
 # The rep.
 # ---------------------------------------------------------------------------
-ROW="$(awk -F'\t' -v id="$REP_ID" '$1 == "REP" && $2 == id { print; exit }' "$REPS")"
+ROW="$(awk -F'\t' -v id="$REP_ID" '($1 == "REP" || $1 == "SPEC") && $2 == id { print; exit }' "$REPS")"
 if [ -z "$ROW" ]; then
-  die_cannot_run "${REPS} has no REP row with id ${REP_ID}, so nothing was graded."
+  die_cannot_run "${REPS} has no REP or SPEC row with id ${REP_ID}, so nothing was graded."
 fi
+
+# FIELD 1 IS THE ROW KIND and it chooses the grading path. Read out of the row
+# rather than guessed from the shape, so a row short of a field reports as a
+# row short of a field rather than as the other kind.
+KIND="$(cut -f1 <<<"$ROW")"
 
 # Field 3 is the K id, and it is the join to drill/SHEET.md. A rep with no
 # construct id reaches no entry and the rest of the run is unaffected, which
 # is why this is not checked the way the environment and the canonical are.
 CONSTRUCT="$(cut -f3 <<<"$ROW")"
+# Field 4 is the environment on a REP row and the comma-separated scaffold
+# list on a SPEC row. One position, because the two are the same thing: what
+# the answer is dropped into.
 ENV_NAME="$(cut -f4 <<<"$ROW")"
 PROMPT="$(cut -f5 <<<"$ROW")"
 CANON="$(cut -f6 <<<"$ROW")"
 # A six-field row has no field 7 and cut returns the empty string for it, which
-# is the same thing an empty field 7 says: no gate.
+# is the same thing an empty field 7 says: no gate. The same holds of fields 8
+# and 9, which only a SPEC row carries.
 REQUIRES="$(cut -f7 <<<"$ROW")"
+EXPECT="$(cut -f8 <<<"$ROW")"
+CHECK="$(cut -f9 <<<"$ROW")"
 
 [ -n "$ENV_NAME" ] || die_cannot_run "rep ${REP_ID} names no environment, so nothing was graded."
 [ -n "$CANON" ]    || die_cannot_run "rep ${REP_ID} carries no canonical answer, so nothing was graded."
+if [ "$KIND" = "SPEC" ]; then
+  [ -n "$EXPECT" ] || die_cannot_run "rep ${REP_ID} is a SPEC row with no expected exit codes in field 8, so there is no key to grade against and nothing was graded."
+fi
 
 # The construct gate's match, run here rather than after the grading run so
 # that a pattern grep will not read is "could not run" instead of a grade. A
@@ -847,8 +1050,39 @@ if [ -n "$REQUIRES" ]; then
   esac
 fi
 
-ENV_FILE="${ENV_DIR}/${ENV_NAME}.tla"
-[ -r "$ENV_FILE" ] || die_cannot_run "rep ${REP_ID} names environment ${ENV_NAME}, and ${ENV_FILE} is not there, so nothing was graded."
+# ---------------------------------------------------------------------------
+# What field 4 resolves to, which is the one thing the two row kinds differ on
+# before TLC starts.
+#
+# A SPEC row's list is split on commas and every part has to resolve to BOTH
+# files before anything runs. A battery that is half there is not a battery:
+# its vector would be short, and a short vector compared against a full one
+# position by position is a grade read off a run that did not happen. Field 8
+# is counted here too, for the same reason.
+# ---------------------------------------------------------------------------
+SPEC_NAMES=()
+SPEC_WANT=()
+if [ "$KIND" = "SPEC" ]; then
+  IFS=',' read -r -a SPEC_NAMES <<<"$ENV_NAME"
+  IFS=',' read -r -a SPEC_WANT <<<"$EXPECT"
+  if [ "${#SPEC_NAMES[@]}" -ne "${#SPEC_WANT[@]}" ]; then
+    die_cannot_run "rep ${REP_ID} names ${#SPEC_NAMES[@]} scaffold(s) and ${#SPEC_WANT[@]} expected code(s), so there is no telling which code belongs to which scaffold and nothing was graded."
+  fi
+  for spec_i in "${!SPEC_NAMES[@]}"; do
+    spec_name="${SPEC_NAMES[spec_i]}"
+    [ -n "$spec_name" ] || die_cannot_run "rep ${REP_ID} carries an empty scaffold name in field 4, so nothing was graded."
+    [ -r "${ENV_DIR}/${SPEC_SUBDIR}/${spec_name}.tla" ] || \
+      die_cannot_run "rep ${REP_ID} names scaffold ${spec_name}, and ${ENV_DIR}/${SPEC_SUBDIR}/${spec_name}.tla is not there, so nothing was graded."
+    [ -r "${ENV_DIR}/${SPEC_SUBDIR}/${spec_name}.cfg" ] || \
+      die_cannot_run "rep ${REP_ID} names scaffold ${spec_name}, and ${ENV_DIR}/${SPEC_SUBDIR}/${spec_name}.cfg is not there, so nothing was graded."
+    case "${SPEC_WANT[spec_i]}" in
+      ''|*[!0-9]*) die_cannot_run "rep ${REP_ID} expects '${SPEC_WANT[spec_i]}' from scaffold ${spec_name}, which is not an exit code, so nothing was graded." ;;
+    esac
+  done
+else
+  ENV_FILE="${ENV_DIR}/${ENV_NAME}.tla"
+  [ -r "$ENV_FILE" ] || die_cannot_run "rep ${REP_ID} names environment ${ENV_NAME}, and ${ENV_FILE} is not there, so nothing was graded."
+fi
 
 # ---------------------------------------------------------------------------
 # The scratch directory TLC runs in.
@@ -890,6 +1124,42 @@ write_grade_module() {
   } >"$path"
 }
 
+# A SPEC rep's module: the scaffold, line for line, with the two holes filled.
+#
+# A LINE AT A TIME, AND NEVER THROUGH A REGEX ENGINE. A learner's answer meets
+# no sed program and no shell parse on the way in: this reads the template with
+# `read`, compares each line's trimmed text against a fixed string, and emits
+# either the fill or the line byte for byte. `sed "s/__ANSWER__/$ANSWER/"` would
+# hand a TLA+ answer to a substitution where `\`, `&` and `/` all mean
+# something, and a learner's wrong answer would come back as a parse error
+# about a character they did not type.
+#
+# `|| [ -n "$line" ]` catches a template whose last line has no newline, which
+# `read` would otherwise drop -- and the dropped line is `====`.
+write_spec_module() {
+  local tmpl="$1" path="$2"
+  local line trimmed
+  : >"$path"
+  while IFS= read -r line || [ -n "$line" ]; do
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+    case "$trimmed" in
+      "$HOLE_ANSWER") printf '%s\n' "$ANSWER" ;;
+      "$HOLE_CHECK")  printf '%s\n' "$CHECK" ;;
+      *)              printf '%s\n' "$line" ;;
+    esac >>"$path"
+  done <"$tmpl"
+}
+
+# The scaffold's own first line, which is a `\*` comment saying in English what
+# machine the answer is being put into. It is what a wrong answer's report
+# names, so a learner reads about a lift and a lamp rather than about a file
+# called fair-lift. Read rather than stored in the rep table, because it
+# belongs to the scaffold and two reps share one.
+spec_about() {
+  sed -n '1{s/^\\\*[[:space:]]*//;p;}' "${ENV_DIR}/${SPEC_SUBDIR}/${1}.tla"
+}
+
 write_value_module() {
   local path="$1" name="$2" expr="$3"
   {
@@ -927,6 +1197,58 @@ printed_region() {
     on && /^Error: Evaluating assumption line/ { next }
     on { print }
   ' "$1"
+}
+
+# ---------------------------------------------------------------------------
+# SANY's own sentences about what it rejected, for the parse-error report.
+# Display only, the way printed_region is: the grade came from the exit code
+# of the run and never from this.
+#
+# TWO SHAPES, AND A PHRASE LIST ONLY REACHES ONE OF THEM.
+#
+# A SYNTAX error is a single line with no header above it: `Encountered "..."
+# at line N, column M and token "..."`. A phrase list is the only way to find
+# that one, and the list below is the one this script has always carried.
+#
+# A SEMANTIC error sits under a `Semantic errors:` header and runs to
+# `Starting`, and a phrase list is the wrong instrument for it. THREE
+# different sentences turned up from real wrong answers inside two days --
+# "Level error in applying operator", "Could not find declaration or
+# definition of symbol" and "Couldn't resolve infix operator symbol" -- and
+# every one of them came back as an EMPTY block under "that did not parse".
+# Chasing them one at a time is a list that is wrong until the next one
+# arrives. The region is bounded, so the region is what gets printed.
+#
+# THE SPEC PATH IS WHY THIS CHANGED. The value scaffold declares no
+# SPECIFICATION and one ASSUME, so SANY's semantic pass had almost nothing to
+# reject there. A filled scaffold is a whole machine, so it reaches all three.
+#
+# THE `line N, col M of module Scaffold` LINES ARE DROPPED, for the same
+# reason printed_region drops TLC's own location line: the module sits in a
+# scratch directory that is gone before anybody reads this, so the citation
+# sends a reader somewhere they cannot go. What is left is the sentence, and
+# the sentence names the symbol.
+#
+# A NOTE FOR WHOEVER TAKES THE LOCATION BEAD. On a SPEC row the translation is
+# simpler than on a REP row rather than harder. The answer fills a whole line,
+# so SANY's line number is the hole's line number and its column is the column
+# of what was typed, unshifted. Measured 2026-10-17: `level' = level ++ 1`
+# into act-step's hole reports "line 8, col 29", the hole is line 8 of that
+# scaffold, and column 29 is where `++` starts in the answer.
+# ---------------------------------------------------------------------------
+sany_sentences() {
+  {
+    awk '
+      /^Semantic errors:/            { on = 1; next }
+      on && /^Starting/              { exit }
+      on && /^\*\*\* Errors:/        { next }
+      on && /^line [0-9]+, col /     { next }
+      on && /^[[:space:]]*$/         { next }
+      on { print }
+    ' "$1"
+    grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error|Was expecting' \
+      "$1" 2>/dev/null
+  } | sed -n 's/^[[:space:]]*/  /p' | sort -u
 }
 
 # ---------------------------------------------------------------------------
@@ -1042,8 +1364,12 @@ verdict_token() {
   case "$1" in
     0)   printf 'OK\n' ;;
     10)  printf 'ASSUMPTION_FAILED\n' ;;
+    12)  printf 'SAFETY_VIOLATION\n' ;;
+    13)  printf 'LIVENESS_VIOLATION\n' ;;
+    75)  printf 'SPEC_EVAL_FAILURE\n' ;;
     124) printf 'TIMEOUT\n' ;;
     150) printf 'PARSE_ERROR\n' ;;
+    151) printf 'CONFIG_ERROR\n' ;;
     255) printf 'TLC_EXCEPTION\n' ;;
     *)   printf 'UNKNOWN_%s\n' "$1" ;;
   esac
@@ -1075,7 +1401,12 @@ verdict_token() {
 run_verdict() {
   local module="$1" cfg="$2" log="$3" stem states rc=0
   stem="$(basename -- "$module" .tla)"
-  states="${SCRATCH}/states-${stem}"
+  # BESIDE THE MODULE, not under the scratch root, because every scaffold of a
+  # battery is called Scaffold.tla and a states tree keyed on the stem alone
+  # would be one tree shared by three runs. For the value rung's three modules
+  # -- Recall, Yours and Canon -- the module IS at the scratch root, so this
+  # resolves to exactly the paths it always did.
+  states="$(dirname -- "$module")/states-${stem}"
   mkdir -p "$states"
   timeout "$TIMEOUT" tlc \
     -workers 1 \
@@ -1091,22 +1422,81 @@ run_verdict() {
 }
 
 # ---------------------------------------------------------------------------
-# The grading run. One TLC invocation, about 0.32 s measured over three runs
-# on 2026-10-16 (316 / 388 / 351 ms), which is what makes this a drill rather
-# than a quiz.
+# The grading run. On a REP row, one TLC invocation, about 0.32 s measured over
+# three runs on 2026-10-16 (316 / 388 / 351 ms), which is what makes this a
+# drill rather than a quiz. On a SPEC row, one per scaffold.
+#
+# PARSE_LOG is the log the parse-error report reads SANY's own sentence out of.
+# On a spec rep it is the log of the run that failed to parse rather than a
+# fixed name, because a battery has one log per scaffold and the sentence is in
+# exactly one of them.
 # ---------------------------------------------------------------------------
-: >"${SCRATCH}/Recall.cfg"
-write_grade_module "${SCRATCH}/Recall.tla" "Recall"
-run_verdict "${SCRATCH}/Recall.tla" "${SCRATCH}/Recall.cfg" "${SCRATCH}/Recall.log"
-GRADE_RC="$VERDICT_RC"
-GRADE_TOKEN="$VERDICT_TOKEN"
+SPEC_RCS=()
+SPEC_TOKENS=()
+SPEC_FIRST_BAD=-1
+SPEC_FIRST_DIFF=-1
+PARSE_LOG="${SCRATCH}/Recall.log"
 
-case "$GRADE_RC" in
-  0)   GRADE="correct" ;;
-  10)  GRADE="incorrect" ;;
-  150) GRADE="parse-error" ;;
-  *)   GRADE="other" ;;
-esac
+if [ "$KIND" = "SPEC" ]; then
+  # ONE DIRECTORY PER SCAFFOLD, because every scaffold declares `MODULE
+  # Scaffold` and TLC takes the module from the filename. Copying three
+  # scaffolds to one directory would be three writes to one file.
+  for spec_i in "${!SPEC_NAMES[@]}"; do
+    spec_dir="${SCRATCH}/s${spec_i}"
+    mkdir -p "$spec_dir" || die_cannot_run "could not make a scratch directory for scaffold ${SPEC_NAMES[spec_i]}, so nothing was graded."
+    write_spec_module "${ENV_DIR}/${SPEC_SUBDIR}/${SPEC_NAMES[spec_i]}.tla" "${spec_dir}/${SPEC_MODULE}.tla"
+    cp -- "${ENV_DIR}/${SPEC_SUBDIR}/${SPEC_NAMES[spec_i]}.cfg" "${spec_dir}/${SPEC_MODULE}.cfg"
+    run_verdict "${spec_dir}/${SPEC_MODULE}.tla" "${spec_dir}/${SPEC_MODULE}.cfg" "${spec_dir}/run.log"
+    SPEC_RCS+=("$VERDICT_RC")
+    SPEC_TOKENS+=("$VERDICT_TOKEN")
+  done
+
+  # THE VECTOR, READ IN ONE PASS, AND A RUN THAT DID NOT HAPPEN OUTRANKS A
+  # DISAGREEMENT. A scaffold whose code is outside the gradeable set is a
+  # report about the run, and reporting a wrong answer over it would be the
+  # same false statement rc 150 exists to avoid on the value rung.
+  for spec_i in "${!SPEC_RCS[@]}"; do
+    spec_rc="${SPEC_RCS[spec_i]}"
+    if ! grep -qE -- "(^| )${spec_rc}( |$)" <<<"$SPEC_GRADEABLE"; then
+      [ "$SPEC_FIRST_BAD" -lt 0 ] && SPEC_FIRST_BAD="$spec_i"
+      continue
+    fi
+    if [ "$spec_rc" != "${SPEC_WANT[spec_i]}" ] && [ "$SPEC_FIRST_DIFF" -lt 0 ]; then
+      SPEC_FIRST_DIFF="$spec_i"
+    fi
+  done
+
+  if [ "$SPEC_FIRST_BAD" -ge 0 ]; then
+    GRADE_RC="${SPEC_RCS[SPEC_FIRST_BAD]}"
+    GRADE_TOKEN="${SPEC_TOKENS[SPEC_FIRST_BAD]}"
+    PARSE_LOG="${SCRATCH}/s${SPEC_FIRST_BAD}/run.log"
+    case "$GRADE_RC" in
+      150) GRADE="parse-error" ;;
+      *)   GRADE="other" ;;
+    esac
+  elif [ "$SPEC_FIRST_DIFF" -ge 0 ]; then
+    GRADE="incorrect"
+    GRADE_RC="$EXIT_SPEC_NOT_MATCHED"
+    GRADE_TOKEN="$SPEC_TOKEN"
+  else
+    GRADE="correct"
+    GRADE_RC=0
+    GRADE_TOKEN="$(verdict_token 0)"
+  fi
+else
+  : >"${SCRATCH}/Recall.cfg"
+  write_grade_module "${SCRATCH}/Recall.tla" "Recall"
+  run_verdict "${SCRATCH}/Recall.tla" "${SCRATCH}/Recall.cfg" "${SCRATCH}/Recall.log"
+  GRADE_RC="$VERDICT_RC"
+  GRADE_TOKEN="$VERDICT_TOKEN"
+
+  case "$GRADE_RC" in
+    0)   GRADE="correct" ;;
+    10)  GRADE="incorrect" ;;
+    150) GRADE="parse-error" ;;
+    *)   GRADE="other" ;;
+  esac
+fi
 
 # The construct gate's refusal. It only ever replaces a grading run that came
 # back 0, so a wrong value keeps its value block and the gate has nothing to
@@ -1140,7 +1530,16 @@ if [ "$GRADE" = "correct" ]; then
 fi
 
 if [ "$GRADE" = "construct-missing" ]; then
-  echo "the value is right. the construct this rep drills is not in what you typed."
+  # THE FIRST CLAUSE NAMES WHAT WAS ACCEPTED, AND THE TWO ROW KINDS ACCEPT
+  # DIFFERENT THINGS. On a value rep the value was right; on a spec rep every
+  # scaffold returned the code the rep wanted. Saying "the value is right"
+  # over a fairness condition would be a sentence about a value that does not
+  # exist.
+  if [ "$KIND" = "SPEC" ]; then
+    echo "every spec said what it was supposed to. the construct this rep drills is not in what you typed."
+  else
+    echo "the value is right. the construct this rep drills is not in what you typed."
+  fi
   echo
   printf '  wanted somewhere in the answer:  %s\n' "$REQUIRES"
   printf '  the grading run came back rc=%s token=%s, so only the form is at issue.\n' \
@@ -1155,15 +1554,59 @@ fi
 if [ "$GRADE" = "parse-error" ]; then
   echo "that did not parse, so nothing was graded about whether it is right."
   echo
-  # SANY's own sentence, which names the line and the operator. Display only.
-  grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error|Was expecting' \
-    "${SCRATCH}/Recall.log" 2>/dev/null | sed -n 's/^[[:space:]]*/  /p' | sort -u
+  sany_sentences "$PARSE_LOG"
   exit "$REPORT_RC"
 fi
 
 if [ "$GRADE" = "other" ]; then
   printf 'the grading run came back %s, which is neither correct nor a wrong answer.\n' "$GRADE_RC"
   printf 'that is a report about the run rather than about the answer.\n'
+  # WHICH RUN, on a spec rep. A battery's other scaffolds may have been fine,
+  # and a learner told only the number is left guessing which of three machines
+  # it came from.
+  if [ "$KIND" = "SPEC" ] && [ "$SPEC_FIRST_BAD" -ge 0 ]; then
+    echo
+    echo "it came from this one:"
+    show_prose "$(spec_about "${SPEC_NAMES[SPEC_FIRST_BAD]}")"
+  fi
+  exit "$REPORT_RC"
+fi
+
+# ---------------------------------------------------------------------------
+# A SPEC rep's wrong answer. One line per scaffold rather than two values,
+# because there is no value: what the answer produced is a verdict per machine
+# and the grade is whether the verdicts line up with the key.
+#
+# EVERY SCAFFOLD IS SHOWN, not only the ones that disagreed. A battery exists
+# because one run cannot tell a weaker property from the one asked for, so the
+# run that AGREED is half the lesson: it says the answer did hold where it was
+# meant to, and the next line says where it did not.
+#
+# THE SCAFFOLD'S OWN ENGLISH LINE LEADS, so a learner reads about a lift that
+# stops at the second floor rather than about a file called prop-settle.
+# ---------------------------------------------------------------------------
+if [ "$KIND" = "SPEC" ]; then
+  if [ "${#SPEC_RCS[@]}" -eq 1 ]; then
+    echo "not correct. this is what the spec it is checked against made of it."
+  else
+    printf 'not correct. this is what each of the %s specs made of it.\n' "${#SPEC_RCS[@]}"
+  fi
+  for spec_i in "${!SPEC_RCS[@]}"; do
+    echo
+    show_prose "$(spec_about "${SPEC_NAMES[spec_i]}")"
+    if [ "${SPEC_RCS[spec_i]}" = "${SPEC_WANT[spec_i]}" ]; then
+      printf '    as wanted: rc %s %s\n' "${SPEC_RCS[spec_i]}" "${SPEC_TOKENS[spec_i]}"
+    else
+      printf '    wanted rc %s %s, and it came back rc %s %s\n' \
+        "${SPEC_WANT[spec_i]}" "$(verdict_token "${SPEC_WANT[spec_i]}")" \
+        "${SPEC_RCS[spec_i]}" "${SPEC_TOKENS[spec_i]}"
+    fi
+  done
+  echo
+  printf 'the answer is:\n'
+  show_prose "$CANON"
+  show_misconception "$REP_ID"
+  show_sheet "$CONSTRUCT"
   exit "$REPORT_RC"
 fi
 

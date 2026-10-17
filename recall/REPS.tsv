@@ -1,11 +1,23 @@
-# The recall rep table (bead tla-1sh7.2, epic tla-1sh7).
+# The recall rep table (beads tla-1sh7.2 and tla-03ep.1, epics tla-1sh7 and
+# tla-i7uz).
 #
-# 120 reps over 37 of the 38 constructs in the four value-producing families
-# of drill/INVENTORY.md: core 16, functions-records 11, sets 9, sequences 2.
-# K008, bullet-point boolean notation, has no row, and why is at the bottom.
+# TWO ROW KINDS, AND FIELD 1 IS WHICH. 160 reps over 57 of the 105 constructs
+# in drill/INVENTORY.md.
 #
-# Rows are tab-delimited and carry the literal first field REP, so prose in
-# this file can never be read as data. Six fields, in order:
+#   REP   120 reps over 37 of the 38 constructs in the four value-producing
+#         families: core 16, functions-records 11, sets 9, sequences 2. The
+#         answer is an expression and the grade is value equality. K008,
+#         bullet-point boolean notation, has no row, and why is below the
+#         last REP row.
+#   SPEC  40 reps over all 20 constructs of the temporal family. The answer
+#         has no value -- `WF_v(A)` is a promise about a behavior -- so it is
+#         put in a machine and the machine is run. The grade is the vector of
+#         exit codes. The section begins at THE SPEC ROWS further down.
+#
+# Rows are tab-delimited and carry the literal marker in field 1, so prose in
+# this file can never be read as data.
+#
+# A REP ROW. Six fields, in order:
 #
 #   1  marker       the literal REP
 #   2  id           stable, never renumbered
@@ -161,3 +173,121 @@ REP	R120	K088	ledger	the balance after every account has had one added to whatev
 # a canonical of (/\ TRUE /\ 1 = 1) = TRUE scores rc 0, exactly as the infix
 # form does, so nothing distinguishes them. Grading it needs a check on the
 # submitted TEXT rather than on its value.
+#
+# ===========================================================================
+# THE SPEC ROWS (bead tla-03ep.1, epic tla-i7uz). 40 reps, two per construct,
+# over all 20 constructs of the temporal family.
+#
+# WHY THIS FAMILY NEEDED A SECOND ROW KIND. Nothing in it has a value.
+# `WF_v(A)` is a promise about a behavior, `[]P` is a claim about every state
+# of one, `x'` means nothing outside a step. `ASSUME Answer = Canonical` over
+# any of them is not false, it is meaningless, so the whole family was 0 of 20
+# on the value rung.
+#
+# SO THE ANSWER GOES IN A MACHINE AND THE MACHINE IS RUN. Field 4 names
+# scaffolds rather than an environment: each is a WHOLE MODULE with a hole in
+# it, under recall/env/spec/<name>.tla, with its obligations in
+# recall/env/spec/<name>.cfg beside it. The runner drops the answer into the
+# hole, hands the pair to TLC, and compares the exit code against field 8.
+#
+# NINE FIELDS, AND FIELD 7 IS THE SAME FIELD IT IS ON A REP ROW:
+#
+#   1  marker       the literal SPEC
+#   2  id           stable, never renumbered
+#   3  construct    K001-K105, resolving to a drill/INVENTORY.md row
+#   4  scaffolds    comma-separated, each resolving to recall/env/spec/
+#                   <name>.tla AND recall/env/spec/<name>.cfg
+#   5  prompt       English, naming none of the notation it asks for
+#   6  canonical    the answer, as TLA+
+#   7  requires     an ERE the raw answer has to match. Optional in the
+#                   format and present on all 40 rows here; see below
+#   8  expect       comma-separated exit codes, one per scaffold, in the
+#                   scaffolds' own order. This is the KEY
+#   9  check        OPTIONAL. fills a scaffold's __CHECK__ hole, which is
+#                   where the state-graph fingerprint lives on the 12 action
+#                   rows that carry one
+#
+#   awk -F'\t' '$1 == "SPEC" && $2 == "S001"' recall/REPS.tsv
+#   grep '^SPEC' recall/REPS.tsv | cut -f2,3,4,8
+#
+# THE KEY IS A VECTOR BECAUSE ONE RUN CANNOT GRADE A PROPERTY. A property
+# WEAKER than the one asked for also holds, and `[]TRUE` holds on everything.
+# Two runs catch too-weak and too-strong. Measured 2026-10-17 on TLC2
+# 2026.07.31.184830: even two miss a near neighbor, since `<>(level = 1)` has
+# the same two-sided profile as `<>(level = 2)`, which is why S011 names four
+# scaffolds and not two.
+#
+# THE THREE HOLES, which is how 20 constructs are reached rather than four:
+#
+#   the fairness hole   S001-S008, one run, keyed on the exit code. The hole
+#                       is the conjunct beside Init and the step relation
+#   the property hole   S009-S026, a battery of two to four, keyed on the
+#                       vector. The hole is the formula the .cfg registers
+#   the action hole     S027-S040, keyed on an INVARIANT in the scaffold AND
+#                       a state-graph fingerprint read through TLCGet in a
+#                       POSTCONDITION. The hole is an action, a Spec body, a
+#                       `vars` tuple or the VARIABLES line itself
+#
+# THE FINGERPRINT ALONE IS NOT ENOUGH AND THAT WAS MEASURED, not reasoned.
+# Swapping which variable moves gives an isomorphic state graph: on act-step,
+# `lamp < 1 /\ lamp' = lamp + 1 /\ level' = level` reaches 4 distinct states
+# at diameter 4 exactly as the canonical does, and passes at rc 0 with the
+# INVARIANT removed. The scaffold's INVARIANT names the variable that is NOT
+# the prompt's, so the swap scores 12 instead.
+#
+# AND THE FINGERPRINT IS THREE NUMBERS RATHER THAN TWO FOR THE SAME REASON.
+# `\E n \in (level + 1)..2 : ...` and `\E n \in 0..2 : ...` both reach 3
+# distinct states at diameter 2. They generate 4 and 10. TLCGet("generated")
+# is what separates S031 from the wider answer.
+#
+# WHY FIELD 7 IS ON EVERY ROW HERE. An exit code cannot see how a verdict was
+# reached, so the construct gate carries more weight than it does on a value
+# row. Measured: `<>(level = 2)` conjoined into fair-lift's fairness hole
+# PASSES at rc 0. It is the goal asserted as a hypothesis rather than a
+# fairness condition, and no run can tell. `\bWF_` closes it, and the refusal
+# says the construct was not written, which is exactly what happened.
+#
+# TLCGet("level") IS NOT THE DEPTH. It returns 0 in a POSTCONDITION.
+# TLCGet("diameter") is the depth, and TLCGet("level") cost the spike a wrong
+# fingerprint before this was measured.
+# ===========================================================================
+SPEC	S001	K095	fair-lift	the weaker of the two promises that can be made about the lift's own rise, enough that it cannot be left standing while the lamp carries on	WF_vars(Raise)	\bWF_	0
+SPEC	S002	K095	fair-kettle	the weaker promise about the kettle's warming alone, so that it cannot be left cold while the clock goes on ticking	WF_vars(Warm)	\bWF_	0
+SPEC	S003	K096	fair-grab	the stronger promise about the catch, which has to hold even though the baton is only in the right hand every other moment	SF_vars(Grab)	\bSF_	0
+SPEC	S004	K096	fair-signal	the stronger promise about the train's move, which has to hold even though the signal is only green every other moment	SF_vars(Go)	\bSF_	0
+SPEC	S005	K097	fair-both	everything promised alongside the opening state and the step relation, so that neither the tank nor the pump is left behind while the lamp flips	WF_vars(Fill) /\ WF_vars(Prime)	(WF|SF)_	0
+SPEC	S006	K097	fair-doors	everything promised alongside the opening state and the step relation, so that neither door is left shut while the buzzer sounds	WF_vars(OpenInner) /\ WF_vars(OpenOuter)	(WF|SF)_	0
+SPEC	S007	K098	fair-parcel	a promise about one named move of the three rather than about the machine as a whole, so that the parcels get down the chute	WF_vars(Chute)	(WF|SF)_	0
+SPEC	S008	K098	fair-till	a promise about one named move rather than about the machine as a whole, so that the queue is cleared and not merely that something keeps happening	WF_vars(Serve)	(WF|SF)_	0
+SPEC	S009	K063	prop-settle,prop-over	that the lift is at no point above the second floor	[](level =< 2)	\[\]	0,12
+SPEC	S010	K063	prop-lit,prop-settle	that at no point is the lamp lit while the lift is still on the ground	[](level = 0 => lamp = 0)	\[\]	0,12
+SPEC	S011	K067	prop-settle,prop-stuck,prop-once,prop-jump	that the lift reaches the second floor at some point, and nothing more than that	<>(level = 2)	<>	0,13,0,0
+SPEC	S012	K067	prop-settle,prop-stuck,prop-jump	that the lift calls at the first floor at some point in its run	<>(level = 1)	<>	0,13,13
+SPEC	S013	K068	prop-settle,prop-slip,prop-over	that the lift reaches the second floor and from then on is never anywhere else	<>[](level = 2)	<>\[\]	0,13,13
+SPEC	S014	K068	prop-settle,prop-slip,prop-over	that the lift leaves the ground and from then on is never back on it	<>[](level # 0)	<>\[\]	0,13,0
+SPEC	S015	K069	prop-settle,prop-slip,prop-once	that however far the run has got, the lift reaches the second floor again later	[]<>(level = 2)	\[\]<>	0,0,13
+SPEC	S016	K069	prop-settle,prop-dark,prop-fuse	that however far the run has got, the lamp comes on again later	[]<>(lamp = 1)	\[\]<>	0,13,13
+SPEC	S017	K070	prop-settle,prop-once,prop-dark	that any moment at which the lamp is lit is followed by one at which the lift is on the second floor	lamp = 1 ~> level = 2	~>	0,13,0
+SPEC	S018	K070	prop-slip,prop-settle,prop-half	that any moment at which the lift is on the second floor is followed by one at which it is back on the ground	level = 2 ~> level = 0	~>	0,13,0
+SPEC	S019	K078	prop-settle,prop-slip,prop-jump	that no step of the run ever takes the lift downwards	[][level' >= level]_vars	'	0,13,0
+SPEC	S020	K078	prop-settle,prop-over	that no step of the run ever leaves the lift above the second floor	[][level' =< 2]_vars	'	0,13
+SPEC	S021	K080	prop-settle,prop-jump	that every step which moves the lift at all moves it up by exactly one floor, with steps that leave the lift alone passed over	[][level' = level + 1]_level	\]_	0,13
+SPEC	S022	K080	prop-settle,prop-fuse	that every step which touches the lamp turns it to the other of its two readings, with steps that leave the lamp alone passed over	[][lamp' = 1 - lamp]_lamp	\]_	0,13
+SPEC	S023	K093	prop-settle,prop-slip,prop-once	that raising the lift eventually stops being something the machine is in a position to do, and stays that way	<>[](~ENABLED Raise)	\bENABLED\b	0,13,0
+SPEC	S024	K093	prop-slip,prop-settle,prop-over	that however far the run has got, the machine is later in a position to raise the lift again	[]<>(ENABLED Raise)	\bENABLED\b	0,13,13
+SPEC	S025	K094	prop-slip,prop-settle,prop-stuck	that a rise really happens again and again, rather than merely being possible again and again	[]<><<Raise>>_vars	>>_	0,13,13
+SPEC	S026	K094	prop-settle,prop-dark	that the machine never comes to a standstill: some step that changes something really happens again and again	[]<><<Next>>_vars	>>_	0,13
+SPEC	S027	K079	act-step	a step that takes the lift up one floor while it has room, and leaves the lamp reading what it read	level < 2 /\ level' = level + 1 /\ lamp' = lamp	'	0	TLCGet("distinct") = 3 /\ TLCGet("diameter") = 3 /\ TLCGet("generated") = 3
+SPEC	S028	K079	act-hold	a step that turns the lamp to the other of its two readings and leaves the lift where it stands	lamp' = 1 - lamp /\ level' = level	'	0	TLCGet("distinct") = 2 /\ TLCGet("diameter") = 2 /\ TLCGet("generated") = 3
+SPEC	S029	K085	act-step	a step that takes the lift up one floor while it has room, saying in one word that the lamp is left alone	level < 2 /\ level' = level + 1 /\ UNCHANGED lamp	\bUNCHANGED\b	0	TLCGet("distinct") = 3 /\ TLCGet("diameter") = 3 /\ TLCGet("generated") = 3
+SPEC	S030	K085	act-hold	a step that turns the lamp over, saying in one word that the lift is left alone	lamp' = 1 - lamp /\ UNCHANGED level	\bUNCHANGED\b	0	TLCGet("distinct") = 2 /\ TLCGet("diameter") = 2 /\ TLCGet("generated") = 3
+SPEC	S031	K086	act-step	a step that takes the lift to any floor above the one it is on, picked freely, with the lamp left alone	\E n \in (level + 1)..2 : level' = n /\ lamp' = lamp	\\E	0	TLCGet("distinct") = 3 /\ TLCGet("diameter") = 2 /\ TLCGet("generated") = 4
+SPEC	S032	K086	act-step	a step that puts the lift either on the ground or on the second floor, written as one move or the other rather than as a free pick, with the lamp left alone	(level' = 0 \/ level' = 2) /\ lamp' = lamp	\\/	0	TLCGet("distinct") = 2 /\ TLCGet("diameter") = 2 /\ TLCGet("generated") = 5
+SPEC	S033	K084	act-both	the whole step relation of a machine where either the lift rises by one or the lamp turns over, one of the two at a time and never both	(level < 2 /\ level' = level + 1 /\ lamp' = lamp) \/ (lamp' = 1 - lamp /\ level' = level)	'	0	TLCGet("distinct") = 6 /\ TLCGet("diameter") = 4 /\ TLCGet("generated") = 11
+SPEC	S034	K084	act-sync	a single step that raises the lift by one and turns the lamp over at the same moment	level < 2 /\ level' = level + 1 /\ lamp' = 1 - lamp	'	0	TLCGet("distinct") = 3 /\ TLCGet("diameter") = 3 /\ TLCGet("generated") = 3
+SPEC	S035	K083	act-skel	what a whole run of this machine is, given that the opening state and the step relation are both already named, and that a run is allowed to stand still	Init /\ [][Next]_vars	\[\]\[	0	TLCGet("distinct") = 6 /\ TLCGet("diameter") = 4 /\ TLCGet("generated") = 11
+SPEC	S036	K083	act-next	what this machine may do in one step, given that both of its moves are already named one by one	Raise \/ Blink	\\/	0	TLCGet("distinct") = 6 /\ TLCGet("diameter") = 4 /\ TLCGet("generated") = 11
+SPEC	S037	K081	act-decl	the line that says what this machine's state is made of, naming the lift and the lamp	VARIABLES level, lamp	\bVARIABLES?\b	0	TLCGet("distinct") = 6 /\ TLCGet("diameter") = 4 /\ TLCGet("generated") = 11
+SPEC	S038	K081	act-decl3	the line that says what this machine's state is made of, naming the lift, the lamp and the service latch	VARIABLES level, lamp, latch	\bVARIABLES?\b	0	TLCGet("distinct") = 12 /\ TLCGet("diameter") = 5 /\ TLCGet("generated") = 23
+SPEC	S039	K082	act-vars-a,act-vars-b	everything this machine's state is made of, gathered into one value for the step relation to be measured against	<<level, lamp>>	<<	0,0
+SPEC	S040	K082	act-vars-c,act-vars-d	everything this yard's state is made of, gathered into one value for the step relation to be measured against	<<gate, bell>>	<<	0,0

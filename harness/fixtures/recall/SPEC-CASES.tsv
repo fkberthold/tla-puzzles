@@ -1,0 +1,81 @@
+# Graded SPEC cases for harness/test-recall-runner.sh part 15 (bead
+# tla-03ep.1).
+#
+# WHY THIS IS A SEPARATE FILE FROM CASES.tsv rather than more rows in it.
+# Parts 1 and 2 loop over every CASES row, and part 2 corroborates each code
+# by building a VALUE scaffold itself -- `ASSUME Answer = Canonical` with an
+# empty .cfg -- and running harness/verdict.sh over it. A spec rep has no
+# value and no such scaffold, so a SPEC row in that file would have been
+# corroborated against a module that means nothing. Part 15 does the same
+# corroboration in the shape a spec rep actually has: it fills the scaffold,
+# runs verdict.sh over the pair, and compares the per-scaffold code.
+#
+# One row per answer submitted against a SPEC row in REPS.tsv beside this
+# file. Tab-delimited, literal first field CASE. Seven fields, in order:
+#
+#   1  marker    the literal CASE
+#   2  id        stable
+#   3  rep       a SPEC id in REPS.tsv
+#   4  grade     correct | incorrect | construct-missing | parse-error | other
+#   5  rc        the code recall/recall.sh exits with on this answer
+#   6  answer    the TLA+ submitted
+#   7  vector    comma-separated, the code EACH scaffold returns, in the
+#                scaffolds' own order
+#
+# FIELDS 5 AND 7 ARE DIFFERENT NUMBERS AND THE DIFFERENCE IS THE POINT. Field
+# 7 is what TLC said, one code per machine. Field 5 is what the runner exits
+# with, and on a wrong answer it is 5 -- the runner's own code for a vector
+# that did not match -- rather than any code in field 7. A suite that pinned
+# only field 5 would pass over a runner that stopped running the scaffolds at
+# all, and one that pinned only field 7 would pass over a runner that ran them
+# and then reported the wrong grade.
+#
+# EVERY NUMBER IN BOTH FIELDS WAS MEASURED on TLC2 2026.07.31.184830 on
+# 2026-10-17: field 5 through recall/recall.sh and field 7 through
+# harness/verdict.sh over an independently filled scaffold.
+#
+# WHAT EACH ROW IS FOR:
+#
+#   D001        the canonical, one scaffold, rc 0
+#   D002        a STRONGER correct form. Its vector is 0, so the value side
+#               was accepted and field 7 of the rep -- `\bWF_` -- is the only
+#               thing that turned it away. A K095 rep asks for the WEAKER of
+#               the two promises, so strong fairness is not an alternate
+#               spelling of it
+#   D003, D004  wrong answers. One names the wrong subaction, one promises
+#               nothing
+#   D005        THE TRAP THE CONSTRUCT GATE EXISTS FOR, and it is the reason
+#               every shipped SPEC row carries a field 7. `<>(n = 2)` is the
+#               goal asserted as a hypothesis rather than a fairness
+#               condition, its vector is 0, and no exit code can tell. Only
+#               field 7 can
+#   D006        a code outside the gradeable set. Fairness over the initial
+#               predicate rather than over an action is 255, and the runner
+#               reports that rather than calling the answer wrong
+#   D007        the canonical of a BATTERY: it has to hold on fix-near and
+#               fail on fix-far, so the key is 0,13
+#   D008, D009  the two reasons a battery exists. Both are too weak, both
+#               hold on BOTH machines, and a single run against fix-near
+#               alone would have passed either one
+#   D010, D011  the action hole's canonical and the UNCHANGED spelling of it.
+#               Both reach the same state graph, so both are 0
+#   D012        the swapped variable, caught by the scaffold's INVARIANT at
+#               12 rather than by the fingerprint, which is identical
+#   D013        a wrong step shape, caught by the fingerprint at 10. A false
+#               POSTCONDITION is rc 10
+#   D014        a parse error, which is its own report rather than a wrong
+#               answer
+CASE	D001	Q001	correct	0	WF_vars(Step)	0
+CASE	D002	Q001	construct-missing	4	SF_vars(Step)	0
+CASE	D003	Q001	incorrect	5	WF_vars(Flip)	13
+CASE	D004	Q001	incorrect	5	TRUE	13
+CASE	D005	Q001	construct-missing	4	<>(n = 2)	0
+CASE	D006	Q001	other	255	WF_vars(Init)	255
+CASE	D007	Q002	correct	0	<>[](n = 2)	0,13
+CASE	D008	Q002	incorrect	5	[]<>(n = 2)	0,0
+CASE	D009	Q002	incorrect	5	[]TRUE	0,0
+CASE	D010	Q003	correct	0	n < 2 /\ n' = n + 1 /\ flag' = flag	0
+CASE	D011	Q003	correct	0	n < 2 /\ n' = n + 1 /\ UNCHANGED flag	0
+CASE	D012	Q003	incorrect	5	flag' = 1 - flag /\ n' = n	12
+CASE	D013	Q003	incorrect	5	n < 2 /\ n' = n + 2 /\ flag' = flag	10
+CASE	D014	Q003	parse-error	150	n < 2 /\ n' =	150

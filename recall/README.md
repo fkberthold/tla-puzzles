@@ -4,6 +4,17 @@ A need stated in English, the notation typed, graded on one exit code, in
 about a third of a second. The other rungs in this corpus declare eight to
 twelve minutes an item, so this is the one that runs at flow speed.
 
+160 reps over 57 constructs, in two kinds:
+
+| kind | reps | constructs | the answer is | the grade is |
+|---|---|---|---|---|
+| `REP` | 120 | 37, the value-producing families | an expression | value equality |
+| `SPEC` | 40 | 20, the whole `temporal` family | a promise, a property, an action, a declaration | the vector of exit codes a set of machines returns |
+
+A session serves both. You do not choose and you do not need to know which
+kind you are answering: you read a sentence of English and type notation, and
+what happens under it is the runner's problem.
+
 ## Working a session
 
 A session serves reps one after another. It prints the prompt, reads what you
@@ -153,6 +164,115 @@ K050  ch06  function set
 The top half is one function against a set of 27 of them. Nobody wrote that
 comparison; it is what the two values look like. The bottom half is the next
 section.
+
+## Spec reps, and why they exist
+
+68 of the 105 constructs say nothing about a value. `WF_v(A)` is a promise
+about a behavior, not an expression with a value, and `ASSUME Answer =
+Canonical` over it is not false, it is meaningless. The whole `temporal`
+family is that problem, and it was 0 of 20 on this rung until 2026-10-17.
+
+So a spec rep puts the answer in a machine and runs the machine. The answer
+fills a hole in a scaffold, TLC checks the scaffold, and **the key is the exit
+code** — the same contract the value reps have, read off a model check instead
+of off an assumption.
+
+```
+S001  the weaker of the two promises that can be made about the lift's own
+      rise, enough that it cannot be left standing while the lamp carries on
+> WF_vars(Blink)
+rep=S001 rc=5 token=SPEC_NOT_MATCHED grade=incorrect
+
+not correct. this is what the spec it is checked against made of it.
+
+  a goods lift standing beside a lamp. the lift rises twice and then has
+  nowhere left to go; the lamp flips for ever, so something can always move.
+    wanted rc 0 OK, and it came back rc 13 LIVENESS_VIOLATION
+
+the answer is:
+  WF_vars(Raise)
+
+what you wrote says
+  That promises the lamp keeps flipping, which it would do anyway. The lift
+  is the thing that can be left standing, and this says nothing about it.
+
+K095  ch12  WF_v(A) (weak fairness)
+  WF_v(A) == <>[](ENABLED <<A>>_v) => []<><<A>>_v. If A is eventually always
+  able to happen in a way that changes v, it eventually does.
+```
+
+There is no value block, because there is no value. What stands in its place
+is one line per machine: what the rep wanted that machine to say, and what it
+said.
+
+### The key is a vector, not a code
+
+One run cannot grade a property. A property **weaker** than the one asked for
+also holds, and `[]TRUE` holds on everything. So most spec reps name two or
+more machines and the key is the vector:
+
+```
+S013  that the lift reaches the second floor and from then on is never
+      anywhere else
+> []<>(level = 2)
+rep=S013 rc=5 token=SPEC_NOT_MATCHED grade=incorrect
+
+not correct. this is what each of the 3 specs made of it.
+
+  a lift that rises to the second floor and then has nowhere left to go, with
+  a lamp that keeps flashing beside it for ever.
+    as wanted: rc 0 OK
+
+  a lift that rises to the second floor, drops straight back to the ground
+  and starts again, over and over, with a lamp flashing beside it.
+    wanted rc 13 LIVENESS_VIOLATION, and it came back rc 0 OK
+...
+```
+
+The machine that **agreed** is shown too, and it is half the lesson: the
+answer did hold where it was meant to. The next line says where it did not.
+
+Two sides are not always enough either. `<>(level = 1)` has the same two-sided
+profile as `<>(level = 2)`, which is why S011 names four machines.
+
+### The three holes
+
+| hole | reps | the answer is | the key is |
+|---|---|---|---|
+| fairness | S001-S008 | the conjunct beside `Init` and the step relation | one exit code |
+| property | S009-S026 | the formula the config registers | a vector of two to four |
+| action | S027-S040 | an action, a `Spec` body, a `vars` tuple, or the `VARIABLES` line | an invariant in the scaffold and a state-graph fingerprint |
+
+### Any correct form still passes
+
+The grade comes from what TLC said about the machine, never from the text. So
+`UNCHANGED lamp` and `lamp' = lamp` both score 0 on the same rep, and so do
+`WF_vars(Raise)` and `WF_vars(Raise) /\ WF_vars(Blink)`.
+
+### What field 7 is doing on every spec row
+
+An exit code cannot see **how** a verdict was reached, so the construct gate
+carries more weight here than it does on a value rep.
+
+Measured: `<>(level = 2)` dropped into the fairness hole scores 0. It is the
+goal asserted as a hypothesis rather than a fairness condition, and no run can
+tell. `\bWF_` in field 7 closes it, and the refusal says the construct was not
+written, which is exactly what happened.
+
+### What a spec rep cannot see
+
+Two measured holes, stated here rather than left to be found:
+
+- **A wrong subscript in a `Spec` body.** `Init /\ [][Next]_level` and `Init
+  /\ [][Next]_vars` give the identical state graph — 6 states, diameter 4,
+  11 generated — because TLC builds successors from `Next` and the subscript
+  only decides which steps count as stuttering. No fingerprint reaches it.
+  The `vars` tuple has reps of its own for that reason, and their key is a
+  battery over two machines that stop moving in different places.
+- **A property about the only perpetual mover.** On S026's two-machine
+  battery, `[]<>(lamp = 1)` shares the canonical's vector, because the lamp is
+  the thing that moves. It is not recorded as a miss for that rep, since it is
+  not caught.
 
 ## What it needs
 
@@ -337,24 +457,50 @@ about an answer the grading run already accepted.
 
 ## The five verdicts
 
-| grade | code | what it means |
-|---|---|---|
-| `correct` | 0 | the two values are equal |
-| `construct-missing` | 4 | the value is right and the construct is not there |
-| `incorrect` | 10 | the assumption came back false |
-| `parse-error` | 150 | SANY rejected it, so nothing was graded |
-| `other` | whatever came back | a report about the run, not about the answer |
+| grade | code on a `REP` row | code on a `SPEC` row | what it means |
+|---|---|---|---|
+| `correct` | 0 | 0 | the values are equal, or every machine said what the rep wanted |
+| `construct-missing` | 4 | 4 | the answer was accepted and the construct is not in it |
+| `incorrect` | 10 | 5 | the assumption came back false, or the vector did not match |
+| `parse-error` | 150 | 150 | SANY rejected it, so nothing was graded |
+| `other` | whatever came back | whatever came back | a report about the run, not about the answer |
 
 The exit code is the raw code the grading run returned, never one read back
-out of anything TLC printed. Three codes belong to the runner instead and none
+out of anything TLC printed. Four codes belong to the runner instead and none
 of them collides with a code of TLC's. `2` is a usage error and `3` is "could
-not run", meaning no such rep, no environment file, no `tlc` on the path, no
-scratch directory. Both happen before TLC starts.
+not run", meaning no such rep, no environment file, no scaffold pair, no `tlc`
+on the path, no scratch directory. Both happen before TLC starts.
 
 `4` is the one that happens after a run, and it replaces a grading run that
 came back `0`. The status line carries `4` and the runner's own token, and the
 line under it names the rc and token the grading run returned, so nothing the
 run said goes missing.
+
+`5` is a spec rep whose machines all ran and whose codes did not match the
+vector. It is the runner's own number rather than one of TLC's because a spec
+rep runs between one and four TLCs, so there is no single raw code to be
+faithful to — and reporting the first disagreeing run's own code would put
+`rc=0` on a status line reading `grade=incorrect` whenever the answer *passed*
+a machine it was supposed to fail. Every code every run returned is printed
+under the status line, so nothing any run said is hidden.
+
+Which codes a spec run may return and still be graded, all four measured:
+`0`, `10` (a false `POSTCONDITION`, which is how a fingerprint mismatch
+reports), `12` (a broken `INVARIANT`, and also a `PROPERTY` that is a bare
+state predicate under `[]`) and `13` (a temporal `PROPERTY` that did not
+hold). Everything else is a report about the run: `75` from an action that
+leaves a variable unspecified, `150` from SANY, `151` from an action where a
+temporal formula was wanted or from `CONSTANTS` where `VARIABLES` was, `255`
+from fairness over the initial predicate.
+
+The two level mistakes are mirror images and they land on different codes. A
+temporal formula in an **action** hole is `150`, and SANY says so in the
+words "Level error in applying operator" rather than in anything about syntax.
+An action in a **property** hole is `151`.
+
+`11` DEADLOCK is not reachable from any scaffold, and that is a fact about the
+runner rather than about the codes: every run carries TLC's `-deadlock`, which
+means do *not* check, so a terminal state is never an error.
 
 `parse-error` is its own row on purpose. Telling somebody their answer is
 wrong when it never parsed is a false statement about a check that did not
@@ -370,8 +516,10 @@ other wrong answer.
 
 ## The rep table
 
-`REPS.tsv`, tab-delimited, with the literal first field `REP` so prose in the
-file can never be read as data. The convention is `drill/INVENTORY.md`'s.
+`REPS.tsv`, tab-delimited, with the row kind in field 1 so prose in the file
+can never be read as data. The convention is `drill/INVENTORY.md`'s.
+
+A `REP` row:
 
 | # | field | contents |
 |---|---|---|
@@ -382,6 +530,24 @@ file can never be read as data. The convention is `drill/INVENTORY.md`'s.
 | 5 | prompt | English, naming none of the notation it asks for |
 | 6 | canonical | the answer, as TLA+ |
 | 7 | requires | optional, an ERE the raw answer has to match |
+
+A `SPEC` row. Fields 1, 2, 3, 5 and 6 are the same thing, field 7 is the same
+*field*, and the rest is the machinery a vector needs:
+
+| # | field | contents |
+|---|---|---|
+| 1 | marker | the literal `SPEC` |
+| 2 | id | stable, never renumbered |
+| 3 | construct | `K001`-`K105`, a `drill/INVENTORY.md` row |
+| 4 | scaffolds | comma-separated; each resolves to **both** `env/spec/<name>.tla` and `env/spec/<name>.cfg` |
+| 5 | prompt | English, naming none of the notation it asks for |
+| 6 | canonical | the answer, as TLA+ |
+| 7 | requires | an ERE the raw answer has to match. Optional in the format, and on all 40 rows in practice |
+| 8 | expect | comma-separated exit codes, one per scaffold, in the scaffolds' own order. This is the key |
+| 9 | check | optional; fills a scaffold's `__CHECK__` hole |
+
+Field 7 is deliberately the same index in both kinds, so there is one rule to
+learn: **field 7 is the construct gate, whatever the row kind.**
 
 ```bash
 awk -F'\t' '$1 == "REP" && $2 == "R001"' recall/REPS.tsv
@@ -402,12 +568,19 @@ That is the whole of the sheet lookup: no matching, just the entry.
 
 ## The miss table
 
-`MISSES.tsv`, beside this file, same tab-delimited convention with the
-literal first field `MISS`. 30 rows over 30 of the 120 reps, reaching 25 of
-the 37 constructs. Its own header says what each field is, where the rows
-came from, and which twelve constructs have none and why. Field 4 says what
-the wrong answer *is*, never what to write instead, which is what lets it be
-printed under two values that already show the right answer.
+`MISSES.tsv`, beside this file, same tab-delimited convention with the literal
+first field `MISS`. 90 rows: 30 over 30 of the 120 value reps, reaching 25 of
+their 37 constructs, and 60 over 38 of the 40 spec reps, reaching 18 of their
+20. Its own header says what each field is, where the rows came from, and
+which constructs have none and why. Field 4 says what the wrong answer *is*,
+never what to write instead, which is what lets it be printed under two values
+that already show the right answer.
+
+A wrong answer's code depends on the row kind — rc 10 for a value rep, rc 5
+for a spec rep — and every row was submitted and watched returning its own
+kind's code before it was written. The spec rows are denser than the value
+rows because a spec rep has no value block above the explanation, so the miss
+row is a larger share of what a learner is told.
 
 ## An environment file is a fragment, not a module
 
@@ -436,6 +609,62 @@ rather than anything about the rep.
 | `Answer` | the grading scaffold |
 | `Canonical` | the grading scaffold |
 | `Shown` | the value probe |
+
+## A spec scaffold is a whole module, not a fragment
+
+`env/spec/<name>.tla` is a complete module and `env/spec/<name>.cfg` holds its
+obligations. Both ship, and a rep whose scaffold is missing either half is
+exit `3` rather than a grade.
+
+```
+\* a goods lift standing beside a lamp. the lift rises twice and then has
+---- MODULE Scaffold ----
+EXTENDS Naturals, Integers, Sequences, FiniteSets, TLC
+VARIABLES level, lamp
+vars == <<level, lamp>>
+Init == level = 0 /\ lamp = 0
+Raise == level < 2 /\ level' = level + 1 /\ lamp' = lamp
+Blink == lamp' = 1 - lamp /\ level' = level
+Next == Raise \/ Blink
+Fair ==
+__ANSWER__
+Spec == Init /\ [][Next]_vars /\ Fair
+Tops == <>(level = 2)
+====
+```
+
+Four rules, and a gate checks all four:
+
+- **The module is called `Scaffold`.** The runner copies the file to
+  `Scaffold.tla` beside `Scaffold.cfg` in a directory of its own and rewrites
+  nothing, so a battery of three scaffolds is three directories and one
+  module name.
+- **The first line is a `\*` comment describing the machine.** It is what a
+  wrong answer is told, so a learner reads about a lift and a lamp rather than
+  about a file called `fair-lift`.
+- **Exactly one line's whole content is `__ANSWER__`,** and at most one is
+  `__CHECK__`. The runner replaces the line, so the scaffold author decides
+  what the hole is: a fairness conjunct, a temporal property, an action, a
+  `Spec` body, a `vars` tuple, or the `VARIABLES` line itself.
+- **The fill never goes through a regex.** The runner reads the template a
+  line at a time and compares against a fixed string. A substitution would
+  read `\`, `&` and `/` as its own, so a learner's wrong answer would come
+  back as a parse error about a character they did not type.
+
+`__CHECK__` is where a per-rep expectation goes, which is what keeps one
+scaffold serving many reps. The twelve action rows use it for the state-graph
+fingerprint:
+
+```
+TLCGet("distinct") = 3 /\ TLCGet("diameter") = 3 /\ TLCGet("generated") = 3
+```
+
+Three numbers rather than two, and that was measured rather than chosen:
+`\E n \in (level + 1)..2 : ...` and `\E n \in 0..2 : ...` both reach 3 distinct
+states at diameter 2, and they generate 4 and 10.
+
+`TLCGet("level")` returns **0** in a `POSTCONDITION` and is not the depth.
+`TLCGet("diameter")` is.
 
 ## What the scaffold gives you
 
@@ -499,3 +728,24 @@ spread of the single runs.
 
 A skip costs nothing at all. It runs no TLC, since there's no answer to
 grade.
+
+**A spec rep costs one TLC run per scaffold and nothing else.** Measured
+2026-10-17, three runs each, at load 1.3:
+
+| rep | scaffolds | ms |
+|---|---|---|
+| `R107`, a value rep for comparison | — | 324, 370, 338 |
+| `S001`, the fairness hole | 1 | 357, 365, 341 |
+| `S027`, the action hole | 1 | 336, 326, 322 |
+| `S039`, a two-machine battery | 2 | 670, 686, 639 |
+| `S013`, a three-machine battery | 3 | 1027, 1004, 1033 |
+| `S011`, a four-machine battery | 4 | 1398, 1335, 1343 |
+
+So a one-scaffold spec rep costs what a value rep costs, and a battery costs
+that times the number of machines. 335 ms a run is the whole of it; there is
+no per-rep overhead to find. A four-machine rep at 1.3 s is the most expensive
+rep in the corpus and there are two of them.
+
+A wrong spec answer costs the same as a right one, where a wrong *value*
+answer costs three runs. There are no value probes to run, because there is no
+value.

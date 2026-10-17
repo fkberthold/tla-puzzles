@@ -1,10 +1,16 @@
 # Fixture rep table for harness/test-recall-runner.sh (bead tla-wekw).
 #
 # This file pins the FORMAT recall/REPS.tsv uses. It is not the corpus; the
-# real rep table is bead tla-1sh7.2's and is authored against this shape.
+# real rep table is beads tla-1sh7.2's and tla-03ep.1's and is authored
+# against this shape.
 #
-# Rows are tab-delimited and carry the literal first field REP, so prose in
-# this file can never be read as data. Six fields, and an optional seventh:
+# BOTH ROW KINDS ARE HERE, four REP rows and three SPEC rows, and field 1 is
+# which. The SPEC rows are at the bottom and their own section says what the
+# three of them are for.
+#
+# A REP ROW. Rows are tab-delimited and carry the literal first field REP, so
+# prose in this file can never be read as data. Six fields, and an optional
+# seventh:
 #
 #   1  marker       the literal REP
 #   2  id           stable, never renumbered
@@ -32,3 +38,27 @@ REP	R001	K050	shunting	the set of all the ways the wagons could be parked, one t
 REP	R002	K047	shunting	the parking that leaves every wagon on the first track	[w \in Wagons |-> 1]
 REP	R003	K001	shunting	for each track, twice its number, with the doubling given a name of its own rather than written out twice	LET Twice(t) == t * 2 IN [t \in Tracks |-> Twice(t)]	\bLET\b
 REP	R004	K087	shunting	a count for each track, zero everywhere, after the first track alone has been set to nine	[[t \in Tracks |-> 0] EXCEPT ![1] = 9]	\bEXCEPT\b
+#
+# A SPEC ROW. Eight fields, and an optional ninth. Field 4 is a comma-
+# separated list of scaffolds, each resolving to a PAIR under
+# <env-dir>/spec/: <name>.tla and <name>.cfg. Field 7 is the same construct
+# gate it is on a REP row. Field 8 is the vector of exit codes, one per
+# scaffold. Field 9 fills the __CHECK__ hole of a scaffold that has one.
+#
+# THREE ROWS, AND EACH ONE IS A DIFFERENT SHAPE OF THE SAME MECHANISM:
+#
+#   Q001  one scaffold, keyed on one exit code. The fairness hole, where
+#         the answer is the conjunct beside Init and the step relation
+#   Q002  two scaffolds, keyed on the vector. The property hole, where one
+#         run cannot grade the answer because a weaker property also
+#         holds: fix-near is the machine it must hold on and fix-far the
+#         machine it must fail on
+#   Q003  one scaffold with a __CHECK__ hole, so field 9 has a subject.
+#         The action hole, keyed on an INVARIANT in the scaffold and a
+#         state-graph fingerprint in a POSTCONDITION
+#
+# Every number in field 8 and field 9 was measured on TLC2
+# 2026.07.31.184830 on 2026-10-17, the way the CASES.tsv codes were.
+SPEC	Q001	K095	fix-climb	the weaker promise about the counter's own step, enough that it cannot be left where it is while the flag carries on	WF_vars(Step)	\bWF_	0
+SPEC	Q002	K068	fix-near,fix-far	that the counter reaches two and from then on is never anywhere else	<>[](n = 2)	<>\[\]	0,13
+SPEC	Q003	K079	fix-act	a step that takes the counter up one while it has room, and leaves the flag reading what it read	n < 2 /\ n' = n + 1 /\ flag' = flag	'	0	TLCGet("distinct") = 3 /\ TLCGet("diameter") = 3 /\ TLCGet("generated") = 3

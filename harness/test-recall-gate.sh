@@ -1,21 +1,31 @@
 #!/usr/bin/env bash
 # test-recall-gate.sh: executable spec for harness/recall-gate.sh and for
-# scripts/deliver-recall.sh (bead tla-1sh7.4, epic tla-1sh7).
+# scripts/deliver-recall.sh (beads tla-1sh7.4 and tla-03ep.1, epics tla-1sh7
+# and tla-i7uz).
 #
 # WHAT IT PINS
 #
-#   Each of the gate's five checks goes RED on a corpus that breaks it, and
+#   Each of the gate's six checks goes RED on a corpus that breaks it, and
 #   the finding carries the code that names which one broke. The bead's RED
 #   line names three of those by hand (a corrupted canonical, a miss row
 #   changed to a correct answer, and a prompt edited to contain its own answer
-#   notation) and parts 2 and 3 run all five.
+#   notation) and parts 2 and 3 run the first five.
+#
+#   Each of the SPEC row kind's own findings goes RED too, and part 7 is where
+#   they are. The rep table carries two kinds and four of the six checks ask a
+#   question whose ANSWER DIFFERS BY KIND, so part 7 exists because widening
+#   the guards would have answered those four wrongly in silence rather than
+#   leaving them unanswered.
 #
 #   The two tiers mean two different things. `--static-only` over a clean
 #   corpus exits 0 and SAYS what it did not measure. `--no-tlc` over the same
 #   corpus exits 99, because it was asked to measure and did not.
 #
-#   The shipped recall/ corpus passes all five checks, over the real 120 reps
-#   and 30 miss rows, through the real model checker.
+#   The shipped recall/ corpus passes all six checks, over the real 120 value
+#   reps, 40 spec reps, 30 scaffolds and 90 miss rows, through the real model
+#   checker. Part 4 also asserts the coverage claim the gate deliberately has
+#   no opinion about: all 20 constructs of the temporal family carry a spec
+#   rep, and none of them carries only one.
 #
 #   scripts/deliver-recall.sh under --check writes nothing, names every path a
 #   real delivery would write, and says at the destination's own resolved
@@ -44,8 +54,9 @@
 # harness/fixtures/recall/ exists and belongs to harness/test-recall-runner.sh.
 # Reusing it would couple two suites to one set of rows, which is what that
 # suite's own header warns about where it explains why it does not pin block
-# lengths against the shipped drill/SHEET.md. So this suite writes a four-rep
-# corpus and a three-row inventory into its temp tree and owns them.
+# lengths against the shipped drill/SHEET.md. So this suite writes a six-rep
+# corpus -- four REP rows and two SPEC rows -- three scaffolds and a four-row
+# inventory into its temp tree and owns them.
 #
 # THE TREE IS A BARE PRACTICE TREE, AND THAT IS NOW AN ASSERTION RATHER THAN
 # A SETUP DETAIL. It carries recall/ and nothing else: no harness/ and no repo
@@ -69,8 +80,10 @@
 # harness/recall-gate.sh has a `--static-only` tier that starts no JVM, so a
 # fast registry row over it is available and is deliberately not taken: bead
 # tla-1sh7.4 registers two suites and this is one of them. Part 4 is the
-# expensive part (the real corpus is 120 canonical answers and 30 wrong ones,
-# one TLC grading run each) and it is the part the bead exists for.
+# expensive part and it is the part the bead exists for. It costs 160
+# canonical answers and 90 wrong ones; the 120 value rows are one TLC run
+# each, and the 40 spec rows are one run PER SCAFFOLD, which is between one
+# and four.
 #
 # Usage:  harness/test-recall-gate.sh
 # Exit:   0 if every assertion holds, 1 otherwise.
@@ -163,9 +176,84 @@ TAB=$'\t'
 # ---------------------------------------------------------------------------
 build_mirror() {
   local root="$1"
-  mkdir -p "$root/recall/env"
+  mkdir -p "$root/recall/env/spec"
   cp "$RUNNER" "$root/recall/recall.sh"
   chmod +x "$root/recall/recall.sh"
+
+  # ------------------------------------------------------------------------
+  # THE SPEC HALF OF THE FIXTURE. Three scaffolds and two SPEC rows, which is
+  # the smallest corpus that gives every one of the gate's spec-only findings
+  # a subject to be absent from:
+  #
+  #   gfix-near, gfix-far  a battery. The canonical has to HOLD on the first
+  #                        and FAIL on the second, so field 8 is 0,13 and a
+  #                        vector check 4 lets through unaligned would be
+  #                        read against the wrong machine
+  #   gfix-act             one scaffold with a __CHECK__ hole, so field 9 and
+  #                        both of its findings have a subject
+  #
+  # EVERY NUMBER IN FIELD 8 AND FIELD 9 IS CONFIRMED BY THE CLEAN RUN rather
+  # than written down from memory: check 1 submits each canonical and requires
+  # rc 0, so part 1's green run over this tree IS the measurement.
+  # ------------------------------------------------------------------------
+  # A SINGLE-QUOTED HEREDOC, NOT printf, FOR THE SCAFFOLDS. The rep tables
+  # above use printf with an explicit $TAB because a tab an editor turned into
+  # spaces has to be a syntax error here rather than a silent field shift. A
+  # scaffold carries no tabs and does carry primes and backslashes, both of
+  # which a quoted heredoc passes through untouched and neither of which
+  # survives a single-quoted printf argument without `'"'"'`.
+  cat >"$root/recall/env/spec/gfix-near.tla" <<'NEAR'
+\* a fixture machine: a counter driven up to two that then stays there, beside a flag that flips for ever.
+---- MODULE Scaffold ----
+EXTENDS Naturals, Integers, Sequences, FiniteSets, TLC
+VARIABLES n, flag
+vars == <<n, flag>>
+Init == n = 0 /\ flag = 0
+Step == n < 2 /\ n' = n + 1 /\ flag' = flag
+Flip == flag' = 1 - flag /\ n' = n
+Next == Step \/ Flip
+Spec == Init /\ [][Next]_vars /\ WF_vars(Step) /\ WF_vars(Flip)
+Checked ==
+__ANSWER__
+====
+NEAR
+  printf 'SPECIFICATION Spec\nPROPERTY Checked\n' >"$root/recall/env/spec/gfix-near.cfg"
+
+  cat >"$root/recall/env/spec/gfix-far.tla" <<'FAR'
+\* a fixture machine: a counter driven up to two, dropped back to nothing, and driven up again for ever, beside a flag that flips.
+---- MODULE Scaffold ----
+EXTENDS Naturals, Integers, Sequences, FiniteSets, TLC
+VARIABLES n, flag
+vars == <<n, flag>>
+Init == n = 0 /\ flag = 0
+Step == n < 2 /\ n' = n + 1 /\ flag' = flag
+Fall == n = 2 /\ n' = 0 /\ flag' = flag
+Flip == flag' = 1 - flag /\ n' = n
+Next == Step \/ Fall \/ Flip
+Spec == Init /\ [][Next]_vars /\ WF_vars(Step) /\ WF_vars(Fall) /\ WF_vars(Flip)
+Checked ==
+__ANSWER__
+====
+FAR
+  printf 'SPECIFICATION Spec\nPROPERTY Checked\n' >"$root/recall/env/spec/gfix-far.cfg"
+
+  cat >"$root/recall/env/spec/gfix-act.tla" <<'ACT'
+\* a fixture machine: a counter and a flag held at nothing, so the flag cannot move. what one step does is the thing left out.
+---- MODULE Scaffold ----
+EXTENDS Naturals, Integers, Sequences, FiniteSets, TLC
+VARIABLES n, flag
+vars == <<n, flag>>
+Init == n = 0 /\ flag = 0
+Act ==
+__ANSWER__
+Next == Act
+Spec == Init /\ [][Next]_vars
+Guard == flag = 0
+Shape ==
+__CHECK__
+====
+ACT
+  printf 'SPECIFICATION Spec\nINVARIANT Guard\nPOSTCONDITION Shape\n' >"$root/recall/env/spec/gfix-act.cfg"
 
   {
     printf '%s\n' '\* mini -- the fixture environment for harness/test-recall-gate.sh.'
@@ -185,6 +273,11 @@ build_mirror() {
       "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
     printf 'REP%sF004%sK002%smini%sa word for where wagon a stands: near on the first track, middle on the second, far on anything else%sCASE Parking.a = 1 -> "near" [] Parking.a = 2 -> "middle" [] OTHER -> "far"\n' \
       "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
+    printf '%s\n' '# Two SPEC rows. F005 is the battery shape and F006 the action shape.'
+    printf 'SPEC%sF005%sK004%sgfix-near,gfix-far%sthat the counter reaches two and from then on is never anywhere else%s<>[](n = 2)%s<>\\[\\]%s0,13\n' \
+      "$TAB" "$TAB" "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
+    printf 'SPEC%sF006%sK004%sgfix-act%sa step that takes the counter up one while it has room, leaving the flag alone%sn < 2 /\\ n'"'"' = n + 1 /\\ flag'"'"' = flag%s'"'"'%s0%sTLCGet("distinct") = 3 /\\ TLCGet("diameter") = 3\n' \
+      "$TAB" "$TAB" "$TAB" "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
   } >"$root/recall/REPS.tsv"
 
   # Row two is the rc-10 band's SECOND meaning, planted deliberately. See
@@ -194,6 +287,11 @@ build_mirror() {
     printf 'MISS%sF003%s[w \\in Wagons |-> Tracks]%sThat is one standing, and what it gives back for every wagon is the whole set of tracks rather than one track.\n' \
       "$TAB" "$TAB" "$TAB"
     printf 'MISS%sF004%sCASE Parking.a = 1 -> "near" [] Parking.a = 2 -> "middle"%sThat leaves the yard with no word for anything but the first two tracks, and wagon a is on neither.\n' \
+      "$TAB" "$TAB" "$TAB"
+    # A SPEC rep's miss, whose wrong answer scores rc 5 rather than rc 10.
+    # This is the row a check 2 that widened its guard instead of looking the
+    # kind up would have reported as "not wrong".
+    printf 'MISS%sF005%s[]<>(n = 2)%sThat asks for two again and again and lets the counter leave in between, which the machine that climbs and drops for ever satisfies.\n' \
       "$TAB" "$TAB" "$TAB"
   } >"$root/recall/MISSES.tsv"
 
@@ -211,6 +309,7 @@ INVENTORY="$TMPROOT/INVENTORY.md"
   printf 'ROW%sK001%ssets%sSet literal%sfixture:1%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
   printf 'ROW%sK002%score%sCardinality%sfixture:2%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
   printf 'ROW%sK003%sfunctions%sFunction set%sfixture:3%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
+  printf 'ROW%sK004%stemporal%sTemporal fixture construct%sfixture:4%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
 } >"$INVENTORY"
 
 # ---------------------------------------------------------------------------
@@ -270,7 +369,7 @@ assert_says "and says CHECK_DID_NOT_RUN" 'VERDICT CHECK_DID_NOT_RUN' "$GATE_OUT"
 assert_says "and names the canonical check it did not run" \
   '^UNCHECKED .*every-canonical-scores-0' "$GATE_OUT"
 assert_says "and the miss check too" \
-  '^UNCHECKED .*every-miss-scores-10' "$GATE_OUT"
+  '^UNCHECKED .*every-miss-scores-its-kinds-code' "$GATE_OUT"
 assert_silent "and claims no mode block, which belongs to --static-only" \
   'NOT COVERED HERE' "$GATE_OUT"
 
@@ -436,6 +535,12 @@ assert_says "and it says so once, at the root" '^FINDING +SHAPE-NO-ENV-DIR' "$GA
 
 M=$(mutant shape-no-rows)
 printf '%s\n' '# prose and nothing else' >"$M/recall/REPS.tsv"
+# THE SCAFFOLDS GO WITH THE ROWS, because with no SPEC row left to name them
+# all three are orphans and check 6 says so correctly. That is a different
+# defect from the one this row is about, and leaving it in would have made
+# this row assert "an empty table is 99" over a run that was 1 for a reason
+# nobody asked about.
+rm -rf "$M/recall/env/spec"
 run_gate "$M" --static-only -q
 assert_eq "a REPS.tsv with no REP row is 99, never a clean 0 over an empty set" \
   "99" "$GATE_RC"
@@ -450,13 +555,18 @@ echo "== part 3: checks 1 and 2, which are the mutation bar and need TLC =="
 # ---------------------------------------------------------------------------
 
 run_gate "$CLEAN"
-assert_eq "the clean fixture passes all five checks through TLC" "0" "$GATE_RC"
+assert_eq "the clean fixture passes all six checks through TLC" "0" "$GATE_RC"
 assert_says "and says every canonical scored rc 0" \
-  'OK +check 1 +4 canonical' "$GATE_OUT"
-assert_says "and every wrong answer scored rc 10" \
-  'OK +check 2 +2 wrong answer' "$GATE_OUT"
+  'OK +check 1 +6 canonical' "$GATE_OUT"
+assert_says "and every wrong answer scored its own row kind's code" \
+  'OK +check 2 +3 wrong answer' "$GATE_OUT"
 assert_silent "and claims no mode block, which belongs to --static-only" \
   'NOT COVERED HERE' "$GATE_OUT"
+# THE TWO KINDS ARE COUNTED SEPARATELY on the line that reports the pass. One
+# total would have let a corpus lose every SPEC row under a number that did
+# not move, which is the shape of the defect the spec checks exist to close.
+assert_says "and the summary names both row kinds and the scaffolds apart" \
+  '4 rep\(s\), 2 spec rep\(s\), 3 scaffold\(s\), 3 miss row\(s\)' "$GATE_OUT"
 
 # --- CHECK 1 ---------------------------------------------------------------
 # The bead's RED line, first clause: a corrupted canonical.
@@ -597,16 +707,37 @@ echo "== part 4: the shipped corpus, which the fixture stands in for =="
 # ---------------------------------------------------------------------------
 LIVE_RC=0
 LIVE_OUT=$("$GATE" "$LIVE_RECALL" 2>&1) || LIVE_RC=$?
-assert_eq "the shipped recall/ corpus passes all five checks" "0" "$LIVE_RC"
+assert_eq "the shipped recall/ corpus passes all six checks" "0" "$LIVE_RC"
+# THE COUNTS MOVED ON 2026-10-17 AND THEY ARE STILL WRITTEN DOWN. Deriving
+# them from the tables the gate just read would make this row assert that the
+# gate agrees with itself. 120 value reps and 30 of their misses landed with
+# bead tla-1sh7.2; 40 spec reps over 30 scaffolds and 60 of their misses
+# landed with bead tla-03ep.1. A row that goes red because the corpus grew is
+# a row somebody has to look at, which is the point of pinning it.
 assert_says "and the count is the real one, not a fixture's" \
-  '120 rep\(s\), 30 miss row\(s\), 0 finding\(s\), 0 unchecked' "$LIVE_OUT"
-assert_says "every canonical in it scores rc 0" 'OK +check 1 +120 canonical' "$LIVE_OUT"
-assert_says "every recorded wrong answer scores rc 10" \
-  'OK +check 2 +30 wrong answer' "$LIVE_OUT"
+  '120 rep\(s\), 40 spec rep\(s\), 30 scaffold\(s\), 90 miss row\(s\), 0 finding\(s\), 0 unchecked' "$LIVE_OUT"
+assert_says "every canonical in it scores rc 0" 'OK +check 1 +160 canonical' "$LIVE_OUT"
+assert_says "and the OK line splits the two kinds, since the two mean different things" \
+  '120 against themselves.*40 against the vector' "$LIVE_OUT"
+assert_says "every recorded wrong answer scores its own row kind's code" \
+  'OK +check 2 +90 wrong answer' "$LIVE_OUT"
 assert_says "every construct id resolves to a drill/INVENTORY.md row" \
-  'OK +check 3 +120 construct' "$LIVE_OUT"
+  'OK +check 3 +160 construct' "$LIVE_OUT"
 assert_says "no prompt shows a token its own canonical uses" \
-  'OK +check 5 +no prompt of 120' "$LIVE_OUT"
+  'OK +check 5 +no prompt of 160' "$LIVE_OUT"
+assert_says "every shipped scaffold is a whole module a row names" \
+  'OK +check 6 +30 scaffold' "$LIVE_OUT"
+# ALL 20 TEMPORAL CONSTRUCTS HAVE A REP, which is the coverage claim bead
+# tla-03ep.1 exists to deliver and the one thing a green gate does not say.
+# The gate has no opinion about coverage on purpose, so the claim is asserted
+# here against drill/INVENTORY.md rather than left to a reader.
+assert_eq "all 20 constructs of the temporal family carry a spec rep" "20" \
+  "$(awk -F'\t' 'FNR == NR && $1 == "ROW" && $3 == "temporal" { fam[$2] = 1; next }
+                 $1 == "SPEC" && ($3 in fam) { seen[$3] = 1 }
+                 END { print length(seen) }' "$LIVE_INVENTORY" "$LIVE_RECALL/REPS.tsv")"
+assert_eq "and none of them carries only one, so the fact is retrieved rather than the sentence" \
+  "" "$(awk -F'\t' '$1 == "SPEC" { n[$3]++ } END { for (k in n) if (n[k] < 2) print k }' \
+         "$LIVE_RECALL/REPS.tsv")"
 
 # THE CHECK-1 CAVEAT, GATED RATHER THAN LEFT IN A COMMENT. Check 1 submits
 # each canonical against itself, so a green run says the canonicals parse and
@@ -719,8 +850,17 @@ assert_silent "and the absent-sheet note is gone" \
 REAL_RC=0
 REAL_OUT=$("$DELIVER" "$DEST" 2>&1) || REAL_RC=$?
 assert_eq "a real delivery into an empty destination exits 0" "0" "$REAL_RC"
-assert_eq "and lands exactly six files" "6" "$(find "$DEST" -type f | wc -l)"
-assert_says "and counts them" '6 file\(s\) landed, 0 refreshed' "$REAL_OUT"
+# THE EXPECTED COUNT IS COMPUTED FROM THE MANIFEST RATHER THAN WRITTEN DOWN.
+# It read 6 until 2026-10-17 and then the spec scaffolds landed under env/, so
+# a hardcoded number would have turned this row red for a corpus that grew by
+# design. The manifest is four named files plus every file under env/, which
+# the delivery script sweeps with `find -type f` for the stated reason that a
+# name list cannot be told the corpus grew. So the same sweep is the
+# expectation, and a row the script fails to deliver still goes red.
+MANIFEST_N=$(( 4 + $(find "$REPO_ROOT/recall/env" -type f | wc -l) ))
+assert_eq "and lands every file the manifest names, four plus the whole env/ tree" \
+  "$MANIFEST_N" "$(find "$DEST" -type f | wc -l)"
+assert_says "and counts them" "$MANIFEST_N file\\(s\\) landed, 0 refreshed" "$REAL_OUT"
 if [ -x "$DEST/recall.sh" ]; then
   ok "the delivered runner is executable, which cp without -p does not guarantee"
 else
@@ -773,7 +913,7 @@ assert_says "and its own grade" 'token=PARSE_ERROR grade=parse-error' "$DELIVERE
 printf 'learner edit\n' >"$DEST/REPS.tsv"
 AGAIN_OUT=$("$DELIVER" "$DEST" 2>&1) || true
 assert_says "a second delivery refreshes rather than skipping" \
-  '0 file\(s\) landed, 6 refreshed' "$AGAIN_OUT"
+  "0 file\\(s\\) landed, $MANIFEST_N refreshed" "$AGAIN_OUT"
 assert_silent "and never reports a skip, which is the sibling scripts' word" \
   'skipped \(exists\)' "$AGAIN_OUT"
 if cmp -s "$REPO_ROOT/recall/REPS.tsv" "$DEST/REPS.tsv"; then
@@ -878,6 +1018,196 @@ assert_says "the gate resolves its root from BASH_SOURCE" 'BASH_SOURCE' "$GATE_B
 assert_says "the gate grades through recall.sh" '"[$]RUNNER" -q' "$GATE_BODY"
 assert_silent "and holds no verdict path of its own, so it never reaches past the runner" \
   '^[[:space:]]*VERDICT=' "$GATE_BODY"
+
+echo
+echo "== part 7: the SPEC row kind, and the guards it needed rather than wider ones =="
+# ---------------------------------------------------------------------------
+# Every guard in the gate read `$1 == "REP"` until 2026-10-17, so the 40 spec
+# rows that landed with bead tla-03ep.1 were invisible to all five checks
+# rather than mishandled by them. The rows below are the half of that fix the
+# header argues for: four of the checks ask a question whose ANSWER DIFFERS BY
+# KIND, so a widened guard would have answered it wrongly in silence.
+#
+# EVERY ROW IS STATIC UNLESS IT SAYS OTHERWISE, so this part costs almost
+# nothing. The two that need TLC are the check 1 and check 2 rows at the
+# bottom, which are the ones that cannot be static.
+# ---------------------------------------------------------------------------
+
+# --- check 4, the spec-only findings ---------------------------------------
+M=$(mutant c4-scaffold-gone)
+rm "$M/recall/env/spec/gfix-far.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 4: a scaffold module that is not on disk is a finding" "1" "$GATE_RC"
+assert_says "and the detail says every submission would be rc 3" \
+  '^FINDING +SCAFFOLD-MISSING +F005 .*rc 3' "$GATE_OUT"
+
+# THE CONFIG IS THE HALF THAT IS EASY TO FORGET and it takes the whole rep out
+# of service just as completely: TLC is handed a module with no obligations
+# and says nothing about any answer.
+M=$(mutant c4-cfg-gone)
+rm "$M/recall/env/spec/gfix-far.cfg"
+run_gate "$M" --static-only -q
+assert_eq "check 4: a scaffold config that is not on disk is a finding too" "1" "$GATE_RC"
+assert_says "and the detail says the module would have no obligations" \
+  '^FINDING +SCAFFOLD-MISSING +F005 .*no obligations' "$GATE_OUT"
+
+M=$(mutant c4-vector-short)
+sed -i "s|${TAB}0,13\$|${TAB}0|" "$M/recall/REPS.tsv"
+run_gate "$M" --static-only -q
+assert_eq "check 4: two scaffolds and one expected code is a finding" "1" "$GATE_RC"
+assert_says "and the detail says which code belongs to which scaffold is unknown" \
+  '^FINDING +EXPECT-BAD +F005 .*2 scaffold' "$GATE_OUT"
+
+M=$(mutant c4-vector-words)
+sed -i "s|${TAB}0,13\$|${TAB}0,fails|" "$M/recall/REPS.tsv"
+run_gate "$M" --static-only -q
+assert_eq "check 4: a field 8 entry that is not an exit code is a finding" "1" "$GATE_RC"
+assert_says "and the detail names the scaffold it was expected from" \
+  '^FINDING +EXPECT-BAD +F005 .*gfix-far' "$GATE_OUT"
+
+M=$(mutant c4-vector-empty)
+sed -i "s|${TAB}<>\\\\\\[\\\\\\]${TAB}0,13\$|${TAB}<>\\\\[\\\\]${TAB}|" "$M/recall/REPS.tsv"
+run_gate "$M" --static-only -q
+assert_eq "check 4: an empty field 8 is a finding, since there is no key at all" "1" "$GATE_RC"
+assert_says "and the detail says there is nothing to grade against" \
+  '^FINDING +EXPECT-BAD +F005 .*no key' "$GATE_OUT"
+
+# BOTH DIRECTIONS OF THE __CHECK__ HOLE. One does not parse; the other is dead
+# weight that is delivered to every practice tree and read by nothing.
+M=$(mutant c4-check-gone)
+# DOUBLE-QUOTED so $TAB expands, which is the whole of what this substitution
+# has to find: field 9 is the text after the last tab on F006's row. A
+# single-quoted script would look for the literal string ${TAB} and match
+# nothing, and the mutation would be a no-op the suite could not see.
+sed -i "s|${TAB}TLCGet(\"distinct\") = 3 /\\\\ TLCGet(\"diameter\") = 3\$||" "$M/recall/REPS.tsv"
+run_gate "$M" --static-only -q
+assert_eq "check 4: a scaffold with a check hole and an empty field 9 is a finding" "1" "$GATE_RC"
+assert_says "and the detail says the hole fills with nothing" \
+  '^FINDING +CHECK-MISSING +F006' "$GATE_OUT"
+
+M=$(mutant c4-check-unused)
+# F005's scaffolds have no __CHECK__ hole, so a field 9 on it goes nowhere.
+sed -i "s|${TAB}0,13\$|${TAB}0,13${TAB}TLCGet(\"distinct\") = 9|" "$M/recall/REPS.tsv"
+run_gate "$M" --static-only -q
+assert_eq "check 4: a field 9 no scaffold has a hole for is a finding" "1" "$GATE_RC"
+assert_says "and the detail says it is delivered and never read" \
+  '^FINDING +CHECK-UNUSED +F005' "$GATE_OUT"
+
+# --- check 6, which has no REP-corpus analogue at all ----------------------
+# THE FIRST TWO ARE THE WORST KIND OF SCAFFOLD DEFECT, because they do not
+# grade an answer wrongly: they grade every answer to every rep over that
+# scaffold IDENTICALLY, so the rep stops discriminating and nothing else says
+# so.
+M=$(mutant c6-no-hole)
+sed -i 's|^__ANSWER__$|TRUE|' "$M/recall/env/spec/gfix-near.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a scaffold with no answer hole is a finding" "1" "$GATE_RC"
+assert_says "and the detail says every submission would grade the same" \
+  '^FINDING +SCAFFOLD-NO-HOLE +gfix-near .*grades the same' "$GATE_OUT"
+
+M=$(mutant c6-two-holes)
+sed -i 's|^Checked ==$|Checked ==\n__ANSWER__\nOther ==|' "$M/recall/env/spec/gfix-near.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a scaffold with two answer holes is a finding" "1" "$GATE_RC"
+assert_says "and the detail counts them" \
+  '^FINDING +SCAFFOLD-TWO-HOLES +gfix-near .*2 __ANSWER__' "$GATE_OUT"
+
+# THE HEADER HAS TO NAME `Scaffold` because the runner copies the file to
+# Scaffold.tla and rewrites nothing, so a header naming anything else is
+# rc 255 on every submission to every rep over it.
+M=$(mutant c6-bad-header)
+sed -i 's|^---- MODULE Scaffold ----$|---- MODULE Near ----|' "$M/recall/env/spec/gfix-near.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a header that does not name Scaffold is a finding" "1" "$GATE_RC"
+assert_says "and the detail says the runner rewrites nothing" \
+  '^FINDING +SCAFFOLD-BAD-SHAPE +gfix-near .*rewrites nothing' "$GATE_OUT"
+
+M=$(mutant c6-no-end)
+sed -i 's|^====$||' "$M/recall/env/spec/gfix-near.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a scaffold with no closing line is a finding" "1" "$GATE_RC"
+assert_says "and the detail says the module never ends" \
+  '^FINDING +SCAFFOLD-BAD-SHAPE +gfix-near .*never ends' "$GATE_OUT"
+
+# THE FIRST LINE IS PRINTED TO A LEARNER under a wrong answer, which is why it
+# is a shape requirement rather than a style one: it is the only thing a spec
+# rep's report says about the machine the answer was put in.
+M=$(mutant c6-no-about)
+sed -i '1s|.*|VARIABLES unexpected|' "$M/recall/env/spec/gfix-near.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a first line that is not a comment is a finding" "1" "$GATE_RC"
+assert_says "and the detail says it is what a wrong answer is told" \
+  '^FINDING +SCAFFOLD-BAD-SHAPE +gfix-near .*wrong answer is told' "$GATE_OUT"
+
+M=$(mutant c6-short-about)
+sed -i '1s|.*|\\* a counter|' "$M/recall/env/spec/gfix-near.tla"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a first line too short to describe a machine is a finding" "1" "$GATE_RC"
+assert_says "and the detail counts the characters" \
+  '^FINDING +SCAFFOLD-BAD-SHAPE +gfix-near .*characters' "$GATE_OUT"
+
+# THE ORPHAN SWEEP RUNS OVER THE TREE, which is the only way it could find
+# this: no row and no list mentions the file. It matters because
+# scripts/deliver-recall.sh sweeps env/ with `find -type f`, so a scaffold no
+# row reads still lands in every practice tree.
+M=$(mutant c6-orphan)
+cp "$M/recall/env/spec/gfix-near.tla" "$M/recall/env/spec/gfix-nobody.tla"
+cp "$M/recall/env/spec/gfix-near.cfg" "$M/recall/env/spec/gfix-nobody.cfg"
+run_gate "$M" --static-only -q
+assert_eq "check 6: a scaffold no row names is a finding" "1" "$GATE_RC"
+assert_says "and the detail says it is delivered and read by nothing" \
+  '^FINDING +SCAFFOLD-ORPHAN +gfix-nobody' "$GATE_OUT"
+
+# A .cfg with no .tla is NOT an orphan by this sweep, because the sweep walks
+# the modules. It is reported through SCAFFOLD-MISSING at check 4 instead,
+# which the c4-cfg-gone row above covers. Stated rather than left as a gap.
+
+# --- check 1 and check 2, the two that cannot be static --------------------
+# A SPEC CANONICAL THAT DOES NOT PRODUCE ITS VECTOR is check 1's spec arm, and
+# it is strictly stronger than the REP arm: a REP row's canonical is compared
+# against ITSELF, while this one is compared against a code written down
+# separately. Breaking field 8 alone, with the canonical untouched, is what
+# proves the two sides are independent.
+M=$(mutant c1-spec-vector)
+sed -i "s|${TAB}0,13\$|${TAB}0,0|" "$M/recall/REPS.tsv"
+run_gate "$M"
+assert_eq "check 1: a SPEC canonical that does not match its own field 8 is a finding" \
+  "1" "$GATE_RC"
+assert_says "and it reports the runner's vector code rather than a TLC code" \
+  '^FINDING +CANONICAL-NOT-CORRECT +F005 .*rc 5' "$GATE_OUT"
+assert_says "and says either the answer or the key is wrong, since one run cannot tell" \
+  'either the answer or the key is wrong' "$GATE_OUT"
+
+# A SPEC MISS THAT IS A CORRECT FORM. The worst thing either table can hold is
+# an explanation saying a right answer is a mistake, and that is as true of a
+# vector as of a value.
+M=$(mutant c2-spec-right)
+sed -i "s|${TAB}\\[\\]<>(n = 2)${TAB}|${TAB}<>[](n = 2)${TAB}|" "$M/recall/MISSES.tsv"
+run_gate "$M"
+assert_eq "check 2: a SPEC miss row that is a CORRECT form is a finding" "1" "$GATE_RC"
+assert_says "and the code says a right answer is being called a mistake" \
+  '^FINDING +MISS-NOT-WRONG +F005' "$GATE_OUT"
+
+# THE CONTROL FOR THE TWO ROWS ABOVE. The clean run at the top of part 3
+# already passed both, which is the gate ACCEPTING a spec rep's correct
+# canonical and its recorded wrong answer, so neither row above is only
+# proving that any spec row at all is refused.
+run_gate "$CLEAN"
+assert_eq "check 1 and 2 CONTROL: the clean spec rows stay green through TLC" "0" "$GATE_RC"
+
+# WHAT A WIDENED GUARD WOULD HAVE DONE, measured rather than argued. A check 2
+# that took rc 10 as the wrong-answer code for every row kind would report
+# F005's miss as not-wrong, because a spec rep's wrong answer is rc 5. The
+# runner is the authority on that number, so it is read from the runner here.
+SPEC_MISS_RC=0
+"$CLEAN/recall/recall.sh" -q --reps "$CLEAN/recall/REPS.tsv" \
+  --env-dir "$CLEAN/recall/env" -- F005 '[]<>(n = 2)' >/dev/null 2>&1 || SPEC_MISS_RC=$?
+assert_eq "a spec rep's recorded wrong answer scores 5 and not 10" "5" "$SPEC_MISS_RC"
+REP_MISS_RC=0
+"$CLEAN/recall/recall.sh" -q --reps "$CLEAN/recall/REPS.tsv" \
+  --env-dir "$CLEAN/recall/env" -- F003 '[w \in Wagons |-> Tracks]' >/dev/null 2>&1 || REP_MISS_RC=$?
+assert_eq "and a value rep's scores 10 and not 5, which is why the kind is looked up" \
+  "10" "$REP_MISS_RC"
 
 echo
 if [ "$fail_count" -ne 0 ]; then

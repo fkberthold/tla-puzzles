@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# recall-gate.sh: the five checks over the recall rep corpus (bead
-# tla-1sh7.4, epic tla-1sh7).
+# recall-gate.sh: the six checks over the recall rep corpus (beads tla-1sh7.4
+# and tla-03ep.1, epics tla-1sh7 and tla-i7uz).
 #
 # WHY THIS EXISTS. 120 reps and 30 miss rows landed on 2026-10-16 and nothing
 # checked either table. recall/recall.sh answers one question per submission,
@@ -8,13 +8,71 @@
 # rep. The shape is harness/completion-gate.sh's and the reasoning is its:
 # a corpus whose only reader is a person is a corpus checked by a person.
 #
-# WHAT A RECALL REP IS. A need stated in English and the notation that
-# answers it, graded on one exit code. recall/REPS.tsv carries one tab-
-# delimited REP row per rep: an id, a construct id that is a drill/INVENTORY.md
-# row, an environment name resolving to <root>/env/<name>.tla, the English
-# prompt, the canonical answer, and an optional field 7 holding an ERE the raw
-# answer must match. recall/MISSES.tsv carries one MISS row per recorded wrong
-# answer: a rep id, the wrong answer verbatim, and what that answer says.
+# WHAT A RECALL REP IS. A need stated in English and the notation that answers
+# it, graded on one exit code. recall/REPS.tsv carries one tab-delimited row
+# per rep, and FIELD 1 IS WHICH KIND:
+#
+#   REP   an id, a construct id that is a drill/INVENTORY.md row, an
+#         environment name resolving to <root>/env/<name>.tla, the English
+#         prompt, the canonical answer, and an optional field 7 holding an ERE
+#         the raw answer must match. The grade is value equality
+#   SPEC   the same first three, then a comma-separated SCAFFOLD list in field
+#         4, the prompt, the canonical, the same optional field 7, a
+#         comma-separated vector of expected exit codes in field 8, and an
+#         optional field 9 filling a scaffold's `__CHECK__` hole. Each
+#         scaffold resolves to a PAIR, <root>/env/spec/<name>.tla and
+#         <root>/env/spec/<name>.cfg. The grade is whether the vector of
+#         codes TLC returns is the vector field 8 names
+#
+# recall/MISSES.tsv carries one MISS row per recorded wrong answer, against
+# either kind: a rep id, the wrong answer verbatim, and what that answer says.
+#
+# ===========================================================================
+# WHY THE SECOND ROW KIND NEEDED NEW GUARDS RATHER THAN WIDER ONES
+#
+# Every guard in this file read `$1 == "REP"` until 2026-10-17, so a SPEC row
+# was INVISIBLE to all five checks rather than mishandled by them. The 40 rows
+# that landed with bead tla-03ep.1 would have been ungated in a file whose
+# whole point is that a corpus nobody checks is a corpus nobody checks.
+#
+# WIDENING THE GUARD TO `$1 ~ /REP|SPEC/` WOULD HAVE BEEN WORSE THAN LEAVING
+# IT, because four of the five checks ask a question whose ANSWER DIFFERS BY
+# KIND and would then have been answered wrongly in silence:
+#
+#   check 1  a REP row's canonical scores rc 0 because the scaffold compares
+#            it against itself. A SPEC row's scores 0 because the exit codes
+#            matched a vector written down SEPARATELY. See below: that makes
+#            the spec arm of check 1 strictly stronger
+#   check 2  a REP row's wrong answer scores rc 10. A SPEC row's scores rc 5,
+#            the runner's own code for a vector that did not match. A widened
+#            check 2 would call all 60 spec misses "not wrong"
+#   check 4  field 4 resolves to one file for a REP row and to two files per
+#            comma-separated name for a SPEC row, and fields 8 and 9 do not
+#            exist on a REP row at all
+#   check 6  is new, and nothing in the REP corpus has a scaffold to check
+#
+# Only check 5 asks one question of both kinds, because a prompt is a prompt.
+#
+# ===========================================================================
+# WHAT THE SPEC ARM OF CHECK 1 IS WORTH, WHICH IS MORE THAN THE REP ARM
+#
+# CHECK 1 below opens by saying what it cannot do: a REP row's canonical is
+# submitted AGAINST ITSELF, so a row that scores 0 has proved its canonical
+# parses and evaluates and NOTHING about whether it answers field 5.
+#
+# A SPEC ROW HAS NO SELF-GRADING FORM. The canonical goes into a scaffold
+# whose other half is a declared expected code, and field 8 was written by
+# reading what TLC returned rather than by copying field 6. So `0` in field 8
+# is an independent claim -- this formula HOLDS on this machine -- and a
+# canonical that answers a different question than field 5 describes will
+# usually fail it. The claim is still not that the rep is a good rep; the
+# claim is that the canonical does what field 8 says it does, which is one
+# step past "it parses".
+#
+# IT IS NOT A CORRECTNESS CHECK EITHER, and the gap is narrower rather than
+# closed. A battery of one scaffold expecting 0 is satisfied by anything that
+# holds on that machine, which is why all eight fairness rows carry a field 7
+# and why the property rows carry two to four scaffolds.
 #
 # USAGE
 #   harness/recall-gate.sh [OPTIONS] <recall-root>
@@ -77,11 +135,14 @@
 #
 # THE CHECKS RUN IN DEPENDENCY ORDER, NOT IN THE ORDER THEY ARE NUMBERED.
 # The numbers are the bead's and they are kept, because the bead, this header
-# and the suite all have to name the same five things. The ORDER is 3, 4, 5,
+# and the suite all have to name the same six things. The ORDER is 3, 4, 6, 5,
 # then 1 and 2, for the reason harness/reading-gate.sh checks its .cfg
 # obligation before its rc reproduces: a missing environment file makes every
-# row of check 1 come back rc 3, and 120 identical "could not run" lines say
-# nothing that check 4's one line did not already say better.
+# row of check 1 come back rc 3, and 160 identical "could not run" lines say
+# nothing that check 4's one line did not already say better. Check 6 joins
+# that group because a scaffold with no `__ANSWER__` hole grades every answer
+# to every rep over it identically, and saying so once beats saying it per
+# row.
 #
 # ===========================================================================
 # CHECK 1. EVERY CANONICAL ANSWER SCORES rc 0 THROUGH THE RUNNER.
@@ -132,12 +193,24 @@
 # cost.
 #
 # ===========================================================================
-# CHECK 2. EVERY MISS ROW'S WRONG ANSWER SCORES rc 10 AGAINST ITS OWN REP.
+# CHECK 2. EVERY MISS ROW'S WRONG ANSWER SCORES ITS ROW KIND'S WRONG-ANSWER
+# CODE AGAINST ITS OWN REP: rc 10 FOR A REP ROW, rc 5 FOR A SPEC ROW.
 #
 # Checks 1 and 2 together are the mutation bar applied to this channel. A
 # canonical that scores anything but 0 is wrong, and a miss that scores 0 is
 # not a miss. It is a correct form of the answer with an explanation attached
 # saying it is a mistake, which is the worst thing this table can hold.
+#
+# THE EXPECTED CODE IS LOOKED UP FROM THE REP, NOT FROM THE MISS ROW, which is
+# why the miss table needs no field for it. A MISS row names a rep id and this
+# check reads that rep's field 1.
+#
+# rc 5 HOLDS ONE THING AND THAT IS WHY THE SPEC ARM IS TIGHTER THAN THE REP
+# ARM. It means every scaffold ran, every code it returned was in the set
+# recall/recall.sh calls gradeable, and at least one disagreed with field 8.
+# A spec miss that blew TLC up instead comes back 75, 151 or 255 and is
+# reported as MISS-NOT-GRADED, because a sentence about an idea attached to a
+# run that fell over is the same defect rc 150 already names on the value rung.
 #
 # rc 10 HOLDS THREE DIFFERENT THINGS AND THE NUMBER ALONE CANNOT TELL THEM
 # APART. This is worth knowing before anybody reads a green run as "all 30
@@ -207,11 +280,31 @@
 #                                canonical, so the rep's own answer is turned
 #                                away at rc 4 and no correct answer can score 0
 #
-# THE LAST TWO ARE VACUOUS TODAY AND THAT IS THE POINT. Measured 2026-10-16:
-# all 120 live rows carry exactly six fields, so no row has a field 7 at all.
-# The checks are here for the row that lands tomorrow, which is the same
-# posture harness/test-pipefail.sh takes when it selects files by shebang from
-# the tree rather than from a list.
+# THE LAST TWO WERE VACUOUS WHEN THEY WERE WRITTEN AND THAT WAS THE POINT.
+# Measured 2026-10-16: all 120 REP rows carried exactly six fields, so no row
+# had a field 7 at all. They were here for the row that lands tomorrow, which
+# is the same posture harness/test-pipefail.sh takes when it selects files by
+# shebang from the tree rather than from a list. The row landed: all 40 SPEC
+# rows carry a field 7, so both checks now have a subject.
+#
+# FOUR MORE, AND ALL FOUR ARE SPEC-ONLY, because a REP row has no field 8:
+#
+#   SCAFFOLD-MISSING    a name in field 4 resolves to no .tla or to no .cfg
+#                       under <root>/env/spec/, so every submission is rc 3
+#   EXPECT-BAD          field 8 is empty, holds something that is not an exit
+#                       code, or has a different number of entries from field
+#                       4. A short vector compared against a long one position
+#                       by position is a grade read off a run that never
+#                       happened
+#   CHECK-MISSING       a scaffold the row names has a `__CHECK__` hole and
+#                       field 9 is empty, so the hole fills with nothing and
+#                       the scaffold does not parse
+#   CHECK-UNUSED        field 9 is set and NO scaffold the row names has a
+#                       `__CHECK__` hole, so the text is carried, delivered
+#                       and never read. The direction matters: this one is
+#                       dead weight rather than a broken rep, and it is a
+#                       finding because a fingerprint silently going nowhere
+#                       is how a rep stops discriminating
 #
 # ===========================================================================
 # CHECK 5. NO PROMPT CONTAINS THE NOTATION IT IS ASKING FOR.
@@ -279,6 +372,51 @@
 #   - THE MISS EXPLANATIONS. Field 4 of a miss row is printed UNDER both
 #     values, so the right answer is already on screen before it speaks and
 #     there is nothing left to telegraph.
+#   - THE SCAFFOLD'S OWN FIRST LINE. A spec rep prints it on a wrong answer,
+#     and it describes the MACHINE rather than the answer: "a goods lift
+#     standing beside a lamp" tells a reader what they are reasoning about and
+#     not what to write. It is also printed after the grade, like a miss row.
+#
+# THIS CHECK IS THE ONE THAT ASKS BOTH ROW KINDS THE SAME QUESTION, so it
+# carries no per-kind arm. The per-row intersection does the work: the token
+# set includes `[]`, `<>`, `~>`, `]_`, `WF_`, `SF_`, `ENABLED`, `UNCHANGED`,
+# `'` is deliberately absent, and a spec prompt is only flagged for a token
+# its own canonical uses. Measured over the 40 SPEC rows on 2026-10-17: zero
+# fire, which is the same measurement the 120 REP rows got and the same thing
+# to re-take rather than re-read if one ever does.
+#
+# TWO TOKENS IN THE SET ARE DOING THE JOB THEY WERE ADDED FOR AT LAST. The
+# note above CHECK 5's token list says `[]` and `<>` were inherited from
+# harness/drill-gate.sh as the temporal operators and in the value corpus
+# reach only `<<>>` and a CASE arm separator. In the spec corpus they reach
+# the temporal operators, which is what they were for.
+#
+# ===========================================================================
+# CHECK 6. EVERY SCAFFOLD IS WELL FORMED, AND EVERY SCAFFOLD IS USED.
+#
+# A scaffold is the half of a spec rep that is not in the table, so nothing in
+# checks 1 to 5 reads one. Four defects, and the first two make a rep grade
+# every answer identically rather than grading it wrongly:
+#
+#   SCAFFOLD-NO-HOLE    no line whose trimmed text is `__ANSWER__`, so the
+#                       answer is dropped on the floor and every submission
+#                       to every rep over that scaffold scores the same
+#   SCAFFOLD-TWO-HOLES  more than one `__ANSWER__` line, or more than one
+#                       `__CHECK__` line. The runner fills every one it
+#                       finds, which is legal TLA+ about as often as not and
+#                       is never what an author meant
+#   SCAFFOLD-BAD-SHAPE  not a whole module: no `---- MODULE Scaffold ----`
+#                       header, or no closing `====`, or a first line that is
+#                       not a `\*` comment. The header has to read `Scaffold`
+#                       because the runner copies the file to Scaffold.tla and
+#                       rewrites nothing, and the first line has to be a
+#                       comment because the runner prints it to a learner
+#   SCAFFOLD-ORPHAN     a .tla under env/spec/ that no SPEC row names. It is
+#                       delivered to every practice tree and read by nothing
+#
+# THE ORPHAN CHECK RUNS OVER THE TREE RATHER THAN OVER A LIST, so a scaffold
+# added tomorrow is covered the moment it lands, and a rep deleted without its
+# scaffold shows up here rather than in a delivery that quietly grew.
 #
 # ===========================================================================
 # ONE CHECK THAT IS DELIBERATELY NOT HERE, AND THE MEASUREMENT THAT KILLED IT
@@ -317,10 +455,18 @@
 # NO CORRECTNESS CHECK. See CHECK 1 above, which is the longest section of
 # this header for that reason.
 #
-# NO COVERAGE REPORT. 37 of the inventory's 105 constructs have a rep and 68
+# NO COVERAGE REPORT. 57 of the inventory's 105 constructs have a rep and 48
 # do not, and nothing here has an opinion about which. K008 is deliberately
 # absent and recall/REPS.tsv's own footer says why. harness/test-coverage-map.sh
 # is the instrument for coverage questions.
+#
+# NO OPINION ABOUT WHETHER A BATTERY DISCRIMINATES. A SPEC row naming one
+# scaffold and expecting 0 passes check 4 and check 1 and is satisfied by
+# anything that holds on that machine. Nothing static can tell a battery that
+# separates the canonical from its near neighbors from one that does not;
+# what can is a wrong answer in recall/MISSES.tsv, which check 2 runs. So the
+# density of the miss table IS the discrimination check, and it is reported
+# rather than required.
 #
 # NO EXPLANATION QUALITY CHECK. Field 4 is taken at its word, exactly as
 # META.md is by harness/drill-gate.sh's check 3.
@@ -330,7 +476,25 @@
 # files. Two gates asserting one property is how they drift apart.
 #
 # ===========================================================================
-# OUTSTANDING: THIS INSTRUMENT IS NOT IN harness/test-indeterminate.sh's
+# CLOSED 2026-10-17: THIS INSTRUMENT IS IN harness/test-indeterminate.sh's
+# REGISTRY NOW, and the section below is kept as the record of what was wrong
+# and what fixed it rather than deleted.
+#
+# The patch at the bottom was applied: `QGATE="harness/recall-gate.sh"` sits
+# beside its seven siblings in that suite's REGISTERED array at line 224, and
+# the two rows run at lines 704 and 714. Re-measured 2026-10-17:
+# `harness/test-indeterminate.sh` reads 95 assertions passed, rc 0, and its
+# census row reports `recall-gate.sh: 2 row(s), 1 of them non-pass`.
+#
+# WHAT IS LEFT TO SAY. One of those two rows names a count in its label --
+# "was asked to grade 120 reps and did not" -- and the rep table carries 160
+# rows now. The label is prose rather than an assertion, so the suite is
+# green either way, and the count is a sentence somebody will read as current.
+# harness/test-indeterminate.sh is not in bead tla-03ep.1's footprint, so it
+# is reported rather than edited. The section below is the original record.
+#
+# ---------------------------------------------------------------------------
+# WAS: THIS INSTRUMENT IS NOT IN harness/test-indeterminate.sh's
 # REGISTRY, AND THAT SUITE IS RED UNTIL IT IS.
 #
 # Its part 2 census selects every `harness/*.sh` that is not a test suite FROM
@@ -484,6 +648,14 @@ RUNNER="${ROOT}/recall.sh"
 REPS="${ROOT}/REPS.tsv"
 MISSES="${ROOT}/MISSES.tsv"
 ENV_DIR="${ROOT}/env"
+SPEC_DIR="${ENV_DIR}/spec"
+
+# The wrong-answer code of each row kind, which is what check 2 looks up per
+# MISS row rather than taking from the row. Read recall/recall.sh's EXIT
+# section before changing either: 10 is TLC's ASSUMPTION_FAILED and 5 is the
+# runner's own code for a vector that did not match.
+WRONG_RC_REP=10
+WRONG_RC_SPEC=5
 
 if [ ! -x "$RUNNER" ] && [ "$RUN_TLC" = "1" ]; then
   echo "recall-gate.sh: ${RUNNER} is missing or not executable." >&2
@@ -494,7 +666,9 @@ fi
 finding_n=0
 unchecked_n=0
 rep_n=0
+spec_n=0
 miss_n=0
+scaffold_n=0
 
 say()       { [ "$QUIET" = "1" ] || printf '%s\n' "$1"; }
 finding()   { printf 'FINDING   %-28s %-10s %s\n' "$1" "$2" "$3"; finding_n=$((finding_n + 1)); }
@@ -573,27 +747,46 @@ fi
 # trailing empty field, which shifts every field after it without saying so.
 # recall/REPS.tsv's own header says the same thing.
 # ---------------------------------------------------------------------------
+#
+# ONE SET OF ARRAYS WITH A KINDS ARRAY, rather than two sets. Every check that
+# asks one question of both kinds then reads one loop, and every check that
+# asks a different question per kind branches on KINDS[i] where a reader can
+# see it. Two parallel sets would have put the branch in the file layout,
+# where a check added to one and not the other is invisible.
 IDS=()
+KINDS=()
 CONSTRUCTS=()
 ENVS=()
 PROMPTS=()
 CANONS=()
 REQUIRES=()
+EXPECTS=()
+CHECKS=()
 
 while IFS= read -r row; do
-  rep_n=$((rep_n + 1))
+  kind="$(cut -f1 <<<"$row")"
+  case "$kind" in
+    REP)  rep_n=$((rep_n + 1)) ;;
+    SPEC) spec_n=$((spec_n + 1)) ;;
+  esac
+  KINDS+=("$kind")
   IDS+=("$(cut -f2 <<<"$row")")
   CONSTRUCTS+=("$(cut -f3 <<<"$row")")
   ENVS+=("$(cut -f4 <<<"$row")")
   PROMPTS+=("$(cut -f5 <<<"$row")")
   CANONS+=("$(cut -f6 <<<"$row")")
   # A six-field row has no field 7 and cut returns the empty string, which is
-  # the same thing an empty field 7 says: no gate.
+  # the same thing an empty field 7 says: no gate. The same holds of 8 and 9,
+  # which only a SPEC row carries.
   REQUIRES+=("$(cut -f7 <<<"$row")")
-done < <(awk -F'\t' '$1 == "REP"' "$REPS")
+  EXPECTS+=("$(cut -f8 <<<"$row")")
+  CHECKS+=("$(cut -f9 <<<"$row")")
+done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC"' "$REPS")
 
-if [ "$rep_n" -eq 0 ]; then
-  unchecked "reps" "$ROOT" "REPS.tsv holds no REP row. A row is tab-delimited with the literal first field REP"
+row_n=$((rep_n + spec_n))
+
+if [ "$row_n" -eq 0 ]; then
+  unchecked "reps" "$ROOT" "REPS.tsv holds no REP or SPEC row. A row is tab-delimited with one of those two literals in field 1"
 fi
 
 # ===========================================================================
@@ -619,8 +812,8 @@ else
       c3_ok=0
     fi
   done
-  [ "$c3_ok" = "1" ] && [ "$rep_n" -gt 0 ] && \
-    say "  OK    check 3  ${rep_n} construct id(s) resolve to a row of ${INVENTORY}"
+  [ "$c3_ok" = "1" ] && [ "$row_n" -gt 0 ] && \
+    say "  OK    check 3  ${row_n} construct id(s) resolve to a row of ${INVENTORY}"
 fi
 
 # ===========================================================================
@@ -628,17 +821,23 @@ fi
 # ===========================================================================
 c4_ok=1
 
-# Duplicate ids. The runner's lookup is `$1 == "REP" && $2 == id { print; exit }`,
-# so a second row with the same id is unreachable: it can never be graded and
+# Duplicate ids. The runner's lookup takes the first match and exits, so a
+# second row with the same id is unreachable: it can never be graded and
 # nothing else in this corpus would ever notice it is there.
+#
+# ACROSS BOTH KINDS, not within each. The lookup matches either marker, so a
+# SPEC row carrying a REP row's id shadows it exactly as a second REP row
+# would, and that is the collision most likely to happen by accident.
 while IFS= read -r dup; do
   [ -n "$dup" ] || continue
   finding "ROW-DUPLICATE-ID" "$dup" \
-    "two or more REP rows carry this id. The runner takes the first and exits, so the rest can never be graded"
+    "two or more rows carry this id. The runner takes the first and exits, so the rest can never be graded"
   c4_ok=0
-done < <(awk -F'\t' '$1 == "REP" { seen[$2]++ } END { for (k in seen) if (seen[k] > 1) print k }' "$REPS" | LC_ALL=C sort)
+done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { seen[$2]++ } END { for (k in seen) if (seen[k] > 1) print k }' "$REPS" | LC_ALL=C sort)
 
-# Field count, before anything reads a field that may not be there.
+# Field count, before anything reads a field that may not be there. The two
+# kinds have different minima, so the two scans are separate and each names
+# the shape it wants.
 while IFS= read -r bad; do
   [ -n "$bad" ] || continue
   finding "ROW-BAD-SHAPE" "$bad" \
@@ -646,11 +845,18 @@ while IFS= read -r bad; do
   c4_ok=0
 done < <(awk -F'\t' '$1 == "REP" && NF < 6 { print ($2 == "" ? "(no id)" : $2) }' "$REPS")
 
+while IFS= read -r bad; do
+  [ -n "$bad" ] || continue
+  finding "ROW-BAD-SHAPE" "$bad" \
+    "fewer than eight tab-separated fields. A SPEC row is marker, id, construct, scaffolds, prompt, canonical, requires, expect, and an optional check"
+  c4_ok=0
+done < <(awk -F'\t' '$1 == "SPEC" && NF < 8 { print ($2 == "" ? "(no id)" : $2) }' "$REPS")
+
 for i in "${!IDS[@]}"; do
   id="${IDS[$i]}"
 
   if [ -z "$id" ]; then
-    finding "ROW-BAD-SHAPE" "(no id)" "a REP row carries no id in field 2, so nothing can name it"
+    finding "ROW-BAD-SHAPE" "(no id)" "a row carries no id in field 2, so nothing can name it"
     c4_ok=0
     continue
   fi
@@ -661,8 +867,69 @@ for i in "${!IDS[@]}"; do
   fi
 
   if [ -z "${ENVS[$i]}" ]; then
-    finding "ENV-MISSING" "$id" "field 4 is empty, so the rep names no environment"
+    finding "ENV-MISSING" "$id" "field 4 is empty, so the rep names nothing to drop the answer into"
     c4_ok=0
+  elif [ "${KINDS[$i]}" = "SPEC" ]; then
+    # FIELD 4 IS A LIST AND FIELD 8 IS A VECTOR, so both are split and the two
+    # lengths are compared before either is used. A short vector read position
+    # by position against a long list is a grade taken off a run that never
+    # happened, which is the one failure this check exists to make loud.
+    spec_names=()
+    spec_want=()
+    IFS=',' read -r -a spec_names <<<"${ENVS[$i]}"
+    IFS=',' read -r -a spec_want <<<"${EXPECTS[$i]}"
+    if [ -z "${EXPECTS[$i]}" ]; then
+      finding "EXPECT-BAD" "$id" "field 8 is empty, so the rep declares no expected exit code and there is no key to grade against"
+      c4_ok=0
+    elif [ "${#spec_names[@]}" -ne "${#spec_want[@]}" ]; then
+      finding "EXPECT-BAD" "$id" \
+        "field 4 names ${#spec_names[@]} scaffold(s) and field 8 holds ${#spec_want[@]} code(s), so there is no telling which code belongs to which scaffold"
+      c4_ok=0
+    fi
+    spec_wants_check=0
+    for spec_j in "${!spec_names[@]}"; do
+      spec_name="${spec_names[$spec_j]}"
+      if [ -z "$spec_name" ]; then
+        finding "SCAFFOLD-MISSING" "$id" "field 4 carries an empty scaffold name"
+        c4_ok=0
+        continue
+      fi
+      if [ ! -r "${SPEC_DIR}/${spec_name}.tla" ]; then
+        finding "SCAFFOLD-MISSING" "$id" \
+          "field 4 names '${spec_name}' and ${SPEC_DIR}/${spec_name}.tla is not readable, so every submission is rc 3"
+        c4_ok=0
+        continue
+      fi
+      if [ ! -r "${SPEC_DIR}/${spec_name}.cfg" ]; then
+        finding "SCAFFOLD-MISSING" "$id" \
+          "field 4 names '${spec_name}' and ${SPEC_DIR}/${spec_name}.cfg is not readable, so the module has no obligations and every submission is rc 3"
+        c4_ok=0
+        continue
+      fi
+      if grep -qE '^[[:space:]]*__CHECK__[[:space:]]*$' "${SPEC_DIR}/${spec_name}.tla"; then
+        spec_wants_check=1
+      fi
+      case "${spec_want[$spec_j]:-}" in
+        ''|*[!0-9]*)
+          finding "EXPECT-BAD" "$id" \
+            "field 8 expects '${spec_want[$spec_j]:-}' from scaffold '${spec_name}', which is not an exit code"
+          c4_ok=0
+          ;;
+      esac
+    done
+    # The two directions of the __CHECK__ hole. A hole with nothing to fill it
+    # does not parse; a fill with no hole is carried and delivered and read by
+    # nothing.
+    if [ "$spec_wants_check" = "1" ] && [ -z "${CHECKS[$i]}" ]; then
+      finding "CHECK-MISSING" "$id" \
+        "a scaffold this rep names has a __CHECK__ hole and field 9 is empty, so the hole fills with nothing and the module does not parse"
+      c4_ok=0
+    fi
+    if [ "$spec_wants_check" = "0" ] && [ -n "${CHECKS[$i]}" ]; then
+      finding "CHECK-UNUSED" "$id" \
+        "field 9 is set and no scaffold this rep names has a __CHECK__ hole, so the text is delivered and never read"
+      c4_ok=0
+    fi
   elif [ ! -r "${ENV_DIR}/${ENVS[$i]}.tla" ]; then
     finding "ENV-MISSING" "$id" \
       "field 4 names '${ENVS[$i]}' and ${ENV_DIR}/${ENVS[$i]}.tla is not readable, so every submission is rc 3"
@@ -695,8 +962,108 @@ for i in "${!IDS[@]}"; do
   fi
 done
 
-[ "$c4_ok" = "1" ] && [ "$rep_n" -gt 0 ] && \
-  say "  OK    check 4  ${rep_n} row(s) are submittable: an id of their own, an environment on disk, and a field 7 that takes their canonical"
+[ "$c4_ok" = "1" ] && [ "$row_n" -gt 0 ] && \
+  say "  OK    check 4  ${row_n} row(s) are submittable: an id of their own, an environment or a scaffold pair on disk, a field 7 that takes their canonical, and a field 8 that lines up with field 4"
+
+# ===========================================================================
+# CHECK 6. every scaffold is well formed, and every scaffold is used.
+#
+# IT RUNS OVER THE TREE rather than over the names field 4 happens to carry,
+# so a scaffold added tomorrow is covered the moment it lands and an orphan is
+# reported rather than quietly delivered. See CHECK 6 in the header.
+# ===========================================================================
+if [ ! -d "$SPEC_DIR" ]; then
+  if [ "$spec_n" -gt 0 ]; then
+    finding "SHAPE-NO-SPEC-DIR" "$ROOT" \
+      "${spec_n} SPEC row(s) and no env/spec/ directory, so every one of them is rc 3"
+  fi
+else
+  c6_ok=1
+  # Which scaffolds any row names, as one newline-delimited list, so the orphan
+  # sweep below is a lookup rather than a nested loop.
+  SPEC_USED=""
+  for i in "${!IDS[@]}"; do
+    [ "${KINDS[$i]}" = "SPEC" ] || continue
+    SPEC_USED="${SPEC_USED}$(tr ',' '\n' <<<"${ENVS[$i]}")
+"
+  done
+
+  while IFS= read -r tla; do
+    [ -n "$tla" ] || continue
+    scaffold_n=$((scaffold_n + 1))
+    base="${tla##*/}"
+    name="${base%.tla}"
+
+    # A line at a time, counted rather than grepped for presence, because the
+    # defect that matters is TWO holes as much as none.
+    n_answer="$(grep -cE '^[[:space:]]*__ANSWER__[[:space:]]*$' "$tla")"
+    n_check="$(grep -cE '^[[:space:]]*__CHECK__[[:space:]]*$' "$tla")"
+    if [ "$n_answer" -eq 0 ]; then
+      finding "SCAFFOLD-NO-HOLE" "$name" \
+        "no line whose only content is __ANSWER__, so the answer is dropped and every submission to every rep over it grades the same"
+      c6_ok=0
+    elif [ "$n_answer" -gt 1 ]; then
+      finding "SCAFFOLD-TWO-HOLES" "$name" \
+        "${n_answer} __ANSWER__ lines. The runner fills every one it finds, which is not what an author meant by a hole"
+      c6_ok=0
+    fi
+    if [ "$n_check" -gt 1 ]; then
+      finding "SCAFFOLD-TWO-HOLES" "$name" \
+        "${n_check} __CHECK__ lines, and field 9 fills every one of them"
+      c6_ok=0
+    fi
+
+    # A whole module, and the header has to name Scaffold: the runner copies
+    # the file to Scaffold.tla and rewrites nothing, so a header naming
+    # anything else is rc 255 on every submission.
+    if ! grep -qE '^----[- ]*MODULE Scaffold[- ]*----' "$tla"; then
+      finding "SCAFFOLD-BAD-SHAPE" "$name" \
+        "no '---- MODULE Scaffold ----' header. The runner copies the file to Scaffold.tla and rewrites nothing"
+      c6_ok=0
+    fi
+    if ! grep -qE '^====' "$tla"; then
+      finding "SCAFFOLD-BAD-SHAPE" "$name" \
+        "no closing ==== line, so the module never ends and nothing over it parses"
+      c6_ok=0
+    fi
+    # The first line is printed to a learner under a wrong answer, so it has
+    # to be a comment and it has to say something.
+    first="$(sed -n '1p' "$tla")"
+    case "$first" in
+      '\*'*)
+        if [ "${#first}" -lt 20 ]; then
+          finding "SCAFFOLD-BAD-SHAPE" "$name" \
+            "the first line is a comment of ${#first} characters. It is what a wrong answer is told about the machine, so it has to describe one"
+          c6_ok=0
+        fi
+        ;;
+      *)
+        finding "SCAFFOLD-BAD-SHAPE" "$name" \
+          "the first line is not a \\* comment. It is what a wrong answer is told about the machine"
+        c6_ok=0
+        ;;
+    esac
+
+    if [ ! -r "${SPEC_DIR}/${name}.cfg" ]; then
+      finding "SCAFFOLD-NO-CFG" "$name" \
+        "no ${name}.cfg beside it, so TLC is handed a module with no obligations and says nothing about any answer"
+      c6_ok=0
+    fi
+
+    if ! grep -qxF -- "$name" <<<"$SPEC_USED"; then
+      finding "SCAFFOLD-ORPHAN" "$name" \
+        "no SPEC row names it, so it is delivered to every practice tree and read by nothing"
+      c6_ok=0
+    fi
+  done < <(find "$SPEC_DIR" -name '*.tla' -type f | LC_ALL=C sort)
+
+  if [ "$scaffold_n" -eq 0 ] && [ "$spec_n" -gt 0 ]; then
+    finding "SHAPE-NO-SCAFFOLDS" "$ROOT" \
+      "${spec_n} SPEC row(s) and no .tla under ${SPEC_DIR}, so every one of them is rc 3"
+  elif [ "$c6_ok" = "1" ] && [ "$scaffold_n" -gt 0 ]; then
+    say "  OK    check 6  ${scaffold_n} scaffold(s) are whole modules with one answer hole, a .cfg beside them, and a row that names them"
+  fi
+fi
 
 # ===========================================================================
 # CHECK 5. no prompt contains the notation it is asking for.
@@ -721,8 +1088,8 @@ for i in "${!IDS[@]}"; do
   done
 done
 
-[ "$c5_ok" = "1" ] && [ "$rep_n" -gt 0 ] && \
-  say "  OK    check 5  no prompt of ${rep_n} shows a token its own canonical uses"
+[ "$c5_ok" = "1" ] && [ "$row_n" -gt 0 ] && \
+  say "  OK    check 5  no prompt of ${row_n} shows a token its own canonical uses"
 
 # ===========================================================================
 # CHECKS 1 and 2. The TLC half.
@@ -731,11 +1098,15 @@ if [ "$STATIC_ONLY" = "1" ]; then
   :
 elif [ "$NO_TLC" = "1" ]; then
   unchecked "every-canonical-scores-0" "$ROOT" \
-    "${rep_n} canonical answer(s) to grade: --no-tlc was asked for, so the check was not run"
-  unchecked "every-miss-scores-10" "$ROOT" \
+    "${row_n} canonical answer(s) to grade: --no-tlc was asked for, so the check was not run"
+  unchecked "every-miss-scores-its-kinds-code" "$ROOT" \
     "the miss table was not read either: --no-tlc was asked for, so the check was not run"
 else
   # --- check 1 ----------------------------------------------------------
+  # ONE LOOP OVER BOTH KINDS, because the question is the same and only the
+  # DETAIL differs: a 0 from a REP row says the canonical parses, a 0 from a
+  # SPEC row says it did what field 8 independently claimed. See WHAT THE SPEC
+  # ARM OF CHECK 1 IS WORTH in the header.
   c1_ok=1
   for i in "${!IDS[@]}"; do
     [ -n "${IDS[$i]}" ] || continue
@@ -744,16 +1115,17 @@ else
     [ "$GRADE_RC" = "0" ] && continue
     case "$GRADE_RC" in
       4)   detail="the construct gate refused the rep's own canonical, so no correct answer can score 0" ;;
+      5)   detail="the canonical does not produce the exit codes field 8 names for it, so either the answer or the key is wrong" ;;
       10)  detail="the canonical is not equal to itself, which is what a TLC-unevaluable expression does" ;;
-      150) detail="the canonical did not parse, so nothing was graded. A typo, or a name the environment never defines" ;;
-      3)   detail="the run could not happen at all: no environment file, no verdict channel, or no scratch directory" ;;
+      150) detail="the canonical did not parse, so nothing was graded. A typo, or a name the environment or the scaffold never defines" ;;
+      3)   detail="the run could not happen at all: no environment file, no scaffold pair, or no scratch directory" ;;
       *)   detail="the grading run came back ${GRADE_RC}, which is a report about the run rather than about the answer" ;;
     esac
     finding "CANONICAL-NOT-CORRECT" "${IDS[$i]}" "rc ${GRADE_RC}: ${detail}"
     c1_ok=0
   done
-  [ "$c1_ok" = "1" ] && [ "$rep_n" -gt 0 ] && \
-    say "  OK    check 1  ${rep_n} canonical answer(s) scored rc 0 (parse and evaluation only, see CHECK 1 in this file's header)"
+  [ "$c1_ok" = "1" ] && [ "$row_n" -gt 0 ] && \
+    say "  OK    check 1  ${row_n} canonical answer(s) scored rc 0: ${rep_n} against themselves, which is parse and evaluation only, and ${spec_n} against the vector field 8 declares separately (see CHECK 1 in this file's header)"
 
   # --- check 2 ----------------------------------------------------------
   if [ ! -f "$MISSES" ]; then
@@ -783,8 +1155,19 @@ else
         c2_ok=0
       fi
 
+      # THE WRONG-ANSWER CODE IS THE REP'S, NOT THE MISS ROW'S. A MISS row
+      # names a rep id and nothing else about the rep, so the kind is looked
+      # up here. An id that is in no row at all falls through to rc 3 below,
+      # which already reports as MISS-NO-REP.
+      m_kind="$(awk -F'\t' -v id="$m_rep" '($1 == "REP" || $1 == "SPEC") && $2 == id { print $1; exit }' "$REPS")"
+      if [ "$m_kind" = "SPEC" ]; then
+        m_want="$WRONG_RC_SPEC"
+      else
+        m_want="$WRONG_RC_REP"
+      fi
+
       grade "$m_rep" "$m_wrong"
-      [ "$GRADE_RC" = "10" ] && continue
+      [ "$GRADE_RC" = "$m_want" ] && continue
       case "$GRADE_RC" in
         0)
           finding "MISS-NOT-WRONG" "$m_rep" \
@@ -792,7 +1175,21 @@ else
           ;;
         4)
           finding "MISS-NOT-WRONG" "$m_rep" \
-            "'${m_wrong}' scores rc 4, so its VALUE was right and only the construct gate turned it away. The miss table is about wrong values"
+            "'${m_wrong}' scores rc 4, so the answer was accepted and only the construct gate turned it away. The miss table is about answers that are wrong"
+          ;;
+        5|10)
+          # THE RIGHT KIND OF WRONGNESS FOR THE OTHER ROW KIND, and this arm
+          # is UNREACHABLE on the runner as it stands. recall/recall.sh never
+          # exits 10 on a SPEC row -- 10 is in its gradeable set, so it is
+          # compared against field 8 and leaves as 0 or 5 -- and never exits 5
+          # on a REP row. The arm is here for the same reason
+          # REQUIRES-UNREADABLE was here before any row carried a field 7: it
+          # is the finding a runner that blurred the two codes would produce,
+          # and a gate that bucketed that into MISS-NOT-GRADED would report a
+          # wiring defect as a corpus defect. Reachability is a property of
+          # the runner and this file does not get to assume it.
+          finding "MISS-WRONG-KIND" "$m_rep" \
+            "'${m_wrong}' scores rc ${GRADE_RC} and this rep is a ${m_kind:-unknown} row, whose wrong answers score rc ${m_want}"
           ;;
         150)
           finding "MISS-NOT-GRADED" "$m_rep" \
@@ -800,7 +1197,7 @@ else
           ;;
         3)
           finding "MISS-NO-REP" "$m_rep" \
-            "the runner refused this row at rc 3. Field 2 names no REP row, or its environment is gone"
+            "the runner refused this row at rc 3. Field 2 names no row of the rep table, or its environment or a scaffold is gone"
           ;;
         *)
           finding "MISS-NOT-GRADED" "$m_rep" \
@@ -814,7 +1211,7 @@ else
       unchecked "check-2" "$MISSES" \
         "the file is there and holds no MISS row. A row is tab-delimited with the literal first field MISS"
     elif [ "$c2_ok" = "1" ]; then
-      say "  OK    check 2  ${miss_n} wrong answer(s) scored rc 10 against their own rep"
+      say "  OK    check 2  ${miss_n} wrong answer(s) scored their own row kind's wrong-answer code against their own rep: rc ${WRONG_RC_REP} for a REP row, rc ${WRONG_RC_SPEC} for a SPEC row"
     fi
   fi
 fi
@@ -839,16 +1236,19 @@ fi
 # ===========================================================================
 if [ "$STATIC_ONLY" = "1" ]; then
   echo
-  echo "recall-gate.sh: --static-only. ${rep_n} rep(s) whose grading was not measured, no TLC ran."
+  echo "recall-gate.sh: --static-only. ${row_n} rep(s) whose grading was not measured, no TLC ran."
   echo "Checks 1 and 2 were skipped (--static-only), which is the scope the caller asked for."
-  echo "NOT COVERED HERE: whether every canonical still scores rc 0 and every miss still scores rc 10."
+  echo "NOT COVERED HERE: whether every canonical still scores rc 0, and whether every miss still scores the wrong-answer code of its own row kind."
   echo "The slow row of harness/test-recall-gate.sh runs those."
   echo "This run answers whether the corpus is STRUCTURALLY sound and nothing more."
 fi
 
 # ===========================================================================
+# THE SUMMARY LINE NAMES BOTH ROW KINDS AND THE SCAFFOLDS SEPARATELY. One
+# total would have let 40 spec rows land under a number that did not move,
+# which is the shape of the defect this bead's gate work exists to close.
 echo
-echo "recall-gate.sh: ${rep_n} rep(s), ${miss_n} miss row(s), ${finding_n} finding(s), ${unchecked_n} unchecked"
+echo "recall-gate.sh: ${rep_n} rep(s), ${spec_n} spec rep(s), ${scaffold_n} scaffold(s), ${miss_n} miss row(s), ${finding_n} finding(s), ${unchecked_n} unchecked"
 
 if [ "$finding_n" -gt 0 ]; then
   echo "VERDICT FINDINGS"
