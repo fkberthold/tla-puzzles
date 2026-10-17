@@ -146,6 +146,13 @@
 #   script delivered it at all, so the copy in the practice tree still read
 #   "32 blank-page drills, four families" against 64 in eight (bead tla-nc6f).
 #
+#   It also lands drill/SHEET.md, drill/INVENTORY.md and drill/COLD-LIST.md at
+#   the drill root, in the same class and for the same reason (bead tla-wn0z).
+#   Each is named on its own in the output, and a source missing one of them is
+#   not an error. Two rows in this file used to assert that two of the three
+#   never land, which was a true statement about items and never a ruling about
+#   reference material.
+#
 # WHY THE COMMANDS LIVE UNDER A HIDDEN DIRECTORY IN THE SOURCE TREE. They land
 # at <root>/.claude/commands/ because that is where Claude Code reads a project
 # slash command from, and the source mirrors the destination so the delivery is
@@ -272,11 +279,16 @@ mkdir -p "$FIX_REPO/drill/core/02-beta/notes/deep"
 printf 'two levels down\n' >"$FIX_REPO/drill/core/02-beta/notes/deep/DEEP.md"
 printf 'an unfinished thought\n' >"$FIX_REPO/drill/core/02-beta/.hidden-draft"
 
-# Files one level up from an item. drill/INVENTORY.md and drill/COLD-LIST.md
-# live here in the real tree, so a run that treated them as families would
-# break on the live corpus and not on a tidy fixture.
-printf 'the construct inventory\n' >"$FIX_REPO/drill/INVENTORY.md"
-printf 'the cold list\n'           >"$FIX_REPO/drill/COLD-LIST.md"
+# A file one level up from an item, and NOT one of the three the script names.
+# The real tree carries files at the drill root, so a run that read one as a
+# family would break on the live corpus rather than on a tidy fixture.
+#
+# It is also the fail-safe row. An unnamed drill-root file is missed rather
+# than handed over, which is the direction PROMPT.md fails in and the whole
+# argument for naming a file at all. drill/SHEET.md, drill/INVENTORY.md and
+# drill/COLD-LIST.md get a source root of their own further down, for the
+# reason $README_REPO has one.
+printf 'notes nobody delivers\n' >"$FIX_REPO/drill/NOTES.md"
 
 # A second source root whose one item has no prompt. Kept apart from the main
 # fixture so every other row runs against a corpus that is whole.
@@ -338,6 +350,30 @@ mk_item  "$README_REPO" "core/01-alpha"
 mk_study "$README_REPO"
 printf 'the fixture readme\n' >"$README_REPO/drill/README.md"
 
+# THE REFERENCE FIXTURES GET THEIR OWN SOURCE ROOTS, for the same reason. Three
+# more files at the root of $DEST_MAIN redden the manifest row and both
+# touched-count controls above, over a delivery doing what it is now meant to
+# do.
+REF_REPO="$TMPROOT/repo-ref"
+mk_item "$REF_REPO" "core/01-alpha"
+printf 'the fixture sheet\n'     >"$REF_REPO/drill/SHEET.md"
+printf 'the fixture inventory\n' >"$REF_REPO/drill/INVENTORY.md"
+printf 'the fixture cold list\n' >"$REF_REPO/drill/COLD-LIST.md"
+
+# A source carrying the readme and none of the three. That is the shape this
+# repo had until bead tla-wn0z, and it is what keeps the two paths independent:
+# the readme still has to land over a source with no reference file in it.
+NOREF_REPO="$TMPROOT/repo-noref"
+mk_item "$NOREF_REPO" "core/01-alpha"
+printf 'the fixture readme\n' >"$NOREF_REPO/drill/README.md"
+
+# A source carrying one of the three and neither of the others. Each file is
+# reported on its own, the way the study mode reports the style pair, because
+# "the reference files did not land" would not say which.
+PARTREF_REPO="$TMPROOT/repo-partref"
+mk_item "$PARTREF_REPO" "core/01-alpha"
+printf 'the fixture sheet\n' >"$PARTREF_REPO/drill/SHEET.md"
+
 # A source whose study tree carries no check script. Bead tla-ytv2.2 owns that
 # file, so a source without it still has to deliver the rest.
 NOCHECK_REPO="$TMPROOT/repo-nocheck"
@@ -381,6 +417,12 @@ printf 'not a directory\n' >"$STUDY_FILE"
 DEST_README="$TMPROOT/dest-readme"     # a plain run, for the readme rows
 DEST_README2="$TMPROOT/dest-readme2"   # delivered, then delivered again
 DEST_NOREADME="$TMPROOT/dest-noreadme" # source carries no readme
+
+DEST_REF="$TMPROOT/dest-ref"           # the three reference files, first run
+DEST_REF2="$TMPROOT/dest-ref2"         # delivered, then delivered again
+DEST_NOREF="$TMPROOT/dest-noref"       # source carries none of the three
+DEST_PARTREF="$TMPROOT/dest-partref"   # source carries one of the three
+DEST_REFCHECK="$TMPROOT/dest-refcheck" # --check only, never written
 
 # Frank's work, in the shape it has on his machine: a per-slug directory
 # holding an attempt. 01-slip-on-the-spike is the one that exists there.
@@ -499,6 +541,14 @@ run_readme() {
 # run_readme_from <src-root> [args...]: the same, against another source.
 run_readme_from() {
   run_deliver_from "$@"
+  printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
+}
+
+# run_ref [args...]: a plain run against the reference fixture, routed into
+# STUDY_SEEN for the reason run_readme is. The two rows at the bottom of this
+# file ask the whole suite's output at once.
+run_ref() {
+  run_deliver_from "$REF_REPO" "$@"
   printf '%s\n%s\n' "$RUN_OUT" "$RUN_ERR" >>"$STUDY_SEEN"
 }
 
@@ -933,9 +983,12 @@ assert_says_literal "the run says which source it read" "source: $FIX_REPO/drill
 assert_says_literal "the run says which destination it wrote" \
   "destination: $DEST_MAIN" "$RUN_OUT"
 
-# The family-level files one directory up are not items and are not delivered.
-assert_absent "drill/INVENTORY.md is not an item and never lands" "$DEST_MAIN/INVENTORY.md"
-assert_absent "drill/COLD-LIST.md is not an item and never lands" "$DEST_MAIN/COLD-LIST.md"
+# A file one directory up is not an item, and this script carries no list of
+# drill-root files it refuses. It carries a list of the ones it delivers, so an
+# unnamed one is missed rather than handed over. The three it does name get a
+# section of their own below.
+assert_absent "a drill-root file the script does not name never lands" \
+  "$DEST_MAIN/NOTES.md"
 
 # ---------------------------------------------------------------------------
 echo
@@ -1759,6 +1812,239 @@ assert_absent "nothing was invented in its place" "$DEST_NOREADME/README.md"
 
 # ---------------------------------------------------------------------------
 echo
+echo "== the three reference files land, and are always overwritten =="
+# ---------------------------------------------------------------------------
+
+# Bead tla-wn0z, and this suite asserted the opposite of two of these rows
+# until it landed. drill/SHEET.md, drill/INVENTORY.md and drill/COLD-LIST.md
+# all sat in the repo and none of them reached the practice tree, so on
+# 2026-10-16 Frank spent an hour on a construct whose syntax shape was written
+# down in a file he could not open from where he was working.
+#
+# The old rows were right about what they said. An item was the only thing a
+# delivery carried when they were written, and neither file is an item. They
+# were not a ruling about reference material, which did not exist then.
+
+run_ref "$DEST_REF"
+
+assert_rc0 "a delivery carrying the three reference files exits 0"
+
+assert_file_is "the construct sheet lands at the root of the practice tree" \
+  "$DEST_REF/SHEET.md" "$(cat "$REF_REPO/drill/SHEET.md")"
+
+assert_file_is "the coverage inventory lands beside it" \
+  "$DEST_REF/INVENTORY.md" "$(cat "$REF_REPO/drill/INVENTORY.md")"
+
+assert_file_is "the cold list lands beside both" \
+  "$DEST_REF/COLD-LIST.md" "$(cat "$REF_REPO/drill/COLD-LIST.md")"
+
+# A verb each, the way the study mode names the style pair rather than counting
+# to five. A run that said "3 reference file(s) landed" would not say which.
+assert_says_literal "the run names the sheet with its own verb" \
+  "construct sheet delivered: $DEST_REF/SHEET.md" "$RUN_OUT"
+
+assert_says_literal "and the inventory with its own" \
+  "coverage inventory delivered: $DEST_REF/INVENTORY.md" "$RUN_OUT"
+
+assert_says_literal "and the cold list with its own" \
+  "cold list delivered: $DEST_REF/COLD-LIST.md" "$RUN_OUT"
+
+# --- always overwritten, which is the readme's class and not the prompt's ---
+
+run_ref "$DEST_REF2"
+printf 'a sheet from before the corpus grew\n' >"$DEST_REF2/SHEET.md"
+printf 'an inventory nothing refreshed\n'      >"$DEST_REF2/INVENTORY.md"
+printf 'a cold list nothing refreshed\n'       >"$DEST_REF2/COLD-LIST.md"
+predate_tree "$DEST_REF2"
+run_ref "$DEST_REF2"
+
+assert_rc0 "a second delivery over the three exits 0"
+
+assert_file_is "a stale sheet is replaced" \
+  "$DEST_REF2/SHEET.md" "$(cat "$REF_REPO/drill/SHEET.md")"
+
+assert_mtime_moved "and it was written rather than skipped" \
+  "$DEST_REF2/SHEET.md" "$REF_EPOCH"
+
+assert_file_is "a stale inventory is replaced" \
+  "$DEST_REF2/INVENTORY.md" "$(cat "$REF_REPO/drill/INVENTORY.md")"
+
+assert_file_is "a stale cold list is replaced" \
+  "$DEST_REF2/COLD-LIST.md" "$(cat "$REF_REPO/drill/COLD-LIST.md")"
+
+assert_says_literal "the run says it overwrote rather than that it delivered" \
+  "construct sheet refreshed, overwriting the copy already there: $DEST_REF2/SHEET.md" \
+  "$RUN_OUT"
+
+# The control that makes the rows above mean what they say. One file class is
+# always overwritten and another is never, in the same run.
+assert_mtime_is "while the prompt beside them is left alone" \
+  "$DEST_REF2/core/01-alpha/PROMPT.md" "$REF_EPOCH"
+
+assert_touched_count "the second run writes the three and nothing else" \
+  "$DEST_REF2" 3
+
+# --- a source that carries none of them, or one of them ---------------------
+
+run_readme_from "$NOREF_REPO" "$DEST_NOREF"
+
+assert_rc0 "a source carrying none of the three is not an error"
+
+assert_says "and the run names the sheet it did not find" \
+  'no construct sheet at' "$RUN_OUT"
+assert_says "and the inventory" 'no coverage inventory at' "$RUN_OUT"
+assert_says "and the cold list" 'no cold list at' "$RUN_OUT"
+
+assert_absent "nothing was invented in place of the sheet" "$DEST_NOREF/SHEET.md"
+assert_absent "nor in place of the inventory" "$DEST_NOREF/INVENTORY.md"
+assert_absent "nor in place of the cold list" "$DEST_NOREF/COLD-LIST.md"
+
+# The readme and the three resolve separately, so a source with one and not the
+# other has to deliver what it has.
+assert_file_is "and the readme beside them still lands" \
+  "$DEST_NOREF/README.md" "$(cat "$NOREF_REPO/drill/README.md")"
+
+run_readme_from "$PARTREF_REPO" "$DEST_PARTREF"
+
+assert_rc0 "a source carrying one of the three is not an error either"
+
+assert_file_is "the one it has lands" \
+  "$DEST_PARTREF/SHEET.md" "$(cat "$PARTREF_REPO/drill/SHEET.md")"
+
+assert_says "and the run names the inventory it does not have" \
+  'no coverage inventory at' "$RUN_OUT"
+
+assert_absent "and places nothing where the inventory would go" \
+  "$DEST_PARTREF/INVENTORY.md"
+assert_absent "nor where the cold list would go" \
+  "$DEST_PARTREF/COLD-LIST.md"
+
+# --- --check, which says what it would overwrite ----------------------------
+
+REFCHECK_BEFORE=$(snapshot "$DEST_REFCHECK")
+
+run_ref --check "$DEST_REFCHECK"
+
+assert_rc0 "--check over a source carrying the three exits 0"
+
+assert_says_literal "--check names the sheet it would deliver" \
+  "would deliver construct sheet: $DEST_REFCHECK/SHEET.md" "$RUN_OUT"
+
+assert_says_literal "and the cold list" \
+  "would deliver cold list: $DEST_REFCHECK/COLD-LIST.md" "$RUN_OUT"
+
+assert_unchanged "--check places none of them" \
+  "$DEST_REFCHECK" "$REFCHECK_BEFORE" 0
+
+run_ref --check "$DEST_REF"
+
+assert_rc0 "--check over a tree that already holds them exits 0"
+
+assert_says_literal "--check says plainly that it would overwrite" \
+  "would deliver construct sheet, OVERWRITING the copy already there: $DEST_REF/SHEET.md" \
+  "$RUN_OUT"
+
+# --- non-vacuity, against the live tree rather than the fixture -------------
+#
+# Every row above passes over a fixture whatever the repo carries, and the
+# files they are about are the repo's three.
+for ref_name in SHEET.md INVENTORY.md COLD-LIST.md; do
+  if [ -f "drill/$ref_name" ]; then
+    ok "drill/$ref_name is in the tree, so the rows above are about a file that exists"
+  else
+    nope "drill/$ref_name is not in the tree, so the rows above gate a file the repo no longer carries"
+  fi
+done
+
+run_deliver_realrepo --check "$TMPROOT/dest-real-ref-check"
+
+assert_rc0 "--check over the real corpus exits 0 with the three in the tree"
+
+assert_says_literal "and names the real sheet as a file it would deliver" \
+  "would deliver construct sheet: $TMPROOT/dest-real-ref-check/SHEET.md" "$RUN_OUT"
+
+assert_absent "--check over the real corpus still creates no destination" \
+  "$TMPROOT/dest-real-ref-check"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== two of the three name no item, which is what makes them safe to read =="
+# ---------------------------------------------------------------------------
+
+# drill/README.md tells him SHEET.md names no item, so reading it mid-drill
+# gives nothing away. That is a claim about a file's contents and it is the
+# reason the sheet can sit in the tree he works in, so it is gated rather than
+# trusted.
+#
+# Measured 2026-10-16 over this tree: SHEET.md and COLD-LIST.md name 0 of 64
+# item slugs, and INVENTORY.md names 64 of 64.
+#
+# THE INVENTORY IS DELIBERATELY NOT IN THESE ROWS, and it is the one worth
+# knowing about. Field 8 is drill item slugs, so inverting it on a slug returns
+# every construct that item drills. Measured the same day against
+# core/06-can-pyramid: 22 constructs out of the inventory, which is exactly the
+# 10 plus 12 that item's META.md declares. META.md is withheld by name in
+# scripts/deliver-drill.sh because reading it answers the question the drill
+# asks, so a delivered inventory moves that answer from one absolute path away
+# into the tree he practices in. The withholding here is a delivery boundary
+# rather than an access boundary, which is why this is a row about the sheet
+# and a note about the inventory rather than a refusal.
+
+SLUGS=()
+while IFS= read -r slug_dir; do
+  [ -n "$slug_dir" ] || continue
+  SLUGS+=("${slug_dir##*/}")
+done < <(find drill -mindepth 2 -maxdepth 2 -type d ! -name '.*' | LC_ALL=C sort)
+
+# count_slug_hits <file>: how many item slugs the file names, fixed-string and
+# over a here-string. A short slug that sits inside a longer one matches on the
+# longer one too, and 03-ballast inside 03-ballast-tanks is a real pair here.
+# That can only inflate the number, so a zero is still a zero.
+count_slug_hits() {
+  local file="$1" body hits=0 slug
+  body=$(cat "$file")
+  for slug in "${SLUGS[@]}"; do
+    if grep -qF -- "$slug" <<<"$body"; then
+      hits=$((hits + 1))
+    fi
+  done
+  printf '%s\n' "$hits"
+}
+
+if [ "${#SLUGS[@]}" -lt 5 ]; then
+  nope "the sheet names no item. Only ${#SLUGS[@]} item slug(s) found, so the rows prove nothing"
+  nope "the cold list names no item. Only ${#SLUGS[@]} item slug(s) found, so the rows prove nothing"
+  nope "the instrument can see a slug when one is there. No slugs to see"
+else
+  for ref_file in drill/SHEET.md drill/COLD-LIST.md; do
+    if [ ! -f "$ref_file" ]; then
+      nope "$ref_file names no item slug. The file does not exist"
+      continue
+    fi
+    REF_HITS=$(count_slug_hits "$ref_file")
+    if [ "$REF_HITS" -eq 0 ]; then
+      ok "$ref_file names none of the ${#SLUGS[@]} item slugs, so reading it gives no item away"
+    else
+      nope "$ref_file names $REF_HITS of the ${#SLUGS[@]} item slugs, so it is no longer safe to read mid-drill"
+    fi
+  done
+
+  # The control. Two rows reporting zero would read the same whether the files
+  # are clean or the scan is broken, so the instrument has to find a slug in
+  # the file that carries them on purpose.
+  INV_HITS=0
+  if [ -f "drill/INVENTORY.md" ]; then
+    INV_HITS=$(count_slug_hits "drill/INVENTORY.md")
+  fi
+  if [ "$INV_HITS" -ge 5 ]; then
+    ok "the same scan finds $INV_HITS slugs in drill/INVENTORY.md, so a zero above is a fact about the file"
+  else
+    nope "the same scan found $INV_HITS slugs in drill/INVENTORY.md, so the two zeroes above prove nothing"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+echo
 echo "== the refusal contract, asserted structurally =="
 # ---------------------------------------------------------------------------
 
@@ -2150,6 +2436,17 @@ else
     'WHY THE SOURCE MIRRORS THE DESTINATION' "$SCRIPT_BODY"
   assert_says "the script names the readme's file class rather than leaving it to be inferred" \
     'A FOURTH FILE CLASS' "$SCRIPT_BODY"
+  # The reference files join that class rather than starting a fifth, and the
+  # header is where a reader finds out. A manifest a reader trusts over the
+  # resolution loop has to carry all three, so each one is its own row.
+  assert_says "and argues the reference files into it" \
+    'THE THREE REFERENCE FILES' "$SCRIPT_BODY"
+  assert_says "the header manifest maps the sheet to its destination" \
+    'drill/SHEET\.md +->' "$SCRIPT_BODY"
+  assert_says "and the inventory" \
+    'drill/INVENTORY\.md +->' "$SCRIPT_BODY"
+  assert_says "and the cold list" \
+    'drill/COLD-LIST\.md +->' "$SCRIPT_BODY"
   # The study-mode manifest in the header is what a reader trusts over reading
   # the resolution loop, so a class delivered and absent from it is worse than
   # one that is not delivered at all.

@@ -68,11 +68,25 @@ that's your call to make.
 The numbering inside a family is not a difficulty ramp, so take them in any
 order. `./drill` has a queue if you'd rather not choose.
 
-## The construct list
+## The construct list and the sheet
 
-`~/repos/tla-puzzles/drill/COLD-LIST.md` carries around a hundred constructs,
-one a line. Tick what you could write cold right now and leave the rest. An
-unticked line is a drill target, and the unticked ones are the useful answer.
+Three files sit beside this one, and they read in the same order. The id is
+the join.
+
+- `COLD-LIST.md`, around a hundred constructs, one a line, with a box to tick
+- `SHEET.md`, the syntax shape of each one, flat, from the twelve cheat sheets
+- `INVENTORY.md`, which drill and reading items reach each construct
+
+Start with the cold list. Tick what you could write cold right now and leave
+the rest. An unticked line is a drill target, and the unticked ones are the
+useful answer.
+
+When a drill stops you on a construct you know the name of, `SHEET.md` has its
+shape. It names no item, so reading it gives nothing away about the drill in
+front of you.
+
+All three are refreshed on every delivery, so a tick you make in `COLD-LIST.md`
+doesn't survive one. If you want to keep a pass, write it down somewhere else.
 
 ## The other two channels
 
