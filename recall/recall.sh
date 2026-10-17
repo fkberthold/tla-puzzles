@@ -1200,6 +1200,58 @@ printed_region() {
 }
 
 # ---------------------------------------------------------------------------
+# SANY's own sentences about what it rejected, for the parse-error report.
+# Display only, the way printed_region is: the grade came from the exit code
+# of the run and never from this.
+#
+# TWO SHAPES, AND A PHRASE LIST ONLY REACHES ONE OF THEM.
+#
+# A SYNTAX error is a single line with no header above it: `Encountered "..."
+# at line N, column M and token "..."`. A phrase list is the only way to find
+# that one, and the list below is the one this script has always carried.
+#
+# A SEMANTIC error sits under a `Semantic errors:` header and runs to
+# `Starting`, and a phrase list is the wrong instrument for it. THREE
+# different sentences turned up from real wrong answers inside two days --
+# "Level error in applying operator", "Could not find declaration or
+# definition of symbol" and "Couldn't resolve infix operator symbol" -- and
+# every one of them came back as an EMPTY block under "that did not parse".
+# Chasing them one at a time is a list that is wrong until the next one
+# arrives. The region is bounded, so the region is what gets printed.
+#
+# THE SPEC PATH IS WHY THIS CHANGED. The value scaffold declares no
+# SPECIFICATION and one ASSUME, so SANY's semantic pass had almost nothing to
+# reject there. A filled scaffold is a whole machine, so it reaches all three.
+#
+# THE `line N, col M of module Scaffold` LINES ARE DROPPED, for the same
+# reason printed_region drops TLC's own location line: the module sits in a
+# scratch directory that is gone before anybody reads this, so the citation
+# sends a reader somewhere they cannot go. What is left is the sentence, and
+# the sentence names the symbol.
+#
+# A NOTE FOR WHOEVER TAKES THE LOCATION BEAD. On a SPEC row the translation is
+# simpler than on a REP row rather than harder. The answer fills a whole line,
+# so SANY's line number is the hole's line number and its column is the column
+# of what was typed, unshifted. Measured 2026-10-17: `level' = level ++ 1`
+# into act-step's hole reports "line 8, col 29", the hole is line 8 of that
+# scaffold, and column 29 is where `++` starts in the answer.
+# ---------------------------------------------------------------------------
+sany_sentences() {
+  {
+    awk '
+      /^Semantic errors:/            { on = 1; next }
+      on && /^Starting/              { exit }
+      on && /^\*\*\* Errors:/        { next }
+      on && /^line [0-9]+, col /     { next }
+      on && /^[[:space:]]*$/         { next }
+      on { print }
+    ' "$1"
+    grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error|Was expecting' \
+      "$1" 2>/dev/null
+  } | sed -n 's/^[[:space:]]*/  /p' | sort -u
+}
+
+# ---------------------------------------------------------------------------
 # The two explanation layers that are not values. Both are lookups into files
 # this script only ever reads, and neither one can change a grade.
 #
@@ -1502,21 +1554,7 @@ fi
 if [ "$GRADE" = "parse-error" ]; then
   echo "that did not parse, so nothing was graded about whether it is right."
   echo
-  # SANY's own sentence, which names the line and the operator. Display only.
-  #
-  # THE LEVEL-ERROR PAIR IS A SPEC-ROW SHAPE AND IT WAS ADDED BECAUSE THE
-  # BLOCK CAME BACK EMPTY. Measured 2026-10-17: `<>(level = 2)` dropped into
-  # an ACTION hole is rc 150 with SANY saying "Level error in applying
-  # operator $SquareAct" and "The level of argument 1 exceeds the maximum
-  # level allowed by the operator", and neither phrase was in this list. A
-  # learner got "that did not parse" with nothing under it.
-  #
-  # The value scaffold could never produce one: it declares no SPECIFICATION,
-  # so there is no action context for a temporal formula to be too high for.
-  # Putting a property where an action belongs is one of the characteristic
-  # mistakes of this family, so it is the one SANY sentence worth adding.
-  grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error|Was expecting|Level error|The level of argument' \
-    "$PARSE_LOG" 2>/dev/null | sed -n 's/^[[:space:]]*/  /p' | sort -u
+  sany_sentences "$PARSE_LOG"
   exit "$REPORT_RC"
 fi
 

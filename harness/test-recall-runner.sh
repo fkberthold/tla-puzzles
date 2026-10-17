@@ -2282,18 +2282,21 @@ else
 fi
 
 echo
-echo "-- a level error says something, which it did not until it was watched --"
+echo "-- a parse error says something, which it did not until it was watched --"
 # ---------------------------------------------------------------------------
-# A TEMPORAL FORMULA IN AN ACTION HOLE IS rc 150, and SANY reports it as a
-# LEVEL error rather than as anything about syntax. None of the phrases the
-# runner greps for matched, so the block came back "that did not parse" with
-# nothing under it. Watched doing exactly that in a delivered tree on
-# 2026-10-17, which is the only reason the phrase is in the list.
+# THESE ROWS EXIST BECAUSE THE BLOCK CAME BACK EMPTY, TWICE, ON TWO DIFFERENT
+# SHAPES. A spec rep reaches SANY's SEMANTIC pass, which the value scaffold
+# almost never did: it declares no SPECIFICATION and one ASSUME, so there was
+# nothing there to reject. Three sentences turned up from real wrong answers
+# inside two days and the runner's phrase list had none of them, so a learner
+# got "that did not parse" with nothing under it.
 #
-# THE VALUE SCAFFOLD CANNOT PRODUCE ONE. It declares no SPECIFICATION, so
-# there is no action context for a temporal formula to be too high for, which
-# is why this is a spec-row row rather than a part 1 row.
+# The fix was to print the bounded `Semantic errors:` region rather than to
+# chase sentences, and these rows pin two of the three. The third,
+# "Couldn't resolve infix operator symbol", arrives on the same region.
 # ---------------------------------------------------------------------------
+# A TEMPORAL FORMULA IN AN ACTION HOLE is a LEVEL error rather than a syntax
+# one, which is the mistake this family makes most.
 run_runner "$RUNNER" Q003 '<>(n = 2)'
 assert_eq "a temporal formula in an action hole is a parse error" "150" "$RUN_RC"
 if has "$RUN_OUT" 'Level error in applying operator'; then
@@ -2305,6 +2308,50 @@ if has "$RUN_OUT" 'exceeds the maximum level allowed'; then
   ok "along with the line that says what a level error is"
 else
   nope "along with the line that says what a level error is"
+fi
+
+# AN UNKNOWN OPERATOR, which is two sentences rather than one and neither of
+# them is the phrase list's `Unknown operator`.
+run_runner "$RUNNER" Q003 "n < 2 /\\ n' = n ++ 1 /\\ flag' = flag"
+assert_eq "an operator that does not exist is a parse error" "150" "$RUN_RC"
+if has "$RUN_OUT" "Could not find declaration or definition of symbol"; then
+  ok "and the sentence naming the symbol reaches the page"
+else
+  nope "and the sentence naming the symbol reaches the page"
+fi
+if has "$RUN_OUT" "resolve infix operator symbol"; then
+  ok "and so does the second one, which the region print gets for free"
+else
+  nope "and so does the second one, which the region print gets for free"
+fi
+
+# THE LOCATION LINES ARE DROPPED, for the reason the value probe drops TLC's
+# own: the module is in a scratch directory that is gone before anybody reads
+# this, so the citation sends a reader somewhere they cannot go.
+if has "$RUN_OUT" 'of module Scaffold'; then
+  nope "and no line cites a scratch module the reader cannot open"
+else
+  ok "and no line cites a scratch module the reader cannot open"
+fi
+
+# THE REGION IS BOUNDED AT BOTH ENDS. TLC's banner sits above the semantic
+# errors and its own `Starting` line below them, and neither belongs in a
+# block about what somebody typed.
+if has "$RUN_OUT" 'Running breadth-first search|TLC2 Version|^  Starting'; then
+  nope "and nothing from TLC's own banner or its progress lines leaks in"
+else
+  ok "and nothing from TLC's own banner or its progress lines leaks in"
+fi
+
+# THE VALUE PATH IS UNTOUCHED. Its shape is a syntax error with no header
+# above it, which only the phrase list reaches, so the region print must not
+# have replaced it.
+run_runner "$RUNNER" R001 '[Wagons ->'
+assert_eq "a value rep's parse error still reports the same way" "150" "$RUN_RC"
+if has "$RUN_OUT" 'Encountered'; then
+  ok "and SANY's syntax sentence still reaches the page, which no region holds"
+else
+  nope "and SANY's syntax sentence still reaches the page, which no region holds"
 fi
 
 echo
