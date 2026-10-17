@@ -70,12 +70,11 @@ order. `./drill` has a queue if you'd rather not choose.
 
 ## The construct list and the sheet
 
-Three files sit beside this one, and they read in the same order. The id is
-the join.
+Two files sit beside this one, and they read in the same order as a third that
+stays in the repo. The `K` id is the join.
 
 - `COLD-LIST.md`, around a hundred constructs, one a line, with a box to tick
 - `SHEET.md`, the syntax shape of each one, flat, from the twelve cheat sheets
-- `INVENTORY.md`, which drill and reading items reach each construct
 
 Start with the cold list. Tick what you could write cold right now and leave
 the rest. An unticked line is a drill target, and the unticked ones are the
@@ -85,8 +84,19 @@ When a drill stops you on a construct you know the name of, `SHEET.md` has its
 shape. It names no item, so reading it gives nothing away about the drill in
 front of you.
 
-All three are refreshed on every delivery, so a tick you make in `COLD-LIST.md`
-doesn't survive one. If you want to keep a pass, write it down somewhere else.
+Your ticks are safe. `COLD-LIST.md` lands once and no later delivery writes
+over it, so a pass you make here stays made. The cost is that new rows don't
+reach you either. A delivery that finds a cold list already here says so and
+names the path. The repo's copy is yours to take when you want the new rows.
+
+`SHEET.md` is the other way round. Every delivery refreshes it, because it's
+generated and you never edit it.
+
+The third file is `INVENTORY.md`, which says which drill and reading items
+reach each construct. It stays at `~/repos/tla-puzzles/drill/INVENTORY.md` and
+no delivery brings it here. Its field 8 is item slugs, so inverting it on a
+slug gives you every construct that item drills. That's what `META.md` says,
+and why `META.md` stayed behind. I'd keep it for between drills.
 
 ## The other two channels
 
