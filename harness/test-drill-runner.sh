@@ -1902,19 +1902,43 @@ mkdir -p "$MUTANT_DIR"
 
 # mutate <name> <sed-script>: a copy of the real runner with one line changed.
 #
+# The path lands in MUTANT, and the return code says whether there is one. A
+# nameref would work too. I went with the global because run_drill,
+# run_drill_study, run_coach_path and run_coach_rootless all report back the
+# same way, so this is the file's existing idiom rather than a new one.
+#
+# IT USED TO RETURN THE PATH ON STDOUT, and that made this guard unable to
+# fail the suite. Every call site read it through `M1=$(mutate ...)`, which is
+# a subshell, so a vacuous mutation called nope inside one. The FAIL row went
+# into the variable instead of the report, and the fail_count increment died
+# with the subshell. The caller then handed mk_tree a failure message where a
+# path belonged.
+#
+# Measured 2026-10-16 on bead tla-vo5l, with M5's script broken so it matched
+# nothing. The suite printed a `cp: cannot stat` error naming the FAIL text on
+# stderr. It then passed both of M5's control rows over a mutant that was
+# never built, one of them reading rc=127 for a mutation that exits 9. The run
+# exited 0 with 378 assertions green.
+#
+# So the call sites below are `if mutate ...; then`, not a capture. Keep them
+# that way. A capture puts nope back in a subshell and the guard goes quiet
+# again.
+#
 # Three separate `local` statements, because `local a=$1 b=$MUTANT_DIR/$a`
 # reads $a as unbound under `set -u` on this bash.
+MUTANT=""
 mutate() {
   local name="$1"
   local script="$2"
   local out="$MUTANT_DIR/$name"
+  MUTANT=""
   sed "$script" "$RUNNER" >"$out"
   chmod +x "$out"
   if [ "$(cat "$out")" = "$(cat "$RUNNER")" ]; then
     nope "mutant $name changed nothing, so its control below is vacuous"
     return 1
   fi
-  printf '%s\n' "$out"
+  MUTANT="$out"
 }
 
 # Every sed script below is single-quoted on purpose. The whole point of a
@@ -1925,10 +1949,9 @@ mutate() {
 #
 # M1. the index drops out of the sort key, so the order goes family-major.
 # shellcheck disable=SC2016
-M1=$(mutate family-major 's|^    keyed+=("${idx}${TAB}${item}")$|    keyed+=("${item}${TAB}${item}")|')
-if [ -n "$M1" ]; then
+if mutate family-major 's|^    keyed+=("${idx}${TAB}${item}")$|    keyed+=("${item}${TAB}${item}")|'; then
   T_M1="$TMPROOT/tree-m1"
-  mk_tree "$T_M1" "$M1"
+  mk_tree "$T_M1" "$MUTANT"
   M1_Q=$(queue_of "$T_M1")
   assert_ne "control: a family-major runner is DETECTED by the interleaving row" \
     "$(printf '%s\n' "${CANONICAL[@]}")" "$M1_Q"
@@ -1945,10 +1968,9 @@ zeta/03-zeta-drill" "$M1_Q"
 fi
 
 # M2. shaky retires a drill instead of putting it back.
-M2=$(mutate shaky-retires 's|^        shaky) shaky_keyed+=.*$|        shaky) continue ;;|')
-if [ -n "$M2" ]; then
+if mutate shaky-retires 's|^        shaky) shaky_keyed+=.*$|        shaky) continue ;;|'; then
   T_M2="$TMPROOT/tree-m2"
-  mk_tree "$T_M2" "$M2"
+  mk_tree "$T_M2" "$MUTANT"
   run_drill "$T_M2"
   run_drill "$T_M2" shaky
   M2_Q=$(queue_of "$T_M2")
@@ -1961,10 +1983,9 @@ fi
 
 # M3. the record is written rather than appended to.
 # shellcheck disable=SC2016
-M3=$(mutate truncating-record 's|>>"\$PROGRESS"|>"$PROGRESS"|')
-if [ -n "$M3" ]; then
+if mutate truncating-record 's|>>"\$PROGRESS"|>"$PROGRESS"|'; then
   T_M3="$TMPROOT/tree-m3"
-  mk_tree "$T_M3" "$M3"
+  mk_tree "$T_M3" "$MUTANT"
   run_drill "$T_M3"
   run_drill "$T_M3" "done"
   run_drill "$T_M3" "done"
@@ -1978,11 +1999,10 @@ fi
 
 # M4. the pointer lands one directory up.
 # shellcheck disable=SC2016
-M4=$(mutate pointer-escapes 's|^POINTER="\$HERE/LAST-SERVED"$|POINTER="$HERE/../LAST-SERVED"|')
-if [ -n "$M4" ]; then
+if mutate pointer-escapes 's|^POINTER="\$HERE/LAST-SERVED"$|POINTER="$HERE/../LAST-SERVED"|'; then
   mkdir -p "$TMPROOT/m4-outer"
   T_M4="$TMPROOT/m4-outer/tree"
-  mk_tree "$T_M4" "$M4"
+  mk_tree "$T_M4" "$MUTANT"
   run_drill "$T_M4"
   if [ -e "$TMPROOT/m4-outer/LAST-SERVED" ]; then
     ok "control: a runner writing outside its directory is DETECTED"
@@ -2001,11 +2021,10 @@ fi
 #
 # M5. a creation that fails takes the serve down with it.
 # shellcheck disable=SC2016
-M5=$(mutate study-failure-is-fatal \
-  's|^  echo "drill: cannot create the study directory at \$STUDY_ROOT/\$slug, so work" >&2$|  exit 9|')
-if [ -n "$M5" ]; then
+if mutate study-failure-is-fatal \
+  's|^  echo "drill: cannot create the study directory at \$STUDY_ROOT/\$slug, so work" >&2$|  exit 9|'; then
   T_M5="$TMPROOT/tree-m5"
-  mk_tree "$T_M5" "$M5"
+  mk_tree "$T_M5" "$MUTANT"
   M5_FILE="$TMPROOT/m5-root-is-a-file"
   printf 'a regular file where a study root was expected\n' >"$M5_FILE"
   run_drill_study "$M5_FILE" "$T_M5"
@@ -2026,10 +2045,9 @@ fi
 # succeeds, which is why this mutation is silent on the filesystem and shows
 # up only in what the serve claims.
 # shellcheck disable=SC2016
-M6=$(mutate study-claims-every-serve 's|^  if \[ -d "\$STUDY_ROOT/\$slug" \]; then$|  if false; then|')
-if [ -n "$M6" ]; then
+if mutate study-claims-every-serve 's|^  if \[ -d "\$STUDY_ROOT/\$slug" \]; then$|  if false; then|'; then
   T_M6="$TMPROOT/tree-m6"
-  mk_tree "$T_M6" "$M6"
+  mk_tree "$T_M6" "$MUTANT"
   STUDY_M6="$TMPROOT/study-root-m6"
   mkdir -p "$STUDY_M6/$SLUG0"
   run_drill_study "$STUDY_M6" "$T_M6"
@@ -2056,11 +2074,18 @@ fi
 # mutate() caught it and said so, which is the half of that function worth
 # knowing about: a mutation that matches nothing is reported as a vacuous
 # control rather than passing as a mutant that was not detected.
+#
+# AMENDED 2026-10-16, bead tla-vo5l. That last sentence describes what
+# mutate() does now, not what it did when the line above was written. Back
+# then the report went into a command substitution and the loud part was a cp
+# error on stderr. M7 happened to redden anyway, because its own row fails
+# over a tree with no runner in it. M5's row passes over the same tree, so
+# whether a vacuous mutation reached the tally was luck. The note above
+# mutate() carries the measurement.
 # shellcheck disable=SC2016
-M7=$(mutate coach-ships-without-checker 's|^  elif \[ ! -x "\$STUDY_ROOT/check" \]; then$|  elif false; then|')
-if [ -n "$M7" ]; then
+if mutate coach-ships-without-checker 's|^  elif \[ ! -x "\$STUDY_ROOT/check" \]; then$|  elif false; then|'; then
   T_M7="$TMPROOT/tree-m7"
-  mk_tree "$T_M7" "$M7"
+  mk_tree "$T_M7" "$MUTANT"
   # A mutant tree starts with no pointer, and the resolution reads one, so the
   # run would be refused before it ever reached the gate under test.
   printf '%s\n' "${CANONICAL[0]}" >"$T_M7/LAST-SERVED"
@@ -2080,11 +2105,10 @@ fi
 # that says the prompt is absent from argv is green over any runner that never
 # builds a prompt, so it needs this.
 # shellcheck disable=SC2016
-M8=$(mutate coach-prompt-on-argv \
-  's|^  ( cd -- "\$COACH_DIR" && claude -p --tools "" ) <<<"\$PROMPT_TEXT"$|  ( cd -- "$COACH_DIR" \&\& claude -p --tools "" "$PROMPT_TEXT" ) </dev/null|')
-if [ -n "$M8" ]; then
+if mutate coach-prompt-on-argv \
+  's|^  ( cd -- "\$COACH_DIR" && claude -p --tools "" ) <<<"\$PROMPT_TEXT"$|  ( cd -- "$COACH_DIR" \&\& claude -p --tools "" "$PROMPT_TEXT" ) </dev/null|'; then
   T_M8="$TMPROOT/tree-m8"
-  mk_tree "$T_M8" "$M8"
+  mk_tree "$T_M8" "$MUTANT"
   printf '%s\n' "${CANONICAL[0]}" >"$T_M8/LAST-SERVED"
   run_coach "$STUDY_COACH" "$OUTSIDE" "$T_M8" --check
   if grep -qF -- "MODE: check" "$STUB_REC/claude.argv"; then
@@ -2109,10 +2133,9 @@ fi
 # from an empty one, so it would interpret counts against nothing and sound
 # just as certain.
 # shellcheck disable=SC2016
-M9=$(mutate style-ships-without-register 's|^    if \[ ! -r "\$STUDY_ROOT/STYLE\.md" \]; then$|    if false; then|')
-if [ -n "$M9" ]; then
+if mutate style-ships-without-register 's|^    if \[ ! -r "\$STUDY_ROOT/STYLE\.md" \]; then$|    if false; then|'; then
   T_M9="$TMPROOT/tree-m9"
-  mk_tree "$T_M9" "$M9"
+  mk_tree "$T_M9" "$MUTANT"
   printf '%s\n' "${CANONICAL[0]}" >"$T_M9/LAST-SERVED"
   STUDY_M9="$TMPROOT/study-root-m9"
   mkdir -p "$STUDY_M9/$SLUG0"
@@ -2138,11 +2161,10 @@ fi
 # laddered a question Frank had marked as a mechanism question and cost him
 # the hour.
 # shellcheck disable=SC2016
-M10=$(mutate hint-ships-without-sheet \
-  's|^  if \[ "\$mode" = "hint" \] && \[ ! -r "\$STUDY_ROOT/\.claude/commands/hint\.md" \]; then$|  if false; then|')
-if [ -n "$M10" ]; then
+if mutate hint-ships-without-sheet \
+  's|^  if \[ "\$mode" = "hint" \] && \[ ! -r "\$STUDY_ROOT/\.claude/commands/hint\.md" \]; then$|  if false; then|'; then
   T_M10="$TMPROOT/tree-m10"
-  mk_tree "$T_M10" "$M10"
+  mk_tree "$T_M10" "$MUTANT"
   printf '%s\n' "${CANONICAL[0]}" >"$T_M10/LAST-SERVED"
   STUDY_M10="$TMPROOT/study-root-m10"
   mkdir -p "$STUDY_M10/$SLUG0"
@@ -2171,11 +2193,10 @@ fi
 # lines. A mutant is one line by convention, and two of them cannot say which
 # one the row below caught.
 # shellcheck disable=SC2016
-M11=$(mutate check-ships-the-sheet \
-  '/^build_prompt() {$/,/^}$/ s|^    if \[ "\$mode" = "hint" \]; then$|    if true; then|')
-if [ -n "$M11" ]; then
+if mutate check-ships-the-sheet \
+  '/^build_prompt() {$/,/^}$/ s|^    if \[ "\$mode" = "hint" \]; then$|    if true; then|'; then
   T_M11="$TMPROOT/tree-m11"
-  mk_tree "$T_M11" "$M11"
+  mk_tree "$T_M11" "$MUTANT"
   printf '%s\n' "${CANONICAL[0]}" >"$T_M11/LAST-SERVED"
   run_coach "$STUDY_COACH" "$OUTSIDE" "$T_M11" --check
   if grep -qF -- "$HINT_SHEET_SENTINEL" "$STUB_REC/claude.stdin"; then
