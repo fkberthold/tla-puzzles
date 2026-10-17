@@ -509,6 +509,71 @@ Filed as bead `tla-syws`.
 
 ---
 
+## Hazard: a `pgrep -f` wait loop matches itself and never exits
+
+Do not wait on work by polling for a process:
+
+```bash
+until ! pgrep -f 'measure.sh' >/dev/null 2>&1; do sleep 5; done    # never exits
+```
+
+`pgrep -f` matches full command lines, and the waiting shell's own command
+line contains the pattern it's waiting on. The loop sees itself, so the
+condition is permanently false.
+
+Measured 2026-10-16. Seven such shells were found spinning, the oldest 64
+minutes, all from one dispatched worker that had already returned. The proof
+is one command: `pgrep -af 'measure.sh'` came back with four processes, and
+every one of them was a waiting shell whose command line read
+`eval 'until ! pgrep -f measure.sh ...'`. The work they waited on had finished
+long before.
+
+Each shell burns almost no CPU, so the symptom isn't a slow box. It's a
+session holding eight shells when you started one. Nothing in the harness or
+the gates reports it, and `ps | grep bash` misses them because they run as
+`zsh -c eval`.
+
+**The second shape hides the first.** `until [ -f X ] && ! pgrep -f Y` is stuck
+for the same reason even after `X` appears. Two of the seven were that one.
+
+What to write instead, in order:
+
+1. **Don't poll.** A background Bash call notifies on completion, and a
+   dispatched agent notifies when it returns. A poll loop around work the
+   harness already reports on is pure waste, and this is the failure it buys.
+2. **Wait on a sentinel file** the work itself creates as its last act. A file
+   can't match the waiter.
+3. If a process check is genuinely unavoidable, use a pidfile the work writes.
+   `pgrep -f PATTERN | grep -vx $$` is not enough, because the match is as
+   often the shell's parent as the shell.
+
+Filed as bead `tla-x9vt`.
+
+---
+
+## Hazard: every worker running the full gate makes every reading worse
+
+`bash scripts/test` is the real gate and a worker is right to want it. In a
+parallel wave it is the wrong instrument, because the suites are timed and
+four concurrent runs contend.
+
+Measured 2026-10-16. A quiet box reads 39 suites in 420 to 560 s. With three
+workers plus central running the registry at once, load sat at 12 to 14 and
+every suite ran 1.5x to 4x over budget. One worker paused at 31 of 39 with
+everything green and the whole run worthless as a timing signal.
+
+**Run the suites that cover what you touched, plus `bash scripts/lint`.**
+Central runs the full registry once after merging, on a quiet box, and that is
+the reading that decides anything. Say so in your report rather than inferring
+a regression from a contended number.
+
+This is the dispatcher's job to say in the brief. A worker handed no guidance
+reasonably runs the gate, so four of them doing it is a brief defect rather
+than four mistakes. Loom's conventions already say one full gate run per repo
+at a time, and this is the tla-puzzles form of it.
+
+---
+
 ## On the way out — verify your own footprint
 
 ```bash
