@@ -67,7 +67,7 @@ REP	R020	K007	shunting	whether the claim that wagon a is on the third track fail
 REP	R021	K007	shunting	whether the train begins with wagon a or else ends with wagon b	Train[1] = "a" \/ Train[3] = "b"
 REP	R022	K007	ledger	whether bo is holding nothing while ann is holding something	Balance["bo"] = 0 /\ Balance["ann"] > 0
 REP	R023	K009	shunting	whether wagon b being on the third track would mean wagon c is on it too	Parking.b = 3 => Parking.c = 3
-REP	R024	K009	shunting	whether wagon c being on the third track would mean that wagon c is wagon b	Parking.c = 3 => "c" = "b"
+REP	R024	K009	shunting	whether wagon c being on the third track would mean wagon a is on it too	Parking.c = 3 => Parking.a = 3
 REP	R025	K009	shunting	whether the train beginning with wagon a would mean the yard holds four wagons	Train[1] = "a" => Cardinality(Wagons) = 4
 REP	R026	K009	ledger	whether an account holding nothing would have to be bo	\A acct \in Accounts : Balance[acct] = 0 => acct = "bo"
 REP	R027	K021	shunting	the number of wagons sharing the third track, multiplied by itself, with that crowd worked out only once	LET Crowd == Cardinality({w \in Wagons : Parking[w] = 3}) IN Crowd * Crowd
