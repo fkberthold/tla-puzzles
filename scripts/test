@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 722.3 s wall, measured 2026-10-17, against the ~804 s
+# Here the full run is 719.1 s wall, measured 2026-10-17, against the ~805 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -102,14 +102,14 @@
 #   slow  60.0 s  harness/test-vacuity.sh
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
-#   slow  88.0 s  harness/test-recall-runner.sh              (re-based, 169d53a)
+#   slow  88.6 s  harness/test-recall-runner.sh              (re-based, 169d53a)
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
 #   ----  ------
 #         46.0 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        757.9 s  slow tier, 14 suites
-#        803.9 s  whole registry
+#        758.5 s  slow tier, 14 suites
+#        804.5 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -133,13 +133,19 @@
 # the new numbers.
 #
 #   recall corpus gate   86.7 -> 197.0   the corpus doubled under it at 3d05932
-#   recall runner        43.7 ->  88.0   part 16 landed at 169d53a
+#   recall runner        43.7 ->  88.6   part 16 landed at 169d53a
 #   indeterminate gate   10.7 ->  50.2   two rows driving recall-gate.sh
 #
-# The whole registry read 719.4 s and then 722.3 s that night, 39 suites green
-# both times on a quiet box. The per-row notes carry the three standalone
-# readings behind each new budget, and the in-suite reading that lifted two of
-# them above the standalone maximum.
+# The whole registry read 719.4, 722.3 and 719.1 s over three passes that
+# night, 39 suites green every time on a quiet box. The per-row notes carry
+# the three standalone readings behind each new budget and the three in-suite
+# ones, because on all three rows every in-suite reading sat above every
+# standalone one and the budget had to clear the band rather than the mean.
+#
+# TWO ROWS THAT ARE NOT PART OF THIS PRINTED OVER ON ALL THREE PASSES: the
+# drill corpus static sweep at 3.3 against 3.0 and refutation coverage at 1.4
+# against 1.3. Both are small, both are under the nudge, and neither was
+# touched here. Somebody re-measuring this table next should start there.
 #
 # ONLY ONE OF THE THREE TRIPPED THE DRIFT NUDGE. The other two were 2.01x and
 # 2.25x, under the 3.0x factor, while being +44.3 s and +108.0 s in absolute
@@ -1145,9 +1151,12 @@ SUITES=(
   # three back-to-back serial runs on the green tree: 86.770 / 86.327 /
   # 87.166 s, a 1.0% spread, so the standalone figure is 87.2.
   #
-  # THE BUDGET IS 88.0 AND NOT 87.2, which is the same call this row made the
-  # first time. One in-suite pass read 88.0 s, above all three standalone
-  # readings, so the in-suite premium is real and the budget takes the larger.
+  # THE BUDGET IS 88.6 AND NOT 87.2, which is the same call this row made the
+  # first time. Three in-suite passes read 88.0, 87.6 and 88.5 s, every one of
+  # them above every standalone reading, so the in-suite premium is real and
+  # the budget sits just above the band rather than inside it. 88.0 was tried
+  # first, off the one in-suite reading then in hand, and the third pass read
+  # 88.5 against it. Six readings now: 86.327 to 88.5, a 2.5% band.
   #
   # THE MOVE IS THE SUITE AND NOT THE BOX. Four other model-checking rows came
   # in UNDER their budgets on the same full pass that read this one at 88.0:
@@ -1158,7 +1167,7 @@ SUITES=(
   # Part 16's 54 rows grade real fixture submissions through recall/recall.sh,
   # several of them deliberate parse errors that now re-prompt, so each row is
   # one TLC run or more and the cost model in the note above is unchanged.
-  "slow|88.0|recall runner|./harness/test-recall-runner.sh"
+  "slow|88.6|recall runner|./harness/test-recall-runner.sh"
   # Added 2026-10-16, bead tla-1sh7.4, and with the row above it this is the
   # largest addition this registry has taken.
   #
