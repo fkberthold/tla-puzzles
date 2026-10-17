@@ -52,7 +52,7 @@
 # contract says", which is also what a suite driving a runner that silently
 # stopped working would report if the comparison went slack. So part 5 copies
 # the real runner, breaks ONE line of it, and requires the row that owns that
-# line to go red. Ten mutants:
+# line to go red. Eleven mutants:
 #
 #   family-major order   the index drops out of the sort key
 #   shaky retires        shaky behaves like done and never comes back
