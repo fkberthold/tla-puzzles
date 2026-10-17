@@ -2492,6 +2492,462 @@ fi
 fi
 
 echo
+echo "== part 16: a typo, a caret, and the names in scope (beads tla-1sh7.12, .13) =="
+# ---------------------------------------------------------------------------
+# WHAT THIS PART EXISTS FOR, and all three of them are defects Frank found
+# working a real session on 2026-10-17. 339 assertions and a corpus gate saw
+# none of them, because each one is about what the reader is TOLD rather than
+# about what the code computes.
+#
+#   1  A TYPO SPENT THE REP. rc 150 advanced the session, so the retrieval
+#      attempt the rung exists for never happened. Nothing was graded and the
+#      rep was gone.
+#   2  THE MESSAGE POINTED AT A FILE NOBODY SAW. "Encountered EXCEPT at line
+#      17, column 24" cites a scratch module deleted before the message is
+#      read, and "Was expecting ==== or more Module body" is about module
+#      structure rather than about the expression.
+#   3  THE NAMES WERE UNGUESSABLE. R119 needs `Balance` and `!["ann"]`
+#      exactly, and a session printed the prompt alone.
+#
+# WHY THE SESSION IS THE SUBJECT OF 1 AND 3 AND THE SINGLE REP IS THE SUBJECT
+# OF 2. A single-rep invocation returning 150 is correct as it stands and the
+# gate drives that path, so the retry is session-only. The caret belongs to
+# the parse-error report, which both paths print.
+# ---------------------------------------------------------------------------
+
+# A sub-table cut from any source, which is what the session rows below need:
+# the only fixture carrying SPEC rows is REPS.tsv, and SESSION-REPS.tsv holds
+# none. Written rather than reusing sub_reps, whose source is fixed and whose
+# callers above pin counts over it.
+sub_rows() {
+  local path="$1" src="$2"; shift 2
+  local want=" $* "
+  awk -F'\t' -v want="$want" '($1 == "REP" || $1 == "SPEC") && index(want, " " $2 " ") > 0' \
+    "$src" >"$path"
+  printf '%s\n' "$path"
+}
+
+# A session over an arbitrary table. `session` above is pinned to SESSION-REPS
+# through SREPS_USE, and the rows below need REPS.tsv for its SPEC rows.
+P16_OUT=""
+P16_RC=0
+p16_session() {
+  local reps="$1" input="$2"; shift 2
+  P16_RC=0
+  P16_OUT=$("$RUNNER" --reps "$reps" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" --session "$@" <"$input" 2>&1) || P16_RC=$?
+}
+
+# Prompts of the fixture REPS.tsv, whose ids are R00n and Q00n rather than the
+# S0n of SESSION-REPS, so prompted_ids above matches neither.
+p16_prompts() { awk '/^[RQ]00[0-9]  / { print $1 }' <<<"$1"; }
+
+echo "-- the caret, on a value rep --"
+# ---------------------------------------------------------------------------
+# THE TRANSLATION IS ARITHMETIC AND THE TWO ROWS BELOW PIN IT TO THE COLUMN.
+# A row asserting only that a caret appeared would pass over a caret under the
+# wrong character, which the bead says is worse than no caret at all.
+#
+# `t' = t EXCEPT ![1] = 9` is Frank's own shape: a primed assignment where an
+# expression was wanted. Measured on TLC2 2026.07.31.184830: the answer lands
+# on line 9 of the module after the six-line environment, SANY reports column
+# 18, the prefix `Answer == ` is 10 wide, and 18 - 10 is 8, which is the E of
+# EXCEPT.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" R004 "t' = t EXCEPT ![1] = 9"
+CARET_OUT="$RUN_OUT"
+assert_eq "a parse error is still rc 150, so the caret changed no grade" "150" "$RUN_RC"
+if has "$CARET_OUT" "^  t' = t EXCEPT !\[1\] = 9\$"; then
+  ok "the report echoes the line that was typed, which is the only one the reader saw"
+else
+  nope "the report echoes the line that was typed, which is the only one the reader saw"
+fi
+assert_eq "and the caret sits under the E of EXCEPT, at column 8 of what was typed" \
+  "         ^" "$(awk "/^  t' = t EXCEPT/ { getline; print; exit }" <<<"$CARET_OUT")"
+
+echo
+echo "-- the caret, on a spec rep, where the offset is zero and not ten --"
+# ---------------------------------------------------------------------------
+# The answer fills a whole line on a SPEC row, so SANY's column is the column
+# of what was typed. Measured: `n < 2 /\ n' = n ++ 1` into fix-act's hole
+# reports line 8 col 17, the hole is line 8 of that scaffold, and column 17 is
+# the first + of the ++.
+#
+# THE SAME SUBTRACTION ON BOTH KINDS WOULD BE WRONG BY TEN HERE, which is what
+# this row is for rather than the fact that a caret appeared.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" Q003 "n < 2 /\\ n' = n ++ 1"
+SPEC_CARET="$RUN_OUT"
+assert_eq "a spec rep's parse error is rc 150 too" "150" "$RUN_RC"
+assert_eq "and its caret sits under the first + of the ++, unshifted" \
+  "                  ^" "$(awk "/^  n < 2 .. n' = n \+\+ 1\$/ { getline; print; exit }" <<<"$SPEC_CARET")"
+
+echo
+echo "-- no caret when the position is not inside the line that was typed --"
+# ---------------------------------------------------------------------------
+# An unbalanced bracket is reported on the line AFTER the answer: SANY says
+# "line 10, column 1" where the answer is on 9. Subtracting the offset from
+# that would put a confident caret under the wrong character, so the line
+# number is a guard rather than an input.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" R004 '[[t \in Tracks |-> 0] EXCEPT'
+NOCARET="$RUN_OUT"
+if has "$NOCARET" '^  \[\[t \\in Tracks \|-> 0\] EXCEPT$'; then
+  ok "the typed line is echoed even when the position cannot be recovered"
+else
+  nope "the typed line is echoed even when the position cannot be recovered"
+fi
+if has "$NOCARET" 'nothing in the message points inside that line'; then
+  ok "and the report says so rather than pointing at a character nobody chose"
+else
+  nope "and the report says so rather than pointing at a character nobody chose"
+fi
+assert_eq "and no caret line is printed at all" "0" \
+  "$(grep -cE '^ +\^$' <<<"$NOCARET")"
+
+echo
+echo "-- what the report no longer carries --"
+# ---------------------------------------------------------------------------
+# Both drops have the same justification printed_region already uses for TLC's
+# own `Error: Evaluating assumption line N`: the citation names a module in a
+# scratch directory that is gone before anybody reads the message.
+# ---------------------------------------------------------------------------
+if has "$CARET_OUT" 'Was expecting'; then
+  nope "the Was expecting line is gone, since it is about module structure"
+else
+  ok "the Was expecting line is gone, since it is about module structure"
+fi
+if has "$CARET_OUT" 'at line [0-9]+, column [0-9]+'; then
+  nope "and so is the location, which named a scratch module already deleted"
+else
+  ok "and so is the location, which named a scratch module already deleted"
+fi
+if has "$CARET_OUT" 'Encountered "EXCEPT"'; then
+  ok "and SANY's own sentence is still there, because it names the token"
+else
+  nope "and SANY's own sentence is still there, because it names the token"
+fi
+# The semantic shape, which reaches the same report by a different route and
+# has to lose its location too.
+run_runner "$RUNNER" R001 'Bogosity'
+if has "$RUN_OUT" "Unknown operator: .Bogosity"; then
+  ok "a semantic error keeps its sentence, which names the symbol"
+else
+  nope "a semantic error keeps its sentence, which names the symbol"
+fi
+assert_eq "and its caret is under the first character, since that is where it starts" \
+  "  ^" "$(awk '/^  Bogosity$/ { getline; print; exit }' <<<"$RUN_OUT")"
+
+echo
+echo "-- a typo no longer spends the rep --"
+# ---------------------------------------------------------------------------
+# THE RED LINE OF tla-1sh7.12. Reproduced by central with --count 1 before
+# this bead: `1 rep, 1 not graded`, and the second line of input was never
+# read. A parse error is not a wrong answer, so the attempt the rung exists
+# for never happened.
+# ---------------------------------------------------------------------------
+P16_ONE=$(sub_rows "$TMPROOT/p16-one.tsv" "$REPS" R004)
+RETRY_IN=$(write_input "$TMPROOT/p16-retry.txt" "t' = t EXCEPT ![1] = 9" '[[t \in Tracks |-> 0] EXCEPT ![1] = 9]')
+p16_session "$P16_ONE" "$RETRY_IN" --count 1
+assert_eq "a typo then the answer serves ONE rep and grades it right" "1 rep, 1 right." \
+  "$(grep -E '^[0-9]+ reps?' <<<"$P16_OUT")"
+assert_eq "and the same rep was prompted twice, which is where the second go came from" \
+  "2" "$(p16_prompts "$P16_OUT" | wc -l)"
+assert_eq "and both prompts are the same rep, so no rep was skipped over" "1" \
+  "$(p16_prompts "$P16_OUT" | sort -u | wc -l)"
+if has "$P16_OUT" 'nothing was graded, so the same rep comes back'; then
+  ok "and the session says why the rep came back"
+else
+  nope "and the session says why the rep came back"
+fi
+
+echo
+echo "-- and the retry is capped, because an answer that never parses must not loop --"
+NEVER_IN=$(write_input "$TMPROOT/p16-never.txt" \
+  '[[t \in Tracks |-> 0] EXCEPT' '[[t \in Tracks |-> 0] EXCEPT' \
+  '[[t \in Tracks |-> 0] EXCEPT' '[[t \in Tracks |-> 0] EXCEPT')
+p16_session "$P16_ONE" "$NEVER_IN" --count 1
+assert_eq "four unparseable answers get three goes and no more" "3" \
+  "$(p16_prompts "$P16_OUT" | wc -l)"
+assert_eq "and the rep is counted once, as not graded" "1 rep, 1 not graded." \
+  "$(grep -E '^[0-9]+ reps?' <<<"$P16_OUT")"
+if has "$P16_OUT" '^3 tries and none of them parsed'; then
+  ok "and the session says that is what happened, with the count it used"
+else
+  nope "and the session says that is what happened, with the count it used"
+fi
+if has "$P16_OUT" '\[\[t \\in Tracks \|-> 0\] EXCEPT !\[1\] = 9\]'; then
+  ok "and shows the answer, since the reader is past the point an attempt protects"
+else
+  nope "and shows the answer, since the reader is past the point an attempt protects"
+fi
+assert_eq "and a session that spent a rep still exits 0" "0" "$P16_RC"
+
+echo
+echo "-- only a parse error is retried --"
+# ---------------------------------------------------------------------------
+# 10 is a wrong answer and the reader has had their attempt. 255, 151 and 75
+# are reports about the run rather than about a typo, so retyping cannot fix
+# one and a retry over them is a loop with no exit.
+# ---------------------------------------------------------------------------
+WRONG_ONCE=$(write_input "$TMPROOT/p16-wrong.txt" '[t \in Tracks |-> 1]')
+p16_session "$P16_ONE" "$WRONG_ONCE" --count 1
+assert_eq "a WRONG answer is prompted once and the rep moves on" "1" \
+  "$(p16_prompts "$P16_OUT" | wc -l)"
+assert_eq "and it counts as wrong rather than as not graded" "1 rep, 1 wrong." \
+  "$(grep -E '^[0-9]+ reps?' <<<"$P16_OUT")"
+
+echo
+echo "-- the single-rep invocation keeps the behavior the gate drives --"
+run_runner "$RUNNER" R004 "t' = t EXCEPT ![1] = 9"
+assert_eq "one rep returning 150 still exits 150" "150" "$RUN_RC"
+if has "$RUN_OUT" 'the same rep comes back'; then
+  nope "and says nothing about a retry, because there is no session to retry in"
+else
+  ok "and says nothing about a retry, because there is no session to retry in"
+fi
+
+echo
+echo "-- the names in scope, on a value rep --"
+# ---------------------------------------------------------------------------
+# THE RED LINE OF tla-1sh7.13. R119 asks for "the balance after two has been
+# paid into ann's account" and the answer has to read `Balance` and `!["ann"]`
+# exactly. Nothing in a prompt says either, and all 160 rows name a field 4.
+#
+# THE DEFINITIONS AND NOT A ROSTER OF NAMES. A roster lists top-level
+# definitions, so a literal INSIDE one is hidden by it, and 39 of the 120 REP
+# canonicals carry a quoted literal. The row below reaches for a definition's
+# BODY for that reason rather than for its name.
+# ---------------------------------------------------------------------------
+SCOPE_IN=$(write_input "$TMPROOT/p16-scope.txt" '[Wagons -> Tracks]')
+P16_R001=$(sub_rows "$TMPROOT/p16-r001.tsv" "$REPS" R001)
+p16_session "$P16_R001" "$SCOPE_IN" --count 1
+SCOPE_OUT="$P16_OUT"
+SCOPE_BEFORE=$(awk '/^> / { exit } { print }' <<<"$SCOPE_OUT")
+if has "$SCOPE_BEFORE" '^  Wagons == \{"a", "b", "c"\}$'; then
+  ok "the environment's definitions print under the prompt, bodies and all"
+else
+  nope "the environment's definitions print under the prompt, bodies and all"
+fi
+if has "$SCOPE_BEFORE" '^  Tracks == 1\.\.3$'; then
+  ok "every one of them, not the one the rep happens to need"
+else
+  nope "every one of them, not the one the rep happens to need"
+fi
+if has "$SCOPE_BEFORE" 'FRAGMENT, not a module|splices it verbatim'; then
+  nope "and the fragment's own comments are stripped, since they are notes to an author"
+else
+  ok "and the fragment's own comments are stripped, since they are notes to an author"
+fi
+# THE INVARIANT THE WHOLE RUNG RESTS ON. Showing the names is not showing the
+# answer, and a CORRECT answer is the sharp case: the feedback is the word
+# "correct." and nothing else, so the canonical appearing before the answer is
+# owed would be the serving that leaked it.
+if has "$SCOPE_BEFORE" '\[Wagons -> Tracks\]'; then
+  nope "and field 6 is still not reachable from anything printed before the answer"
+else
+  ok "and field 6 is still not reachable from anything printed before the answer"
+fi
+assert_eq "and the rep still grades through the same channel" \
+  "rep=R001 rc=0 token=OK grade=correct" "$(awk '/^rep=/ { print; exit }' <<<"$SCOPE_OUT")"
+
+echo
+echo "-- the names in scope, on a spec rep, where field 4 names machines --"
+# ---------------------------------------------------------------------------
+# A SPEC row's equivalent of an environment is the scaffold, which is a whole
+# module rather than a fragment. So the block is the module's own lines with
+# the first comment, the header, the EXTENDS line, the `====` and the
+# `__CHECK__` marker taken out, and the answer hole marked.
+#
+# THE FIRST-LINE COMMENT IS NOT ENOUGH ON ITS OWN. It leads the block because
+# it is the bridge from the prompt's English to an identifier, and it carries
+# no identifiers: fix-climb's says "a counter that can be stepped up twice",
+# and `WF_vars(Step)` needs two names it does not have.
+# ---------------------------------------------------------------------------
+Q001_IN=$(write_input "$TMPROOT/p16-q001.txt" 'WF_vars(Step)')
+P16_Q001=$(sub_rows "$TMPROOT/p16-q001.tsv" "$REPS" Q001)
+p16_session "$P16_Q001" "$Q001_IN" --count 1
+SPEC_SCOPE=$(awk '/^> / { exit } { print }' <<<"$P16_OUT")
+if has "$SPEC_SCOPE" '^  vars == <<n, flag>>$'; then
+  ok "the scaffold's own definitions print, which is where the subscript name is"
+else
+  nope "the scaffold's own definitions print, which is where the subscript name is"
+fi
+if has "$SPEC_SCOPE" '^  Step == n < 2'; then
+  ok "and the subaction's name, which the prompt states only in English"
+else
+  nope "and the subaction's name, which the prompt states only in English"
+fi
+if has "$SPEC_SCOPE" 'a counter that can be stepped up twice'; then
+  ok "and the machine's own English line leads it, so a reader reads a machine"
+else
+  nope "and the machine's own English line leads it, so a reader reads a machine"
+fi
+if has "$SPEC_SCOPE" '__ANSWER__|__CHECK__'; then
+  nope "and neither hole marker reaches the reader, since a marker says nothing"
+else
+  ok "and neither hole marker reaches the reader, since a marker says nothing"
+fi
+if has "$SPEC_SCOPE" '^  <your answer>$'; then
+  ok "the answer hole is marked in place, which is what says the line it fills"
+else
+  nope "the answer hole is marked in place, which is what says the line it fills"
+fi
+if has "$SPEC_SCOPE" '^  ---- MODULE|^  EXTENDS |^  ====$'; then
+  nope "and the module's wrapper is not in it, the way the fragment's header is not"
+else
+  ok "and the module's wrapper is not in it, the way the fragment's header is not"
+fi
+if has "$SPEC_SCOPE" '\bWF_vars\(Step\)'; then
+  nope "and field 6 is not reachable from a spec rep's block either"
+else
+  ok "and field 6 is not reachable from a spec rep's block either"
+fi
+
+echo
+echo "-- a battery shows every machine, because the answer goes into every one --"
+# ---------------------------------------------------------------------------
+# Measured over the 20 shipped rows naming more than one scaffold: 10 do NOT
+# agree on the names in scope, because one member carries a `Drop` or a
+# `latch` the others do not. Showing one machine would state a name another
+# machine does not have, and the answer is checked against all of them.
+# ---------------------------------------------------------------------------
+Q002_IN=$(write_input "$TMPROOT/p16-q002.txt" '<>[](n = 2)')
+P16_Q002=$(sub_rows "$TMPROOT/p16-q002.tsv" "$REPS" Q002)
+p16_session "$P16_Q002" "$Q002_IN" --count 1
+BATTERY=$(awk '/^> / { exit } { print }' <<<"$P16_OUT")
+if has "$BATTERY" '^the 2 machines, and the answer goes into each of them:$'; then
+  ok "a battery says how many machines there are before the reader answers"
+else
+  nope "a battery says how many machines there are before the reader answers"
+fi
+assert_eq "and prints a block for each of them" "2" \
+  "$(grep -cE '^  vars == <<n, flag>>$' <<<"$BATTERY")"
+# A phrase short enough to survive the fold. show_prose wraps at the runner's
+# own prose width, and `dropped straight back to nothing` lands across two
+# lines, which is part 15's own hazard one section up.
+if has "$BATTERY" 'and driven up again for ever'; then
+  ok "including the one the answer has to FAIL on, which is half of what a battery is"
+else
+  nope "including the one the answer has to FAIL on, which is half of what a battery is"
+fi
+# `Fall` is fix-far's and fix-near does not have it, which is the fixture's
+# own copy of the disagreement the shipped batteries carry. A block for the
+# first scaffold alone would not have this line in it.
+if has "$BATTERY" '^  Fall == n = 2'; then
+  ok "and a name only the second machine declares, which is why one block is not enough"
+else
+  nope "and a name only the second machine declares, which is why one block is not enough"
+fi
+if has "$BATTERY" '<>\[\]\(n = 2\)'; then
+  nope "and a battery leaks no more of field 6 than one machine does"
+else
+  ok "and a battery leaks no more of field 6 than one machine does"
+fi
+
+echo
+echo "-- what an answer may be, said once at the head of a session --"
+# ---------------------------------------------------------------------------
+# Frank read "the balance after two has been paid in" as asking for the change
+# and wrote a primed assignment. Every REP row goes into a scaffold as
+# `Answer == <what was typed>`, so an action can never be right on one, and
+# nothing anywhere said so.
+#
+# ONCE, NOT UNDER EVERY PROMPT. The prompts are deliberately short and the
+# constraint holds at every rep, so saying it at every rep is noise 160 times
+# over. The row below is the one that would go red if it moved into the loop.
+# ---------------------------------------------------------------------------
+THREE_SCOPE=$(write_input "$TMPROOT/p16-three.txt" 'TRUE' 'TRUE' 'TRUE')
+P16_THREE=$(sub_rows "$TMPROOT/p16-threes.tsv" "$REPS" R001 R002 R003)
+p16_session "$P16_THREE" "$THREE_SCOPE" --count 3
+assert_eq "the session says an answer is an expression exactly once over three reps" \
+  "1" "$(grep -c 'an answer is an expression' <<<"$P16_OUT")"
+assert_eq "and says it before the first prompt, not after it" "1" \
+  "$(awk '/^R00[0-9]  / { exit } /an answer is an expression/ { n++ } END { print n+0 }' <<<"$P16_OUT")"
+# Short enough to survive the fold, for the reason the battery row above says.
+if has "$P16_OUT" 'a primed variable with an equals sign'; then
+  ok "and names the shape Frank reached for, which is the documented false friend"
+else
+  nope "and names the shape Frank reached for, which is the documented false friend"
+fi
+assert_eq "while the block under each prompt is printed every time, not once" "3" \
+  "$(grep -c '^in scope:$' <<<"$P16_OUT")"
+
+echo
+echo "-- the mutants for the three defects --"
+# THE SED PATTERNS ARE NOT ANCHORED TO AN INDENT, for part 14's reason: every
+# target sits several blocks deep inside a function, so an anchored pattern is
+# pinned to a nesting level a later edit can move.
+
+# M11. the session stops holding a rep back on a parse error, which is the
+# defect itself. The control is the tally: one rep in, one rep spent.
+# shellcheck disable=SC2016
+if mutate parse-advances 's|if \[ "\$rc" != "150" \]; then|if true; then|'; then
+  M11_OUT=$("$MUTANT" --reps "$P16_ONE" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" --session --count 1 <"$RETRY_IN" 2>&1) || true
+  assert_ne "control: a session that advances past a parse error is DETECTED" \
+    "1 rep, 1 right." "$(grep -E '^[0-9]+ reps?' <<<"$M11_OUT")"
+  assert_eq "and it fails the way the mutation says, the rep spent on the typo" \
+    "1 rep, 1 not graded." "$(grep -E '^[0-9]+ reps?' <<<"$M11_OUT")"
+fi
+
+# M12. the cap stops applying, so an answer that never parses loops. The
+# control reads the prompt count over four unparseable lines: capped is three,
+# uncapped is four and would be more if the input were longer.
+# shellcheck disable=SC2016
+if mutate cap-dropped 's|if \[ "\$tries" -ge "\$SESSION_PARSE_TRIES" \]; then|if false; then|'; then
+  M12_OUT=$("$MUTANT" --reps "$P16_ONE" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" --session --count 1 <"$NEVER_IN" 2>&1) || true
+  assert_ne "control: a retry with no cap is DETECTED by the prompt count" \
+    "3" "$(p16_prompts "$M12_OUT" | wc -l)"
+fi
+
+# M13. the caret stops checking that SANY's line is the answer's line, which
+# is the one guard between a useful caret and a confident wrong one.
+#
+# THE CONTROL IS A SPEC ROW AND NOT A VALUE ROW, and the reason is arithmetic
+# rather than taste. Every off-line location SANY gives is column 1: measured
+# over seven unbalanced answers on 2026-10-17, all seven report "column 1" on
+# the line after the hole. A value row subtracts the ten-wide prefix from that
+# and lands on -9, so the range check withholds the caret and the mutation is
+# invisible. A spec row subtracts nothing, so column 1 is in range and the
+# unguarded caret lands under the first character of a line whose error is at
+# the end of it. `<>[](n = 2` into fix-near's hole is that case.
+# shellcheck disable=SC2016
+if mutate caret-unguarded 's|if (a\[1\] + 0 == want + 0) { print a\[2\] + 0; found = 1 }|{ print a[2] + 0; found = 1 }|'; then
+  M13_OUT=$("$MUTANT" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" -- Q002 '<>[](n = 2' 2>&1) || true
+  assert_ne "control: a caret that ignores which line SANY named is DETECTED" "0" \
+    "$(grep -cE '^ +\^$' <<<"$M13_OUT")"
+  # The guarded runner over the same answer, so the row above is a statement
+  # about the guard rather than about this input.
+  run_runner "$RUNNER" Q002 '<>[](n = 2'
+  assert_eq "and the real runner withholds it over that same answer" "0" \
+    "$(grep -cE '^ +\^$' <<<"$RUN_OUT")"
+fi
+
+# M14. the scope block is never printed, which is the defect tla-1sh7.13
+# names. The control is the block's own label.
+# shellcheck disable=SC2016
+if mutate scope-dropped 's|\[ "\$QUIET" = "0" \] && session_scope "\$WALK_KIND" "\$WALK_ENV"|:|'; then
+  M14_OUT=$("$MUTANT" --reps "$P16_R001" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" --session --count 1 <"$SCOPE_IN" 2>&1) || true
+  assert_eq "control: a session that stopped printing the names is DETECTED" "0" \
+    "$(grep -c '^in scope:$' <<<"$M14_OUT")"
+fi
+
+# M15. the REP offset stops being subtracted, so the caret lands ten columns
+# right of the error. This is the row that makes the column assertion above
+# mean something rather than the appearance of a caret.
+# shellcheck disable=SC2016
+if mutate offset-dropped 's|^ANSWER_PREFIX="Answer == "$|ANSWER_PREFIX=""|'; then
+  M15_OUT=$("$MUTANT" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" -- R004 "t' = t EXCEPT ![1] = 9" 2>&1) || true
+  assert_ne "control: a caret that forgot the prefix is DETECTED at the column" \
+    "         ^" "$(awk "/^  t' = t EXCEPT/ { getline; print; exit }" <<<"$M15_OUT")"
+fi
+
+echo
 printf 'test-recall-runner.sh: %d passed, %d failed\n' "$pass_count" "$fail_count"
 [ "$fail_count" -eq 0 ] || exit 1
 exit 0

@@ -120,6 +120,26 @@
 # attempt is past the point the attempt was protecting, and withholding it
 # there teaches nothing. A skip runs no TLC at all.
 #
+# A TYPO DOES NOT SPEND THE REP (bead tla-1sh7.12). A parse error is not a
+# wrong answer: nothing was graded, so the retrieval attempt the rung exists
+# for never happened. The session hands the SAME rep back, up to
+# SESSION_PARSE_TRIES, and only then shows the answer and says so. See that
+# constant for why the cap is three, and the loop itself for why only 150 is
+# retried.
+#
+# EACH PROMPT CARRIES THE NAMES IN SCOPE (bead tla-1sh7.13). A prompt names
+# none of the notation it asks for and none of the identifiers either, so a
+# rep that needs `Balance` and `!["ann"]` exactly was unanswerable from what a
+# session printed. The block under each prompt is what the answer is dropped
+# into: a REP row's environment definitions, or a SPEC row's machines with the
+# line being filled marked. See THE SCOPE BLOCK for what is in it and why it
+# is the definitions rather than a list of names.
+#
+# AND ONE LINE AT THE HEAD SAYS WHAT AN ANSWER IS. Every REP row goes into a
+# scaffold as `Answer == <what was typed>`, so an action can never be right on
+# one, and nothing anywhere said so. It is a property of the channel rather
+# than of a rep, so it is said once rather than under 160 prompts.
+#
 # A SESSION ECHOES THE ANSWER WHEN STDIN IS NOT A TERMINAL. A terminal echoes
 # what is typed and a pipe does not, so without this a piped transcript is a
 # prompt character with the feedback jammed against it and no record of what
@@ -607,6 +627,33 @@ EXTENDS_LIST="Naturals, Integers, Sequences, FiniteSets, TLC"
 SENTINEL='"recall-value"'
 TIMEOUT=60
 
+# The literal a REP row's answer is written after. Bound to a name because its
+# LENGTH is the column offset the parse-error caret subtracts, so the prefix and
+# the offset cannot drift apart: write_grade_module writes this string and
+# answer_caret reads its length. A SPEC row has no prefix, because the answer
+# fills a whole line there and the column comes back unshifted.
+ANSWER_PREFIX="Answer == "
+
+# How many goes a session gives ONE rep before it shows the answer and moves on.
+#
+# A parse error is not a wrong answer, so until bead tla-1sh7.12 the rep was
+# spent on a typo and the retrieval attempt the rung exists for never happened.
+# The session hands the rep back instead. It is capped because an answer that
+# will never parse must not loop, and a loop that cannot be left is worse than
+# a rep lost.
+#
+# THREE RATHER THAN TWO, AND THE TWO WERE RUN AGAINST EACH OTHER. The case that
+# separates them is a typo, then a second typo in the retype, then the right
+# answer. Measured 2026-10-17 over R119: at two that scores `1 rep, 1 not
+# graded` and the reader is handed the answer over a slip that has nothing to
+# do with the notation. At three it scores `1 rep, 1 right`.
+#
+# THE WORST CASE IS CHEAP, which is what makes the third go affordable. One
+# whole session of nothing but unparseable answers: 222 ms at a cap of 1,
+# 429 ms at two, 638 ms at three, 762 ms at four. Four buys nothing the third
+# go did not, and reads as a session that will not let go.
+SESSION_PARSE_TRIES=3
+
 # The runner's own code for "the value is right and the construct is not in
 # what was typed". Bound to a name rather than written as a literal at the exit
 # site, which is the convention harness/verdict.sh uses for its own 99.
@@ -797,13 +844,168 @@ session_prose() {
   sed -e 's/[[:space:]]*$//' -e 's/^/  /' <<<"$wrapped"
 }
 
-# The walk's tables, read in three passes rather than one. A row is never
+# ---------------------------------------------------------------------------
+# THE SCOPE BLOCK: the names a rep needs and does not say (bead tla-1sh7.13)
+#
+# A prompt states a need in English and names none of the notation that answers
+# it, which is what makes it a rep. It also names none of the IDENTIFIERS, and
+# those are not notation. R119 asks for "the balance after two has been paid
+# into ann's account", and the answer has to read `Balance` and `!["ann"]`
+# exactly. Nothing in the prompt says `Balance` is capitalized that way, and
+# nothing anywhere said `ann` was a quoted string. Measured 2026-10-17: all 160
+# rows name a field 4, and a session printed the prompt and nothing else.
+#
+# SHOWING THE NAMES IS NOT SHOWING THE ANSWER. The names are the vocabulary.
+# Knowing `Balance` exists does not say to reach for EXCEPT, any more than the
+# shunting prompt naming wagons and tracks says to reach for a function set.
+# What has to stay hidden is field 6, and nothing below reads field 6.
+#
+# IT IS THE DEFINITIONS AND NOT A ROSTER OF NAMES, and that was measured rather
+# than preferred. A roster lists top-level definitions, so a string literal
+# INSIDE one is hidden by it. 39 of the 120 REP canonicals carry a quoted
+# literal and R119 is one of them. The fuller form also teaches the thing a
+# roster could never show, since `Accounts == {"ann", "bo"}` sits beside
+# `Balance == [ann |-> 3, bo |-> 0]`: the same name quoted in one and bare in
+# the other, which is why `Balance["ann"]` works.
+#
+# THE SAME ARGUMENT REACHES THE SPEC ROWS BY A DIFFERENT ROUTE. None of the 40
+# SPEC canonicals carries a quoted literal, so the literal argument does not
+# apply there. The structural one does: `act-decl` and `act-decl3` have the
+# VARIABLES line itself as the hole, so `level`, `lamp` and `latch` are never
+# DECLARED anywhere in those two scaffolds. They appear only inside bodies, in
+# `vars == <<level, lamp, latch>>`, which is the `ann` problem one rung up. A
+# roster over either one comes back without the names the answer needs.
+#
+# WHAT A SPEC ROW'S EQUIVALENT OF AN ENVIRONMENT IS. Field 4 names scaffolds,
+# and a scaffold is a whole module rather than a fragment, so the block is the
+# module's own lines with the first comment, the header, the EXTENDS line, the
+# `====` and the `__CHECK__` line taken out, and the answer hole marked. That
+# is the same rule the REP block follows: everything the answer is dropped in
+# beside, comments stripped.
+#
+# THE SCAFFOLD'S FIRST LINE IS NOT ENOUGH ON ITS OWN. It is a `\*` comment
+# saying in English what machine this is, and it leads the block for exactly
+# that reason, because it is the bridge from the prompt's "the lift's own rise"
+# to an identifier. It is not the block: fair-lift's comment reads "a goods
+# lift standing beside a lamp", and the canonical `WF_vars(Raise)` needs two
+# names the comment does not carry.
+#
+# EVERY SCAFFOLD OF A BATTERY, NOT THE FIRST. Measured over the 20 rows naming
+# more than one: 10 of them do NOT agree on the names in scope, because one
+# member carries a `Drop` or a `latch` the others do not, and prop-slip leads
+# three of those rows. Showing one machine would state a name another machine
+# does not have, and the answer is checked against all of them. The cost is
+# lines, and a battery rep is not a seconds-a-rep rep anyway: measured 347 ms
+# for one scaffold against 1346 ms for the four of S011.
+#
+# ONE CONSEQUENCE, WEIGHED AND ACCEPTED. The block prints a scaffold's
+# obligation, which on fair-lift is `Tops == <>(level = 2)`. That is the goal
+# the fairness condition exists to buy, and conjoining it into the fairness
+# hole PASSES at rc 0, which is the measured trap recorded in REPS.tsv's own
+# header. Field 7 closes it on all 40 rows and the refusal says the construct
+# was not written, so the trap is caught and explained rather than left to
+# score. Leaving the obligation out would also drop `Checked ==` from the 18
+# property rows, which is the line that says the hole is a named formula.
+#
+# THE FINGERPRINT IS NOT IN THE BLOCK and that is a fact about where it lives
+# rather than a filter here. `TLCGet("distinct") = 3 /\ ...` is field 9 of the
+# rep row, and a scaffold carries only the `__CHECK__` marker it fills. The
+# line is dropped because a marker says nothing, not to hide a number.
+#
+# UNDER EVERY REP, NOT ONCE PER ENVIRONMENT, AND BOTH WERE READ. Printing on
+# change saves about three blocks in six and costs the reader the names at the
+# moment they are owed. Measured over the shipped table at ten seeds: field 4
+# changes at 96 of 190 steps over both row kinds and at 71 of 190 over the REP
+# rows alone, so a run between changes is two or three reps. One rep's feedback
+# runs eight to ten lines, so the block from two reps back has already left a
+# 24-line terminal. The on-change transcript of a six-rep session at seed 1 has
+# three prompts naming the train and wagon b with `Train` and `Parking` forty
+# lines up and nothing on screen saying they are still in scope, which is the
+# state this bead is about.
+#
+# IT COSTS ALMOST NOTHING WHERE IT WOULD HAVE SAVED MOST, which is the other
+# half of the same measurement. Inside the spec family field 4 changes at 18 of
+# 19 steps, because a scaffold list belongs to a rep rather than to a surface
+# several reps share. So on-change would have printed the block anyway on the
+# rows where it is longest.
+# ---------------------------------------------------------------------------
+
+# What the answer hole reads as on screen. `__ANSWER__` is the runner's own
+# marker and says nothing to a reader.
+SCOPE_HOLE="<your answer>"
+
+# A REP row's block: the environment fragment, comments and blank lines out,
+# indented two. ONE sed rather than a chain of them, because a pipe into a
+# consumer that can close early reports 141 under pipefail.
+scope_env() {
+  [ -r "$1" ] || return 0
+  sed -e '/^[[:space:]]*\\\*/d' -e '/^[[:space:]]*$/d' -e 's/^/  /' "$1"
+}
+
+# A SPEC row's block: one scaffold, the English line first and then the module's
+# own definitions with the answer hole marked.
+#
+# THE FIRST-LINE READ IS spec_about's AND IT IS WRITTEN TWICE ON PURPOSE.
+# spec_about is defined below the session branch, so bash has not read it when
+# a session runs. session_prose duplicates show_prose for the same reason, and
+# the alternative is moving half the script above a branch that would then be
+# harder to find.
+scope_scaffold() {
+  local tla="${ENV_DIR}/${SPEC_SUBDIR}/${1}.tla"
+  [ -r "$tla" ] || return 0
+  session_prose "$(sed -n '1{s/^\\\*[[:space:]]*//;p;}' "$tla")"
+  echo
+  sed -e '1d' \
+      -e '/^----.*MODULE/d' \
+      -e '/^====/d' \
+      -e '/^EXTENDS /d' \
+      -e "/^[[:space:]]*${HOLE_CHECK}[[:space:]]*\$/d" \
+      -e '/^[[:space:]]*\\\*/d' \
+      -e '/^[[:space:]]*$/d' \
+      -e "s|^[[:space:]]*${HOLE_ANSWER}[[:space:]]*\$|${SCOPE_HOLE}|" \
+      -e 's/^/  /' \
+      "$tla"
+}
+
+# The block for one rep, under its prompt. A field 4 that resolves to nothing
+# is silence rather than a refusal, which is the posture an absent sheet and an
+# absent miss table already have: a block is an explanation and not a grade.
+session_scope() {
+  local kind="$1" field4="$2" n first=1
+  local -a names
+  if [ "$kind" = "SPEC" ]; then
+    IFS=',' read -r -a names <<<"$field4"
+    if [ "${#names[@]}" -eq 1 ]; then
+      printf 'the machine:\n'
+    else
+      printf 'the %s machines, and the answer goes into each of them:\n' "${#names[@]}"
+    fi
+    for n in "${names[@]}"; do
+      [ "$first" = "1" ] || echo
+      first=0
+      scope_scaffold "$n"
+    done
+  else
+    printf 'in scope:\n'
+    scope_env "${ENV_DIR}/${field4}.tla"
+  fi
+}
+
+# The walk's tables, read in five passes rather than one. A row is never
 # field-split with `IFS=$'\t' read`: tab is an IFS whitespace character, so
 # read folds a run of tabs into one delimiter and drops a trailing empty
-# field, which shifts every field after it. Three awk passes over one file
+# field, which shifts every field after it. Five awk passes over one file
 # cost nothing against a single TLC run and cannot shift.
+#
+# FIELDS 1 AND 4 ARE HERE FOR THE SCOPE BLOCK (bead tla-1sh7.13), which has to
+# know the row kind to know what field 4 resolves to. Field 6 is NOT read
+# anywhere in the walk and never has been: walk_canon goes back to the file at
+# the moment a skip needs one answer, so no list of answers is ever in memory
+# while a rep is on screen.
 WALK_IDS=()
+WALK_KINDS=()
 WALK_KS=()
+WALK_ENVS=()
 WALK_PROMPTS=()
 WALK_KIDX=()
 WALK_SERVED=()
@@ -812,6 +1014,8 @@ WALK_CUR_K=-1
 WALK_PICK=-1
 WALK_KI=0
 WALK_ID=""
+WALK_KIND=""
+WALK_ENV=""
 WALK_PROMPT=""
 
 # BOTH ROW KINDS ARE IN ONE POOL, so a session interleaves a spec rep with a
@@ -822,7 +1026,9 @@ WALK_PROMPT=""
 walk_load() {
   local v k i
   while IFS= read -r v; do WALK_IDS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $2 }' "$REPS")
+  while IFS= read -r v; do WALK_KINDS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $1 }' "$REPS")
   while IFS= read -r v; do WALK_KS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $3 }' "$REPS")
+  while IFS= read -r v; do WALK_ENVS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $4 }' "$REPS")
   while IFS= read -r v; do WALK_PROMPTS+=("$v"); done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $5 }' "$REPS")
 
   # The construct order IS the file order, which is what makes a window of two
@@ -886,7 +1092,7 @@ walk_pick() {
 }
 
 run_session() {
-  local answer rc ended="count" echo_answer=1
+  local answer rc ended="count" echo_answer=1 tries outcome
   local served=0 right=0 wrong=0 skipped=0 ungraded=0
   local -a child
 
@@ -912,6 +1118,30 @@ run_session() {
   [ "$FULL" = "1" ] && child+=(--full)
   [ "$QUIET" = "1" ] && child+=(-q)
 
+  # ONCE, AT THE HEAD, AND NOT UNDER EVERY PROMPT (bead tla-1sh7.13). What an
+  # answer may be is a property of the channel rather than of a rep: every REP
+  # row goes into a scaffold as `Answer == <what was typed>`, so an action can
+  # never be right on one, and nothing anywhere said so. Frank read "the
+  # balance after two has been paid in" as asking for the change and wrote a
+  # primed assignment, which is the documented false friend for anybody
+  # arriving from a language where `x = e` updates something.
+  #
+  # THE UNQUALIFIED CLAIM IS FALSE ON THE SPEC ROWS and the second sentence is
+  # there for that. 14 of the 40 fill an ACTION hole, where `level' = level + 1
+  # /\ lamp' = lamp` is the canonical. So the line says where an action is
+  # wanted rather than ruling one out, and the scope block is what says it: the
+  # hole sits under `Act ==` on those rows and under `Fair ==` or `Checked ==`
+  # on the rest.
+  #
+  # The prompts stay short. They are deliberately short, and a constraint that
+  # holds at every rep said at every rep is noise 160 times over.
+  if [ "$QUIET" = "0" ]; then
+    session_prose "under every prompt is the block your answer is dropped into. on a value rep that is the definitions in scope, and on a spec rep it is the machine, with the line you are filling marked. the names and their spelling come from there."
+    echo
+    session_prose "an answer is an expression. a primed variable with an equals sign is an action, and the one kind of rep that wants an action shows you the line it goes on."
+    echo
+  fi
+
   while :; do
     if [ "$SESSION_COUNT" -gt 0 ] && [ "$served" -ge "$SESSION_COUNT" ]; then
       ended="count"
@@ -924,37 +1154,98 @@ run_session() {
     WALK_SERVED[WALK_PICK]=1
     WALK_CUR_K="${WALK_KIDX[WALK_PICK]}"
     WALK_ID="${WALK_IDS[WALK_PICK]}"
+    WALK_KIND="${WALK_KINDS[WALK_PICK]}"
+    WALK_ENV="${WALK_ENVS[WALK_PICK]}"
     WALK_PROMPT="${WALK_PROMPTS[WALK_PICK]}"
 
-    # The prompt and nothing else. This is the whole of the fix: a reader
-    # finds out what a rep asks without the line its answer is on.
-    printf '%s  %s\n' "$WALK_ID" "$WALK_PROMPT"
-    printf '> '
-
-    # EOF leaves the prompt above unanswered on screen, which is what a reader
-    # who presses Ctrl-D at a question is looking at anyway.
-    if ! IFS= read -r answer; then
-      printf '\n'
-      ended="eof"
-      break
-    fi
-    [ "$echo_answer" = "1" ] && printf '%s\n' "$answer"
-
-    if [ -z "$answer" ]; then
-      skipped=$(( skipped + 1 ))
-      served=$(( served + 1 ))
-      printf '\nskipped. the answer was:\n'
-      session_prose "$(walk_canon "$WALK_ID")"
-      printf '\n'
-      continue
-    fi
-
-    # STDIN COMES FROM /dev/null, so nothing downstream can read the answers
-    # still queued for this loop. TLC reading one would take a rep away and
-    # leave no trace of having done it.
+    # ---------------------------------------------------------------------
+    # ONE REP, AND IT IS NOT SPENT BY A TYPO (bead tla-1sh7.12).
+    #
+    # A parse error is not a wrong answer. Nothing was graded, so the
+    # retrieval attempt the rung exists for never happened, and until this
+    # bead the session moved on to the next rep anyway. It hands the rep
+    # back instead, up to SESSION_PARSE_TRIES, and only then shows the
+    # answer and says that is what happened.
+    #
+    # KEYED ON 150 AND ON NOTHING ELSE. 255, 151 and 75 are reports about
+    # the run rather than about a typo, so retyping cannot fix one and a
+    # retry over them would be a loop the reader cannot leave.
+    #
+    # THE SESSION IS THE ONLY PLACE THIS LIVES. A single-rep invocation
+    # returning 150 is correct as it stands, and the gate drives that path.
+    #
+    # `outcome` carries why the inner loop ended, because an EOF has to end
+    # the session and the two other exits have to end only the rep.
+    # ---------------------------------------------------------------------
+    tries=0
     rc=0
-    "$SELF" "${child[@]}" --reps "$REPS" --env-dir "$ENV_DIR" \
-      --sheet "$SHEET" --misses "$MISSES" -- "$WALK_ID" "$answer" </dev/null || rc=$?
+    outcome=""
+    while [ -z "$outcome" ]; do
+      tries=$(( tries + 1 ))
+
+      # The prompt, then the names in scope. The prompt leads because the id
+      # is the rep's own header and everything under it belongs to that rep.
+      printf '%s  %s\n' "$WALK_ID" "$WALK_PROMPT"
+      [ "$QUIET" = "0" ] && session_scope "$WALK_KIND" "$WALK_ENV"
+      printf '> '
+
+      # EOF leaves the prompt above unanswered on screen, which is what a
+      # reader who presses Ctrl-D at a question is looking at anyway.
+      if ! IFS= read -r answer; then
+        printf '\n'
+        outcome="eof"
+        continue
+      fi
+      [ "$echo_answer" = "1" ] && printf '%s\n' "$answer"
+
+      # A blank line is a skip and a skip is never retried: a reader who
+      # declines to attempt is past the point the attempt was protecting.
+      if [ -z "$answer" ]; then
+        outcome="skip"
+        continue
+      fi
+
+      # STDIN COMES FROM /dev/null, so nothing downstream can read the
+      # answers still queued for this loop. TLC reading one would take a rep
+      # away and leave no trace of having done it.
+      rc=0
+      "$SELF" "${child[@]}" --reps "$REPS" --env-dir "$ENV_DIR" \
+        --sheet "$SHEET" --misses "$MISSES" -- "$WALK_ID" "$answer" </dev/null || rc=$?
+
+      if [ "$rc" != "150" ]; then
+        outcome="graded"
+        continue
+      fi
+      if [ "$tries" -ge "$SESSION_PARSE_TRIES" ]; then
+        outcome="spent"
+        continue
+      fi
+      printf '\nnothing was graded, so the same rep comes back.\n\n'
+    done
+
+    case "$outcome" in
+      eof)
+        ended="eof"
+        break
+        ;;
+      skip)
+        skipped=$(( skipped + 1 ))
+        served=$(( served + 1 ))
+        printf '\nskipped. the answer was:\n'
+        session_prose "$(walk_canon "$WALK_ID")"
+        printf '\n'
+        continue
+        ;;
+      spent)
+        ungraded=$(( ungraded + 1 ))
+        served=$(( served + 1 ))
+        printf '\n%s tries and none of them parsed. the answer was:\n' "$tries"
+        session_prose "$(walk_canon "$WALK_ID")"
+        printf '\n'
+        continue
+        ;;
+    esac
+
     # 5 joins 4 and 10 as a wrong answer: a spec rep whose vector did not
     # match is wrong in the same sense a value that is not equal is.
     case "$rc" in
@@ -1117,11 +1408,24 @@ write_grade_module() {
     printf '%s\n' "---- MODULE ${name} ----"
     printf 'EXTENDS %s\n' "$EXTENDS_LIST"
     cat -- "$ENV_FILE"
-    printf 'Answer == %s\n' "$ANSWER"
+    printf '%s%s\n' "$ANSWER_PREFIX" "$ANSWER"
     printf 'Canonical == %s\n' "$CANON"
     printf 'ASSUME Answer = Canonical\n'
     printf '%s\n' "===="
   } >"$path"
+  # WHERE THE ANSWER LANDED, which is what the parse-error caret translates
+  # against. Read back off the file rather than counted while writing it,
+  # because the environment is spliced with `cat` and its line count is the
+  # one number a counter here would have to guess at. `Answer` is a reserved
+  # name in an environment file, so the first line starting with the prefix is
+  # this one.
+  #
+  # AN EMPTY ANSWER_LINE IS THE SAFE ANSWER rather than a failure. An
+  # environment whose last line has no newline glues the prefix onto it, the
+  # match fails, and the caret is withheld. That module was broken anyway, and
+  # a caret under the wrong character is worse than none.
+  ANSWER_LINE="$(awk -v p="$ANSWER_PREFIX" 'index($0, p) == 1 { print FNR; exit }' "$path")"
+  ANSWER_OFFSET="${#ANSWER_PREFIX}"
 }
 
 # A SPEC rep's module: the scaffold, line for line, with the two holes filled.
@@ -1138,13 +1442,20 @@ write_grade_module() {
 # `read` would otherwise drop -- and the dropped line is `====`.
 write_spec_module() {
   local tmpl="$1" path="$2"
-  local line trimmed
+  local line trimmed n=0
+  # The hole's own line number, for the parse-error caret. The fill is one
+  # line and the answer is one line, so every line number after the hole is
+  # the template's own and SANY's number can be compared against this one
+  # directly. The offset is zero: a SPEC row's answer starts in column 1.
+  ANSWER_LINE=""
+  ANSWER_OFFSET=0
   : >"$path"
   while IFS= read -r line || [ -n "$line" ]; do
+    n=$(( n + 1 ))
     trimmed="${line#"${line%%[![:space:]]*}"}"
     trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
     case "$trimmed" in
-      "$HOLE_ANSWER") printf '%s\n' "$ANSWER" ;;
+      "$HOLE_ANSWER") ANSWER_LINE="$n"; printf '%s\n' "$ANSWER" ;;
       "$HOLE_CHECK")  printf '%s\n' "$CHECK" ;;
       *)              printf '%s\n' "$line" ;;
     esac >>"$path"
@@ -1229,12 +1540,15 @@ printed_region() {
 # sends a reader somewhere they cannot go. What is left is the sentence, and
 # the sentence names the symbol.
 #
-# A NOTE FOR WHOEVER TAKES THE LOCATION BEAD. On a SPEC row the translation is
-# simpler than on a REP row rather than harder. The answer fills a whole line,
-# so SANY's line number is the hole's line number and its column is the column
-# of what was typed, unshifted. Measured 2026-10-17: `level' = level ++ 1`
-# into act-step's hole reports "line 8, col 29", the hole is line 8 of that
-# scaffold, and column 29 is where `++` starts in the answer.
+# THE INLINE `at line N, column M` IS DROPPED TOO (bead tla-1sh7.12), and it
+# is the same drop one sentence down rather than a new rule. answer_caret below
+# prints the position in the reader's own line, so what is left here is the
+# sentence and the sentence names the token.
+#
+# SO IS `Was expecting "==== or more Module body"`. It is about module
+# structure rather than about the expression, it was the first thing Frank read
+# under a parse error on 2026-10-17, and it told him nothing. printed_region
+# drops TLC's `Error: Evaluating assumption line N` on the same reasoning.
 # ---------------------------------------------------------------------------
 sany_sentences() {
   {
@@ -1246,9 +1560,91 @@ sany_sentences() {
       on && /^[[:space:]]*$/         { next }
       on { print }
     ' "$1"
-    grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error|Was expecting' \
+    grep -hE 'was not declared|Encountered|Unknown operator|Precedence conflict|Lexical error' \
       "$1" 2>/dev/null
-  } | sed -n 's/^[[:space:]]*/  /p' | sort -u
+  } | sed -E -e 's/ at line [0-9]+, column [0-9]+//' -e 's/^[[:space:]]*/  /' | sort -u
+}
+
+# ---------------------------------------------------------------------------
+# THE LINE THAT WAS TYPED, WITH A CARET UNDER THE ERROR (bead tla-1sh7.12)
+#
+# Frank typed `acct' = acct EXCEPT !["ann"] = @ + 2` and was told "Encountered
+# EXCEPT at line 17, column 24". Line 17 is a line of a module in a scratch
+# directory this script deletes before the message is read, so the citation
+# sends a reader somewhere they cannot go. His own diagnosis is the fix: the
+# session should either let him fix the error or point out what it is.
+#
+# THE TRANSLATION IS ARITHMETIC, AND BOTH HALVES OF IT COME FROM THE WRITER
+# RATHER THAN FROM A CONSTANT HERE. write_grade_module and write_spec_module
+# each record ANSWER_LINE and ANSWER_OFFSET, so a scaffold that changes shape
+# moves the numbers with it. Measured on TLC2 2026.07.31.184830, 2026-10-17:
+#
+#   REP   the answer follows `Answer == `, so the offset is 10. Frank's own
+#         typo reports column 24, and 24 - 10 is 14, which is the E of EXCEPT
+#   SPEC  the answer fills a whole line, so the offset is 0. `level' = level
+#         ++ 1` into act-step's hole reports line 8 col 16, the hole is line 8,
+#         and column 16 is the first + of the ++
+#
+# THE LINE NUMBER IS THE GUARD AND IT IS WHY THERE IS NO CONSTANT TO TRUST. An
+# unbalanced bracket is reported on the line AFTER the answer: `[Balance
+# EXCEPT` comes back "line 18, column 1" with the answer on 17. Subtracting 10
+# from that would put a confident caret under the wrong character, so a
+# location that is not on the answer's own line yields no caret at all.
+#
+# THREE LOCATION SHAPES, ALL MEASURED, AND THE STACK TRACE IS NOT ONE OF THEM:
+#
+#   Encountered "X" at line N, column M and token "Y"   a syntax error
+#   Lexical error at line N, column M.                  an unterminated string
+#   line N, col M to line N, col M of module Z          a semantic error
+#
+# `Residual stack trace follows` carries `Some [] Form starting at line 17,
+# column 11`, which is where a CONSTRUCT opened rather than where the error is.
+# The patterns below are anchored so that `starting at line` cannot match one.
+#
+# A TAB IN THE ANSWER WITHHOLDS THE CARET. The caret is placed by counting
+# characters, and a terminal places a tab by counting columns, so the two part
+# company on the first tab and the caret lands somewhere nobody chose.
+#
+# DISPLAY ONLY, the way printed_region and sany_sentences are. The grade came
+# from the exit code of the run.
+# ---------------------------------------------------------------------------
+
+# The column SANY named on this line of the module, or nothing.
+sany_column() {
+  awk -v want="$2" '
+    function take(s,   t, a) {
+      # The three rules below are not exclusive of each other, and a line that
+      # matched two of them would otherwise print two columns.
+      if (found) return
+      if (match(s, /line [0-9]+, col(umn)? [0-9]+/) == 0) return
+      t = substr(s, RSTART, RLENGTH)
+      gsub(/[^0-9]+/, " ", t)
+      split(t, a, " ")
+      if (a[1] + 0 == want + 0) { print a[2] + 0; found = 1 }
+    }
+    /^Lexical error at line [0-9]+, column [0-9]+/                { take($0) }
+    /Encountered .* at line [0-9]+, column [0-9]+ and token/      { take($0) }
+    /^line [0-9]+, col [0-9]+ to line/                            { take($0) }
+    found { exit }
+  ' "$1"
+}
+
+answer_caret() {
+  local log="$1" aline="$2" offset="$3" col="" n
+  echo
+  printf '  %s\n' "$ANSWER"
+  if [ -n "$aline" ] && [ "$ANSWER" = "${ANSWER//$'\t'/}" ]; then
+    col="$(sany_column "$log" "$aline")"
+  fi
+  if [ -n "$col" ]; then
+    col=$(( col - offset ))
+    n=${#ANSWER}
+    if [ "$col" -ge 1 ] && [ "$col" -le "$n" ]; then
+      printf '  %*s^\n' "$(( col - 1 ))" ""
+      return
+    fi
+  fi
+  printf '  nothing in the message points inside that line, so there is no caret.\n'
 }
 
 # ---------------------------------------------------------------------------
@@ -1433,9 +1829,17 @@ run_verdict() {
 # ---------------------------------------------------------------------------
 SPEC_RCS=()
 SPEC_TOKENS=()
+SPEC_ANSWER_LINES=()
 SPEC_FIRST_BAD=-1
 SPEC_FIRST_DIFF=-1
 PARSE_LOG="${SCRATCH}/Recall.log"
+
+# Where the answer landed in the module SANY read, and by how much its column
+# is shifted. Written by whichever module writer ran, read by answer_caret, and
+# empty until one of them has run -- which is the right value for a run that
+# never happened.
+ANSWER_LINE=""
+ANSWER_OFFSET=0
 
 if [ "$KIND" = "SPEC" ]; then
   # ONE DIRECTORY PER SCAFFOLD, because every scaffold declares `MODULE
@@ -1446,6 +1850,10 @@ if [ "$KIND" = "SPEC" ]; then
     mkdir -p "$spec_dir" || die_cannot_run "could not make a scratch directory for scaffold ${SPEC_NAMES[spec_i]}, so nothing was graded."
     write_spec_module "${ENV_DIR}/${SPEC_SUBDIR}/${SPEC_NAMES[spec_i]}.tla" "${spec_dir}/${SPEC_MODULE}.tla"
     cp -- "${ENV_DIR}/${SPEC_SUBDIR}/${SPEC_NAMES[spec_i]}.cfg" "${spec_dir}/${SPEC_MODULE}.cfg"
+    # The hole's line number, per scaffold, because a battery's members put
+    # their holes on different lines and the parse error comes from exactly
+    # one of them.
+    SPEC_ANSWER_LINES+=("$ANSWER_LINE")
     run_verdict "${spec_dir}/${SPEC_MODULE}.tla" "${spec_dir}/${SPEC_MODULE}.cfg" "${spec_dir}/run.log"
     SPEC_RCS+=("$VERDICT_RC")
     SPEC_TOKENS+=("$VERDICT_TOKEN")
@@ -1470,6 +1878,9 @@ if [ "$KIND" = "SPEC" ]; then
     GRADE_RC="${SPEC_RCS[SPEC_FIRST_BAD]}"
     GRADE_TOKEN="${SPEC_TOKENS[SPEC_FIRST_BAD]}"
     PARSE_LOG="${SCRATCH}/s${SPEC_FIRST_BAD}/run.log"
+    # The hole of the scaffold that failed, not of the last one written.
+    ANSWER_LINE="${SPEC_ANSWER_LINES[SPEC_FIRST_BAD]}"
+    ANSWER_OFFSET=0
     case "$GRADE_RC" in
       150) GRADE="parse-error" ;;
       *)   GRADE="other" ;;
@@ -1553,6 +1964,10 @@ fi
 
 if [ "$GRADE" = "parse-error" ]; then
   echo "that did not parse, so nothing was graded about whether it is right."
+  # The line that was typed first, then what SANY said about it. The caret is
+  # the position and the sentences are the rest, so the sentences no longer
+  # carry a position of their own. See answer_caret.
+  answer_caret "$PARSE_LOG" "$ANSWER_LINE" "$ANSWER_OFFSET"
   echo
   sany_sentences "$PARSE_LOG"
   exit "$REPORT_RC"
