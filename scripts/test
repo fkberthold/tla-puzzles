@@ -20,9 +20,9 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is ~420 s wall on a quiet box, against the ~480 s the
-# budgets below sum to, and the fast tier is 25 of the 37 suites but only
-# about 10% of the wall clock. Those are two different numbers and the
+# Here the full run is 599.1 s wall, measured 2026-10-16, against the ~610 s
+# the budgets below sum to, and the fast tier is 25 of the 39 suites but only
+# about 8% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
 # in it, so the sum is always the larger. It skips every
 # TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
@@ -102,12 +102,32 @@
 #   slow  60.0 s  harness/test-vacuity.sh
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
+#   slow  43.7 s  harness/test-recall-runner.sh           (added, bead tla-1sh7.4)
+#   slow  86.7 s  harness/test-recall-gate.sh             (added, bead tla-1sh7.4)
 #   ----  ------
 #         46.0 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        433.4 s  slow tier, 12 suites
-#        479.4 s  whole registry
+#        563.8 s  slow tier, 14 suites
+#        609.8 s  whole registry
+#
+# THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
+# 130.4 s on top of the 479.4 this table read the day before. That is the
+# largest addition this registry has taken, ahead of the completion pair's
+# 82.8 s, and the whole of it is the model checker. The recall runner suite
+# grades about 45 fixture submissions and the recall gate suite grades the
+# real corpus's 150 rows, one TLC run each. The per-row notes carry the three
+# readings behind each budget and the account of where the gate suite's time
+# goes.
+#
+# NEITHER WAS A RE-MEASUREMENT OF A ROW THAT EXISTED.
+# harness/test-recall-runner.sh landed on 2026-10-16 and was in no registry at
+# all, so the gate green at 37 suites and 420.3 s never ran recall/recall.sh.
+# The suite count in this table moves from 37 to 39 for that reason.
+#
+# THE WHOLE-REGISTRY RUN WAS TAKEN WITH BOTH ROWS IN IT: 599.1 s, 2026-10-16,
+# this box. That reading is what the sentence at the top of this header now
+# carries, and it replaces a "~420 s" that was true before these two landed.
 #
 # A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
 # are a comment. The enforced number is the second field of the row's own
@@ -1044,6 +1064,71 @@ SUITES=(
   # about this row is touched: the two ways to buy it back below belong to
   # bead tla-ahxl, which is Frank's call per item.
   "slow|99.0|grader|bash harness/grade.sh --selftest"
+  # Added 2026-10-16, bead tla-1sh7.4. The suite drives recall/recall.sh over
+  # temp corpora it builds itself, 153 assertions, and it runs no model
+  # checker of its own: every TLC job in it is one the runner started.
+  #
+  # IT LANDED UNREGISTERED ON 2026-10-16 AND RAN NOWHERE FOR A DAY. The gate
+  # was green at 37 suites and 420.3 s over a tree whose recall channel it had
+  # never touched. That is the same failure harness/test-coverage-map.sh hit
+  # on 2026-10-15, twice in two days, which is why bead tla-1sh7.4 registers
+  # this row as well as its own.
+  #
+  # MEASURED 2026-10-16, three back-to-back serial runs standalone: 41.7 /
+  # 41.8 / 41.6 s, a 0.5% spread, and a fourth reading taken earlier the same
+  # day read 40.8 s. IN-SUITE IT READ 43.6 s, so the budget is 43.7 rather
+  # than the 41.9 the standalone readings alone would have given. Four
+  # standalone readings agreeing to 2% and one in-suite reading 4% above them
+  # is an in-suite premium rather than drift, and the budget takes the larger.
+  #
+  # THE BEAD NOTE THAT ASKED FOR THIS ROW NAMED 15.8 s AND THAT IS NOT WHAT IT
+  # COSTS. Five readings on this box, four of them before any registry change,
+  # sit between 40.8 and 43.6. I do not know where 15.8 came from and nothing
+  # in the suite explains a 2.7x gap, so the number here is the one five runs
+  # produced.
+  #
+  # Its cost tracks recall/recall.sh and the two tables beside it. The suite
+  # grades about 45 fixture submissions and builds four mutant copies of the
+  # runner, and each submission is a TLC run, so the row is the model checker
+  # almost end to end. It belongs in slow by the rule in this header for that
+  # reason rather than for its wall clock.
+  "slow|43.7|recall runner|./harness/test-recall-runner.sh"
+  # Added 2026-10-16, bead tla-1sh7.4, and with the row above it this is the
+  # largest addition this registry has taken.
+  #
+  # MEASURED 2026-10-16, three back-to-back serial runs standalone: 86.6 /
+  # 85.9 / 86.6 s, so 86.7 is the slowest rounded up and the spread is 0.8%.
+  # In-suite it read 85.8, inside the budget, so the row does not move.
+  #
+  # A RED-TREE READING WAS TAKEN FIRST AND IT SITS BELOW THE GREEN ONES.
+  # Before the two rows in this array existed, the suite failed its four
+  # registration assertions and read 85.6 s. A red wall clock can measure a
+  # suite stopping early, and this file has twice refused to re-base a budget
+  # on one. Here the red reading is the smallest of the four, which is what
+  # rules that out: the four failing rows were greps over this file and cost
+  # nothing.
+  #
+  # WHERE THE TIME GOES, since the number is large enough to want an account.
+  # Part 4 runs harness/recall-gate.sh over the REAL recall/ corpus, which is
+  # 120 canonical answers and 30 recorded wrong ones, one TLC grading run
+  # each. Measured standalone, the gate alone over recall/ reads 60.3 / 60.6 /
+  # 61.0 s, so part 4 is about 70% of the row. Everything else in the suite is
+  # a four-rep fixture.
+  #
+  # THAT PART IS THE POINT RATHER THAN THE OVERHEAD. Checks 1 and 2 are the
+  # mutation bar for this channel: a canonical that scores anything but 0 is
+  # wrong and a miss that scores 0 is not a miss. A suite that only ever saw
+  # its own fixture would be the "registered nowhere" failure wearing a green
+  # row.
+  #
+  # IF IT STARTS TO HURT, the shape to copy is scripts/cibuild's phase 3b,
+  # which is where the drill corpus's full verdict sweep lives for the same
+  # reason. harness/recall-gate.sh already carries a `--static-only` tier that
+  # starts no JVM, so the split needs nothing new written: a fast row over
+  # --static-only here, and the full corpus in cibuild. That is a judgment
+  # about CI shape rather than about this bead, so the number is recorded and
+  # the row is left whole.
+  "slow|86.7|recall corpus gate|./harness/test-recall-gate.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

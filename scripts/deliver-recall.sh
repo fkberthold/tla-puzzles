@@ -1,0 +1,408 @@
+#!/usr/bin/env bash
+# deliver-recall.sh: deliver the recall channel into a practice tree: the
+# runner, the rep table, the miss table, the environments and the README.
+#
+# Usage:  scripts/deliver-recall.sh [--check] [dest-root]
+#
+#   --check    resolve everything and print what would be delivered, and what
+#              it would overwrite. Writes nothing. --dry-run is an accepted
+#              alias, for the reason scripts/deliver-completion.sh gives.
+#   dest-root  where to deliver into (default: $HOME/tla-practice/recall)
+#
+# Env:    DELIVER_RECALL_SRC_ROOT   override the source repo root (default:
+#                                   the repo this script lives in)
+#
+# Exit:   0 on success
+#         1 on a usage error, a source tree missing a manifest part, or a
+#           failed copy
+#
+# ---------------------------------------------------------------------------
+# THIS SCRIPT OVERWRITES EVERY FILE IT DELIVERS, AND NO SIBLING DOES
+#
+# Read this before anything else here. scripts/deliver-drill.sh,
+# scripts/deliver-problems.sh and scripts/deliver-completion.sh all hold a
+# never-overwrite rule, because each of them delivers a file the learner then
+# WRITES INTO: a drill prompt he answers beneath, a problem statement, a
+# completion item's work/Claims.tla. After the first sitting the delivered
+# copy and his work are the same file, there is no second copy of it anywhere,
+# and ~/tla-practice is not a git repo.
+#
+# THE RECALL CHANNEL HAS NO SUCH FILE. A rep is answered on the command line
+# and graded on an exit code. recall/recall.sh writes nothing into its own
+# directory at all: every write it makes is under a `mktemp -d` scratch in
+# $TMPDIR that an EXIT trap removes (recall/recall.sh, SCRATCH and
+# drop_scratch). There is no PROGRESS.tsv, no LAST-SERVED, and nothing the
+# learner edits. So all five manifest entries are in the class
+# scripts/deliver-drill.sh calls the runner's: repo-owned, always refreshed,
+# because the repo is the source of truth for them and he never edits them.
+#
+# THAT IS A LOAD-BEARING CLAIM AND IT IS MEASURED RATHER THAN ASSERTED.
+# harness/test-recall-gate.sh part 6 snapshots a recall tree, grades a wrong
+# answer through the runner in it, and snapshots it again, so the day a rep
+# starts recording progress, the claim above turns red instead of quietly
+# becoming false and taking a learner's work with it. It is a separate claim
+# from harness/test-recall-runner.sh part 5's, which snapshots the CALLER'S
+# working directory. This one is about the runner's own tree.
+#
+# NOTHING IS REMOVED, at any point, under any flag. This script has no delete
+# path at all, and harness/test-recall-gate.sh part 6 asserts it by scanning
+# this file for a delete in command position, because the 2026-10-02 incident
+# in the problems corpus was a deletion rather than a leak and a guessed
+# manifest took 39 delivered files with it.
+#
+# ---------------------------------------------------------------------------
+# NOTHING IS WITHHELD, AND THAT IS A PROPERTY OF THE CHANNEL
+#
+# Every sibling delivery script holds something back: ANSWER.md and META.md in
+# drill and completion, the construct list in drill. There is nothing to hold
+# back here. The canonical answers ARE recall/REPS.tsv field 6, and the runner
+# reads that file to grade, so the answer key has to travel for the channel to
+# work at all. A learner with the delivered tree can read every answer in it.
+#
+# That is sound at this rung and it is not an oversight. The grade is value
+# equality against an expression the learner has in front of them, so the
+# table is only a spoiler for somebody who chooses to open it, and the rung
+# costs seconds a rep rather than minutes. It is worth stating plainly,
+# because "the delivery withholds nothing" reads as a bug in every other
+# script in this directory.
+#
+# The report still names every root entry that is NOT in the manifest, on
+# every run. A corpus that grows a file nobody decided about is then one line
+# of output rather than a silence.
+#
+# ---------------------------------------------------------------------------
+# WHAT LANDS
+#
+# Five things, at <dest-root>/:
+#
+#   recall.sh     the runner, mode 0755. It resolves its own paths from
+#                 ${BASH_SOURCE[0]}, so the delivered copy reads the delivered
+#                 tables with no flags.
+#   REPS.tsv      the 120 reps: id, construct, environment, prompt, canonical
+#   MISSES.tsv    the 30 recorded wrong answers and what each one says
+#   README.md     how to work a rep, and what the three layers under a wrong
+#                 answer are
+#   env/          the constant environments, recursively. Every .tla under it
+#                 travels, including one added tomorrow, for the reason
+#                 scripts/deliver-completion.sh gives about work/: a name list
+#                 cannot be told that the corpus grew, and a tree manifest
+#                 cannot miscount.
+#
+# ---------------------------------------------------------------------------
+# TWO THINGS THE DELIVERED RUNNER REACHES FOR OUTSIDE THIS MANIFEST
+#
+# recall/recall.sh resolves both of them from ${BASH_SOURCE[0]}: REPO_ROOT is
+# the PARENT of the directory the script sits in, so a copy delivered to
+# $HOME/tla-practice/recall/ looks under $HOME/tla-practice/ for both. This
+# script checks each one AT THE PATH THIS DESTINATION RESOLVES TO and says so
+# on every run, check runs included. Neither is delivered.
+#
+# ONE. harness/verdict.sh, AND WITHOUT IT NOTHING GRADES AT ALL.
+#
+# It is not an explanation layer. It is the one channel every TLC invocation
+# goes through, and recall/recall.sh refuses to start without it:
+# `[ -x "$VERDICT" ] || die_cannot_run`, which is exit 3, "could not run".
+# Measured 2026-10-16 against a delivered copy: `recall.sh -q R107
+# '[Wagons -> Tracks]'` came back rc 3 with "no harness/verdict.sh at
+# <tree>/harness/verdict.sh, so nothing was graded." Every rep, every answer.
+#
+# SO THIS IS A WARNING AND NOT A NOTE, and it is the thing to settle before a
+# real delivery is worth running. The sibling channel solves it the other way:
+# drill/study/check carries a section headed "IT DEPENDS ON NOTHING BUT TLC"
+# and says why. "The study tree is not this repo. There is no harness beside
+# this file, no verdict.sh to source, and no repo root to resolve." The recall
+# runner was written against the repo instead.
+#
+# THE THREE WAYS OUT, none of them this script's to choose. Deliver
+# harness/verdict.sh into the practice tree, which would make this the first
+# script to export repo harness and which touches a CENTRALLY OWNED file
+# (.claude/rules/dispatched-agents.md). Give recall/recall.sh an environment
+# override for the verdict path. Or make it self-contained the way
+# drill/study/check is. All three are edits outside this bead's footprint.
+#
+# TWO. drill/SHEET.md, AND WITHOUT IT A WRONG ANSWER LOSES ONE LAYER OF THREE.
+#
+# The runner looks for $HOME/tla-practice/drill/SHEET.md, which is exactly
+# where scripts/deliver-drill.sh puts the drill corpus, so the path lines up
+# on its own and no flag is needed. The file is simply not there: measured
+# 2026-10-16, $HOME/tla-practice/drill/ holds the eight family directories,
+# the runner, README.md, PROGRESS.tsv and LAST-SERVED, and none of SHEET.md,
+# INVENTORY.md or COLD-LIST.md.
+#
+# A MISSING SHEET IS SILENCE, NOT A REFUSAL. recall/recall.sh's show_sheet
+# returns without printing when the file is unreadable, so every rep in a
+# tree that can grade still grades, and a wrong answer still gets both values
+# and its miss row. That is why this one is a note and the first is a warning.
+#
+# WHY THIS SCRIPT DOES NOT JUST DELIVER IT. The sheet is a drill-root
+# reference file and all three of them are withheld by design today:
+# harness/test-deliver-drill.sh:937-938 asserts that drill/INVENTORY.md and
+# drill/COLD-LIST.md never land. Delivering the sheet from here would put two
+# scripts in charge of one destination directory, and deciding it properly
+# means deciding about all three and inverting two assertions in a suite this
+# bead does not own. It is filed rather than guessed.
+#
+# ---------------------------------------------------------------------------
+# WHY THERE IS NO SELECTOR
+#
+# scripts/deliver-completion.sh takes one because a completion item is a
+# sitting and handing over the next six turns a sitting into a menu. A recall
+# rep is seconds, the runner picks the rep by id at the prompt, and the table
+# is one file. There is nothing to select. scripts/deliver-drill.sh takes none
+# for the same reason and this follows it.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+  cat <<USAGE >&2
+Usage: $0 [--check] [dest-root]
+
+  --check    print what would be delivered and what it would overwrite,
+             and write nothing (--dry-run is an accepted alias)
+  dest-root  where to deliver into (default: \$HOME/tla-practice/recall)
+
+Env:
+  DELIVER_RECALL_SRC_ROOT   override the source repo root (default: $REPO_ROOT)
+USAGE
+}
+
+SRC_ROOT="${DELIVER_RECALL_SRC_ROOT:-$REPO_ROOT}"
+
+# The manifest. Read WHAT LANDS above before changing any of these, and change
+# harness/test-recall-gate.sh in the same commit.
+RUNNER_NAME="recall.sh"
+REPS_NAME="REPS.tsv"
+MISSES_NAME="MISSES.tsv"
+README_NAME="README.md"
+ENV_DIR_NAME="env"
+
+CHECK_ONLY=0
+DEST_ROOT=""
+POSITIONAL=0
+
+take_positional() {
+  POSITIONAL=$((POSITIONAL + 1))
+  case "$POSITIONAL" in
+    1) DEST_ROOT="$1" ;;
+    *)
+      echo "$0: unexpected extra argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check|--dry-run) CHECK_ONLY=1; shift ;;
+    --) shift; break ;;
+    -*)
+      echo "$0: unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+    *) take_positional "$1"; shift ;;
+  esac
+done
+
+# Anything after a bare `--` is still an argument.
+while [ "$#" -gt 0 ]; do
+  take_positional "$1"
+  shift
+done
+
+if [ -z "$DEST_ROOT" ]; then
+  DEST_ROOT="$HOME/tla-practice/recall"
+fi
+
+SRC_RECALL="$SRC_ROOT/recall"
+
+# ---------------------------------------------------------------------------
+# Resolve the source before the destination is touched, so every fatal path
+# below leaves the filesystem exactly as it found it.
+# ---------------------------------------------------------------------------
+
+if [ ! -d "$SRC_RECALL" ]; then
+  echo "$0: no recall channel at $SRC_RECALL" >&2
+  echo "$0: set DELIVER_RECALL_SRC_ROOT to the repo root that carries recall/." >&2
+  exit 1
+fi
+
+# An incomplete source delivers NOTHING, for the reason
+# scripts/deliver-completion.sh gives about half an item: the parts are not
+# independently useful. A tree with REPS.tsv and no runner is a table nobody
+# can submit against. A runner with no env/ dies at rc 3 on every rep.
+missing=()
+[ -f "$SRC_RECALL/$RUNNER_NAME" ] || missing+=("$RUNNER_NAME")
+[ -f "$SRC_RECALL/$REPS_NAME" ]   || missing+=("$REPS_NAME")
+[ -f "$SRC_RECALL/$MISSES_NAME" ] || missing+=("$MISSES_NAME")
+[ -f "$SRC_RECALL/$README_NAME" ] || missing+=("$README_NAME")
+[ -d "$SRC_RECALL/$ENV_DIR_NAME" ] || missing+=("$ENV_DIR_NAME/")
+
+if [ "${#missing[@]}" -ne 0 ]; then
+  for part in "${missing[@]}"; do
+    echo "$0: $SRC_RECALL carries no $part, so the channel is not deliverable." >&2
+  done
+  echo "$0: nothing was delivered. The channel needs $RUNNER_NAME, $REPS_NAME, $MISSES_NAME, $README_NAME and $ENV_DIR_NAME/." >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Build the manifest: four names plus the env tree.
+#
+# Paths are relative to the recall root, so the same list drives the report,
+# the check mode and the copy. The env sweep is `find -type f` so a
+# subdirectory under env/ travels too, and it is sorted with LC_ALL=C so two
+# runs over one tree print the same order.
+# ---------------------------------------------------------------------------
+deliver_rel=("$RUNNER_NAME" "$REPS_NAME" "$MISSES_NAME" "$README_NAME")
+while IFS= read -r src_file; do
+  [ -n "$src_file" ] || continue
+  deliver_rel+=("${src_file#"$SRC_RECALL/"}")
+done < <(find "$SRC_RECALL/$ENV_DIR_NAME" -type f | LC_ALL=C sort)
+
+if [ "${#deliver_rel[@]}" -eq 4 ]; then
+  echo "$0: $SRC_RECALL/$ENV_DIR_NAME/ holds no file, so every rep would die at rc 3." >&2
+  echo "$0: nothing was delivered." >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# What is NOT in the manifest, reported either way so it is never silent.
+#
+# Built from the recall root's own top-level entries, dotfiles included. A
+# directory is one line rather than its contents, because what the report is
+# about is the decision not to deliver that entry. There are none today. The
+# line exists for the file somebody adds tomorrow.
+# ---------------------------------------------------------------------------
+is_manifest_name() {
+  case "$1" in
+    "$RUNNER_NAME"|"$REPS_NAME"|"$MISSES_NAME"|"$README_NAME"|"$ENV_DIR_NAME") return 0 ;;
+  esac
+  return 1
+}
+
+withheld_paths=()
+while IFS= read -r entry; do
+  [ -n "$entry" ] || continue
+  base="${entry##*/}"
+  is_manifest_name "$base" && continue
+  withheld_paths+=("$base")
+done < <(find "$SRC_RECALL" -mindepth 1 -maxdepth 1 | LC_ALL=C sort)
+
+for rel in "${withheld_paths[@]+"${withheld_paths[@]}"}"; do
+  echo "withheld (not in the manifest): $SRC_RECALL/$rel"
+done
+
+echo "source: $SRC_RECALL"
+echo "destination: $DEST_ROOT"
+
+# ---------------------------------------------------------------------------
+# The two things the delivered runner reaches for outside this manifest,
+# checked at the path THIS destination resolves to rather than described in
+# general. See TWO THINGS THE DELIVERED RUNNER REACHES FOR above.
+#
+# DEST_PARENT is what recall/recall.sh will compute as its REPO_ROOT: the
+# parent of the directory the delivered script sits in. Resolved textually
+# rather than with `cd`, because the destination may not exist yet on a
+# --check run and a `cd` into it would fail for a reason that is not the
+# question being asked.
+#
+# A WARNING, NOT A REFUSAL, AND THAT IS THE gate-don't-advise SHAPE RATHER
+# THAN A SOFTENING OF IT. The dividing question in CLAUDE.md is whether a
+# human is supposed to weigh in, and here one is: the three ways out are a
+# centrally-owned file, an environment override and a rewrite, and this script
+# is not entitled to pick. What that rule forbids is leaving the check for
+# somebody to remember, so it prints unconditionally on every run and
+# harness/test-recall-gate.sh asserts that both lines are still printed.
+# ---------------------------------------------------------------------------
+DEST_PARENT="${DEST_ROOT%/}"
+DEST_PARENT="${DEST_PARENT%/*}"
+[ -n "$DEST_PARENT" ] || DEST_PARENT="/"
+
+DEST_VERDICT="$DEST_PARENT/harness/verdict.sh"
+DEST_SHEET="$DEST_PARENT/drill/SHEET.md"
+
+if [ -x "$DEST_VERDICT" ]; then
+  echo "verdict channel: $DEST_VERDICT is there, so the delivered runner can grade."
+else
+  echo "WARNING: no verdict channel at $DEST_VERDICT, so the delivered runner exits 3 on EVERY rep and grades nothing."
+  echo "WARNING: this script does not deliver harness/verdict.sh. See TWO THINGS THE DELIVERED RUNNER REACHES FOR in this file."
+fi
+
+if [ -r "$DEST_SHEET" ]; then
+  echo "construct sheet: $DEST_SHEET is there, so a wrong answer gets its construct entry."
+else
+  echo "note: no construct sheet at $DEST_SHEET, so a wrong answer gets both values and its miss row and no construct entry. Reps still grade."
+fi
+
+if [ "$CHECK_ONLY" -eq 1 ]; then
+  to_land=0
+  to_replace=0
+  for rel in "${deliver_rel[@]}"; do
+    if [ -e "$DEST_ROOT/$rel" ]; then
+      echo "would deliver, OVERWRITING the copy already there: $DEST_ROOT/$rel"
+      to_replace=$((to_replace + 1))
+    else
+      echo "would deliver: $DEST_ROOT/$rel"
+      to_land=$((to_land + 1))
+    fi
+  done
+  echo "$to_land file(s) to land, $to_replace to overwrite, ${#withheld_paths[@]} path(s) withheld"
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Deliver.
+#
+# install_file <src> <dest> -> 0 for a new file, 3 for one that replaced a
+# copy already there, 1 for a failure. The codes are
+# scripts/deliver-drill.sh's install_study_file()'s, and so is the shape: this
+# is the always-overwrite path, and it is the ONLY path here because every
+# manifest entry is repo-owned. See THIS SCRIPT OVERWRITES EVERY FILE above.
+# ---------------------------------------------------------------------------
+install_file() {
+  local src="$1" dest="$2" existed=0
+  if [ -e "$dest" ]; then
+    existed=1
+  fi
+  mkdir -p -- "$(dirname -- "$dest")" || return 1
+  cp -- "$src" "$dest" || return 1
+  if [ "$existed" -eq 1 ]; then
+    echo "refreshed, overwriting the copy already there: $dest"
+    return 3
+  fi
+  echo "delivered: $dest"
+  return 0
+}
+
+rc=0
+landed=0
+replaced=0
+
+for rel in "${deliver_rel[@]}"; do
+  install_file "$SRC_RECALL/$rel" "$DEST_ROOT/$rel"
+  case "$?" in
+    0) landed=$((landed + 1)) ;;
+    3) replaced=$((replaced + 1)) ;;
+    *)
+      echo "$0: failed to deliver: $DEST_ROOT/$rel" >&2
+      rc=1
+      ;;
+  esac
+done
+
+# The runner has to be executable in the delivered tree, and `cp` without -p
+# takes the source's mode through the umask. Set it explicitly rather than
+# relying on that: a runner delivered 0644 is a channel that reports success
+# and cannot be run.
+if [ -e "$DEST_ROOT/$RUNNER_NAME" ]; then
+  chmod 0755 -- "$DEST_ROOT/$RUNNER_NAME" || rc=1
+fi
+
+echo "$landed file(s) landed, $replaced refreshed, ${#withheld_paths[@]} path(s) withheld"
+
+exit "$rc"
