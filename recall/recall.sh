@@ -1185,8 +1185,20 @@ run_session() {
 
       # The prompt, then the names in scope. The prompt leads because the id
       # is the rep's own header and everything under it belongs to that rep.
+      #
+      # THE BLOCK GOES UNDER THE FIRST GO AND NOT UNDER A RETRY (bead
+      # tla-1sh7.14). It is the same block both times, since nothing between
+      # the two goes touches the row or its scaffolds, and the reader read it
+      # eight lines ago. Re-printing it pushed their own typo, the caret under
+      # it and SANY's sentence off the top of the screen, and the retry is
+      # there so they can act on those three lines. A three-machine spec row
+      # is 45 lines of block against 24 of terminal.
+      #
+      # ONE RULE FOR BOTH ROW KINDS AND NO THRESHOLD ON THE BLOCK'S SIZE. A
+      # REP row's block is five lines, so it fits either way, and the reason
+      # for dropping it does not turn on whether it fits.
       printf '%s  %s\n' "$WALK_ID" "$WALK_PROMPT"
-      [ "$QUIET" = "0" ] && session_scope "$WALK_KIND" "$WALK_ENV"
+      [ "$QUIET" = "0" ] && [ "$tries" = "1" ] && session_scope "$WALK_KIND" "$WALK_ENV"
       printf '> '
 
       # EOF leaves the prompt above unanswered on screen, which is what a

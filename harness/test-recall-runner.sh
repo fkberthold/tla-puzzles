@@ -2492,7 +2492,7 @@ fi
 fi
 
 echo
-echo "== part 16: a typo, a caret, and the names in scope (beads tla-1sh7.12, .13) =="
+echo "== part 16: a typo, a caret, and the names in scope (beads tla-1sh7.12, .13, .14) =="
 # ---------------------------------------------------------------------------
 # WHAT THIS PART EXISTS FOR, and all three of them are defects Frank found
 # working a real session on 2026-10-17. 339 assertions and a corpus gate saw
@@ -2874,7 +2874,67 @@ assert_eq "while the block under each prompt is printed every time, not once" "3
   "$(grep -c '^in scope:$' <<<"$P16_OUT")"
 
 echo
-echo "-- the mutants for the three defects --"
+echo "-- and a retry prints the prompt alone, because the block has not changed --"
+# ---------------------------------------------------------------------------
+# WHERE THE TWO FIXES ABOVE COLLIDE (bead tla-1sh7.14). The retry hands the
+# rep back and the block prints under every prompt, so a second go re-printed
+# the block and pushed the reader's own typo, its caret and SANY's sentence off
+# the top of the screen. The retry is there so the reader can act on those
+# three lines.
+#
+# THE SPAN IS THE MEASUREMENT AND THE COUNTS ARE HOW IT GETS THERE. Both rows
+# below count a block that should now appear once over two prompts, and the two
+# rows after them read the distance in output lines from one prompt character
+# to the next. That distance carries the whole feedback, so it is the thing
+# that has to fit a terminal.
+#
+# ONE RULE FOR BOTH ROW KINDS, with no threshold on the block's size. A REP
+# row's block is three lines here and a spec row's is 27, so only the spec row
+# scrolls a 24-line screen. The reader read the block eight lines ago either
+# way, which is the reason that holds on both.
+# ---------------------------------------------------------------------------
+
+# The distance in output lines from the first prompt character to the second.
+# `echo_answer` is 1 when stdin is a file, so every `> ` line below is a real
+# line of the captured output rather than a prompt the terminal overwrote.
+prompt_span() {
+  awk '/^> / { n++; if (n == 1) { a = NR } else { print NR - a; exit } }' <<<"$1"
+}
+
+p16_session "$P16_ONE" "$RETRY_IN" --count 1
+RETRY_OUT="$P16_OUT"
+assert_eq "a REP retry prompts twice over one rep, which is where the second go is" \
+  "2" "$(p16_prompts "$RETRY_OUT" | wc -l)"
+assert_eq "and the names in scope print under the first prompt only" "1" \
+  "$(grep -c '^in scope:$' <<<"$RETRY_OUT")"
+
+Q002_RETRY=$(write_input "$TMPROOT/p16-q002-retry.txt" '<>[](n = 2' '<>[](n = 2)')
+p16_session "$P16_Q002" "$Q002_RETRY" --count 1
+BATTERY_RETRY="$P16_OUT"
+assert_eq "a battery retry prompts twice as well, and grades the second go" \
+  "1 rep, 1 right." "$(grep -E '^[0-9]+ reps?' <<<"$BATTERY_RETRY")"
+assert_eq "and says how many machines there are once, not once per go" "1" \
+  "$(grep -c 'machines, and the answer goes into each of them:' <<<"$BATTERY_RETRY")"
+assert_eq "and prints two blocks, one per machine, rather than four" "2" \
+  "$(grep -cE '^  vars == <<n, flag>>$' <<<"$BATTERY_RETRY")"
+
+# THE INVARIANT ITSELF, read off the output rather than argued from the counts
+# above. 24 is the terminal the bead measured on.
+SPAN_REP=$(prompt_span "$RETRY_OUT")
+SPAN_SPEC=$(prompt_span "$BATTERY_RETRY")
+if [ "$SPAN_REP" -le 24 ]; then
+  ok "the parse error is still on a 24-line screen on a REP retry: ${SPAN_REP} lines"
+else
+  nope "the parse error is still on a 24-line screen on a REP retry: ${SPAN_REP} lines"
+fi
+if [ "$SPAN_SPEC" -le 24 ]; then
+  ok "and on a two-machine battery retry, which is the row that broke: ${SPAN_SPEC} lines"
+else
+  nope "and on a two-machine battery retry, which is the row that broke: ${SPAN_SPEC} lines"
+fi
+
+echo
+echo "-- the mutants for the four defects --"
 # THE SED PATTERNS ARE NOT ANCHORED TO AN INDENT, for part 14's reason: every
 # target sits several blocks deep inside a function, so an anchored pattern is
 # pinned to a nesting level a later edit can move.
@@ -2928,8 +2988,14 @@ fi
 
 # M14. the scope block is never printed, which is the defect tla-1sh7.13
 # names. The control is the block's own label.
+#
+# AMENDED 2026-10-17 FOR THE SAME REASON M1 AND M2 WERE. The pattern read
+# `[ "$QUIET" = "0" ] && session_scope ...` until tla-1sh7.14 put a second
+# test between the two, and a pattern pinned to one guard is pinned to
+# something a later bead can add to. It matches the whole line's content now,
+# with the indent captured and replayed rather than written down.
 # shellcheck disable=SC2016
-if mutate scope-dropped 's|\[ "\$QUIET" = "0" \] && session_scope "\$WALK_KIND" "\$WALK_ENV"|:|'; then
+if mutate scope-dropped 's|^\([[:space:]]*\)\[ "\$QUIET" = "0" \] && \[ "\$tries" = "1" \] && session_scope "\$WALK_KIND" "\$WALK_ENV"$|\1:|'; then
   M14_OUT=$("$MUTANT" --reps "$P16_R001" --env-dir "$ENV_DIR" --misses "$MISSES" \
     --sheet "$SHEET" --session --count 1 <"$SCOPE_IN" 2>&1) || true
   assert_eq "control: a session that stopped printing the names is DETECTED" "0" \
@@ -2945,6 +3011,30 @@ if mutate offset-dropped 's|^ANSWER_PREFIX="Answer == "$|ANSWER_PREFIX=""|'; the
     --sheet "$SHEET" -- R004 "t' = t EXCEPT ![1] = 9" 2>&1) || true
   assert_ne "control: a caret that forgot the prefix is DETECTED at the column" \
     "         ^" "$(awk "/^  t' = t EXCEPT/ { getline; print; exit }" <<<"$M15_OUT")"
+fi
+
+# M16. the retry goes back to re-printing the block, which is the defect
+# tla-1sh7.14 names. The mutation deletes the `tries` clause and leaves the
+# line it was added to, so what runs is the state of the runner the day the
+# bead was filed.
+#
+# THE CONTROL IS THE SPAN AND NOT A BLOCK COUNT, because the span is what the
+# bead is about. Measured on this fixture: 40 lines unguarded against 13
+# guarded, so the two-machine battery is enough to cross a 24-line terminal
+# and no bigger scaffold is needed to read the mutation. A REP row would not
+# have served here, at 16 lines unguarded.
+# shellcheck disable=SC2016
+if mutate retry-reprints 's| && \[ "\$tries" = "1" \]||'; then
+  M16_OUT=$("$MUTANT" --reps "$P16_Q002" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" --session --count 1 <"$Q002_RETRY" 2>&1) || true
+  M16_SPAN=$(prompt_span "$M16_OUT")
+  if [ "$M16_SPAN" -gt 24 ]; then
+    ok "control: a retry that re-prints the block is DETECTED, ${M16_SPAN} lines against ${SPAN_SPEC}"
+  else
+    nope "control: a retry that re-prints the block is DETECTED, ${M16_SPAN} lines against ${SPAN_SPEC}"
+  fi
+  assert_eq "and it fails the way the mutation says, every machine twice over" "4" \
+    "$(grep -cE '^  vars == <<n, flag>>$' <<<"$M16_OUT")"
 fi
 
 echo
