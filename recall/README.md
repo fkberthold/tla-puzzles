@@ -4,6 +4,104 @@ A need stated in English, the notation typed, graded on one exit code, in
 about a third of a second. The other rungs in this corpus declare eight to
 twelve minutes an item, so this is the one that runs at flow speed.
 
+## Working a session
+
+A session serves reps one after another. It prints the prompt, reads what you
+type, grades it, shows the block below, and moves on.
+
+```bash
+recall/recall.sh --session
+recall/recall.sh --session --count 20
+recall/recall.sh --session --seed 41
+```
+
+```
+R107  every possible parking of this yard, each wagon on exactly one track
+> [Wagons -> Tracks]
+rep=R107 rc=0 token=OK grade=correct
+
+correct.
+
+R099  the parking that leaves every wagon on the first track
+> [w \in Wagons |-> 1]
+rep=R099 rc=0 token=OK grade=correct
+
+correct.
+
+2 reps, 2 right.
+```
+
+You never type a rep id. That saves keystrokes, and it closes something
+worse. Until 2026-10-17 the only way to find out what a rep asked was to open
+`REPS.tsv`. Field 5 sits on the same tab-delimited line as field 6, so
+reading the question handed over the answer. That's the lookup this rung
+exists to replace.
+
+A session re-enters the runner once per rep, so what it grades is the
+single-rep invocation below. There's no second grading path to drift from the
+first.
+
+### Which rep comes next
+
+Not uniform random. `REPS.tsv` carries two to six differently phrased reps per
+construct, so the fact gets retrieved rather than the sentence. Interleaving
+is stronger when consecutive items are close enough to confuse, and most of
+what `MISSES.tsv` records is a function written where a function set was
+wanted. That's one construct against its neighbour.
+
+Two reps of one construct back to back is the other failure. You typed the
+answer a second ago, so the second one is recognition rather than recall.
+
+So the walk draws the next rep from a construct within two positions of the
+one just served, and never from that construct itself. The rest of that
+construct's reps stay in the pool and come round again a rep or two later.
+
+Position means file order, and that's a measurement rather than a guess.
+`REPS.tsv` is sorted by family, then by construct, and one construct's reps
+are contiguous. Measured on 2026-10-17: 120 reps, 37 constructs, four
+unbroken family runs. So 33 of the 36 adjacent construct pairs share a
+family, which is what lets the window be read off the delivered table alone.
+A delivered tree carries no `drill/INVENTORY.md`, and nothing here reads a
+family.
+
+`--seed N` pins the draw, so a session can be run again.
+
+At the tail the walk repeats a construct rather than stopping. Once every
+unserved rep belongs to the construct you just did, I'd rather break the lag
+than end the session short.
+
+### How a session ends
+
+| exit | what does it |
+|---|---|
+| `--count N` | N reps, then the tally |
+| Ctrl-D | the end of your input, at a terminal or in a pipe |
+| the table | every rep served once, and it says so |
+
+Ctrl-D leaves one prompt unanswered on screen. The prompt goes out before the
+read can find out there's nothing left to read, so the last question you see
+is the one you declined.
+
+A blank line skips the rep and shows the answer. You've declined the attempt
+the answer was being kept from, so withholding it there teaches nothing. A
+skip runs no TLC at all.
+
+A session exits 0 whenever it ran. It isn't a grade, so it carries none. Each
+rep's grade stays on that rep's own status line.
+
+### Nothing is kept between sessions
+
+`scripts/deliver-recall.sh` overwrites every file it delivers, and its header
+justifies that by saying no file here is learner-owned. A progress file would
+make that false, and a delivery would then overwrite your own record in a tree
+that isn't a git repo. That's the shape of the 2026-10-02 incident that took
+39 delivered files.
+
+I don't think the rung wants one either. A drill item declares eight to twelve
+minutes and mustn't be lost. A rep costs about a third of a second, so a
+session that ends has cost you nothing. What a session does hold, for as long
+as it runs, is which reps it has served, so none of them comes round twice.
+
 ## How to work one
 
 ```bash
@@ -18,6 +116,9 @@ A leading dash is fine, and the second line above is why. Negative integers
 are ordinary answers at this rung, so once the rep id is in hand the next
 argument is the answer whatever it starts with. The cost is that flags go
 before the rep id, which is where you would put them anyway.
+
+`--no-prompt` drops the prompt line from the block. It's what a session hands
+its own child, having printed that line and read an answer under it already.
 
 Correct answers stop there. A wrong one prints both values, then what that
 answer says, then what the construct is:
@@ -259,6 +360,10 @@ run said goes missing.
 wrong when it never parsed is a false statement about a check that did not
 happen.
 
+A session carries none of these. It exits 0 whenever it ran, and 2 or 3 when
+it couldn't start. Each rep's code stays on that rep's status line, which is
+the only place a grade belongs.
+
 A type mismatch is *not* a parse error. `Answer == 7` against a set of
 functions is simply false, so it scores 10 and gets the value block like any
 other wrong answer.
@@ -385,3 +490,12 @@ values are equal and showing them twice would say nothing.
 The two explanation layers add no run at all. Both are one `awk` over a file
 of a few hundred lines, and they happen after the grade is already decided,
 so nothing a learner waits for got slower.
+
+A session re-enters the runner once per rep, and that's what the per-rep cost
+goes up by. Measured on 2026-10-17 over three runs each: a single correct rep
+at 331, 306 and 294 ms, and a three-rep session at 961, 1029 and 964 ms, so
+about 328 ms a rep. The extra process is under 20 ms, which is inside the
+spread of the single runs.
+
+A skip costs nothing at all. It runs no TLC, since there's no answer to
+grade.

@@ -392,6 +392,13 @@ mkdir -p "$MIRROR/recall"
 #
 # Separate `local` statements, because `local a=$1 b=$a` reads $a as unbound
 # under `set -u` on this bash.
+#
+# A REFUSAL IS RECORDED IN A FILE, not in a counter. Every caller captures
+# this function's stdout, so a message printed here never reaches the
+# terminal, and a fail_count bumped here is bumped in the command
+# substitution's subshell and discarded with it. The sentinel row at the end
+# of part 14 reads the file back in the main shell, which is the only place a
+# missing control can be reported from.
 mutate() {
   local name="$1"
   local script="$2"
@@ -399,7 +406,7 @@ mutate() {
   sed "$script" "$RUNNER" >"$out"
   chmod +x "$out"
   if [ "$(cat "$out")" = "$(cat "$RUNNER")" ]; then
-    nope "mutant $name changed nothing, so its control below is vacuous"
+    printf '%s\n' "$name" >>"$TMPROOT/mutate-refused"
     return 1
   fi
   printf '%s\n' "$out"
@@ -1359,6 +1366,560 @@ else
     [ "$n" -ge 1 ] && [ "$n" -le 3 ] || LONG_SHEET="$LONG_SHEET $k_id($n)"
   done < <(awk -F'\t' '$1 == "REP" { print $3 }' "$LIVE_REPS" | sort -u)
   assert_eq "no sheet body a rep reaches wraps past 3 lines either" "" "$LONG_SHEET"
+fi
+
+echo
+echo "== part 14: the session loop (bead tla-1sh7.11) =="
+# ---------------------------------------------------------------------------
+# WHAT THIS PART EXISTS FOR, and it is a defect rather than a feature.
+#
+# Until this bead the only invocation was `recall.sh <rep-id> <answer>`, and
+# nothing printed a prompt. So finding out what a rep asked meant opening
+# REPS.tsv, where field 5 sits on the same tab-delimited line as field 6, the
+# canonical answer. Reading the question handed over the answer, which is the
+# lookup this rung exists to replace: exposure without a retrieval attempt
+# buys very little durability, and drill/study/CLAUDE.md cites the same
+# finding for the same reason.
+#
+# The rows below are written against that, so each one names the half of the
+# defect it closes rather than describing a feature.
+#
+# THE SESSION DRIVES THE SINGLE-REP INVOCATION RATHER THAN REPLACING IT. It
+# re-enters the same script once per rep, so there is no second grading path
+# to drift from the first, and every row of parts 1 to 13 still covers what a
+# session grades. The only thing it suppresses is the prompt echo, because
+# the session has already printed that line and read an answer under it.
+# ---------------------------------------------------------------------------
+
+SREPS="$FIXTURE/SESSION-REPS.tsv"
+if [ ! -r "$SREPS" ]; then
+  printf 'test-recall-runner.sh: missing %s\n' "$SREPS" >&2
+  exit 1
+fi
+
+# An input file rather than a here-string, because a here-string appends a
+# newline of its own and the number of lines a session reads is the thing
+# several rows below count.
+write_input() {
+  local path="$1"; shift
+  : >"$path"
+  local line
+  for line in "$@"; do printf '%s\n' "$line" >>"$path"; done
+  printf '%s\n' "$path"
+}
+
+blank_input() {
+  local n="$1" path="$TMPROOT/blanks-$1.txt" i
+  : >"$path"
+  for ((i = 0; i < n; i++)); do printf '\n' >>"$path"; done
+  printf '%s\n' "$path"
+}
+
+# A SUB-TABLE rather than a flag that picks reps. The session needs no way to
+# name one, and adding `--only` for the suite's convenience would put a rep
+# selector in a learner's hands, which is one short step from the table dump
+# this bead exists to close. `--reps` already points the runner at a table, so
+# the suite writes the table it wants.
+sub_reps() {
+  local path="$1"; shift
+  local want=" $* "
+  awk -F'\t' -v want="$want" '$1 == "REP" && index(want, " " $2 " ") > 0' "$SREPS" >"$path"
+  printf '%s\n' "$path"
+}
+
+SREPS_USE=""
+SESS_OUT=""
+SESS_RC=0
+session() {
+  local input="$1"; shift
+  SESS_RC=0
+  SESS_OUT=$("$RUNNER" --reps "${SREPS_USE:-$SREPS}" --env-dir "$ENV_DIR" --misses "$MISSES" \
+    --sheet "$SHEET" --session "$@" <"$input" 2>&1) || SESS_RC=$?
+}
+
+# A prompt line is `<id>  <prompt>`. A graded rep leaves a `rep=` status line.
+# They are counted separately because a skipped rep is prompted and not graded,
+# and because a session with no --count prints one more prompt than it grades:
+# the one the reader answered with EOF.
+prompted_ids() { awk '/^S[0-9][0-9]  / { print $1 }' <<<"$1"; }
+graded_ids()   { awk -F'[= ]' '/^rep=/ { print $2 }' <<<"$1"; }
+
+k_index_of() {
+  awk -F'\t' -v w="$1" '$1 == "REP" {
+    if (!($3 in seen)) { seen[$3] = n++ }
+    if ($2 == w) { print seen[$3]; exit }
+  }' "$SREPS"
+}
+canon_of()   { awk -F'\t' -v w="$1" '$1 == "REP" && $2 == w { print $6; exit }' "$SREPS"; }
+
+echo "-- a rep is served as a prompt, and its answer is not reachable from it --"
+# ---------------------------------------------------------------------------
+# THE RED LINE'S FIRST CLAUSE. The session prints the prompt and the canonical
+# answer is not in anything it printed, and it names no file to open. A
+# CORRECT answer is the sharp case: the feedback for one is the word
+# "correct." and nothing else, so if the canonical appears anywhere in this
+# transcript it was the serving that leaked it.
+# ---------------------------------------------------------------------------
+ONE=$(sub_reps "$TMPROOT/one.tsv" S15)
+S15_CANON=$(canon_of S15)
+S15_IN=$(write_input "$TMPROOT/s15.txt" "$S15_CANON")
+SREPS_USE="$ONE"
+session "$S15_IN" --count 1
+assert_eq "a one-rep session exits 0, because a session is not a grade" "0" "$SESS_RC"
+if has "$SESS_OUT" '^S15  every way the wagons could be parked, one track each$'; then
+  ok "it prints the rep's prompt, which is the thing REPS.tsv was being opened for"
+else
+  nope "it prints the rep's prompt, which is the thing REPS.tsv was being opened for"
+fi
+# EVERYTHING PRINTED BEFORE THE READER HAD TO ANSWER, which is where the
+# invariant lives. The whole transcript is the wrong surface and was watched
+# being wrong: a piped session echoes the answer line, and a CORRECT answer
+# is the canonical, so the canonical is in the transcript because the reader
+# typed it. What must not happen is the canonical being on screen at the
+# moment the answer is owed.
+BEFORE_ANSWER=$(awk '/^> / { exit } { print }' <<<"$SESS_OUT")
+assert_ne "the session printed something before asking for an answer" "" "$BEFORE_ANSWER"
+if has "$BEFORE_ANSWER" '\[Wagons -> Tracks\]'; then
+  nope "and the canonical answer is not among it, which is the whole defect"
+else
+  ok "and the canonical answer is not among it, which is the whole defect"
+fi
+if has "$SESS_OUT" 'REPS\.tsv|open the|look it up'; then
+  nope "and it tells the reader no file to open, which is the other half of the leak"
+else
+  ok "and it tells the reader no file to open, which is the other half of the leak"
+fi
+assert_eq "and the typed answer is graded, through the same channel a single rep uses" \
+  "rep=S15 rc=0 token=OK grade=correct" "$(awk '/^rep=/ { print; exit }' <<<"$SESS_OUT")"
+
+echo
+echo "-- a wrong answer gets the feedback block that already existed --"
+WRONG_IN=$(write_input "$TMPROOT/wrong.txt" '[Tracks -> Wagons]')
+session "$WRONG_IN" --count 1
+assert_eq "a wrong answer in a session is the same grade a single rep gets" \
+  "rep=S15 rc=10 token=ASSUMPTION_FAILED grade=incorrect" \
+  "$(awk '/^rep=/ { print; exit }' <<<"$SESS_OUT")"
+if has "$SESS_OUT" '^you typed +\[Tracks -> Wagons\]$'; then
+  ok "and the dual value block, so nothing was reimplemented for the session"
+else
+  nope "and the dual value block, so nothing was reimplemented for the session"
+fi
+if has "$SESS_OUT" '^the answer +\[Wagons -> Tracks\]$'; then
+  ok "and the canonical value, which is reachable only after an attempt"
+else
+  nope "and the canonical value, which is reachable only after an attempt"
+fi
+if has "$SESS_OUT" '^K050  ch06  function set$'; then
+  ok "and the construct's sheet entry, layer 3, unchanged"
+else
+  nope "and the construct's sheet entry, layer 3, unchanged"
+fi
+assert_eq "and a wrong answer does not end the session either" "0" "$SESS_RC"
+
+echo
+echo "-- a further rep is served without the reader naming an id --"
+# ---------------------------------------------------------------------------
+# THE RED LINE'S LAST CLAUSE, and the whole of the flow-speed complaint. Three
+# answers, three different reps, and the word that must not appear is a
+# request for an id.
+# ---------------------------------------------------------------------------
+SREPS_USE=""
+THREE_IN=$(write_input "$TMPROOT/three.txt" 'TRUE' 'FALSE' '3')
+session "$THREE_IN" --count 3 --seed 11
+assert_eq "three answers serve three reps" "3" "$(prompted_ids "$SESS_OUT" | wc -l)"
+assert_eq "and all three are different reps" "3" \
+  "$(prompted_ids "$SESS_OUT" | sort -u | wc -l)"
+assert_eq "and three grades come back" "3" "$(graded_ids "$SESS_OUT" | wc -l)"
+if has "$SESS_OUT" '[Rr]ep id|rep-id|which rep|enter an id'; then
+  nope "and nothing in it asks the reader for an id"
+else
+  ok "and nothing in it asks the reader for an id"
+fi
+
+echo
+echo "-- the walk: similar, never identical, and the same under one seed --"
+# ---------------------------------------------------------------------------
+# WHY NOT UNIFORM RANDOM. tla-1sh7.2 wrote two to six differently-phrased reps
+# per construct so the FACT is retrieved rather than the sentence, and
+# interleaving is stronger when consecutive items are similar enough to be
+# confusable. Uniform random throws that away: it draws a set rep after a
+# sequence rep as readily as after another set rep.
+#
+# WHY NOT BLOCKED EITHER. Two reps of one construct back to back is the lag-0
+# case, where the second is recognition rather than retrieval, because the
+# answer was typed a second ago.
+#
+# SO: NEAR, BUT NEVER THE SAME. The next rep comes from a construct within the
+# window of the one just served and never from the construct itself. The
+# remaining reps of a construct stay in the pool and are reached again after
+# an intervening rep or two, which is the lag the blocked order has none of.
+#
+# recall/REPS.tsv is sorted by family, then construct, and the reps for one
+# construct are contiguous, so file-order adjacency IS family adjacency at 33
+# of the 36 adjacent construct pairs. That is what lets the window be computed
+# from the delivered table alone, with no drill/INVENTORY.md in the tree.
+# ---------------------------------------------------------------------------
+
+walk_violations() {
+  local out="$1" mode="$2" prev=-1 id ki d bad=""
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    ki=$(k_index_of "$id")
+    if [ "$prev" -ge 0 ]; then
+      d=$(( ki - prev ))
+      [ "$d" -lt 0 ] && d=$(( -d ))
+      if [ "$mode" = "same" ]; then
+        [ "$d" -eq 0 ] && bad="$bad $id"
+      else
+        [ "$d" -gt 2 ] && bad="$bad $id(d=$d)"
+      fi
+    fi
+    prev="$ki"
+  done <<<"$(prompted_ids "$out")"
+  printf '%s\n' "$bad"
+}
+
+SAME_RUN=""
+for seed in 1 2 3 4 5 6; do
+  session "$(blank_input 6)" --count 6 --seed "$seed"
+  v=$(walk_violations "$SESS_OUT" same)
+  [ -n "$v" ] && SAME_RUN="$SAME_RUN seed$seed:$v"
+done
+assert_eq "no two reps in a row drill the same construct, over six seeds" "" "$SAME_RUN"
+
+# The window itself is pinned at ONE seed rather than asserted across them,
+# the way part 1 pins a measured exit code. A walk that runs the pool of a
+# construct's neighbours dry has to widen, and whether a given seed does that
+# is a fact about that seed, not about the rule.
+session "$(blank_input 6)" --count 6 --seed 11
+assert_eq "at seed 11 every step stays inside the window of two constructs" "" \
+  "$(walk_violations "$SESS_OUT" window)"
+SEED11_ORDER=$(prompted_ids "$SESS_OUT" | tr '\n' ' ')
+assert_ne "and the walk at that seed is not empty, so the row above is not vacuous" \
+  "" "$SEED11_ORDER"
+
+session "$(blank_input 6)" --count 6 --seed 11
+assert_eq "the same seed gives the same order, so a session is reproducible" \
+  "$SEED11_ORDER" "$(prompted_ids "$SESS_OUT" | tr '\n' ' ')"
+
+DISTINCT_ORDERS=""
+for seed in 1 2 3 4 5; do
+  session "$(blank_input 6)" --count 6 --seed "$seed"
+  DISTINCT_ORDERS="$DISTINCT_ORDERS$(prompted_ids "$SESS_OUT" | tr '\n' ' ')
+"
+done
+assert_ne "and different seeds do not all give one order, so the draw is a draw" \
+  "1" "$(sort -u <<<"$DISTINCT_ORDERS" | wc -l)"
+
+# A rep is never served twice in one session, which is what makes the pool
+# shrink and the session end.
+session "$(blank_input 16)" --count 16 --seed 3
+assert_eq "no rep is served twice in a session" "16" \
+  "$(prompted_ids "$SESS_OUT" | sort -u | wc -l)"
+
+echo
+echo "-- how a session ends: a count, EOF, and the table running out --"
+# ---------------------------------------------------------------------------
+# A loop that cannot be left is worse than no loop, so there are three exits
+# and all three are rows here.
+# ---------------------------------------------------------------------------
+
+session "$(blank_input 3)" --count 3 --seed 2
+assert_eq "--count stops at the count" "3" "$(prompted_ids "$SESS_OUT" | wc -l)"
+assert_eq "and exits 0" "0" "$SESS_RC"
+if has "$SESS_OUT" '^3 reps?\b'; then
+  ok "and the session ends on a tally rather than on silence"
+else
+  nope "and the session ends on a tally rather than on silence"
+fi
+
+# EOF with no count, over the whole table, so the pool cannot end the session
+# first and EOF is what does. THE DANGLING PROMPT IS THE POINT: the session
+# prints a rep and only then discovers there is nothing left to read, so a
+# reader who answers with Ctrl-D has one question on screen they did not
+# answer. Three prompts, two grades.
+SREPS_USE=""
+session "$(write_input "$TMPROOT/two.txt" 'TRUE' 'TRUE')" --seed 2
+assert_eq "EOF ends a session cleanly, at 0" "0" "$SESS_RC"
+assert_eq "and two answers graded two reps" "2" "$(graded_ids "$SESS_OUT" | wc -l)"
+assert_eq "and the prompt the reader answered with EOF is on screen, unanswered" "3" \
+  "$(prompted_ids "$SESS_OUT" | wc -l)"
+if has "$SESS_OUT" '^2 reps?\b'; then
+  ok "and the tally counts what was answered, not what was prompted"
+else
+  nope "and the tally counts what was answered, not what was prompted"
+fi
+
+# The tally's three numbers. S01 and S05 are both TRUE and S03 is 3, so
+# answering TRUE twice and then declining gives one right, one wrong and one
+# skip whichever order the walk takes -- EXCEPT when S03 comes last, which is
+# why the seed is pinned and the tally is a measured constant rather than a
+# property.
+SREPS_USE=$(sub_reps "$TMPROOT/mixed.tsv" S01 S03 S05)
+MIXED_IN=$(write_input "$TMPROOT/mixed.txt" 'TRUE' 'TRUE' '')
+session "$MIXED_IN" --count 3 --seed 4
+assert_eq "a session with a right, a wrong and a skip exits 0" "0" "$SESS_RC"
+if has "$SESS_OUT" '1 right'; then
+  ok "the tally names the right answers"
+else
+  nope "the tally names the right answers"
+fi
+if has "$SESS_OUT" '1 wrong'; then
+  ok "and the wrong ones"
+else
+  nope "and the wrong ones"
+fi
+if has "$SESS_OUT" '1 skipped'; then
+  ok "and the skipped ones, which are neither"
+else
+  nope "and the skipped ones, which are neither"
+fi
+
+# A blank line is a skip, and a skip SHOWS the answer. A reader who has
+# declined to attempt is past the point the attempt was protecting, and
+# withholding it there teaches nothing. It costs no TLC run.
+SREPS_USE="$ONE"
+SKIP_IN=$(write_input "$TMPROOT/skip.txt" '')
+session "$SKIP_IN" --count 1
+if has "$SESS_OUT" '\[Wagons -> Tracks\]'; then
+  ok "a skipped rep shows its answer, since the reader declined the attempt"
+else
+  nope "a skipped rep shows its answer, since the reader declined the attempt"
+fi
+assert_eq "and a skip is not graded, so it runs no TLC at all" "0" \
+  "$(graded_ids "$SESS_OUT" | wc -l)"
+
+# The pool running out. 16 reps in the table, 99 asked for.
+SREPS_USE=""
+session "$(blank_input 99)" --count 99 --seed 5
+assert_eq "a count past the table serves every rep once and stops" "16" \
+  "$(prompted_ids "$SESS_OUT" | wc -l)"
+if has "$SESS_OUT" 'no reps left|every rep|ran out'; then
+  ok "and says the table ran out rather than ending on a count it did not reach"
+else
+  nope "and says the table ran out rather than ending on a count it did not reach"
+fi
+
+# Empty stdin. One prompt goes out before the read can discover there is
+# nothing there, and that is the end of it.
+RUN_RC=0
+EMPTY_SESS=$("$RUNNER" --reps "$SREPS" --env-dir "$ENV_DIR" --misses "$MISSES" \
+  --sheet "$SHEET" --session </dev/null 2>&1) || RUN_RC=$?
+assert_eq "empty stdin ends the session at 0" "0" "$RUN_RC"
+assert_eq "and serves one prompt, never a walk of the table" "1" \
+  "$(prompted_ids "$EMPTY_SESS" | wc -l)"
+assert_eq "and grades nothing" "0" "$(graded_ids "$EMPTY_SESS" | wc -l)"
+
+echo
+echo "-- the session is stateless, which is what the delivery rests on --"
+# ---------------------------------------------------------------------------
+# scripts/deliver-recall.sh overwrites every file it delivers, and the header
+# justifying that says no file in this channel is learner-owned. A session
+# that recorded progress would make that false, and the delivery would then
+# overwrite a learner's own file in a tree that is not a git repo.
+#
+# harness/test-recall-gate.sh already snapshots a recall tree around a SINGLE
+# rep. This row is the session's half of the same claim, and it belongs here
+# because the session is this suite's subject.
+# ---------------------------------------------------------------------------
+STATE_TREE="$TMPROOT/stateless/recall"
+mkdir -p "$STATE_TREE/env"
+cp "$RUNNER" "$STATE_TREE/recall.sh"
+chmod +x "$STATE_TREE/recall.sh"
+cp "$SREPS" "$STATE_TREE/REPS.tsv"
+cp "$MISSES" "$STATE_TREE/MISSES.tsv"
+cp "$ENV_DIR"/*.tla "$STATE_TREE/env/"
+STATE_BEFORE=$(find "$STATE_TREE" | LC_ALL=C sort)
+"$STATE_TREE/recall.sh" --session --count 4 --seed 6 \
+  <"$(write_input "$TMPROOT/state.txt" 'TRUE' '' 'FALSE' '1..3')" >/dev/null 2>&1 || true
+STATE_AFTER=$(find "$STATE_TREE" | LC_ALL=C sort)
+assert_eq "a whole session writes nothing into the runner's own tree" \
+  "$STATE_BEFORE" "$STATE_AFTER"
+assert_eq "and no progress file is named anywhere in the runner" "" \
+  "$(grep -oE 'PROGRESS\.tsv|LAST-SERVED|\.recall-state' "$RUNNER" | sort -u | tr '\n' ' ' | sed 's/ $//')"
+
+echo
+echo "-- there is no mode that prints the table --"
+# ---------------------------------------------------------------------------
+# A flag that listed the reps would be the leak this bead closes, wearing a
+# flag. The usage text is the surface somebody would reach for, so that is
+# where the row sits.
+# ---------------------------------------------------------------------------
+# `has` already passes `--` to grep, so a second one here reaches it as the
+# PATTERN. `--` matches every long flag in the usage text, which made the
+# first row of this pair report a dump flag that is not there and the second
+# report a session flag that was not there yet. Both were watched doing it.
+HELP_OUT=$("$RUNNER" --help 2>&1) || true
+if has "$HELP_OUT" '[-][-](list|reps-list|dump|table|show-reps|browse)'; then
+  nope "no flag in the usage text lists or dumps the rep table"
+else
+  ok "no flag in the usage text lists or dumps the rep table"
+fi
+if has "$HELP_OUT" '[-][-]session'; then
+  ok "and the session is named there, so the usage text is current"
+else
+  nope "and the session is named there, so the usage text is current"
+fi
+# THE USAGE TEXT IS A LINE RANGE AND NOTHING GATED IT. `usage()` is a
+# `sed -n 'A,Bp'` over this script's own header, so a line added to the
+# OPTIONS block silently truncates the help. These two rows pin the first and
+# last line of what it prints, which is what the range is for.
+if has "$HELP_OUT" '^# recall\.sh: grade'; then
+  ok "the usage text still starts at the script's own first line"
+else
+  nope "the usage text still starts at the script's own first line"
+fi
+if has "$HELP_OUT" '^#   -h, --help'; then
+  ok "and still ends on the last flag, so the range did not drift"
+else
+  nope "and still ends on the last flag, so the range did not drift"
+fi
+
+echo
+echo "-- the single-rep invocation is untouched --"
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$SREPS" --env-dir "$ENV_DIR" --session -- S15 '[Wagons -> Tracks]' 2>&1) || RUN_RC=$?
+assert_eq "--session with a rep id is a usage error, not a quiet half-mode" "2" "$RUN_RC"
+
+RUN_RC=0
+NOPROMPT_OUT=$("$RUNNER" --reps "$SREPS" --env-dir "$ENV_DIR" --misses "$MISSES" \
+  --sheet "$SHEET" --no-prompt -- S15 '[Wagons -> Tracks]' 2>&1) || RUN_RC=$?
+assert_eq "--no-prompt still grades, and with the same code" "0" "$RUN_RC"
+if has "$NOPROMPT_OUT" '^S15  every way'; then
+  nope "and it drops the prompt echo, which is the one line a session has already printed"
+else
+  ok "and it drops the prompt echo, which is the one line a session has already printed"
+fi
+RUN_RC=0
+PROMPT_OUT=$("$RUNNER" --reps "$SREPS" --env-dir "$ENV_DIR" --misses "$MISSES" \
+  --sheet "$SHEET" -- S15 '[Wagons -> Tracks]' 2>&1) || RUN_RC=$?
+if has "$PROMPT_OUT" '^S15  every way'; then
+  ok "and without it the prompt echo is still there, so nothing moved for single reps"
+else
+  nope "and without it the prompt echo is still there, so nothing moved for single reps"
+fi
+assert_eq "and the two differ by exactly that one line" "1" \
+  "$(( $(wc -l <<<"$PROMPT_OUT") - $(wc -l <<<"$NOPROMPT_OUT") ))"
+
+echo
+echo "-- what a piped session and a terminal session differ by --"
+# ---------------------------------------------------------------------------
+# A terminal echoes what is typed and a pipe does not, so a piped transcript
+# would read as a prompt character with the feedback jammed against it and no
+# record of what was answered. The session echoes the answer when stdin is not
+# a terminal, which is the only behaviour that is conditional on the terminal
+# anywhere in this script.
+# ---------------------------------------------------------------------------
+SREPS_USE="$ONE"
+session "$(write_input "$TMPROOT/echo.txt" '[Tracks -> Wagons]')" --count 1
+SREPS_USE=""
+if has "$SESS_OUT" '^> \[Tracks -> Wagons\]$'; then
+  ok "a piped session echoes the answer, so the transcript reads as the terminal does"
+else
+  nope "a piped session echoes the answer, so the transcript reads as the terminal does"
+fi
+assert_eq "and the echo is the only thing keyed on a terminal" "1" \
+  "$(grep -cE '\[ -t 0 \]|\[\[ -t 0 \]\]' "$RUNNER")"
+
+echo
+echo "-- the session fixture's own shape --"
+assert_eq "every SESSION-REPS row has six fields" "" \
+  "$(awk -F'\t' '$1 == "REP" && NF != 6 { print $2 }' "$SREPS")"
+assert_eq "sixteen reps over eight constructs, two each" "16 8" \
+  "$(awk -F'\t' '$1 == "REP" { n++; k[$3] = 1 } END { print n, length(k) }' "$SREPS")"
+assert_eq "the reps for one construct are contiguous, as they are in the shipped table" "" \
+  "$(awk -F'\t' '$1 == "REP" { if ($3 != prev) { runs[$3]++; prev = $3 } }
+                 END { for (k in runs) if (runs[k] > 1) print k }' "$SREPS")"
+assert_eq "every construct resolves to a drill/INVENTORY.md row" "" \
+  "$(awk -F'\t' 'NR == FNR && $1 == "ROW" { have[$2] = 1; next }
+                 $1 == "REP" && !($3 in have) { print $2 }' "$REPO_ROOT/drill/INVENTORY.md" "$SREPS")"
+assert_eq "no prompt in it carries TLA+ notation" "" \
+  "$(awk -F'\t' '$1 == "REP" && $5 ~ /[|<>\[\]{}\\]/ { print $2 }' "$SREPS")"
+assert_eq "every rep names the fixture environment, which exists" "" \
+  "$(awk -F'\t' '$1 == "REP" && $4 != "shunting" { print $2 }' "$SREPS")"
+
+# THE SHIPPED TABLE'S OWN SHAPE, which is what makes file-order adjacency a
+# family proxy. The walk reads no family anywhere, so this is the measurement
+# the choice rests on rather than a check of the walk.
+assert_eq "the shipped rep table keeps its constructs contiguous too" "" \
+  "$(awk -F'\t' '$1 == "REP" { if ($3 != prev) { runs[$3]++; prev = $3 } }
+                 END { for (k in runs) if (runs[k] > 1) print k }' "$LIVE_REPS")"
+assert_eq "and its families are four unbroken runs, so adjacency is family adjacency" "4" \
+  "$(awk -F'\t' 'FNR == NR && $1 == "ROW" { fam[$2] = $3; next }
+                 $1 == "REP" { f = fam[$3]; if (f != prev) { n++; prev = f } }
+                 END { print n }' "$REPO_ROOT/drill/INVENTORY.md" "$LIVE_REPS")"
+
+echo
+echo "-- the mutants for the walk and for the serving --"
+# THE SED PATTERNS BELOW ARE NOT ANCHORED TO AN INDENT, unlike M1 to M8's.
+# Both target lines sit several blocks deep inside a function, so an anchored
+# pattern would be pinned to a nesting level that a later edit can move, and a
+# mutation that stops applying is a control that silently goes missing rather
+# than a row that goes red. See the sentinel row under the mutants.
+
+# M9. the walk stops excluding the construct it just served, which is the
+# blocked order the window exists to avoid.
+#
+# IT RUNS OVER A TWO-CONSTRUCT TABLE AND OVER TEN SEEDS, and both halves are
+# the lesson. Over the full sixteen-rep table at one seed the mutant repeated
+# nothing in six draws and the control passed over a mutation that had
+# applied -- the candidate set simply did not happen to offer the repeat.
+# Two constructs at two reps each makes the real walk a strict alternation
+# whatever the seed, and makes the mutant's repeat a coin toss per step, so
+# ten seeds settle it.
+# shellcheck disable=SC2016
+M9=$(mutate walk-blocked 's|\[ "\$WALK_KI" = "\$WALK_CUR_K" \] && continue|:|') || M9=""
+if [ -n "$M9" ]; then
+  M9_REPS=$(sub_reps "$TMPROOT/alternate.tsv" S01 S02 S03 S04)
+  repeats_over_seeds() {
+    local script="$1" seed out id ki prev found=""
+    for seed in 1 2 3 4 5 6 7 8 9 10; do
+      out=$("$script" --reps "$M9_REPS" --env-dir "$ENV_DIR" --misses "$MISSES" \
+        --sheet "$SHEET" --session --count 4 --seed "$seed" <"$(blank_input 4)" 2>&1) || true
+      prev=-1
+      while IFS= read -r id; do
+        [ -n "$id" ] || continue
+        ki=$(k_index_of "$id")
+        [ "$prev" = "$ki" ] && found="$found seed$seed:$id"
+        prev="$ki"
+      done <<<"$(prompted_ids "$out")"
+    done
+    printf '%s\n' "$found"
+  }
+  assert_eq "the real walk alternates the two constructs at every one of ten seeds" \
+    "" "$(repeats_over_seeds "$RUNNER")"
+  assert_ne "control: a walk that stopped excluding the served construct is DETECTED" \
+    "" "$(repeats_over_seeds "$M9")"
+fi
+
+# M10. the prompt is never printed, so a session serves nothing a reader can
+# answer. This is the mutant for the defect itself.
+# shellcheck disable=SC2016
+M10=$(mutate prompt-dropped 's|printf .%s  %s.n. "\$WALK_ID" "\$WALK_PROMPT"|:|') || M10=""
+if [ -n "$M10" ]; then
+  M10_OUT=$("$M10" --reps "$SREPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+    --session --count 2 --seed 1 <"$(blank_input 2)" 2>&1) || true
+  assert_eq "control: a session that stopped printing the prompt is DETECTED" "0" \
+    "$(prompted_ids "$M10_OUT" | wc -l)"
+fi
+
+# ---------------------------------------------------------------------------
+# A MUTATION THAT DID NOT APPLY IS A CONTROL THAT WENT MISSING SILENTLY, and
+# until this bead nothing said so. mutate() prints its own refusal on STDOUT,
+# and every caller captures stdout into a variable, so the message was
+# swallowed and the fail_count it bumped was bumped inside a subshell and
+# thrown away. Watched happening: M9 and M10 both failed to apply during this
+# bead's red run and the suite printed nothing at all between the mutant
+# header and the tally.
+#
+# A file is the fix, because a file crosses the subshell the variable could
+# not. mutate() touches it, and this row reads it in the main shell.
+# ---------------------------------------------------------------------------
+if [ -e "$TMPROOT/mutate-refused" ]; then
+  nope "every mutation in this suite applied, so no control is silently missing"
+  printf '          refused: %s\n' "$(tr '\n' ' ' <"$TMPROOT/mutate-refused")"
+else
+  ok "every mutation in this suite applied, so no control is silently missing"
 fi
 
 echo
