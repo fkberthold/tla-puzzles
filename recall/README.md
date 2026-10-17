@@ -17,8 +17,8 @@ what happens under it is the runner's problem.
 
 ## Working a session
 
-A session serves reps one after another. It prints the prompt, reads what you
-type, grades it, shows the block below, and moves on.
+A session serves reps one after another. It prints the prompt and the names in
+scope, reads what you type, grades it, shows the block below, and moves on.
 
 ```bash
 recall/recall.sh --session
@@ -27,13 +27,34 @@ recall/recall.sh --session --seed 41
 ```
 
 ```
+  under every prompt is the block your answer is dropped into. on a value rep
+  that is the definitions in scope, and on a spec rep it is the machine, with
+  the line you are filling marked. the names and their spelling come from
+  there.
+
+  an answer is an expression. a primed variable with an equals sign is an
+  action, and the one kind of rep that wants an action shows you the line it
+  goes on.
+
 R107  every possible parking of this yard, each wagon on exactly one track
+in scope:
+  Wagons == {"a", "b", "c"}
+  Tracks == 1..3
+  Parking == [a |-> 1, b |-> 3, c |-> 3]
+  Train == <<"c", "a", "b">>
+  Capacity == 4
 > [Wagons -> Tracks]
 rep=R107 rc=0 token=OK grade=correct
 
 correct.
 
 R099  the parking that leaves every wagon on the first track
+in scope:
+  Wagons == {"a", "b", "c"}
+  Tracks == 1..3
+  Parking == [a |-> 1, b |-> 3, c |-> 3]
+  Train == <<"c", "a", "b">>
+  Capacity == 4
 > [w \in Wagons |-> 1]
 rep=R099 rc=0 token=OK grade=correct
 
@@ -51,6 +72,92 @@ exists to replace.
 A session re-enters the runner once per rep, so what it grades is the
 single-rep invocation below. There's no second grading path to drift from the
 first.
+
+### The names in scope
+
+A prompt names none of the notation it asks for. It names none of the
+identifiers either, and those aren't notation. R119 asks for "the balance
+after two has been paid into ann's account", and the answer has to read
+`Balance` and `!["ann"]` exactly. Nothing in the prompt says `Balance` is
+capitalized that way, and nothing anywhere said `ann` was a quoted string.
+
+So the block under each prompt is what your answer gets dropped into. On a
+value rep that's the environment's definitions, comments stripped. On a spec
+rep it's the machine, with the line you're filling marked `<your answer>`, and
+a battery prints every machine it's checked against.
+
+Showing the names isn't showing the answer. The names are the vocabulary.
+Knowing `Balance` exists doesn't tell you to reach for `EXCEPT`, any more than
+a shunting prompt naming wagons and tracks tells you to reach for a function
+set. What stays hidden is field 6, and nothing in the block reads it.
+
+It's the definitions rather than a list of names, and that was measured rather
+than preferred. A list of names shows the top-level definitions, so a string
+literal *inside* one is hidden by it, and 39 of the 120 value canonicals carry
+a quoted literal. The fuller form also teaches the thing a list could never
+show:
+
+```
+Accounts == {"ann", "bo"}
+Balance == [ann |-> 3, bo |-> 0]
+```
+
+The same name is quoted in one and bare in the other, because a record literal
+writes its field names bare while a record's domain is strings. That's why
+`Balance["ann"]` works, and seeing both lines together is the only way to pick
+it up.
+
+The spec rows reach the same answer by a different route. None of the 40 spec
+canonicals carries a quoted literal, so the literal argument doesn't apply
+there. The structural one does: `act-decl` and `act-decl3` have the
+`VARIABLES` line itself as the hole, so `level`, `lamp` and `latch` are never
+declared anywhere in those two scaffolds. They turn up only inside bodies, in
+`vars == <<level, lamp, latch>>`, which is the `ann` problem one rung up.
+
+It prints under every rep rather than once per environment, and I read it both
+ways before choosing. Printing on change saves about three blocks in six and
+costs you the names at the moment you owe an answer. Measured over the shipped
+table at ten seeds: field 4 changes at 96 of 190 steps, so a run between
+changes is two or three reps, and one rep's feedback runs eight to ten lines.
+The block from two reps back has already left a 24-line terminal.
+
+### A typo doesn't spend the rep
+
+A parse error isn't a wrong answer. Nothing was graded, so the retrieval
+attempt the rung exists for never happened, and until 2026-10-17 the session
+moved on to the next rep anyway. It hands the rep back instead.
+
+```
+R119  the balance after two has been paid into ann's account on top of ...
+in scope:
+  ...
+> acct' = acct EXCEPT !["ann"] = @ + 2
+rep=R119 rc=150 token=PARSE_ERROR grade=parse-error
+
+that did not parse, so nothing was graded about whether it is right.
+
+  acct' = acct EXCEPT !["ann"] = @ + 2
+               ^
+
+  Encountered "EXCEPT" and token "acct"
+
+nothing was graded, so the same rep comes back.
+```
+
+Three goes, then it shows the answer and says that's what happened. The cap is
+there because an answer that will never parse mustn't loop, and a loop you
+can't leave is worse than a rep lost. Three rather than two because the case
+that separates them is a typo, then a second typo in the retype, then the
+right answer: at two that's `1 rep, 1 not graded` and you're handed the answer
+over a slip that has nothing to do with the notation. One whole session of
+nothing but unparseable answers costs 638 ms at three and 429 ms at two.
+
+Only `150` is retried. `10` is a wrong answer and you've had your attempt,
+and `255`, `151` and `75` are reports about the run rather than about a typo,
+so retyping can't fix one.
+
+The single-rep invocation is unchanged. It returns 150 and stops, which is
+what the gate drives.
 
 ### Which rep comes next
 
