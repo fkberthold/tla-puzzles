@@ -142,7 +142,23 @@ that did not parse, so nothing was graded about whether it is right.
   Encountered "EXCEPT" and token "acct"
 
 nothing was graded, so the same rep comes back.
+
+R119  the balance after two has been paid into ann's account on top of ...
+> acct' = [acct EXCEPT !["ann"] = @ + 2]
 ```
+
+The second go is the prompt alone. It's the same block both times, because
+nothing between the two goes touches the row, and you read it eight lines ago.
+Re-printing it put your own typo, the caret under it and SANY's sentence above
+the top of a 24-line terminal. The retry is there so you can act on those
+three lines. Measured on the two-machine fixture: 40 lines from one prompt
+character to the next with the block, 13 without it.
+
+That's one rule for both kinds of rep, with no threshold on how long the block
+runs. A value rep's block is five lines and fits either way. A three-scaffold
+spec rep is 45, and 20 of the 40 spec rows name more than one scaffold. I
+think the size is what made this visible rather than what makes it wrong. The
+reason for dropping the block doesn't turn on whether it would have fit.
 
 Three goes, then it shows the answer and says that's what happened. The cap is
 there because an answer that will never parse mustn't loop, and a loop you
