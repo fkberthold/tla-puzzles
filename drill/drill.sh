@@ -57,8 +57,9 @@
 #
 # The clause above used to cover the whole script: it read nothing outside the
 # directory it sits in, full stop. The three coaching flags, --check, --hint
-# and --style, read six things outside it. So the clause is now about a serve,
-# and here are the six, each one named rather than tucked into the code:
+# and --style, read seven things outside it. So the clause is now about a
+# serve, and here are the seven, each one named rather than tucked into the
+# code:
 #
 #   $STUDY_ROOT/check     executed, and its output read back
 #   $STUDY_ROOT/style     executed, and its output read back
@@ -67,8 +68,10 @@
 #   claude                executed, found on PATH rather than at a known path
 #   $STUDY_ROOT/.claude/commands/hint.md
 #                         read, and cat whole into the hint prompt
+#   $STUDY_ROOT/.claude/commands/check.md
+#                         read, and cat whole into the check prompt
 #
-# WHY THEY ARE WORTH IT, which is one argument rather than six. The one-shot
+# WHY THEY ARE WORTH IT, which is one argument rather than seven. The one-shot
 # runs as `claude -p --tools ""`, and the empty tool set is what makes the read
 # prohibition in the study config structural rather than advisory: the model
 # cannot reach the worked answer because it cannot reach anything. The cost of
@@ -97,6 +100,21 @@
 # register does, and this is a sixth read under the root the other five
 # already resolve from rather than a new argument.
 #
+# THE CHECK PASSES ARE THE SEVENTH, AND THEY WERE THE SAME COUNTEREXAMPLE
+# SITTING BESIDE IT. Bead tla-x0he, filed by the worker that closed the one
+# above. The study config tells a check run to work the passes in /check in
+# the order they are written and to hand back what their last section asks
+# for. That file is $STUDY_ROOT/.claude/commands/check.md, one directory over
+# from the sheet and just as unreachable, so a check run was following a
+# document it had only ever seen summarized.
+#
+# WHAT IT WOULD HAVE COST, which is the one thing separating the two. The hint
+# failure spends a rung and Frank can see it happen. A check that never
+# reaches pass 3 reports a clean run over a right count reached by a wrong
+# model, which is the failure the pass exists to catch, and it looks like a
+# pass from the report alone. I have no measured instance of that, which is
+# the problem with it rather than a reason to wait for one.
+#
 # The paths resolve the same way the study directory already did, off
 # $DRILL_STUDY_ROOT with the documented default. claude comes off PATH because
 # a model binary has no fixed home, which is the one of the five that could
@@ -124,8 +142,10 @@
 # A model handed an empty checker block cannot tell it from a clean one, one
 # handed measurements with no register cannot tell an absent register from an
 # empty one, and one handed a question with no sheet cannot tell that the
-# worked case it is missing exists. That is the wrong direction to be wrong in
-# three times. A serve still works with none of the six present.
+# worked case it is missing exists. A check run with no passes is the fourth
+# of those and the quietest, since what goes missing is a pass it never knew
+# to make. That is the wrong direction to be wrong in four times. A serve
+# still works with none of the seven present.
 #
 # ---------------------------------------------------------------------------
 # THE QUEUE IS DERIVED FROM THE TREE, NEVER FROM A LIST
@@ -228,7 +248,9 @@
 # THIS USED TO READ "the one thing it does that neither other mode has an
 # equivalent of", and bead tla-1sh7.1 made that false rather than merely
 # dated: --hint cats its own prose file now, for the same reason and in the
-# same shape. The section below is the other half of the pair.
+# same shape. tla-x0he did the same for --check, so every mode cats one and
+# the clause is about which file rather than about which modes. The two
+# sections below are the rest of the set.
 #
 # THE STYLE SCRIPT'S EXIT CODE IS NOT A VERDICT AND NOT THIS SCRIPT'S. Bead
 # tla-iiow.2 locks 0 for measured-something and 3 for could-not-run, with no 1
@@ -262,9 +284,31 @@
 # summary and sound exactly as sure. --check and --style read no sheet, so
 # neither is gated on one and a root with no sheet still serves both.
 #
-# IT IS HINT-ONLY IN THE PROMPT TOO. A check prompt carries no sheet, for the
-# reason a style prompt carries no checker block: the ladder is what rations a
-# hint, and a check hands back the whole report.
+# ---------------------------------------------------------------------------
+# --check CATS ITS PASSES, AND EACH MODE SHIPS ITS OWN PROSE AND NOBODY
+# ELSE'S
+#
+# Bead tla-x0he. Three modes, three prose files, three gates, and the thing
+# worth holding on to is that none of them is the others'.
+#
+# This section used to argue the opposite under the heading HINT-ONLY IN THE
+# PROMPT TOO. It said a check prompt carries no sheet for the reason a style
+# prompt carries no checker block, and it was right about the sheet and wrong
+# about what followed. The ladder is what rations a hint, so the ladder stays
+# out of a check. That is an argument for keeping hint.md out of a check
+# prompt, and I read it at the time as an argument for shipping a check
+# nothing at all.
+#
+# WHAT EACH MODE SHIPS AND WHAT IT IS GATED ON:
+#
+#   --check   check.md, the passes and the hand-back list
+#   --hint    hint.md, the ladder and the worked cases
+#   --style   STYLE.md, the register
+#
+# No mode ships another's, and no mode is gated on another's. A root with no
+# register styles nothing and checks and hints fine. A root with no sheet
+# hints nothing and checks and styles fine. A root with no passes checks
+# nothing and hints and styles fine.
 
 set -uo pipefail
 
@@ -713,12 +757,17 @@ run_styler() {
 # because the study config holds all of them and a second copy drifts from the
 # day it is written.
 #
-# THE MIDDLE BLOCK IS THE ONLY THING THAT VARIES BY MODE, and only --check
-# gets one block. A style run gets the register, whole, and then the
-# measurements. A hint run gets its sheet, whole, and then the checker's
-# numbers. The prose comes FIRST in both, because it is what the material
-# after it is read against, and a model handed the material before the frame
-# reads the material twice.
+# THE MIDDLE BLOCK IS THE ONLY THING THAT VARIES BY MODE, and every mode now
+# has one. A style run gets the register, whole, and then the measurements. A
+# hint run gets its sheet, and a check run gets its passes, each whole and
+# each before the checker's numbers. The prose comes FIRST in all three,
+# because it is what the material after it is read against, and a model handed
+# the material before the frame reads the material twice.
+#
+# THIS USED TO READ "only --check gets one block", which bead tla-x0he made
+# false. The sentence was true the day --check was the mode with nothing of
+# its own to ship, and it stopped being true the day that turned out to be the
+# bug rather than the design.
 build_prompt() {
   local mode="$1" base
   printf 'MODE: %s\n' "$mode"
@@ -741,6 +790,13 @@ build_prompt() {
     if [ "$mode" = "hint" ]; then
       printf '\n== hint.md, the ladder and the worked cases, verbatim ==\n'
       cat "$STUDY_ROOT/.claude/commands/hint.md"
+    fi
+    # The passes go in the same slot and for the same reason. They are the
+    # order the report is worked in, so they are what the checker's numbers
+    # and the attempt below them are read against.
+    if [ "$mode" = "check" ]; then
+      printf '\n== check.md, the passes and what to hand back, verbatim ==\n'
+      cat "$STUDY_ROOT/.claude/commands/check.md"
     fi
     printf '\n== CHECKER, exit %s, output verbatim ==\n' "$CHECK_RC"
     printf '%s\n' "$CHECK_OUT"
@@ -777,9 +833,10 @@ coach() {
 
   # WHICH DEPENDENCY EACH MODE NEEDS, and no two sets are the same. A style
   # run never executes the checker, so a study root with no checker in it
-  # styles an attempt perfectly well. A check run reads neither the register
-  # nor the hint's sheet. A hint run needs the checker and the sheet and not
-  # the style pair. Gating on all of them would refuse a run over a tree that
+  # styles an attempt perfectly well. A check run needs the checker and its
+  # passes, and reads neither the register nor the hint's sheet. A hint run
+  # needs the checker and the sheet, and reads neither the passes nor the
+  # style pair. Gating on all of them would refuse a run over a tree that
   # holds everything that run needs.
   if [ "$mode" = "style" ]; then
     if [ ! -x "$STUDY_ROOT/style" ]; then
@@ -818,6 +875,25 @@ coach() {
     return 1
   fi
 
+  # The check's passes, gated for the sheet's reason and not a new one. The
+  # study config sends a check run to work the passes in order and to hand
+  # back what their last section asks for, and it reproduces neither. So a
+  # check over a root with no check.md in it works from a summary of a
+  # document it was told to follow.
+  #
+  # WHY REFUSE RATHER THAN SHIP THE SUMMARY. A hint that classifies wrongly
+  # spends a rung. A check that never reaches pass 3 hands back a clean
+  # verdict over a right count reached by a wrong model, which is the one
+  # failure the mode exists to catch, and it hands it back looking green.
+  # --hint and --style read no passes, so a root with none still serves both.
+  if [ "$mode" = "check" ] && [ ! -r "$STUDY_ROOT/.claude/commands/check.md" ]; then
+    echo "drill: no check passes at $STUDY_ROOT/.claude/commands/check.md, and the" >&2
+    echo "drill: one-shot runs with no tools, so it cannot open them itself. A check" >&2
+    echo "drill: working from a summary of its own passes reports a clean run it never" >&2
+    echo "drill: made. Deliver the study tree first." >&2
+    return 1
+  fi
+
   if ! command -v claude >/dev/null 2>&1; then
     echo "drill: no claude on the path, so there is no one-shot to run." >&2
     echo "drill: ./drill, ./drill done and ./drill shaky all work without it." >&2
@@ -842,10 +918,13 @@ coach() {
     printf 'register:     %s\n' "$STUDY_ROOT/STYLE.md"
   else
     printf 'checker:      exit %s\n' "$CHECK_RC"
-    # Named for the register's reason: it is prose from a file no other mode
-    # ships, so a reader cannot otherwise account for it.
+    # Named for the register's reason: it is prose from a file this mode ships
+    # and the others do not, so a reader cannot otherwise account for it.
     if [ "$mode" = "hint" ]; then
       printf 'sheet:        %s\n' "$STUDY_ROOT/.claude/commands/hint.md"
+    fi
+    if [ "$mode" = "check" ]; then
+      printf 'passes:       %s\n' "$STUDY_ROOT/.claude/commands/check.md"
     fi
   fi
   echo

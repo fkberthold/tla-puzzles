@@ -2324,6 +2324,29 @@ assert_matches_flat "and says a one-shot runs with no tools at all" \
 assert_matches_flat "CLAUDE.md rations a steered question by whether answering it leaves the work" \
   "$STUDY_CONFIG" "leave him the item's work"
 
+# The direction, for the config's copy of the tiebreak and for the same reason
+# the command's row below carries it. Bead tla-x0he. The config and the sheet
+# both state the ambiguous case, so a reversal that moved one and not the
+# other would leave a one-shot reading two rules that disagree.
+assert_matches_flat "and points the ambiguous case at flat, the way the sheet does" \
+  "$STUDY_CONFIG" "can't tell which kind.*answer the mechanism flat"
+
+# WHAT THE CONFIG MAY POINT AT, which is the whole of bead tla-x0he. The
+# config tells a check run to work the passes in /check in order. A one-shot
+# runs with no tools and cannot open that file, so for as long as --check
+# existed the run was following a document it had only ever seen summarized.
+# The runner ships it now, the way it ships the hint sheet, and the config
+# says so where it already says so for the hint.
+assert_matches_flat "CLAUDE.md says the runner ships the check passes into a check prompt" \
+  "$STUDY_CONFIG" "cats.*check.*into a check prompt"
+
+# The hint's half of the same claim, which has been true since tla-1sh7.1 and
+# was never gated. Both halves matter for the same reason: a config that sends
+# a run to a file and does not say the file arrives is a config the run reads
+# as a path it cannot open.
+assert_matches_flat "and says the same for the hint's sheet" \
+  "$STUDY_CONFIG" "cats.*hint.*into a hint prompt"
+
 # ---------------------------------------------------------------------------
 echo
 echo "== the two commands =="
@@ -2387,8 +2410,22 @@ assert_matches_flat "and sorts it by whether answering in full leaves the item's
 assert_matches_flat "and answers a mechanism question flat rather than spending a rung on it" \
   "$STUDY_HINT_CMD" '[Aa]nswer it flat|[Aa]nswer flat'
 
+# STRENGTHENED by bead tla-x0he, and the old row is the lesson. It matched the
+# phrase "can't tell which kind" and stopped there, so it asserted that the
+# file RULES on the ambiguous case without asserting WHICH WAY. tla-1sh7.1
+# reversed that rule from ladder to flat, and this row stayed green across the
+# reversal, which means it would stay green across a reversal back.
+#
+# The needle now carries the direction. `.*` under assert_matches_flat spans
+# the line break the phrase wraps at, which is why the flat helper is the one
+# this row uses.
 assert_matches_flat "and rules on the ambiguous case, which tla-1sh7.1 reversed to flat" \
-  "$STUDY_HINT_CMD" "can't tell which kind"
+  "$STUDY_HINT_CMD" "can't tell which kind.*answer the mechanism flat"
+
+# The control for the row above. Without it a needle that matched nothing on
+# EITHER side of the reversal would look like a passing strengthening.
+assert_lacks_flat "and does not point the old way as well, which would gate nothing" \
+  "$STUDY_HINT_CMD" "can't tell which kind[^.]*ladder it"
 
 # ---------------------------------------------------------------------------
 echo

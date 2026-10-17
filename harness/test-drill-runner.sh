@@ -292,6 +292,32 @@ assert_absent() {
   fi
 }
 
+# assert_before <label> <first> <second> <body>: both are in the body, and the
+# first one's first line comes before the second one's.
+#
+# ORDER IS A CLAIM THE RUNNER MAKES AND NOTHING ELSE CHECKED. build_prompt puts
+# the prose it ships ahead of the material that prose is read against, and
+# argues at the call site that a model handed the material first reads it
+# twice. A pair of presence rows passes on either order, so the argument was
+# ungated until bead tla-x0he.
+#
+# It reports an absent needle as its own failure rather than as a bad order,
+# because the two want different fixes.
+assert_before() {
+  local label="$1" first="$2" second="$3" body="$4" a b
+  a=$(grep -nF -- "$first" <<<"$body" | cut -d: -f1 | sed -n 1p)
+  b=$(grep -nF -- "$second" <<<"$body" | cut -d: -f1 | sed -n 1p)
+  if [ -z "$a" ]; then
+    nope "$label. The output never said: $first"
+  elif [ -z "$b" ]; then
+    nope "$label. The output never said: $second"
+  elif [ "$a" -lt "$b" ]; then
+    ok "$label"
+  else
+    nope "$label. [$first] is at line $a and [$second] at line $b"
+  fi
+}
+
 if [ "$TEST_RUNNER_PRESENT" -eq 0 ]; then
   nope "drill/drill.sh exists. There is no runner at $RUNNER, so nothing below can run"
   printf "\nFAILED: %d passed, %d failed\n" "$pass_count" "$fail_count" >&2
@@ -976,6 +1002,30 @@ write_hint_sheet() {
     "When you cannot tell which kind it is, answer the mechanism flat." >"$1"
 }
 
+# The check passes, which is the hint sheet's shape with one file swapped, for
+# the reason that made the hint sheet a bug. Bead tla-x0he.
+#
+# The study config tells a check run to work the passes in order and to hand
+# back what their last section asks for. Both live in
+# drill/study/.claude/commands/check.md, at a path a one-shot under
+# `--tools ""` cannot open, so the run was working from a summary of a
+# document it was told to follow in order.
+#
+# Two sentinels rather than one. The first is a pass body, so a row asserting
+# it is asserting the passes arrived. The second is the hand-back list the
+# config points at by reference, so a runner that shipped the passes and
+# dropped the list would still redden.
+CHECK_PASSES_REL=".claude/commands/check.md"
+CHECK_PASSES_SENTINEL="A distinct-state count is a property of Init and Next."
+CHECK_HANDBACK_SENTINEL="Each obligation that fails, as a behavior the model admits."
+write_check_passes() {
+  mkdir -p "${1%/*}"
+  printf '%s\n' \
+    '# The check passes, fixture copy' \
+    "$CHECK_PASSES_SENTINEL" \
+    "$CHECK_HANDBACK_SENTINEL" >"$1"
+}
+
 # run_coach_path <path> <study-root> <cwd> <tree> [args...]
 #
 # The recorder is cleared first, so every "no model was called" row below is
@@ -1038,6 +1088,7 @@ write_check_stub "$STUDY_COACH/check"
 write_style_stub "$STUDY_COACH/style"
 write_style_register "$STUDY_COACH/STYLE.md"
 write_hint_sheet "$STUDY_COACH/$HINT_SHEET_REL"
+write_check_passes "$STUDY_COACH/$CHECK_PASSES_REL"
 
 printf '%s\n' '---- MODULE Pickers ----' 'VARIABLE held' 'Init == held = 0' '====' \
   >"$ATTEMPT_DIR/Pickers.tla"
@@ -1136,6 +1187,30 @@ assert_says_literal "and what the checker said on stderr, so a silent failure is
 assert_says_literal "and the checker's exit code, which the model has no way to derive" \
   "exit 0" "$COACH_STDIN"
 
+# THE PASSES, WHICH ARE THE WHOLE OF BEAD tla-x0he. The study config tells a
+# check run to work the passes in order and to hand back everything their last
+# section asks for, and both sit in drill/study/.claude/commands/check.md. A
+# one-shot under `--tools ""` cannot open that file any more than it could
+# open the hint sheet, so until this bead a check run was following a document
+# it had only ever seen summarized.
+#
+# The needles are sentences of the file's BODY rather than its path, so these
+# rows cannot pass on a runner that merely names the file in its banner.
+assert_says_literal "a check carries the passes' own text, since the model cannot open them" \
+  "$CHECK_PASSES_SENTINEL" "$COACH_STDIN"
+# The config points at the hand-back list by reference and never reproduces
+# it, so a runner shipping the passes and dropping their last section would
+# leave the one thing the config defers on still unreachable.
+assert_says_literal "and the hand-back list the config defers to, not only the passes" \
+  "$CHECK_HANDBACK_SENTINEL" "$COACH_STDIN"
+assert_says_literal "and the run names the passes it shipped" \
+  "$STUDY_COACH/$CHECK_PASSES_REL" "$RUN_OUT"
+# THE PASSES COME BEFORE THE MATERIAL, for the reason the register and the
+# sheet both do: they are what the material after them is read against, and a
+# model handed the material first reads it twice.
+assert_before "the passes arrive before the checker's numbers" \
+  "$CHECK_PASSES_SENTINEL" "== CHECKER," "$COACH_STDIN"
+
 assert_never_names "a TLC trace dump is not part of the attempt" \
   "a trace dump TLC wrote" "$COACH_STDIN"
 assert_never_names "nor is a superseded .old module" "an earlier go at it" "$COACH_STDIN"
@@ -1199,8 +1274,20 @@ assert_says_literal "and the run names the sheet it shipped" \
 # HINT-ONLY, and the check prompt is where that is asserted. A check hands
 # back the whole report, so rationing it would be the ladder reaching a mode
 # it has no business in.
-assert_never_names "and a check prompt carries no sheet, since only a hint is rationed" \
+#
+# AMENDED by bead tla-x0he, which made this row's old label false rather than
+# merely dated. A check prompt now carries a file from the same directory, so
+# "carries no sheet" would have read as "carries nothing from there". What the
+# row asserts is unchanged: the LADDER stays out of a check prompt, because a
+# check hands back the whole report and a rationed check would be the ladder
+# in a mode it has no business in.
+assert_never_names "a check prompt carries no ladder, since only a hint is rationed" \
   "$HINT_SHEET_SENTINEL" "$COACH_STDIN"
+# The other direction, which nothing asserted before this bead. The four
+# passes are what a check hands back, and a hint hands back one rung, so the
+# passes in a hint prompt would be the report arriving in the rationed mode.
+assert_never_names "and a hint prompt carries no passes, for the mirror of that reason" \
+  "$CHECK_PASSES_SENTINEL" "$HINT_STDIN"
 
 # The free text is the reason the prompt goes on stdin at all: a heredoc
 # sidesteps every quoting question a command line would raise, so the row
@@ -1391,6 +1478,11 @@ STUDY_NOSHEET="$TMPROOT/coach-study-nosheet"
 mkdir -p "$STUDY_NOSHEET/$SLUG0"
 cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_NOSHEET/$SLUG0/Pickers.tla"
 write_check_stub "$STUDY_NOSHEET/check"
+# The passes ARE delivered here, and that is what bead tla-x0he changed about
+# this fixture. The root is missing exactly one file, so the refusal below is
+# about the sheet and the run after it proves the gate is the hint's alone.
+# A root missing both would have proved neither.
+write_check_passes "$STUDY_NOSHEET/$CHECK_PASSES_REL"
 assert_absent "the no-sheet study root really has no hint sheet in it" \
   "$STUDY_NOSHEET/$HINT_SHEET_REL"
 
@@ -1421,6 +1513,74 @@ assert_says_literal "and the sheet it shipped is that root's" \
   "$STUDY_NOSHEET/$HINT_SHEET_REL" "$RUN_OUT"
 assert_says_literal "and its text reached the model" \
   "$HINT_SHEET_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# --- THE PASSES GATE, WHICH IS THE SHEET GATE IN THE CHECK'S SHAPE ---------
+#
+# Bead tla-x0he. A check over a study root with no check.md in it is refused
+# before the checker is executed, for the sheet's reason exactly: the study
+# config tells the run to work the passes in order, and with no tools the
+# model cannot tell an absent file from an empty one. It would improvise a
+# report off the config's one-sentence pointer and sound just as sure.
+#
+# WHY THE REFUSAL IS WORTH MORE HERE THAN THE PARTIAL RUN. A hint that
+# misclassifies spends a rung. A check that skips pass 3 returns a clean
+# verdict over a right count reached by a wrong model, which is the one
+# failure the whole mode exists to catch, and it returns it looking green.
+#
+# The root carries a WORKING CHECKER and a hint sheet, so the refusal is about
+# the file it names and not about anything else the root is missing.
+
+STUDY_NOPASSES="$TMPROOT/coach-study-nopasses"
+mkdir -p "$STUDY_NOPASSES/$SLUG0"
+cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_NOPASSES/$SLUG0/Pickers.tla"
+write_check_stub "$STUDY_NOPASSES/check"
+write_hint_sheet "$STUDY_NOPASSES/$HINT_SHEET_REL"
+assert_absent "the no-passes study root really has no check.md in it" \
+  "$STUDY_NOPASSES/$CHECK_PASSES_REL"
+
+run_coach "$STUDY_NOPASSES" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a check over a study root with no passes is refused" 1
+assert_says_literal "and the refusal names the path the passes should be at" \
+  "$STUDY_NOPASSES/$CHECK_PASSES_REL" "$RUN_ERR"
+assert_says_literal "and says why a model with no tools cannot be sent to read them" \
+  "no tools" "$RUN_ERR"
+assert_absent "and no model was called, so nothing half-ran" "$STUB_REC/claude.argv"
+# THE HALF-RUN GUARD, in the expensive direction: a refusal decided after the
+# checker ran would have spent a TLC run and thrown the numbers away.
+assert_absent "and the checker was not run either, so nothing was checked for nothing" \
+  "$STUB_REC/check.argv"
+
+# THE GATE IS THE CHECK'S ALONE, the mirror of the row the sheet gate has.
+# Without it the row above is indistinguishable from a root broken for every
+# mode.
+run_coach "$STUDY_NOPASSES" "$OUTSIDE" "$T_COACH" --hint
+assert_rc "the same root hints fine with no passes in it, since --hint reads none" 0
+assert_says_literal "and the sheet still reached the model over it" \
+  "$HINT_SHEET_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+write_check_passes "$STUDY_NOPASSES/$CHECK_PASSES_REL"
+run_coach "$STUDY_NOPASSES" "$OUTSIDE" "$T_COACH" --check
+assert_rc "with the passes delivered, the check runs" 0
+assert_says_literal "and the passes it shipped are that root's" \
+  "$STUDY_NOPASSES/$CHECK_PASSES_REL" "$RUN_OUT"
+assert_says_literal "and their text reached the model" \
+  "$CHECK_PASSES_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# A STYLE RUN IS GATED ON NEITHER, which is the third leg and the one that
+# keeps the two gates from quietly becoming one. The style root below holds a
+# style script and its register and nothing from .claude/commands at all.
+STUDY_STYLEONLY="$TMPROOT/coach-study-styleonly"
+mkdir -p "$STUDY_STYLEONLY/$SLUG0"
+cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_STYLEONLY/$SLUG0/Pickers.tla"
+write_style_stub "$STUDY_STYLEONLY/style"
+write_style_register "$STUDY_STYLEONLY/STYLE.md"
+assert_absent "the style-only root has no passes in it" \
+  "$STUDY_STYLEONLY/$CHECK_PASSES_REL"
+assert_absent "and no sheet either" "$STUDY_STYLEONLY/$HINT_SHEET_REL"
+run_coach "$STUDY_STYLEONLY" "$OUTSIDE" "$T_COACH" --style
+assert_rc "a style run over a root with neither is served" 0
+assert_never_names "and its prompt carries no passes" \
+  "$CHECK_PASSES_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
 
 # A PATH carrying what the runner needs and no claude. Built by resolving the
 # real ones rather than by guessing at /bin, so the row is about the absence of
@@ -1555,10 +1715,26 @@ assert_never_names "and the list no longer says there are three of them" \
 # what has to grow.
 # shellcheck disable=SC2016
 COACH_HEAD_SHEET='$STUDY_ROOT/.claude/commands/hint.md'
-assert_says_literal "and the sheet a hint ships, which no other flag ships" \
+assert_says_literal "the narrowed list names the sheet a hint ships" \
   "$COACH_HEAD_SHEET" "$COACH_HEAD"
 assert_never_names "and the list no longer says there are five of them either" \
   "read five things outside it" "$COACH_HEAD"
+
+# THE SEVENTH ENTRY, bead tla-x0he, and the third time this list has grown by
+# the same argument. The passes sit under the same study root the other six
+# resolve from, so nothing is re-argued and the enumeration is what moves.
+# shellcheck disable=SC2016
+COACH_HEAD_PASSES='$STUDY_ROOT/.claude/commands/check.md'
+assert_says_literal "and the passes a check ships" \
+  "$COACH_HEAD_PASSES" "$COACH_HEAD"
+assert_never_names "and the list no longer says there are six of them" \
+  "read six things outside it" "$COACH_HEAD"
+# The header's own hint-only claim, which tla-x0he made false. It said a check
+# prompt carries no sheet, for the reason a style prompt carries no checker
+# block, and a check prompt now carries a file from that directory. A stale
+# argument in a header reads exactly like a live one.
+assert_never_names "and no longer argues the prompt side is the hint's alone" \
+  "HINT-ONLY IN THE PROMPT TOO" "$COACH_HEAD"
 
 # ONE SOURCE FOR THE REGISTER RULES, AND IT IS NOT THE RUNNER.
 #
@@ -1717,6 +1893,16 @@ assert_eq "and nothing beside the runner either, so a style run is not a serve" 
 # flag rather than as an addition to --check, and the size is what that costs.
 # Measured here rather than written down, so the row stays true as the files
 # move.
+#
+# AMENDED by bead tla-x0he, and the amendment is a finding about what this row
+# used to establish. It compared a style prompt against a check prompt over
+# the same attempt, and the fixture's register, sheet and passes are three
+# lines each, so the gap it measured was the gap between shipping three lines
+# and shipping nothing. It would have passed over a register of one line. The
+# ordering it claims is a claim about the REAL files, so the real files are
+# what the row below reads, and the fixture comparison is now about the
+# MECHANISM instead: each mode's prompt grows by its own prose file and by no
+# other mode's.
 
 # Both read off the recorder FILE rather than off a captured variable, because
 # a command substitution strips trailing newlines and the two prompts do not
@@ -1726,12 +1912,40 @@ STYLE_PROMPT_BYTES=0
 run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
 CHECK_PROMPT_BYTES=0
 [ -f "$STUB_REC/claude.stdin" ] && CHECK_PROMPT_BYTES=$(wc -c <"$STUB_REC/claude.stdin")
-printf '  NOTE  style prompt %s bytes, check prompt %s bytes over the same attempt\n' \
-  "$STYLE_PROMPT_BYTES" "$CHECK_PROMPT_BYTES"
-if [ "$STYLE_PROMPT_BYTES" -gt "$CHECK_PROMPT_BYTES" ]; then
-  ok "the style prompt is larger than the check prompt over the same attempt, which is the register's weight"
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint
+HINT_PROMPT_BYTES=0
+[ -f "$STUB_REC/claude.stdin" ] && HINT_PROMPT_BYTES=$(wc -c <"$STUB_REC/claude.stdin")
+printf '  NOTE  style %s, check %s, hint %s bytes over the same attempt\n' \
+  "$STYLE_PROMPT_BYTES" "$CHECK_PROMPT_BYTES" "$HINT_PROMPT_BYTES"
+
+# THE REAL FILES, which is where the ordering claim lives. The suite drives
+# fixtures everywhere else, and it has to, because a row over the real study
+# root would redden on an edit that is another bead's business. The ordering
+# is the exception: it is a fact about the three files as shipped, and
+# nothing else in the tree gates it.
+REG_BYTES=0; SHEET_BYTES=0; PASS_BYTES=0
+REAL_REG="$REPO_ROOT/drill/study/STYLE.md"
+REAL_SHEET="$REPO_ROOT/drill/study/.claude/commands/hint.md"
+REAL_PASS="$REPO_ROOT/drill/study/.claude/commands/check.md"
+[ -f "$REAL_REG" ]   && REG_BYTES=$(wc -c <"$REAL_REG")
+[ -f "$REAL_SHEET" ] && SHEET_BYTES=$(wc -c <"$REAL_SHEET")
+[ -f "$REAL_PASS" ]  && PASS_BYTES=$(wc -c <"$REAL_PASS")
+printf '  NOTE  shipped prose: register %s, sheet %s, passes %s bytes\n' \
+  "$REG_BYTES" "$SHEET_BYTES" "$PASS_BYTES"
+if [ "$PASS_BYTES" -eq 0 ]; then
+  nope "the register outweighs the other two. No passes file to weigh, so the row proves nothing"
+elif [ "$REG_BYTES" -gt "$SHEET_BYTES" ] && [ "$REG_BYTES" -gt "$PASS_BYTES" ]; then
+  ok "the register outweighs both the sheet and the passes, which is why --style is its own flag"
 else
-  nope "the style prompt is $STYLE_PROMPT_BYTES bytes against the check prompt's $CHECK_PROMPT_BYTES, so the register is not being shipped"
+  nope "the register is $REG_BYTES bytes against a $SHEET_BYTES sheet and $PASS_BYTES of passes, so a style run is no longer the expensive one"
+fi
+
+# The vacuity guard for the NOTE above it. A zero here would mean a mode
+# assembled nothing, and three zeroes would read as a tidy table.
+if [ "$CHECK_PROMPT_BYTES" -gt 0 ] && [ "$STYLE_PROMPT_BYTES" -gt 0 ] && [ "$HINT_PROMPT_BYTES" -gt 0 ]; then
+  ok "all three modes assembled a prompt over the same attempt, so the byte note above is real"
+else
+  nope "one of the three prompts came back empty, so the byte note above is not a measurement"
 fi
 
 # --- the style script's exit code is not the runner's -----------------------
@@ -2092,6 +2306,12 @@ if mutate coach-ships-without-checker 's|^  elif \[ ! -x "\$STUDY_ROOT/check" \]
   STUDY_M7="$TMPROOT/study-root-m7"
   mkdir -p "$STUDY_M7/$SLUG0"
   cp -- "$ATTEMPT_DIR/Pickers.tla" "$STUDY_M7/$SLUG0/Pickers.tla"
+  # EVERY DEPENDENCY BUT THE MUTATED ONE, which bead tla-x0he had to say out
+  # loud. The mutation disables the checker gate alone, so the root has to
+  # hold everything else a check needs. Without the passes here the run is
+  # refused by the passes gate, no model is called, and the control reports
+  # the half-run as undetected over a runner that would have shipped one.
+  write_check_passes "$STUDY_M7/$CHECK_PASSES_REL"
   run_coach "$STUDY_M7" "$OUTSIDE" "$T_M7" --check
   if [ -e "$STUB_REC/claude.argv" ]; then
     ok "control: a runner shipping with no checker run is DETECTED as a half-run"

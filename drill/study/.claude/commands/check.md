@@ -3,12 +3,18 @@ description: Check the drill attempt in this directory against the prompt's own 
 ---
 
 Check the attempt in the current directory. `CLAUDE.md` in the study root is a
-refusal contract and it governs every step below. Read it first if you haven't
-in this session, and reread the part about never writing TLA+ before you report
+refusal contract and it governs every step below. It loads by itself from here,
+and the part about never writing TLA+ is worth rereading before you report
 anything.
 
 Work in four passes. The first is a script. The other three are the reason
 you're here, because a script can't do any of them.
+
+Two ways in, and they differ in what you can reach rather than in what to do.
+A typed `/check` has its tools. A `./drill --check` one-shot has none at all,
+and this file arrives on its stdin because of that. Where a pass below tells
+you to open something, the one-shot's copy is already in the prompt, so look
+there rather than reaching for the path.
 
 ## 1. Run the checker
 
@@ -82,7 +88,8 @@ Many prompts end in a question rather than a count, and the temporal family
 ends in one by design. Those answers are in whatever file or comment he wrote
 them in, so look for them before you conclude the item has nothing to grade.
 
-Read the prompt to find the question. It's at
+Read the prompt to find the question. In a one-shot it's already in front of
+you, under its own `PROMPT.md` label. In a typed session it's at
 `~/tla-practice/drill/*/<slug>/PROMPT.md`, where `<slug>` is this directory's
 name, and the delivered prompt tree is the one place you're allowed to read.
 Then judge the answer on whether it's true of the model he actually wrote, not
