@@ -32,8 +32,17 @@ bd close <id>         # Complete work
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
+
+   **Never `git pull --rebase` here.** It flattens a `--no-ff` merge commit and
+   rewrites every SHA after it, so the close reasons you just wrote point at
+   commits that no longer exist. Fast-forward instead, which refuses rather than
+   rewrites when the remote has moved. Hit on 2026-10-17 following this very
+   checklist, with the hazard already in a bd memory that did not fire because a
+   procedure beats a disposition.
+
    ```bash
-   git pull --rebase
+   git fetch
+   git merge --ff-only origin/main   # if this refuses, resolve it deliberately
    if bd dolt remote list --json 2>/dev/null | grep -q '"name"'; then
      bd dolt push
    else
