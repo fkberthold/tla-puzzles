@@ -149,6 +149,7 @@ CGATE="harness/comment-gate.sh"
 DGATE="harness/drill-gate.sh"
 RGATE="harness/reading-gate.sh"
 KGATE="harness/completion-gate.sh"
+QGATE="harness/recall-gate.sh"
 
 pass_count=0
 fail_count=0
@@ -220,7 +221,7 @@ involuntary_admissions() {
 # rcs, which is a success code carrying a skip admission, exactly what part 3
 # forbids. That block now spells the admission and names its flag
 # (drill-gate.sh:2389), and the --static-only row below is what checks it.
-REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE" "$KGATE")
+REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE" "$KGATE" "$QGATE")
 ROWS_RUN=()
 ROWS_NONPASS=()
 for i in "${!REGISTERED[@]}"; do
@@ -689,6 +690,34 @@ assert_out "the static-only admission and its waiving flag are on one line" \
   "were skipped (--static-only)"
 assert_out "the static-only run still states what it did not measure" \
   "whose holes were not measured"
+
+# --- recall-gate.sh: the same two shapes, over the recall corpus ------------
+#
+# Added by central at the tla-1sh7.4 merge rather than by that bead's worker,
+# because this file is not in its footprint. The gate's own OUTSTANDING block
+# carries the patch and states that every assertion below was measured against
+# the instrument before it was written down.
+#
+# Checks 1 and 2 drive TLC through recall/recall.sh, so the two shapes are the
+# completion gate's: --no-tlc is a refusal at 99, and --static-only is a
+# caller instruction that stays a true pass at 0.
+run_row "$QGATE" "recall-gate.sh: --no-tlc was asked to grade 120 reps and did not" \
+  "$INDETERMINATE" -- \
+  bash "$QGATE" --no-tlc -q recall
+assert_out "the recall gate names the check it did not run" "UNCHECKED every-canonical-scores-0"
+assert_out "the recall gate reports the reserved token" "VERDICT $TOKEN"
+assert_not_out "the recall gate does not claim OK over it" "VERDICT OK"
+
+# Same one-line pinning as the row above: involuntary_admissions() matches line
+# by line and asks each matching line for its parenthetical, so the admission
+# and the flag that waives it have to sit adjacent.
+run_row "$QGATE" "recall-gate.sh: --static-only is a caller instruction, not a failure" \
+  0 -- \
+  bash "$QGATE" --static-only -q recall
+assert_out "the static-only admission and its waiving flag are on one line" \
+  "were skipped (--static-only)"
+assert_out "the static-only run still states what it did not measure" \
+  "whose grading was not measured"
 
 # --- comment-gate.sh: the instrument that already got this right ------------
 #
