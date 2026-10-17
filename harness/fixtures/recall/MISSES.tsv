@@ -8,7 +8,7 @@
 # this file can never be read as data. Four fields, in order:
 #
 #   1  marker       the literal MISS
-#   2  rep id       a REP row in REPS.tsv beside this file
+#   2  rep id       a REP or a SPEC row in REPS.tsv beside this file
 #   3  wrong        the wrong answer, as TLA+, verbatim
 #   4  explanation  what that answer says
 #
@@ -20,6 +20,10 @@
 #         the same mistake spaced three ways and requires all three to reach
 #         this row, and the exact-match mutant requires two of them to stop.
 #   R002  a second rep, so a row firing is not one rep's accident.
+#   Q001  a SPEC rep, so the layer is covered for the row kind whose wrong
+#         answer has no value block above the explanation. Its wrong answer
+#         scores rc 5 rather than rc 10, which is the lookup the sibling gate
+#         does per row kind rather than per table.
 #
 # NO ROW FOR `[Tracks -> Wagons]`, WHICH IS DELIBERATE. That is case C004, a
 # wrong answer to R001 that this table has nothing to say about, and it is
@@ -31,3 +35,4 @@
 # two values that already show the right answer.
 MISS	R001	[w \in Wagons |-> Tracks]	That's one parking, and what it gives back for every wagon is the whole set of tracks rather than a single track.
 MISS	R002	[w \in Wagons |-> 2]	That parks every wagon on the second track. It is a parking of the right shape standing in the wrong place.
+MISS	Q001	WF_vars(Flip)	That promises the flag keeps flipping, which it would do anyway. The counter is the thing that can be left where it is.

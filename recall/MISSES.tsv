@@ -1,13 +1,15 @@
-# The recall miss table (bead tla-1sh7.3, epic tla-1sh7).
+# The recall miss table (beads tla-1sh7.3 and tla-03ep.1, epics tla-1sh7 and
+# tla-i7uz).
 #
-# A wrong answer somebody actually writes, and what that answer says. 30 rows
-# over 30 of the 120 reps in recall/REPS.tsv, reaching 25 of the 37 constructs.
+# A wrong answer somebody actually writes, and what that answer says. 90 rows:
+# 30 over 30 of the 120 REP rows in recall/REPS.tsv, reaching 25 of their 37
+# constructs, and 60 over 38 of the 40 SPEC rows, reaching 18 of their 20.
 #
 # Rows are tab-delimited and carry the literal first field MISS, so prose in
 # this file can never be read as data. Four fields, in order:
 #
 #   1  marker       the literal MISS
-#   2  rep id       a REP row in recall/REPS.tsv
+#   2  rep id       a REP or a SPEC row in recall/REPS.tsv
 #   3  wrong        the wrong answer, as TLA+, verbatim
 #   4  explanation  what that answer says
 #
@@ -23,17 +25,41 @@
 # "You wrote one function whose value at each element is the whole set" is the
 # register. "You need a function set" is not.
 #
-# EVERY FIELD 3 SCORES rc 10 THROUGH recall/recall.sh AGAINST ITS OWN REP, and
-# each was watched doing it on 2026-10-16 before its row was written. An answer
-# that scores 0 is not a miss. One that scores 150 never parsed, so it reports
-# on the text rather than on the idea behind it, which is other feedback.
+# EVERY FIELD 3 SCORES THE WRONG-ANSWER CODE OF ITS OWN ROW KIND THROUGH
+# recall/recall.sh, and each was watched doing it before its row was written:
+# the REP rows on 2026-10-16 and the SPEC rows on 2026-10-17.
 #
-# A REP WITH NO ROW IS THE NORMAL CASE. 90 of the 120 have none. A rep that
-# finds no row here falls through to the model call, which is the fourth layer
-# and is safe at this rung because the answer is already on screen. Padding
-# this file to reach coverage would cost that safety and buy nothing.
+#   a REP row's wrong answer   rc 10  the values are not equal
+#   a SPEC row's wrong answer  rc 5   every scaffold ran and the vector of
+#                                     exit codes is not the one field 8 names
 #
-# WHERE THE ROWS CAME FROM. 406 of the 498 modules under drill/*/*/verify/
+# An answer that scores 0 is not a miss. One that scores 150 never parsed, so
+# it reports on the text rather than on the idea behind it, which is other
+# feedback. On a SPEC row 75, 151 and 255 are the same class: all three are
+# reachable from a wrong VARIABLES line or a wrong fairness term, and none is
+# a statement about the answer, so none of them can carry a row here. That is
+# why S037 and S038, the two VARIABLES reps, have no row at all: every wrong
+# declaration measured came back 150, 151 or 255.
+#
+# A SPEC ROW'S WRONG ANSWER WAS MEASURED AGAINST THE BATTERY THAT REP SHIPS,
+# not against a battery that looked like it. A near neighbor can share the
+# canonical's vector -- `<>(level = 1)` matched a two-sided battery and S011
+# had to grow to four scaffolds -- so a row written from a guessed vector is
+# a row claiming a check that does not happen.
+#
+# A REP WITH NO ROW IS THE NORMAL CASE ON THE VALUE RUNG. 90 of the 120 REP
+# rows have none. A rep that finds no row here falls through to the model
+# call, which is the fourth layer and is safe at this rung because the answer
+# is already on screen. Padding this file to reach coverage would cost that
+# safety and buy nothing.
+#
+# THE SPEC ROWS ARE DENSER AND THE REASON IS WHAT A SPEC REP CAN SHOW. A wrong
+# value gets both values side by side, which is most of the explanation before
+# this file speaks. A wrong fairness condition has no value to print: what the
+# runner can show is a verdict per machine. So 38 of the 40 SPEC rows carry a
+# row where 30 of the 120 REP rows do.
+#
+# WHERE THE REP ROWS CAME FROM. 406 of the 498 modules under drill/*/*/verify/
 # carry a leading comment naming one wrong move and what it does. Those are
 # construct-level explanations wearing an item's variable names, so the work
 # was re-keying them to constructs and rewriting each to name no module and no
@@ -87,3 +113,69 @@ MISS	R118	[Parking EXCEPT !["a"] = @["a"] + 1]	Inside the update @ is already wa
 # these reps would catch. The near misses I tried either scored 0 against value
 # equality, which means they are a correct form, or were a misreading of the
 # prompt rather than a misreading of the notation.
+# =========================================================================
+# THE SPEC ROWS (bead tla-03ep.1). 60 wrong answers over 38 of the 40 SPEC
+# reps, every one of them submitted through recall/recall.sh against the
+# battery its rep ships and watched coming back rc 5 before its row was
+# written. The two with no row are S037 and S038; the header says why.
+# =========================================================================
+MISS	S001	TRUE	That promises nothing at all. With no promise a run may flip the lamp for ever, and the lift is never obliged to move.
+MISS	S001	WF_vars(Blink)	That promises the lamp keeps flipping, which it would do anyway. The lift is the thing that can be left standing, and this says nothing about it.
+MISS	S001	WF_vars(Next)	That promises the machine keeps taking steps, and the lamp alone satisfies it for ever. A promise about the whole step relation says nothing about which of its parts gets a turn.
+MISS	S002	WF_vars(Tick)	That promises the clock keeps ticking, which it does on its own. The kettle is the thing that can be left cold.
+MISS	S002	WF_vars(Next)	That promises something keeps happening, and the ticking is something. It never obliges the one move that runs out of work.
+MISS	S003	WF_vars(Grab)	That is the weaker promise, and it only bites while the chance stays open without a break. The baton leaves the right hand every other moment, so the chance keeps lapsing and never taking it is allowed.
+MISS	S004	WF_vars(Go)	That is the weaker promise, and the signal goes red every other moment, so the chance keeps lapsing. The train is never obliged to take one of them.
+MISS	S005	WF_vars(Fill)	That covers the tank and leaves the pump out. One run fills the tank and then flips the lamp for ever, which keeps this promise and never primes.
+MISS	S005	WF_vars(Next)	That promises the machine keeps moving, and the lamp keeps it moving for ever. Neither the tank nor the pump is obliged by it.
+MISS	S006	WF_vars(OpenInner)	That covers the inner door and leaves the outer one shut. The buzzer can then sound for ever with the airlock half open.
+MISS	S006	WF_vars(Next)	That promises something keeps happening, and the buzzer is something. Neither door is obliged by it.
+MISS	S007	WF_vars(Next)	That promises the machine keeps moving, and the belt and the fan between them keep it moving for ever. The chute is one move of three and this names none of them.
+MISS	S007	WF_vars(Roll)	That names a move, and the one it names is the belt, which rolls on its own. The parcels are the thing that can be left.
+MISS	S008	WF_vars(Next)	That promises the machine keeps moving, and rattling the drawer is moving. The queue is never obliged to go down.
+MISS	S008	WF_vars(Rattle)	That names a move, and the one it names is the drawer, which rattles on its own and serves nobody.
+MISS	S009	[]TRUE	That claims nothing about the lift. It holds of every machine there is, the one whose lift carries on past the second floor included.
+MISS	S009	[](level < 2)	That rules out the second floor along with everything above it, so it is already false on the machine where the lift is meant to be allowed there.
+MISS	S010	[](lamp = 0)	That says the lamp is never lit at all. The question is about when it may be lit, not whether.
+MISS	S011	[]<>(level = 2)	That asks for the second floor again and again rather than once. The machine that gets there and is then locked out answers the question and not this.
+MISS	S011	<>[](level = 2)	That asks for the lift to reach the second floor and never leave it. The question asks only that it get there.
+MISS	S011	<>(level = 1)	That asks for the first floor. The express machine skips it and still reaches the top.
+MISS	S012	<>(level = 2)	That asks for the second floor. The express machine goes straight there from the ground without ever calling at the first.
+MISS	S013	[]<>(level = 2)	That asks for the second floor again and again and lets the lift leave in between. The machine that climbs and drops for ever satisfies it.
+MISS	S013	<>(level = 2)	That asks for the second floor once and says nothing about staying there.
+MISS	S014	<>[](level = 2)	That pins the lift to one named floor rather than to being off the ground. The machine with no top stop settles above the second floor and still never returns to the ground.
+MISS	S015	<>[](level = 2)	That asks the lift to settle at the second floor and never leave. The machine that climbs and drops for ever reaches it again and again without ever settling.
+MISS	S015	<>(level = 2)	That asks for the second floor once. However far a run has got is the part this drops.
+MISS	S016	<>(lamp = 1)	That asks for the lamp once. The lamp that comes on and then blows satisfies it and never comes on again.
+MISS	S017	[]<>(level = 2)	That asks for the second floor again and again whatever else is happening. The machine with the power off never lights the lamp, so the question is answered there and this is not.
+MISS	S017	<>(level = 2)	That asks for the second floor once and drops the connection to the lamp altogether.
+MISS	S018	[]<>(level = 0)	That asks for the ground again and again whatever else is happening. The machine that stops at the first floor never reaches the second, so the question is answered there and this is not.
+MISS	S018	<>(level = 0)	The lift starts on the ground, so that is already true before anything has moved.
+MISS	S019	[]TRUE	That claims nothing about any step. It holds of the machine that drops the lift as readily as of the one that does not.
+MISS	S019	[][level' = level + 1]_level	That says every step which moves the lift raises it by exactly one, which is more than was asked. The express machine moves it by two and still never takes it down.
+MISS	S020	[](level =< 2)	That is a claim about every state rather than about every step, and TLC checks it as an invariant rather than as a temporal property. What the two forbid here agrees; what kind of thing they are does not.
+MISS	S021	[][level' = level + 1]_vars	Measured against the whole state, a step that only flips the lamp is a step where the lift did not go up by one, so this is already false on the machine the question is about.
+MISS	S022	[]TRUE	That claims nothing about any step, so it holds of the lamp that blows as readily as of the one that keeps flipping.
+MISS	S022	[][lamp' # lamp]_lamp	That says a step which touches the lamp changes it, without saying what to. The lamp that goes from lit to blown has changed and has not been turned to its other reading.
+MISS	S023	<>[](level = 2)	That says the lift settles at the second floor. The machine locked out on the ground can never be raised either, and its lift is nowhere near the top.
+MISS	S024	[]<>(ENABLED Blink)	That is about the lamp, which can always be flipped, so it holds everywhere and says nothing about the lift.
+MISS	S025	[]<>(ENABLED Raise)	That says a rise is possible again and again. The machine that never leaves the ground can always be raised and never is.
+MISS	S026	[]<>(ENABLED Next)	That says a step is possible again and again. The machine with the power off can always take a step that changes nothing, so something is possible for ever while nothing moves.
+MISS	S026	[]TRUE	That claims nothing, so it holds of the machine with the power off along with every other.
+MISS	S027	lamp < 1 /\ lamp' = lamp + 1 /\ level' = level	That moves the lamp and holds the lift still, which is the question the other way round. The state graph is the same shape either way, so what tells them apart is which variable is meant to stay put.
+MISS	S027	level < 2 /\ level' = level + 2 /\ lamp' = lamp	That takes the lift up two floors at a time, so it reaches the second from the ground in one step and the first floor is never a state of the machine at all.
+MISS	S028	level < 2 /\ level' = level + 1 /\ lamp' = lamp	That moves the lift and holds the lamp still, which is the question the other way round.
+MISS	S029	UNCHANGED <<level, lamp>>	That leaves both of them alone, so the machine has one state and nothing ever happens in it.
+MISS	S030	UNCHANGED vars	That leaves the whole state alone rather than the lift alone, so nothing ever happens.
+MISS	S031	\E n \in 0..2 : level' = n /\ lamp' = lamp	That lets the lift go to any floor at all, the one below included, rather than only upwards. It reaches the same three states and generates far more steps getting there.
+MISS	S032	level < 2 /\ level' = level + 1 /\ lamp' = lamp	That is one move rather than a choice between two, and it goes up a floor at a time instead of straight to one end or the other.
+MISS	S033	level < 2 /\ level' = level + 1 /\ lamp' = lamp	That is one of the two moves rather than the relation. The lamp can then never change, so two thirds of the machine's states are out of reach.
+MISS	S034	level < 2 /\ level' = level + 1 /\ lamp' = lamp	That raises the lift and leaves the lamp where it was, so the two come apart at the first floor and the wiring between them is broken.
+MISS	S034	lamp' = 1 - lamp /\ level' = level	That turns the lamp over and leaves the lift where it was, which breaks the wiring the other way round.
+MISS	S035	Init /\ [][Raise]_vars	That builds a run out of the rise alone, so the lamp never flips and the machine has half its states.
+MISS	S036	Raise	That is one of the two moves. The lamp then never flips, and half the machine is out of reach.
+MISS	S036	Raise /\ Blink	That asks for both moves in the one step, and no step can satisfy both, so the machine has an opening state and no successors.
+MISS	S039	<<level>>	That measures the step relation against the lift alone. Once the lift has stopped, a step that only flips the lamp leaves the subscript unchanged, so the machine counts as standing still.
+MISS	S039	<<lamp>>	That measures the step relation against the lamp alone, so on the machine where the lamp stops after one flip everything afterwards counts as standing still.
+MISS	S040	<<gate>>	That measures the step relation against the gate alone, so once the gate has swung the ringing of the bell counts as standing still.
+MISS	S040	<<bell>>	That measures the step relation against the bell alone, so on the machine where the bell rings once everything afterwards counts as standing still.

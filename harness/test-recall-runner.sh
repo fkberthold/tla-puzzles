@@ -111,8 +111,15 @@ ENV_DIR="$FIXTURE/env"
 # reached instead by part 13, which runs one live rep through the defaults.
 MISSES="$FIXTURE/MISSES.tsv"
 SHEET="$FIXTURE/SHEET.md"
+# The spec rows' cases live in a file of their own, and SPEC-CASES.tsv's own
+# header says why: part 2 corroborates every CASES row by building a VALUE
+# scaffold, which a spec rep does not have. Part 15 corroborates these the way
+# a spec rep is actually graded.
+SPEC_CASES="$FIXTURE/SPEC-CASES.tsv"
+SPEC_DIR="$ENV_DIR/spec"
 
-for required in "$RUNNER" "$VERDICT" "$REPS" "$CASES" "$ENV_DIR" "$MISSES" "$SHEET"; do
+for required in "$RUNNER" "$VERDICT" "$REPS" "$CASES" "$ENV_DIR" "$MISSES" "$SHEET" \
+                "$SPEC_CASES" "$SPEC_DIR"; do
   if [ ! -e "$required" ]; then
     printf 'test-recall-runner.sh: missing %s\n' "$required" >&2
     exit 1
@@ -159,18 +166,23 @@ field_of() {
 # pairing of code to token and not just the code. Anything else is a row this
 # fixture does not carry.
 #
-# 4 is the odd one and it is deliberately not a verdict.sh code. It says the
-# value was right and the construct the rep drills was not written, which is a
-# statement about the submission that no exit code of TLC's could carry. It
-# sits in the 3-to-7 range harness/vacuity.sh:320 already reserves for
-# statements about the submission, and it collides with nothing in
-# harness/verdict.sh's table. Part 10 asserts the non-collision.
+# 4 and 5 are the odd ones and neither is a verdict.sh code. 4 says the answer
+# was accepted and the construct the rep drills was not written. 5 says a spec
+# rep's scaffolds all ran and the vector of codes was not the one field 8
+# names. Both are statements about the submission that no exit code of TLC's
+# could carry, both sit in the 3-to-7 range harness/vacuity.sh:320 already
+# reserves for exactly that, and both collide with nothing in
+# harness/verdict.sh's table. Parts 10 and 15 assert the non-collision.
 token_for() {
   case "$1" in
     0)   printf 'OK\n' ;;
     4)   printf 'CONSTRUCT_NOT_WRITTEN\n' ;;
+    5)   printf 'SPEC_NOT_MATCHED\n' ;;
     10)  printf 'ASSUMPTION_FAILED\n' ;;
+    12)  printf 'SAFETY_VIOLATION\n' ;;
+    13)  printf 'LIVENESS_VIOLATION\n' ;;
     150) printf 'PARSE_ERROR\n' ;;
+    255) printf 'TLC_EXCEPTION\n' ;;
     *)   printf 'UNKNOWN_%s\n' "$1" ;;
   esac
 }
@@ -438,8 +450,16 @@ mutate() {
 # that case, which is the other half of the guard.
 
 # M1. the reported code stops being the one verdict.sh returned.
+#
+# M1 AND M2 ARE ANCHORED TO THEIR LINE'S CONTENT AND TO ITS INDENT AS A
+# CAPTURE, amended 2026-10-17. Both lines sat at column 0 and both moved into
+# an `else` arm when the SPEC path landed, so a bare `^` anchor stopped
+# matching and both mutations silently became no-ops. mutate() caught it,
+# which is what it is for. The lesson is part 14's own: a pattern pinned to a
+# nesting level is pinned to something a later edit can move, so the indent is
+# captured and replayed rather than written down.
 # shellcheck disable=SC2016
-if mutate inferred-code 's|^GRADE_RC="\$VERDICT_RC"$|GRADE_RC=0|'; then
+if mutate inferred-code 's|^\([[:space:]]*\)GRADE_RC="\$VERDICT_RC"$|\1GRADE_RC=0|'; then
   run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   assert_ne "control: a runner reporting its own code is DETECTED by part 1's code row" \
     "10" "$RUN_RC"
@@ -447,7 +467,7 @@ if mutate inferred-code 's|^GRADE_RC="\$VERDICT_RC"$|GRADE_RC=0|'; then
 fi
 
 # M2. rc 150 is reported as a wrong answer rather than as its own thing.
-if mutate parse-called-wrong 's|^  150) GRADE="parse-error" ;;$|  150) GRADE="incorrect" ;;|'; then
+if mutate parse-called-wrong 's|^\([[:space:]]*\)150) GRADE="parse-error" ;;$|\1150) GRADE="incorrect" ;;|'; then
   run_runner "$MUTANT" R001 '[Wagons ->'
   if has "$RUN_OUT" 'grade=parse-error'; then
     nope "control: a runner calling a parse error a wrong answer is DETECTED"
@@ -712,8 +732,15 @@ VERDICT_ROWS=$(awk '
 
 assert_ne "the runner names codes of its own, so the rows below are not vacuous" \
   "" "$RUNNER_ROWS"
-assert_eq "it names five: the three a grading run reaches, plus 124 and 255" \
-  "5" "$(wc -l <<<"$RUNNER_ROWS")"
+# NINE, AND THE NUMBER MOVED ON 2026-10-17 RATHER THAN DRIFTING. It read five
+# while the only grading scaffold declared no SPECIFICATION and one ASSUME, so
+# a grading run could reach 0, 10 and 150 and nothing else. A SPEC row runs a
+# whole machine, so 12 and 13 are reachable verdicts and 75 and 151 are
+# reachable reports, measured from real wrong answers. The count is pinned
+# rather than loosened so the next row added still has to be a row verdict.sh
+# maps, which is what the drift check below is for.
+assert_eq "it names nine, every one of them a row of verdict.sh's own table" \
+  "9" "$(wc -l <<<"$RUNNER_ROWS")"
 assert_ne "and verdict.sh's own arms were read, so the comparison has two sides" \
   "" "$VERDICT_ROWS"
 
@@ -730,9 +757,13 @@ done <<<"$RUNNER_ROWS"
 assert_eq "every code the runner names carries verdict.sh's own token for it" \
   "" "$TABLE_DRIFT"
 
-# The three a grading run can actually reach, named rather than only counted,
-# so a table that drifted to five other rows still goes red here.
-for want in "0 OK" "10 ASSUMPTION_FAILED" "150 PARSE_ERROR"; do
+# The ones a grading run can actually reach, named rather than only counted,
+# so a table that drifted to nine other rows still goes red here. 12 and 13
+# are reachable only from a SPEC row and were measured from real wrong
+# answers: a swapped variable breaks the scaffold's INVARIANT at 12, and a
+# property that does not hold is 13.
+for want in "0 OK" "10 ASSUMPTION_FAILED" "12 SAFETY_VIOLATION" \
+            "13 LIVENESS_VIOLATION" "150 PARSE_ERROR"; do
   if grep -qxF -- "$want" <<<"$RUNNER_ROWS"; then
     ok "the runner maps ${want%% *} to ${want#* }, as verdict.sh does"
   else
@@ -788,8 +819,13 @@ done
 # The `$VERDICT_RC` is a literal to find in the runner's source. Expanding it
 # here would search for whatever this suite happens to hold, which is nothing,
 # and the row would pass over an empty pattern.
+#
+# The leading `[[:space:]]*` is amended 2026-10-17 for the reason M1's pattern
+# is: the line moved into an `else` arm when the SPEC path landed. What is
+# asserted is that the assignment's right-hand side is the verdict channel's
+# own variable and nothing else, which the trailing `$` still pins.
 # shellcheck disable=SC2016
-if has "$SRC" '^GRADE_RC="\$VERDICT_RC"$'; then
+if has "$SRC" '^[[:space:]]*GRADE_RC="\$VERDICT_RC"$'; then
   ok "the reported code is assigned straight from the verdict channel's code"
 else
   nope "the reported code is assigned straight from the verdict channel's code"
@@ -822,6 +858,40 @@ assert_eq "every CASE row has six fields" "" \
   "$(awk -F'\t' '$1 == "CASE" && NF != 6 { print $2 }' "$CASES")"
 assert_eq "every CASE names a REP that exists" "" \
   "$(awk -F'\t' 'NR == FNR && $1 == "REP" { have[$2] = 1; next } $1 == "CASE" && !($3 in have) { print $2 }' "$REPS" "$CASES")"
+# The spec rows' own shape. Eight fields or nine, and the ninth exists exactly
+# when a scaffold the row names has a hole for it.
+assert_eq "every SPEC row has eight or nine fields" "" \
+  "$(awk -F'\t' '$1 == "SPEC" && (NF < 8 || NF > 9) { print $2 }' "$REPS")"
+assert_eq "three SPEC rows, which is one per hole shape" \
+  "3" "$(awk -F'\t' '$1 == "SPEC"' "$REPS" | wc -l)"
+assert_eq "exactly one of them carries a field 9, so both paths are covered" \
+  "1" "$(awk -F'\t' '$1 == "SPEC" && NF == 9 && $9 != ""' "$REPS" | wc -l)"
+assert_eq "every SPEC_CASES row has seven fields" "" \
+  "$(awk -F'\t' '$1 == "CASE" && NF != 7 { print $2 }' "$SPEC_CASES")"
+assert_eq "every SPEC_CASES row names a SPEC row that exists" "" \
+  "$(awk -F'\t' 'NR == FNR && $1 == "SPEC" { have[$2] = 1; next } $1 == "CASE" && !($3 in have) { print $2 }' "$REPS" "$SPEC_CASES")"
+# Every scaffold a SPEC row names resolves to BOTH files. A .cfg missing is
+# the half that is easy to forget and it takes the whole rep out of service.
+MISSING_SPEC=""
+while IFS= read -r pair; do
+  [ -n "$pair" ] || continue
+  rep_id=${pair%% *}
+  for sname in $(tr ',' ' ' <<<"${pair#* }"); do
+    [ -r "$SPEC_DIR/$sname.tla" ] || MISSING_SPEC="$MISSING_SPEC ${rep_id}:${sname}.tla"
+    [ -r "$SPEC_DIR/$sname.cfg" ] || MISSING_SPEC="$MISSING_SPEC ${rep_id}:${sname}.cfg"
+  done
+done < <(awk -F'\t' '$1 == "SPEC" { print $2, $4 }' "$REPS")
+assert_eq "every scaffold a SPEC row names is on disk, module and config both" "" "$MISSING_SPEC"
+# A scaffold with no __ANSWER__ line drops the answer and grades every
+# submission identically, which is the one scaffold defect a green suite could
+# otherwise hide.
+NO_HOLE=""
+while IFS= read -r tla; do
+  [ -n "$tla" ] || continue
+  n=$(grep -cE '^[[:space:]]*__ANSWER__[[:space:]]*$' "$tla")
+  [ "$n" = "1" ] || NO_HOLE="$NO_HOLE ${tla##*/}($n)"
+done < <(find "$SPEC_DIR" -name '*.tla' -type f | LC_ALL=C sort)
+assert_eq "every fixture scaffold has exactly one answer hole" "" "$NO_HOLE"
 MISSING_ENV=""
 while IFS= read -r pair; do
   [ -n "$pair" ] || continue
@@ -842,7 +912,7 @@ assert_eq "no environment file defines a reserved scaffold name" "" \
 # The sibling gate (bead tla-1sh7.4) owns the real check; this is the floor,
 # so the fixture cannot drift into the shape the gate exists to forbid.
 assert_eq "no fixture prompt carries TLA+ notation" "" \
-  "$(awk -F'\t' '$1 == "REP" && $5 ~ /[|<>\[\]{}\\]/ { print $2 }' "$REPS")"
+  "$(awk -F'\t' '($1 == "REP" || $1 == "SPEC") && $5 ~ /[|<>\[\]{}\\]/ { print $2 }' "$REPS")"
 assert_eq "both measured grades appear in the fixture" "correct incorrect parse-error" \
   "$(awk -F'\t' '$1 == "CASE" { print $4 }' "$CASES" | sort -u | tr '\n' ' ' | sed 's/ $//')"
 
@@ -1301,16 +1371,18 @@ else
   nope "and so does recall/MISSES.tsv"
 fi
 
-# Every rep's construct has an entry, so no rep is quietly short a layer.
+# Every rep's construct has an entry, so no rep is quietly short a layer. BOTH
+# ROW KINDS, because a spec rep's sheet entry is a LARGER share of what a wrong
+# answer is told: there is no value block above it.
 assert_eq "every construct in recall/REPS.tsv has a drill/SHEET.md entry" "" \
   "$(awk 'FNR == NR { if ($0 ~ /^- K[0-9][0-9][0-9]  /) { split($0, a, " "); have[a[2]] = 1 } next }
-          { n = split($0, f, "\t"); if (f[1] == "REP" && !(f[3] in have)) print f[2] }' \
+          { n = split($0, f, "\t"); if ((f[1] == "REP" || f[1] == "SPEC") && !(f[3] in have)) print f[2] }' \
        "$LIVE_SHEET" "$LIVE_REPS")"
 assert_eq "every rep id in recall/MISSES.tsv is a row of recall/REPS.tsv" "" \
-  "$(awk -F'\t' 'NR == FNR && $1 == "REP" { have[$2] = 1; next }
+  "$(awk -F'\t' 'NR == FNR && ($1 == "REP" || $1 == "SPEC") { have[$2] = 1; next }
                  $1 == "MISS" && !($2 in have) { print $2 }' "$LIVE_REPS" "$LIVE_MISSES")"
 assert_eq "and the same holds inside the fixture" "" \
-  "$(awk -F'\t' 'NR == FNR && $1 == "REP" { have[$2] = 1; next }
+  "$(awk -F'\t' 'NR == FNR && ($1 == "REP" || $1 == "SPEC") { have[$2] = 1; next }
                  $1 == "MISS" && !($2 in have) { print $2 }' "$REPS" "$MISSES")"
 
 # ---------------------------------------------------------------------------
@@ -1376,9 +1448,67 @@ else
     body=$(awk -v want="$k_id" 'index($0, "- " want "  ") == 1 { getline b; sub(/^[ \t]+/, "", b); print b; exit }' "$LIVE_SHEET")
     n=$(wrapped_lines "$body")
     [ "$n" -ge 1 ] && [ "$n" -le 3 ] || LONG_SHEET="$LONG_SHEET $k_id($n)"
-  done < <(awk -F'\t' '$1 == "REP" { print $3 }' "$LIVE_REPS" | sort -u)
+  done < <(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { print $3 }' "$LIVE_REPS" | sort -u)
   assert_eq "no sheet body a rep reaches wraps past 3 lines either" "" "$LONG_SHEET"
 fi
+
+# ---------------------------------------------------------------------------
+# THE SPEC HALF OF THE SHIPPED FILES. One live spec rep through the shipped
+# defaults, so the scaffold directory resolves at the path the runner ships
+# with rather than only at the path the fixture hands it.
+#
+# S001's construct is K095 and recall/MISSES.tsv carries a row for this exact
+# wrong answer, so one run proves the scaffold pair, the sheet and the miss
+# table all resolve for a row kind the fixture only stands in for.
+# ---------------------------------------------------------------------------
+RUN_RC=0
+LIVE_SPEC=$("$RUNNER" S001 'WF_vars(Blink)' 2>&1) || RUN_RC=$?
+assert_eq "a live spec rep through the shipped defaults grades as a wrong answer" "5" "$RUN_RC"
+if has "$LIVE_SPEC" '^K095  ch12'; then
+  ok "and its sheet entry resolves at the path the runner ships with"
+else
+  nope "and its sheet entry resolves at the path the runner ships with"
+fi
+if has "$LIVE_SPEC" 'what you wrote says'; then
+  ok "and so does its miss row, which the spec rows carry at 38 of 40"
+else
+  nope "and so does its miss row, which the spec rows carry at 38 of 40"
+fi
+if has "$LIVE_SPEC" 'a goods lift standing beside a lamp'; then
+  ok "and the scaffold's own first line is what the report names the machine by"
+else
+  nope "and the scaffold's own first line is what the report names the machine by"
+fi
+
+# Every scaffold the shipped table names is on disk, both halves, and every
+# scaffold on disk is named by a row. The orphan half matters because
+# scripts/deliver-recall.sh sweeps env/ with `find -type f`, so a scaffold no
+# row reads still lands in every practice tree.
+LIVE_SPEC_DIR="$REPO_ROOT/recall/env/spec"
+LIVE_MISSING=""
+LIVE_USED=""
+while IFS= read -r pair; do
+  [ -n "$pair" ] || continue
+  rep_id=${pair%% *}
+  for sname in $(tr ',' ' ' <<<"${pair#* }"); do
+    LIVE_USED="${LIVE_USED}${sname}
+"
+    [ -r "$LIVE_SPEC_DIR/$sname.tla" ] || LIVE_MISSING="$LIVE_MISSING ${rep_id}:${sname}.tla"
+    [ -r "$LIVE_SPEC_DIR/$sname.cfg" ] || LIVE_MISSING="$LIVE_MISSING ${rep_id}:${sname}.cfg"
+  done
+done < <(awk -F'\t' '$1 == "SPEC" { print $2, $4 }' "$LIVE_REPS")
+assert_eq "every scaffold the shipped table names is on disk, module and config both" \
+  "" "$LIVE_MISSING"
+assert_ne "and the shipped table names some, so the row above is not vacuous" "" "$LIVE_USED"
+
+LIVE_ORPHAN=""
+while IFS= read -r tla; do
+  [ -n "$tla" ] || continue
+  base="${tla##*/}"
+  grep -qxF -- "${base%.tla}" <<<"$LIVE_USED" || LIVE_ORPHAN="$LIVE_ORPHAN ${base%.tla}"
+done < <(find "$LIVE_SPEC_DIR" -name '*.tla' -type f | LC_ALL=C sort)
+assert_eq "and no scaffold on disk is read by nothing, since every one of them is delivered" \
+  "" "$LIVE_ORPHAN"
 
 echo
 echo "== part 14: the session loop (bead tla-1sh7.11) =="
@@ -1853,13 +1983,28 @@ assert_eq "every rep names the fixture environment, which exists" "" \
 # THE SHIPPED TABLE'S OWN SHAPE, which is what makes file-order adjacency a
 # family proxy. The walk reads no family anywhere, so this is the measurement
 # the choice rests on rather than a check of the walk.
+#
+# OVER THE WALK'S WHOLE POOL, which is both row kinds. walk_load reads REP and
+# SPEC alike, so a claim about REP rows alone would be a claim about three
+# quarters of what a session serves. The temporal family sits at the end of
+# the file in one unbroken run, which is what keeps the window of two
+# positions a window of one family everywhere but at the one boundary.
 assert_eq "the shipped rep table keeps its constructs contiguous too" "" \
-  "$(awk -F'\t' '$1 == "REP" { if ($3 != prev) { runs[$3]++; prev = $3 } }
+  "$(awk -F'\t' '$1 == "REP" || $1 == "SPEC" { if ($3 != prev) { runs[$3]++; prev = $3 } }
                  END { for (k in runs) if (runs[k] > 1) print k }' "$LIVE_REPS")"
-assert_eq "and its families are four unbroken runs, so adjacency is family adjacency" "4" \
+assert_eq "and its families are five unbroken runs, so adjacency is family adjacency" "5" \
+  "$(awk -F'\t' 'FNR == NR && $1 == "ROW" { fam[$2] = $3; next }
+                 $1 == "REP" || $1 == "SPEC" { f = fam[$3]; if (f != prev) { n++; prev = f } }
+                 END { print n }' "$REPO_ROOT/drill/INVENTORY.md" "$LIVE_REPS")"
+# The value families still read as four of those five, so the spec rows were
+# APPENDED rather than interleaved into them. An interleaved table would have
+# the same five-run count and a construct order that jumps between rungs.
+assert_eq "and the four value families are still the first four of the five" "4" \
   "$(awk -F'\t' 'FNR == NR && $1 == "ROW" { fam[$2] = $3; next }
                  $1 == "REP" { f = fam[$3]; if (f != prev) { n++; prev = f } }
                  END { print n }' "$REPO_ROOT/drill/INVENTORY.md" "$LIVE_REPS")"
+assert_eq "the walk's pool is every row of both kinds" "160" \
+  "$(awk -F'\t' '$1 == "REP" || $1 == "SPEC"' "$LIVE_REPS" | wc -l)"
 
 echo
 echo "-- the mutants for the walk and for the serving --"
@@ -1916,6 +2061,388 @@ fi
 # A MUTATION THAT DID NOT APPLY NEEDS NO ROW OF ITS OWN HERE. mutate() calls
 # nope from the main shell now, so its refusal is a FAIL row like any other
 # and it names the mutant. See the function's own header.
+
+echo
+echo "== part 15: the SPEC row kind (bead tla-03ep.1) =="
+# ---------------------------------------------------------------------------
+# WHAT THIS PART EXISTS FOR. 68 of the inventory's 105 constructs say nothing
+# about a value, and the 20 of the `temporal` family are the whole of that
+# problem: `WF_v(A)` is a promise about a behavior, so `ASSUME Answer =
+# Canonical` over it is not false, it is meaningless. A SPEC row grades the
+# answer by putting it in a machine and running the machine, and the key is
+# the VECTOR of exit codes the machines return.
+#
+# EVERYTHING ABOVE WOULD PASS OVER A RUNNER WITH NO SPEC PATH AT ALL, which is
+# the same shape as the defect the sibling gate's new checks close: a second
+# row kind under a different marker is invisible rather than mishandled.
+#
+# THE INDEPENDENT SIDE IS HERE TOO, the way part 2 does it for the value path.
+# Each case's field 7 is the per-scaffold code, and this part fills the
+# scaffold ITSELF and runs harness/verdict.sh over the pair, so the numbers are
+# corroborated against the verdict channel rather than taken from the script
+# under test.
+# ---------------------------------------------------------------------------
+
+SPEC_CASE_IDS=()
+while IFS= read -r id; do
+  [ -n "$id" ] && SPEC_CASE_IDS+=("$id")
+done < <(awk -F'\t' '$1 == "CASE" { print $2 }' "$SPEC_CASES")
+
+if [ "${#SPEC_CASE_IDS[@]}" -eq 0 ]; then
+  nope "SPEC-CASES.tsv yielded no rows, so part 15 asserts nothing"
+else
+
+spec_field_of() {
+  awk -F'\t' -v id="$1" -v n="$2" '$1 == "CASE" && $2 == id { print $n; exit }' "$SPEC_CASES"
+}
+
+spec_row_field() {
+  awk -F'\t' -v id="$1" -v n="$2" '$1 == "SPEC" && $2 == id { print $n; exit }' "$REPS"
+}
+
+# ---------------------------------------------------------------------------
+# The independent fill, written here rather than shared with the runner. A
+# suite that called the runner's own filler would corroborate nothing: the
+# point is that two independent implementations of "put the answer in the
+# hole" produce the same module and TLC says the same thing about it.
+#
+# A LINE AT A TIME AND NEVER THROUGH sed, for the reason the runner gives: a
+# learner's answer carries `\`, `&` and `/`, every one of which means
+# something to a substitution.
+# ---------------------------------------------------------------------------
+spec_vector() {
+  local rep="$1" answer="$2" names chk dir i=0 vec="" rc line trimmed
+  local -a arr
+  names=$(spec_row_field "$rep" 4)
+  chk=$(spec_row_field "$rep" 9)
+  IFS=',' read -r -a arr <<<"$names"
+  for name in "${arr[@]}"; do
+    i=$((i + 1))
+    dir=$(mktemp -d "$TMPROOT/specvec.XXXXXX")
+    : >"$dir/Scaffold.tla"
+    while IFS= read -r line || [ -n "$line" ]; do
+      trimmed="${line#"${line%%[![:space:]]*}"}"
+      trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+      case "$trimmed" in
+        __ANSWER__) printf '%s\n' "$answer" >>"$dir/Scaffold.tla" ;;
+        __CHECK__)  printf '%s\n' "$chk" >>"$dir/Scaffold.tla" ;;
+        *)          printf '%s\n' "$line" >>"$dir/Scaffold.tla" ;;
+      esac
+    done <"$SPEC_DIR/$name.tla"
+    cp "$SPEC_DIR/$name.cfg" "$dir/Scaffold.cfg"
+    rc=0
+    "$VERDICT" -q -c "$dir/Scaffold.cfg" --scratch "$dir/states" --log "$dir/log" \
+      "$dir/Scaffold.tla" >/dev/null 2>&1 || rc=$?
+    if [ -n "$vec" ]; then vec="$vec,$rc"; else vec="$rc"; fi
+  done
+  printf '%s\n' "$vec"
+}
+
+echo "-- every fixture spec case, graded through the real runner --"
+for id in "${SPEC_CASE_IDS[@]}"; do
+  rep=$(spec_field_of "$id" 3)
+  want_grade=$(spec_field_of "$id" 4)
+  want_rc=$(spec_field_of "$id" 5)
+  answer=$(spec_field_of "$id" 6)
+
+  run_runner "$RUNNER" "$rep" "$answer"
+  status=$(awk '/^rep=/ { print; exit }' <<<"$RUN_OUT")
+  assert_eq "$id $rep: status line" \
+    "rep=$rep rc=$want_rc token=$(token_for "$want_rc") grade=$want_grade" \
+    "$status"
+  assert_eq "$id $rep: the runner exits with that same code" "$want_rc" "$RUN_RC"
+done
+
+echo
+echo "-- the per-scaffold codes are verdict.sh's, corroborated independently --"
+for id in "${SPEC_CASE_IDS[@]}"; do
+  rep=$(spec_field_of "$id" 3)
+  answer=$(spec_field_of "$id" 6)
+  want_vec=$(spec_field_of "$id" 7)
+  assert_eq "$id: verdict.sh itself returns $want_vec over the filled scaffold(s)" \
+    "$want_vec" "$(spec_vector "$rep" "$answer")"
+done
+
+echo
+echo "-- the vector is the key, and a single run could not be --"
+# ---------------------------------------------------------------------------
+# D008 and D009 are the reason a battery exists, and this pair is the row that
+# says so. Both are too-weak answers to Q002. Each HOLDS on fix-near, the
+# machine the canonical also holds on, so a rep keyed on fix-near alone would
+# have scored both of them 0. It is fix-far, where the canonical has to FAIL,
+# that separates them.
+# ---------------------------------------------------------------------------
+assert_eq "the canonical holds on the near machine and fails on the far one" \
+  "0,13" "$(spec_vector Q002 '<>[](n = 2)')"
+assert_eq "a weaker answer holds on BOTH, which is what one run cannot see" \
+  "0,0" "$(spec_vector Q002 '[]<>(n = 2)')"
+assert_eq "and so does the weakest answer there is" \
+  "0,0" "$(spec_vector Q002 '[]TRUE')"
+# The grade, not the vector: both score 5 through the runner and the canonical
+# scores 0, which is the whole of what the battery buys.
+run_runner "$RUNNER" Q002 '<>[](n = 2)'
+Q002_RIGHT=$RUN_RC
+run_runner "$RUNNER" Q002 '[]<>(n = 2)'
+Q002_WEAK=$RUN_RC
+assert_eq "so the canonical is 0 and the weaker answer is 5" "0-5" "$Q002_RIGHT-$Q002_WEAK"
+
+echo
+echo "-- any correct form passes, here too --"
+# The property that keeps the value rung from being a spelling test holds at
+# this rung for the same reason: the grade comes from what TLC said about the
+# machine, not from the text.
+run_runner "$RUNNER" Q003 "n < 2 /\\ n' = n + 1 /\\ flag' = flag"
+Q003_A=$RUN_RC
+run_runner "$RUNNER" Q003 "n < 2 /\\ n' = n + 1 /\\ UNCHANGED flag"
+Q003_B=$RUN_RC
+assert_eq "two spellings of one action both score 0" "0-0" "$Q003_A-$Q003_B"
+
+echo
+echo "-- the construct gate on a spec rep, and the trap it is there for --"
+# ---------------------------------------------------------------------------
+# `<>(n = 2)` conjoined into the fairness hole PASSES: it is the goal asserted
+# as a hypothesis rather than a fairness condition, every scaffold returns the
+# code the rep wants, and no exit code can tell. Field 7 is the only thing
+# that closes it, which is why every shipped SPEC row carries one.
+# ---------------------------------------------------------------------------
+assert_eq "the trap's own vector is the canonical's, so the run cannot tell them apart" \
+  "$(spec_vector Q001 'WF_vars(Step)')" "$(spec_vector Q001 '<>(n = 2)')"
+run_runner "$RUNNER" Q001 '<>(n = 2)'
+assert_eq "and the construct gate refuses it at 4 rather than passing it at 0" "4" "$RUN_RC"
+if has "$RUN_OUT" 'every spec said what it was supposed to'; then
+  ok "the refusal says what was accepted, which on a spec rep is not a value"
+else
+  nope "the refusal says what was accepted, which on a spec rep is not a value"
+fi
+if has "$RUN_OUT" 'the grading run came back rc=0 token=OK'; then
+  ok "and still names the code the runs returned, so nothing they said is hidden"
+else
+  nope "and still names the code the runs returned, so nothing they said is hidden"
+fi
+if has "$RUN_OUT" '^K095  ch12'; then
+  ok "and prints the sheet entry, since the whole content of this grade is a construct"
+else
+  nope "and prints the sheet entry, since the whole content of this grade is a construct"
+fi
+
+echo
+echo "-- what a wrong spec answer is shown --"
+run_runner "$RUNNER" Q002 '[]<>(n = 2)'
+if has "$RUN_OUT" 'this is what each of the 2 specs made of it'; then
+  ok "a battery names how many specs it was checked against"
+else
+  nope "a battery names how many specs it was checked against"
+fi
+if has "$RUN_OUT" 'as wanted: rc 0 OK'; then
+  ok "the scaffold that AGREED is shown too, which is half the lesson"
+else
+  nope "the scaffold that AGREED is shown too, which is half the lesson"
+fi
+if has "$RUN_OUT" 'wanted rc 13 LIVENESS_VIOLATION, and it came back rc 0 OK'; then
+  ok "and the one that disagreed names both codes and both tokens"
+else
+  nope "and the one that disagreed names both codes and both tokens"
+fi
+# A phrase that survives the wrap. show_prose folds at the runner's own prose
+# width, so a longer phrase can be split across two lines and a row matching
+# one would be red for a reason that is about the fold.
+if has "$RUN_OUT" 'and driven up again for ever'; then
+  ok "each line leads with the scaffold's own English first line, not its filename"
+else
+  nope "each line leads with the scaffold's own English first line, not its filename"
+fi
+if has "$RUN_OUT" 'fix-far'; then
+  nope "and never names the file, which a learner has no way to open"
+else
+  ok "and never names the file, which a learner has no way to open"
+fi
+if has "$RUN_OUT" 'the answer is:'; then
+  ok "and the canonical is shown, since there is no value block to carry it"
+else
+  nope "and the canonical is shown, since there is no value block to carry it"
+fi
+if has "$RUN_OUT" '^you typed '; then
+  nope "and no value block, because a temporal formula has no value to print"
+else
+  ok "and no value block, because a temporal formula has no value to print"
+fi
+
+# The miss row and the sheet entry, for the row kind whose wrong answer has no
+# value block above them.
+run_runner "$RUNNER" Q001 'WF_vars(Flip)'
+if has "$RUN_OUT" 'That promises the flag keeps flipping'; then
+  ok "a spec rep's wrong answer reaches its miss row"
+else
+  nope "a spec rep's wrong answer reaches its miss row"
+fi
+if has "$RUN_OUT" '^K095  ch12'; then
+  ok "and its sheet entry"
+else
+  nope "and its sheet entry"
+fi
+
+echo
+echo "-- a level error says something, which it did not until it was watched --"
+# ---------------------------------------------------------------------------
+# A TEMPORAL FORMULA IN AN ACTION HOLE IS rc 150, and SANY reports it as a
+# LEVEL error rather than as anything about syntax. None of the phrases the
+# runner greps for matched, so the block came back "that did not parse" with
+# nothing under it. Watched doing exactly that in a delivered tree on
+# 2026-10-17, which is the only reason the phrase is in the list.
+#
+# THE VALUE SCAFFOLD CANNOT PRODUCE ONE. It declares no SPECIFICATION, so
+# there is no action context for a temporal formula to be too high for, which
+# is why this is a spec-row row rather than a part 1 row.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" Q003 '<>(n = 2)'
+assert_eq "a temporal formula in an action hole is a parse error" "150" "$RUN_RC"
+if has "$RUN_OUT" 'Level error in applying operator'; then
+  ok "and SANY's own sentence about it reaches the page"
+else
+  nope "and SANY's own sentence about it reaches the page"
+fi
+if has "$RUN_OUT" 'exceeds the maximum level allowed'; then
+  ok "along with the line that says what a level error is"
+else
+  nope "along with the line that says what a level error is"
+fi
+
+echo
+echo "-- a run outside the gradeable set outranks a disagreement --"
+# ---------------------------------------------------------------------------
+# `WF_vars(Init)` is fairness over the initial predicate rather than over an
+# action, and TLC exits 255 on it. Calling that a wrong answer would be the
+# same false statement rc 150 already exists to avoid on the value rung.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" Q001 'WF_vars(Init)'
+assert_eq "fairness over the initial predicate is reported as the run's own code" \
+  "255" "$RUN_RC"
+if has "$RUN_OUT" 'a report about the run rather than about the answer'; then
+  ok "and says so, rather than calling the answer wrong"
+else
+  nope "and says so, rather than calling the answer wrong"
+fi
+if has "$RUN_OUT" 'it came from this one'; then
+  ok "and names which machine it came from, since a battery has more than one"
+else
+  nope "and names which machine it came from, since a battery has more than one"
+fi
+
+echo
+echo "-- the hole is filled without a regex, which is a property of the answer text --"
+# ---------------------------------------------------------------------------
+# A TLA+ answer carries `\`, and a POSTCONDITION fill carries `"` and `(`.
+# `sed "s/__ANSWER__/$ANSWER/"` would read `\` as an escape and `&` as the
+# whole match, so a learner's wrong answer would come back as a parse error
+# about a character they did not type. The runner reads the template a line at
+# a time and compares against a fixed string instead.
+#
+# THE ROW IS A PARSE ERROR ON PURPOSE. `&` is not TLA+, so what is asserted is
+# that the character reaches SANY and SANY is what complains, rather than the
+# fill turning it into something else first.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" Q001 'WF_vars(Step) /\ & \ TRUE'
+assert_eq "an answer carrying an ampersand and a bare backslash reaches SANY" "150" "$RUN_RC"
+if has "$RUN_OUT" 'did not parse'; then
+  ok "and is reported as a parse error rather than as a wrong answer"
+else
+  nope "and is reported as a parse error rather than as a wrong answer"
+fi
+if has "$RUN_OUT" 'sed|__ANSWER__'; then
+  nope "and the report says nothing about the fill, which a learner did not write"
+else
+  ok "and the report says nothing about the fill, which a learner did not write"
+fi
+# shellcheck disable=SC2016
+if has "$(sed 's/^[[:space:]]*#.*$//' "$RUNNER")" 'sed.*__ANSWER__|__ANSWER__.*sed'; then
+  nope "no sed program anywhere in the runner mentions the hole"
+else
+  ok "no sed program anywhere in the runner mentions the hole"
+fi
+
+echo
+echo "-- a rep that cannot be run is could-not-run, never a grade --"
+SPEC_BAD="$TMPROOT/spec-bad.tsv"
+# A vector shorter than the scaffold list. Comparing the two position by
+# position would be a grade read off a run that never happened.
+printf 'SPEC\tX900\tK095\tfix-near,fix-far\tsomething about a counter\t<>[](n = 2)\t<>\t0\n' >"$SPEC_BAD"
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$SPEC_BAD" --env-dir "$ENV_DIR" -q X900 '<>[](n = 2)' 2>&1) || RUN_RC=$?
+assert_eq "two scaffolds and one expected code is exit 3" "3" "$RUN_RC"
+if has "$OUT" 'nothing was graded'; then
+  ok "and it says nothing was graded, rather than grading the first scaffold alone"
+else
+  nope "and it says nothing was graded, rather than grading the first scaffold alone"
+fi
+
+printf 'SPEC\tX901\tK095\tfix-nowhere\tsomething about a counter\tWF_vars(Step)\t\\bWF_\t0\n' >"$SPEC_BAD"
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$SPEC_BAD" --env-dir "$ENV_DIR" -q X901 'WF_vars(Step)' 2>&1) || RUN_RC=$?
+assert_eq "a scaffold that is not on disk is exit 3" "3" "$RUN_RC"
+
+printf 'SPEC\tX902\tK095\tfix-climb\tsomething about a counter\tWF_vars(Step)\t\\bWF_\tnope\n' >"$SPEC_BAD"
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$SPEC_BAD" --env-dir "$ENV_DIR" -q X902 'WF_vars(Step)' 2>&1) || RUN_RC=$?
+assert_eq "a field 8 that is not an exit code is exit 3" "3" "$RUN_RC"
+
+printf 'SPEC\tX903\tK095\tfix-climb\tsomething about a counter\tWF_vars(Step)\t\\bWF_\t\n' >"$SPEC_BAD"
+RUN_RC=0
+OUT=$("$RUNNER" --reps "$SPEC_BAD" --env-dir "$ENV_DIR" -q X903 'WF_vars(Step)' 2>&1) || RUN_RC=$?
+assert_eq "an empty field 8 is exit 3, since there is no key to grade against" "3" "$RUN_RC"
+
+# 5 is the runner's own code and must not be one verdict.sh documents, for the
+# reason part 10 states about 4: a caller branching on the number has to be
+# able to tell a statement about the submission from a verdict about the run.
+assert_eq "5 appears in no row of harness/verdict.sh's exit-code table" "" \
+  "$(grep -hE -- '^#[[:space:]]+5[[:space:]]+[A-Z_]{3,}' "$VERDICT")"
+assert_eq "and verdict.sh maps no verdict to 5 in its case arm either" "" \
+  "$(grep -hE -- '^[[:space:]]*5\)[[:space:]]*verdict=' "$VERDICT")"
+
+echo
+echo "-- the mutants for the spec path --"
+# ---------------------------------------------------------------------------
+# Every row above is of the shape "the runner said what the fixture says",
+# which is also what a suite driving a spec path that silently stopped working
+# would report. Three mutants, one per thing that could go slack.
+# ---------------------------------------------------------------------------
+
+# M11. the vector stops being compared position by position. A runner that
+# only checks whether the FIRST scaffold agreed passes D008, whose first
+# scaffold does agree.
+# shellcheck disable=SC2016
+if mutate spec-first-only 's|if \[ "\$spec_rc" != "\${SPEC_WANT\[spec_i\]}" \] && \[ "\$SPEC_FIRST_DIFF" -lt 0 \]; then|if [ "$spec_i" = "0" ] \&\& [ "$spec_rc" != "${SPEC_WANT[spec_i]}" ] \&\& [ "$SPEC_FIRST_DIFF" -lt 0 ]; then|'; then
+  run_runner "$MUTANT" Q002 '[]<>(n = 2)'
+  assert_ne "control: a runner checking only the first scaffold is DETECTED by D008" \
+    "5" "$RUN_RC"
+fi
+
+# M12. the reported code stops being 5 and becomes the first run's own. On
+# D008 the first run returned 0, so the mutant reports a wrong answer as
+# rc 0 -- which is exactly the contradiction 5 exists to avoid.
+# shellcheck disable=SC2016
+if mutate spec-first-code 's|^    GRADE_RC="\$EXIT_SPEC_NOT_MATCHED"$|    GRADE_RC="${SPEC_RCS[0]}"|'; then
+  run_runner "$MUTANT" Q002 '[]<>(n = 2)'
+  assert_ne "control: a runner reporting a run's code instead of 5 is DETECTED" \
+    "5" "$RUN_RC"
+fi
+
+# M13. the per-rep check stops coming out of field 9 and becomes TRUE, so the
+# fingerprint goes nowhere: the hole still fills, the module still parses, the
+# POSTCONDITION still runs, and it asserts nothing about the state graph. Q003
+# then grades every action the scaffold's INVARIANT allows identically, and
+# D013's wrong step shape passes.
+#
+# IT MUTATES THE FIELD READ RATHER THAN THE FILL, because the fill's own line
+# carries a printf format string whose quotes cannot appear inside the
+# single-quoted sed script. The effect is the same and the line is one token.
+# shellcheck disable=SC2016
+if mutate spec-check-dropped 's|^CHECK="\$(cut -f9 <<<"\$ROW")"$|CHECK=TRUE|'; then
+  run_runner "$MUTANT" Q003 "n < 2 /\\ n' = n + 2 /\\ flag' = flag"
+  assert_ne "control: a runner that stopped reading field 9 is DETECTED by D013" \
+    "5" "$RUN_RC"
+fi
+
+fi
 
 echo
 printf 'test-recall-runner.sh: %d passed, %d failed\n' "$pass_count" "$fail_count"
