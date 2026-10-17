@@ -89,38 +89,46 @@
 #                 cannot miscount.
 #
 # ---------------------------------------------------------------------------
-# TWO THINGS THE DELIVERED RUNNER REACHES FOR OUTSIDE THIS MANIFEST
+# ONE THING THE DELIVERED RUNNER REACHES FOR OUTSIDE THIS MANIFEST
 #
-# recall/recall.sh resolves both of them from ${BASH_SOURCE[0]}: REPO_ROOT is
-# the PARENT of the directory the script sits in, so a copy delivered to
-# $HOME/tla-practice/recall/ looks under $HOME/tla-practice/ for both. This
-# script checks each one AT THE PATH THIS DESTINATION RESOLVES TO and says so
-# on every run, check runs included. Neither is delivered.
+# There were two until bead tla-1sh7.10, and the first one was a warning
+# because without it the delivered tree graded nothing at all.
 #
-# ONE. harness/verdict.sh, AND WITHOUT IT NOTHING GRADES AT ALL.
+# WHAT IT WAS. recall/recall.sh resolved ${REPO_ROOT}/harness/verdict.sh, where
+# REPO_ROOT is the PARENT of the directory the script sits in, and refused to
+# start without it at exit 3, "could not run". Delivered to
+# $HOME/tla-practice/recall/ it looked for $HOME/tla-practice/harness/
+# verdict.sh, which nothing puts there. Measured 2026-10-16 against a delivered
+# copy and again 2026-10-17 in a temp tree with no repo above it: the canonical
+# answer to R107 came back rc 3. Every rep, every answer.
 #
-# It is not an explanation layer. It is the one channel every TLC invocation
-# goes through, and recall/recall.sh refuses to start without it:
-# `[ -x "$VERDICT" ] || die_cannot_run`, which is exit 3, "could not run".
-# Measured 2026-10-16 against a delivered copy: `recall.sh -q R107
-# '[Wagons -> Tracks]'` came back rc 3 with "no harness/verdict.sh at
-# <tree>/harness/verdict.sh, so nothing was graded." Every rep, every answer.
+# WHAT WAS DONE ABOUT IT, and it was the third of the three ways out rather
+# than the cheapest. The runner is self-contained now, the way
+# drill/study/check already was: it runs TLC itself under the flags
+# harness/verdict.sh runs it under, and names five exit codes. The slice was
+# measured before it was absorbed: four of verdict.sh's ten options, and three
+# of its thirteen mapped codes reachable from a scaffold that declares no
+# SPECIFICATION and one ASSUME. The runner's own header carries the
+# measurement and the gate that keeps the two tables agreeing.
 #
-# SO THIS IS A WARNING AND NOT A NOTE, and it is the thing to settle before a
-# real delivery is worth running. The sibling channel solves it the other way:
-# drill/study/check carries a section headed "IT DEPENDS ON NOTHING BUT TLC"
-# and says why. "The study tree is not this repo. There is no harness beside
-# this file, no verdict.sh to source, and no repo root to resolve." The recall
-# runner was written against the repo instead.
+# THE OTHER TWO WAYS OUT, and why neither won. Delivering harness/verdict.sh
+# would have made this the first script to export repo harness, would have put
+# a CENTRALLY OWNED file (.claude/rules/dispatched-agents.md) into a
+# learner-facing delivery where every change to it gains a delivery
+# consequence, and would have had this script write OUTSIDE its own dest-root
+# into <parent>/harness/ -- the same second-destination problem that is the
+# stated reason drill/SHEET.md is not delivered from here either. An
+# environment override for the verdict path would have left the practice tree
+# depending on a repo path, so the channel would work on one machine and only
+# while the repo stayed where it was.
 #
-# THE THREE WAYS OUT, none of them this script's to choose. Deliver
-# harness/verdict.sh into the practice tree, which would make this the first
-# script to export repo harness and which touches a CENTRALLY OWNED file
-# (.claude/rules/dispatched-agents.md). Give recall/recall.sh an environment
-# override for the verdict path. Or make it self-contained the way
-# drill/study/check is. All three are edits outside this bead's footprint.
+# AND THE ONE THAT IS LEFT: drill/SHEET.md, WITHOUT WHICH A WRONG ANSWER LOSES
+# ONE LAYER OF THREE.
 #
-# TWO. drill/SHEET.md, AND WITHOUT IT A WRONG ANSWER LOSES ONE LAYER OF THREE.
+# recall/recall.sh resolves it from ${BASH_SOURCE[0]} the same way, so a copy
+# delivered to $HOME/tla-practice/recall/ looks under $HOME/tla-practice/ for
+# it. This script checks it AT THE PATH THIS DESTINATION RESOLVES TO and says
+# so on every run, check runs included. It is not delivered.
 #
 # The runner looks for $HOME/tla-practice/drill/SHEET.md, which is exactly
 # where scripts/deliver-drill.sh puts the drill corpus, so the path lines up
@@ -132,7 +140,23 @@
 # A MISSING SHEET IS SILENCE, NOT A REFUSAL. recall/recall.sh's show_sheet
 # returns without printing when the file is unreadable, so every rep in a
 # tree that can grade still grades, and a wrong answer still gets both values
-# and its miss row. That is why this one is a note and the first is a warning.
+# and its miss row. That is why this one is a note and never was a warning.
+#
+# ---------------------------------------------------------------------------
+# WHAT A DELIVERED TREE NEEDS THAT IS NOT A FILE: tlc ON THE PATH
+#
+# The runner's only remaining dependency outside its own directory, and the
+# one thing that can still stop a delivered tree grading. An absent tlc is
+# exit 3 with a message rather than a quiet pass (recall/recall.sh, the
+# command -v check), so it cannot be mistaken for a wrong answer, but every
+# rep stops.
+#
+# So this script reports it on every run, check runs included, the way it
+# reports the sheet. It is a note rather than a warning for one reason: it is
+# a fact about THIS machine at THIS moment, and the delivery is the last
+# moment at which that fact is worth less than it looks. A tree delivered
+# today on a box with tlc is a tree that stops grading the day the toolchain
+# moves, and no delivery-time check can see that coming.
 #
 # WHY THIS SCRIPT DOES NOT JUST DELIVER IT. The sheet is a drill-root
 # reference file and all three of them are withheld by design today:
@@ -301,9 +325,19 @@ echo "source: $SRC_RECALL"
 echo "destination: $DEST_ROOT"
 
 # ---------------------------------------------------------------------------
-# The two things the delivered runner reaches for outside this manifest,
-# checked at the path THIS destination resolves to rather than described in
-# general. See TWO THINGS THE DELIVERED RUNNER REACHES FOR above.
+# The two things a delivered tree needs that are not in this manifest, both
+# reported on every run rather than described in general. Neither is a
+# refusal and neither ever was a reason to withhold a delivery: the first
+# costs a wrong answer one explanation layer of three, and the second is a
+# fact about this machine.
+#
+# WHAT IS NO LONGER CHECKED HERE, and why its absence is the fix rather than
+# an omission: harness/verdict.sh. Until bead tla-1sh7.10 this script printed
+# two WARNING lines naming the path a delivered runner would look for it at,
+# because without it the tree graded nothing. The runner is self-contained
+# now, so there is no such path to name, and a line still naming one would be
+# a check that reports a hazard that is not there. See ONE THING THE DELIVERED
+# RUNNER REACHES FOR above.
 #
 # DEST_PARENT is what recall/recall.sh will compute as its REPO_ROOT: the
 # parent of the directory the delivered script sits in. Resolved textually
@@ -311,32 +345,37 @@ echo "destination: $DEST_ROOT"
 # --check run and a `cd` into it would fail for a reason that is not the
 # question being asked.
 #
-# A WARNING, NOT A REFUSAL, AND THAT IS THE gate-don't-advise SHAPE RATHER
-# THAN A SOFTENING OF IT. The dividing question in CLAUDE.md is whether a
-# human is supposed to weigh in, and here one is: the three ways out are a
-# centrally-owned file, an environment override and a rewrite, and this script
-# is not entitled to pick. What that rule forbids is leaving the check for
-# somebody to remember, so it prints unconditionally on every run and
-# harness/test-recall-gate.sh asserts that both lines are still printed.
+# BOTH PRINT UNCONDITIONALLY, which is the gate-don't-advise shape rather than
+# a softening of it. What that rule forbids is leaving a check for somebody to
+# remember. These run on every invocation, and harness/test-recall-gate.sh
+# asserts that both lines are still printed.
+#
+# ONLY THE SHEET LINE IS ASSERTED TO INVERT, and the asymmetry is worth naming
+# rather than leaving as an apparent oversight. The suite can put a SHEET.md
+# where the line says there is none and watch the wording flip. It cannot take
+# tlc off the path for one invocation without rebuilding PATH from a scratch
+# bin, which is harness/test-drill-check.sh's trick and more machinery than
+# one line of output is worth here. The runner's own absent-tlc path IS
+# measured: it comes back exit 3 with "tlc is not on the path, so nothing was
+# graded", which is the half that matters, since this line reports and the
+# runner refuses.
 # ---------------------------------------------------------------------------
 DEST_PARENT="${DEST_ROOT%/}"
 DEST_PARENT="${DEST_PARENT%/*}"
 [ -n "$DEST_PARENT" ] || DEST_PARENT="/"
 
-DEST_VERDICT="$DEST_PARENT/harness/verdict.sh"
 DEST_SHEET="$DEST_PARENT/drill/SHEET.md"
-
-if [ -x "$DEST_VERDICT" ]; then
-  echo "verdict channel: $DEST_VERDICT is there, so the delivered runner can grade."
-else
-  echo "WARNING: no verdict channel at $DEST_VERDICT, so the delivered runner exits 3 on EVERY rep and grades nothing."
-  echo "WARNING: this script does not deliver harness/verdict.sh. See TWO THINGS THE DELIVERED RUNNER REACHES FOR in this file."
-fi
 
 if [ -r "$DEST_SHEET" ]; then
   echo "construct sheet: $DEST_SHEET is there, so a wrong answer gets its construct entry."
 else
   echo "note: no construct sheet at $DEST_SHEET, so a wrong answer gets both values and its miss row and no construct entry. Reps still grade."
+fi
+
+if command -v tlc >/dev/null 2>&1; then
+  echo "tlc: $(command -v tlc) is on the path, which is the whole of what the delivered runner needs to grade."
+else
+  echo "note: tlc is not on the path here, so the delivered runner exits 3 on every rep until it is. It needs nothing else."
 fi
 
 if [ "$CHECK_ONLY" -eq 1 ]; then

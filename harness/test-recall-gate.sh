@@ -47,12 +47,21 @@
 # lengths against the shipped drill/SHEET.md. So this suite writes a four-rep
 # corpus and a three-row inventory into its temp tree and owns them.
 #
-# THE TREE IS A MIRROR ROOT, and it has to be. recall/recall.sh resolves its
+# THE TREE IS A BARE PRACTICE TREE, AND THAT IS NOW AN ASSERTION RATHER THAN
+# A SETUP DETAIL. It carries recall/ and nothing else: no harness/ and no repo
+# above it. Part 1 asserts that shape before it grades anything, so every row
+# below runs in the shape a learner's tree actually has.
+#
+# IT USED TO BE A MIRROR ROOT and it had to be. recall/recall.sh resolved its
 # verdict channel as ${REPO_ROOT}/harness/verdict.sh where REPO_ROOT is the
-# PARENT of the directory it sits in, so a copy anywhere else dies at exit 3
-# for a reason that has nothing to do with the corpus. The mirror carries
-# recall/ beside a harness/ holding a symlink to the real verdict channel.
-# Nothing is written into the repo.
+# PARENT of the directory it sits in, so this suite built a harness/ beside
+# recall/ holding a symlink to the real channel, and without it every row died
+# at exit 3 for a reason that had nothing to do with the corpus. Bead
+# tla-1sh7.10 made the runner self-contained, and the symlink went with it.
+# Deleting it is the point. A suite that kept propping the tree up would go on
+# passing over a runner that still could not be delivered, which is what this
+# one did between tla-1sh7.4 landing and this bead. Nothing is written into
+# the repo.
 #
 # ---------------------------------------------------------------------------
 # WHY THERE IS NO FAST ROW
@@ -114,12 +123,16 @@ assert_silent() {
 GATE="$REPO_ROOT/harness/recall-gate.sh"
 DELIVER="$REPO_ROOT/scripts/deliver-recall.sh"
 RUNNER="$REPO_ROOT/recall/recall.sh"
-VERDICT="$REPO_ROOT/harness/verdict.sh"
+# NO VERDICT PATH HERE, and that is a statement rather than an omission. This
+# suite builds practice trees and grades in them, and since bead tla-1sh7.10
+# neither the runner nor the delivery script reaches for harness/verdict.sh.
+# A path held here would have to be propped into every tree below, which is
+# what the suite used to do and what kept the defect green.
 TEST_RUNNER="$REPO_ROOT/scripts/test"
 LIVE_RECALL="$REPO_ROOT/recall"
 LIVE_INVENTORY="$REPO_ROOT/drill/INVENTORY.md"
 
-for required in "$GATE" "$DELIVER" "$RUNNER" "$VERDICT" "$TEST_RUNNER" \
+for required in "$GATE" "$DELIVER" "$RUNNER" "$TEST_RUNNER" \
                 "$LIVE_RECALL" "$LIVE_INVENTORY"; do
   if [ ! -e "$required" ]; then
     printf 'test-recall-gate.sh: missing %s\n' "$required" >&2
@@ -138,8 +151,10 @@ trap 'rm -rf "$TMPROOT"' EXIT
 TAB=$'\t'
 
 # ---------------------------------------------------------------------------
-# build_mirror <dir>: a mirror root at <dir> carrying recall/ and a harness/
-# holding a symlink to the real verdict channel.
+# build_mirror <dir>: a bare practice tree at <dir> carrying recall/ and
+# NOTHING ELSE. No harness/ is created and no verdict channel is linked in:
+# see THE TREE IS A BARE PRACTICE TREE in the header for why its absence is
+# the assertion.
 #
 # The corpus is four reps over one environment and two miss rows. Every row is
 # written with printf and an explicit $TAB rather than through a heredoc, so a
@@ -148,8 +163,7 @@ TAB=$'\t'
 # ---------------------------------------------------------------------------
 build_mirror() {
   local root="$1"
-  mkdir -p "$root/harness" "$root/recall/env"
-  ln -sf "$VERDICT" "$root/harness/verdict.sh"
+  mkdir -p "$root/recall/env"
   cp "$RUNNER" "$root/recall/recall.sh"
   chmod +x "$root/recall/recall.sh"
 
@@ -228,6 +242,19 @@ echo "== part 1: the two tiers, and the flags that pick them =="
 # guess. The shape is harness/completion-gate.sh's.
 # ---------------------------------------------------------------------------
 CLEAN=$(mutant clean)
+
+# THE TREE EVERY ROW BELOW RUNS IN, asserted rather than assumed. A setup that
+# quietly grew a harness/ back would make every grading row below pass over a
+# runner that still could not be delivered, which is the defect bead
+# tla-1sh7.10 closed. Asserting the shape of the tree is what stops that
+# coming back as a green suite.
+assert_eq "the tree the gate runs in holds recall/ and nothing else" "recall" \
+  "$(cd "$CLEAN" && ls -A)"
+if [ -e "$CLEAN/harness" ]; then
+  nope "no harness/ beside it, so the runner grades on its own or not at all"
+else
+  ok "no harness/ beside it, so the runner grades on its own or not at all"
+fi
 
 run_gate "$CLEAN" --static-only -q
 assert_eq "--static-only over a clean corpus exits 0" "0" "$GATE_RC"
@@ -654,31 +681,38 @@ assert_says "--check counts the six" '6 file\(s\) to land' "$CHECK_OUT"
 assert_says "--dry-run is the same flag" '6 file\(s\) to land' \
   "$("$DELIVER" --dry-run "$DEST" 2>&1)"
 
-# THE TWO THINGS THE DELIVERED RUNNER REACHES FOR OUTSIDE THE MANIFEST, both
-# reported at the destination's own resolved path. Without the first, the
-# delivered tree grades NOTHING. Without the second it loses one explanation
-# layer of three. A delivery that silently produced a tree that cannot grade
-# is the defect these two lines exist to stop.
-assert_says "--check warns that the destination has no verdict channel" \
-  "WARNING: no verdict channel at ${TMPROOT}/dest/harness/verdict\.sh" "$CHECK_OUT"
-assert_says "and says what that costs: every rep, not some of them" \
-  'exits 3 on EVERY rep' "$CHECK_OUT"
-assert_says "--check notes the absent construct sheet separately" \
+# THE TWO THINGS A DELIVERED TREE NEEDS THAT ARE NOT IN THE MANIFEST: the
+# construct sheet, reported at the destination's own resolved path, and tlc,
+# reported from this machine. Neither stops a delivery and the first costs
+# only one explanation layer of three.
+assert_says "--check notes the absent construct sheet" \
   "no construct sheet at ${TMPROOT}/dest/drill/SHEET\.md" "$CHECK_OUT"
 assert_says "and says reps still grade without it, which is why it is a note" \
   'Reps still grade' "$CHECK_OUT"
+assert_says "--check reports tlc, which is the whole of what a delivered tree needs" \
+  '^tlc: .* is on the path' "$CHECK_OUT"
+assert_says "and says that is the whole of it" \
+  'the whole of what the delivered runner needs to grade' "$CHECK_OUT"
 
-# The same two lines inverted, so the warning is not simply always printed.
-mkdir -p "$TMPROOT/dest/harness" "$TMPROOT/dest/drill"
-ln -sf "$VERDICT" "$TMPROOT/dest/harness/verdict.sh"
+# THE WARNING THAT MUST NO LONGER BE PRINTED (bead tla-1sh7.10). The runner is
+# self-contained, so a line naming a verdict path a delivered tree would look
+# for would be a report of a hazard that is not there. This is the row that
+# goes red if the dependency is ever reintroduced from the other end.
+assert_silent "no verdict-channel warning, because there is no verdict channel to want" \
+  'WARNING: no verdict channel' "$CHECK_OUT"
+assert_silent "and no claim that a delivered tree exits 3 on every rep" \
+  'exits 3 on EVERY rep' "$CHECK_OUT"
+# The strongest form of the same claim is further down this part: the tree the
+# real delivery lands is graded in place, with no harness/ in it.
+
+# The sheet note inverted, so it is not simply always printed.
+mkdir -p "$TMPROOT/dest/drill"
 cp "$REPO_ROOT/drill/SHEET.md" "$TMPROOT/dest/drill/SHEET.md"
 WIRED_OUT=$("$DELIVER" --check "$DEST" 2>&1) || true
-assert_silent "with a verdict channel in place the warning is gone" \
-  'WARNING: no verdict channel' "$WIRED_OUT"
-assert_says "and it says the delivered runner can grade" \
-  'so the delivered runner can grade' "$WIRED_OUT"
-assert_says "and the sheet note becomes a sheet confirmation" \
+assert_says "with a sheet in place the note becomes a sheet confirmation" \
   'so a wrong answer gets its construct entry' "$WIRED_OUT"
+assert_silent "and the absent-sheet note is gone" \
+  'no construct sheet at' "$WIRED_OUT"
 
 # The real delivery, into the temp tree. This is the only part of this suite
 # that writes anything.
@@ -692,6 +726,46 @@ if [ -x "$DEST/recall.sh" ]; then
 else
   nope "the delivered runner is executable, which cp without -p does not guarantee"
 fi
+
+# ---------------------------------------------------------------------------
+# THE TREE THAT WAS JUST DELIVERED IS GRADED IN PLACE (bead tla-1sh7.10).
+#
+# These are the rows the bead exists for, and they are the ones a green suite
+# in the repo could never stand in for. The repo is the environment the defect
+# hid in: until tla-1sh7.10 every row in this file ran a runner with a
+# harness/ one directory up, and they all passed over a channel that answered
+# rc 3 to every rep a learner could ever type.
+#
+# WHAT IS ASSERTED IS THE TREE, not a flag. $DEST is what scripts/
+# deliver-recall.sh actually wrote, four lines ago, from its own manifest. Its
+# parent carries that recall/ and the drill/SHEET.md the row above planted,
+# and no harness/, no verdict channel and no repo. All three reachable codes
+# are graded in it.
+# ---------------------------------------------------------------------------
+if [ -e "$TMPROOT/dest/harness" ]; then
+  nope "the delivered tree has no harness/ above it, which is what makes this row mean something"
+else
+  ok "the delivered tree has no harness/ above it, which is what makes this row mean something"
+fi
+
+DELIVERED_RC=0
+DELIVERED_OUT=$("$DEST/recall.sh" -q R107 '[Wagons -> Tracks]' 2>&1) || DELIVERED_RC=$?
+assert_eq "a RIGHT answer in the delivered tree scores 0" "0" "$DELIVERED_RC"
+assert_says "and says so, through the runner's own status line" \
+  '^rep=R107 rc=0 token=OK grade=correct$' "$DELIVERED_OUT"
+assert_silent "and never reports could-not-run, which is what it did before this bead" \
+  'nothing was graded' "$DELIVERED_OUT"
+
+DELIVERED_RC=0
+DELIVERED_OUT=$("$DEST/recall.sh" -q R107 '[w \in Wagons |-> Tracks]' 2>&1) || DELIVERED_RC=$?
+assert_eq "a WRONG answer in the delivered tree scores 10" "10" "$DELIVERED_RC"
+assert_says "and is named a wrong answer rather than a failed run" \
+  'token=ASSUMPTION_FAILED grade=incorrect' "$DELIVERED_OUT"
+
+DELIVERED_RC=0
+DELIVERED_OUT=$("$DEST/recall.sh" -q R107 '[Wagons ->' 2>&1) || DELIVERED_RC=$?
+assert_eq "and a parse error is its own code there too" "150" "$DELIVERED_RC"
+assert_says "and its own grade" 'token=PARSE_ERROR grade=parse-error' "$DELIVERED_OUT"
 
 # EVERY FILE IS REPO-OWNED, SO EVERY FILE IS OVERWRITTEN. This is the one
 # place this script inverts its three siblings, which all hold a
@@ -763,9 +837,16 @@ assert_says "the script states that it overwrites every file it delivers" \
 assert_says "and says why, naming the siblings' rule it inverts" \
   'never-overwrite' "$DELIVER_HEAD"
 assert_says "and says it has no delete path" 'no delete' "$DELIVER_HEAD"
-assert_says "and names the verdict channel it does not deliver" \
-  'harness/verdict\.sh' "$DELIVER_HEAD"
 assert_says "and names the sheet it does not deliver" 'drill/SHEET\.md' "$DELIVER_HEAD"
+# The header has to say what a delivered tree needs and what it does not. It
+# names tlc as the whole of the first, and it records that the verdict channel
+# stopped being the second rather than quietly dropping the subject: a reader
+# who remembers the warning should find out here why it is gone.
+assert_says "the header names tlc as what a delivered tree needs" \
+  'tlc ON THE PATH' "$DELIVER_HEAD"
+assert_says "and records that the runner is self-contained now" \
+  'self-contained' "$DELIVER_HEAD"
+assert_says "and names the bead that made it so" 'tla-1sh7\.10' "$DELIVER_HEAD"
 
 DELIVER_BODY=$(cat "$DELIVER")
 assert_says "the script resolves its root from BASH_SOURCE rather than a literal path" \

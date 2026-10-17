@@ -379,11 +379,16 @@ echo "== part 6: the mutants, which is what makes parts 1 to 4 mean something ==
 # ---------------------------------------------------------------------------
 
 MIRROR="$TMPROOT/mirror"
-mkdir -p "$MIRROR/harness" "$MIRROR/recall"
-ln -s "$VERDICT" "$MIRROR/harness/verdict.sh"
+mkdir -p "$MIRROR/recall"
 
 # mutate <name> <sed-script>: a copy of the real runner with one line changed,
-# placed in a mirror root so it still resolves the verdict channel.
+# placed in a bare tree carrying recall/ and nothing else.
+#
+# IT USED TO NEED A harness/verdict.sh SYMLINK BESIDE IT. The runner resolved
+# its verdict channel from its own root, so a mutant anywhere else died at
+# exit 3 before the mutation could be seen. Bead tla-1sh7.10 made the runner
+# self-contained and the symlink went with it, which means every mutant below
+# now also runs in the shape a delivered tree has.
 #
 # Separate `local` statements, because `local a=$1 b=$a` reads $a as unbound
 # under `set -u` on this bash.
@@ -595,13 +600,152 @@ for consumer in 'grep[[:space:]]+-[A-Za-z]*q' 'grep[[:space:]]+-[A-Za-z]*m[[:spa
     ok "no pipe into an early-exiting consumer ($consumer)"
   fi
 done
-# harness/verdict.sh is centrally owned. The runner calls it and must never
-# write to it.
-if has "$SRC" '> *"?\$\{?VERDICT'; then
-  nope "the runner never writes to the verdict channel it calls"
+# ---------------------------------------------------------------------------
+# THE RUNNER GRADES WITH NOTHING BUT TLC (bead tla-1sh7.10).
+#
+# It used to resolve ${REPO_ROOT}/harness/verdict.sh and refuse to start
+# without it, so a copy delivered to a practice tree answered rc 3 to every
+# rep and every answer, right ones included. These rows are what stops that
+# coming back from the other end.
+#
+# REPO_ROOT ITSELF IS STILL HERE and still legitimate: it is drill/SHEET.md's
+# default, and a sheet that is not there is silence rather than a refusal. So
+# the ban is on a REQUIRED path above the runner's own directory, which is a
+# narrower thing than a ban on the variable.
+# ---------------------------------------------------------------------------
+# THE CODE, WITH WHOLE-LINE COMMENTS STRIPPED. The two rows under this are
+# the only ones in part 8 that need it, and they need it badly: the runner's
+# header NAMES the dependency it used to have, in order to say it is gone, so
+# a scan of the whole file finds the string it is there to forbid and reports
+# the fix as the defect. The idiom is harness/test-indeterminate.sh's census
+# scan. Trailing comments survive it, which is why neither pattern below is
+# anchored to one.
+RUNNER_CODE=$(sed 's/^[[:space:]]*#.*$//' "$RUNNER")
+
+if has "$RUNNER_CODE" 'REPO_ROOT.*harness'; then
+  nope "the runner reaches for nothing under harness/, so a delivered tree can grade"
 else
-  ok "the runner never writes to the verdict channel it calls"
+  ok "the runner reaches for nothing under harness/, so a delivered tree can grade"
 fi
+if has "$RUNNER_CODE" 'die_cannot_run.*verdict'; then
+  nope "and refuses to start for no reason a delivered tree could not fix"
+else
+  ok "and refuses to start for no reason a delivered tree could not fix"
+fi
+if has "$RUNNER_CODE" 'command -v tlc'; then
+  ok "an absent tlc is could-not-run rather than a shell code wearing a grade"
+else
+  nope "an absent tlc is could-not-run rather than a shell code wearing a grade"
+fi
+
+# ---------------------------------------------------------------------------
+# THE COPIED TABLE AGREES WITH harness/verdict.sh's, ROW FOR ROW.
+#
+# This is the gate the self-contained route is only honest with. verdict.sh's
+# header says it is the one place the exit-code table lives, and the runner
+# now carries five of its rows. A second copy nobody checks is the rot surface
+# that justifies "deliver verdict.sh alongside" instead, so the copy is
+# checked here: every code the runner names has to map to the token
+# verdict.sh maps it to.
+#
+# READ OUT OF BOTH FILES' CODE, never out of either header. A header is prose
+# and can agree with a table that does not. The runner's verdict_token() and
+# verdict.sh's own case arm are the two things a learner's grade actually
+# passes through.
+#
+# WHAT IS *NOT* ASSERTED is that the runner names every row. It deliberately
+# names five of verdict.sh's thirteen mapped codes -- the three a grading run
+# can reach plus the two that are structural -- and everything else is
+# UNKNOWN_<rc>, which is verdict.sh's own posture for an unmapped code.
+# Requiring all thirteen would be requiring the duplication this bead spent
+# its measurement avoiding.
+# ---------------------------------------------------------------------------
+# Each helper prints `<code> <TOKEN>` per mapped arm, one a line. Both read a
+# case arm rather than a header row, for the reason above.
+RUNNER_ROWS=$(awk '
+  /^verdict_token\(\)/        { on = 1; next }
+  on && /^\}/                 { exit }
+  on && match($0, /^ *[0-9]+\)/) {
+    code = $0
+    sub(/^ */, "", code)
+    sub(/\).*/, "", code)
+    if (match($0, /[A-Z][A-Z_]+/)) {
+      printf "%s %s\n", code, substr($0, RSTART, RLENGTH)
+    }
+  }
+' "$RUNNER")
+
+VERDICT_ROWS=$(awk '
+  match($0, /^ *[0-9]+\) *verdict="[A-Z_]+"/) {
+    code = $0
+    sub(/^ */, "", code)
+    sub(/\).*/, "", code)
+    t = $0
+    sub(/^.*verdict="/, "", t)
+    sub(/".*$/, "", t)
+    printf "%s %s\n", code, t
+  }
+' "$VERDICT")
+
+assert_ne "the runner names codes of its own, so the rows below are not vacuous" \
+  "" "$RUNNER_ROWS"
+assert_eq "it names five: the three a grading run reaches, plus 124 and 255" \
+  "5" "$(wc -l <<<"$RUNNER_ROWS")"
+assert_ne "and verdict.sh's own arms were read, so the comparison has two sides" \
+  "" "$VERDICT_ROWS"
+
+TABLE_DRIFT=""
+while IFS=' ' read -r code mine; do
+  [ -n "$code" ] || continue
+  theirs=$(awk -v c="$code" '$1 == c { print $2; exit }' <<<"$VERDICT_ROWS")
+  if [ -z "$theirs" ]; then
+    TABLE_DRIFT="${TABLE_DRIFT}${code}: verdict.sh maps no token, the runner says ${mine}. "
+  elif [ "$mine" != "$theirs" ]; then
+    TABLE_DRIFT="${TABLE_DRIFT}${code}: the runner says ${mine}, verdict.sh says ${theirs}. "
+  fi
+done <<<"$RUNNER_ROWS"
+assert_eq "every code the runner names carries verdict.sh's own token for it" \
+  "" "$TABLE_DRIFT"
+
+# The three a grading run can actually reach, named rather than only counted,
+# so a table that drifted to five other rows still goes red here.
+for want in "0 OK" "10 ASSUMPTION_FAILED" "150 PARSE_ERROR"; do
+  if grep -qxF -- "$want" <<<"$RUNNER_ROWS"; then
+    ok "the runner maps ${want%% *} to ${want#* }, as verdict.sh does"
+  else
+    nope "the runner maps ${want%% *} to ${want#* }, as verdict.sh does"
+  fi
+done
+
+# The catch-all, which is what makes copying five rows safe at all.
+if has "$RUNNER_CODE" "UNKNOWN_%s"; then
+  ok "an unmapped code is reported as itself rather than bucketed into a familiar row"
+else
+  nope "an unmapped code is reported as itself rather than bucketed into a familiar row"
+fi
+
+# ---------------------------------------------------------------------------
+# THE FLAGS, BOTH SIDES READ WITH COMMENTS STRIPPED.
+#
+# The runner's invocation is verdict.sh's, and part 2 corroborates every code
+# by running verdict.sh over an equivalent scaffold, which means nothing if
+# the two run TLC differently.
+#
+# COMMENT-STRIPPING IS WHAT MAKES THIS ROW BITE, and it was found by watching
+# it fail to. Both files carry a header that names every flag and says what it
+# is for, so a scan of the whole text passes over a runner that has dropped
+# the flag from its command line and kept the sentence about it. Measured on a
+# mutant with `-coverage 1` deleted from the code: the row stayed green.
+# ---------------------------------------------------------------------------
+VERDICT_CODE=$(sed 's/^[[:space:]]*#.*$//' "$VERDICT")
+for flag in '-workers 1' '-noGenerateSpecTE' '-nowarning' '-coverage 1' \
+            '-dumpTrace json' '-metadir' '-deadlock'; do
+  if has "$RUNNER_CODE" "$flag" && has "$VERDICT_CODE" "$flag"; then
+    ok "the runner passes TLC ${flag}, as verdict.sh does"
+  else
+    nope "the runner passes TLC ${flag}, as verdict.sh does"
+  fi
+done
 # ---------------------------------------------------------------------------
 # THE GRADE IS AN EXIT CODE, ASSERTED STRUCTURALLY.
 #

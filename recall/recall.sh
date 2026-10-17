@@ -6,7 +6,7 @@
 # A rep states a need in English and asks for the notation. This script takes
 # the rep id and what was typed, drops the answer into a scaffold module beside
 # the rep's constant environment, and asserts value equality against the
-# canonical answer. Correctness is ONE EXIT CODE from harness/verdict.sh.
+# canonical answer. Correctness is ONE EXIT CODE, TLC's own.
 #
 # Usage:
 #   recall/recall.sh [OPTIONS] <rep-id> <answer>
@@ -28,21 +28,92 @@
 # until 2026-10-16, which cost a learner typing the right answer a usage dump.
 #
 # EXIT, and this is the contract the gate depends on: the exit code is the
-# RAW CODE harness/verdict.sh RETURNED on the grading run, never a code
-# inferred from anything TLC printed. Three codes are this script's own and
-# none of them collides with a code of TLC's:
+# RAW CODE THE GRADING RUN RETURNED, never a code inferred from anything TLC
+# printed. Three codes are this script's own and none of them collides with a
+# code of TLC's:
 #
 #     2   usage error -- a missing argument or an unknown flag
-#     3   could not run -- no rep, no environment, no verdict.sh, no scratch
+#     3   could not run -- no rep, no environment, no tlc, no scratch
 #     4   the value is right and the construct the rep drills is not in what
 #         was typed. See THE CONSTRUCT GATE below
 #
 # 2 and 3 happen before TLC starts, so there is no verdict to be faithful to.
 # 4 is the one that happens after a run, and it replaces a grading run that
 # came back 0: the status line carries 4 and the runner's own token, and the
-# line under it names the rc and token verdict.sh returned, so nothing the
-# channel said is hidden. 4 sits in the 3-to-7 range harness/vacuity.sh:320
+# line under it names the rc and token the grading run returned, so nothing
+# the run said is hidden. 4 sits in the 3-to-7 range harness/vacuity.sh:320
 # reserves for statements about the submission.
+#
+# ---------------------------------------------------------------------------
+# IT DEPENDS ON NOTHING BUT TLC
+#
+# The practice tree is not this repo. There is no harness beside this file, no
+# verdict.sh to call, and no repo root to resolve. Everything this script needs
+# to GRADE comes from the directory it sits in and from `tlc` on the path. An
+# absent tlc is exit 3 with a message, never a quiet pass. The section is
+# drill/study/check's, and so is the wording, because the problem is the same
+# one.
+#
+# IT WAS NOT ALWAYS. Until bead tla-1sh7.10 this script resolved
+# ${REPO_ROOT}/harness/verdict.sh and refused to start without it, so a copy
+# delivered to a practice tree looked for a harness/ directory nothing puts
+# there and answered rc 3 to every rep and every answer, right ones included.
+# Measured 2026-10-16 against a delivered copy, and again 2026-10-17 in a temp
+# tree with no repo above it: the canonical answer to R107 came back 3.
+#
+# WHAT THE SLICE ACTUALLY WAS, measured before it was absorbed rather than
+# after. This script passed verdict.sh four of its ten options -- -t, -c,
+# --scratch and --log -- plus the module, and read back two things, the token
+# on stdout and the exit status. Of the thirteen codes verdict.sh maps, a
+# grading run here can reach THREE. The scaffold below declares no
+# SPECIFICATION, no INIT, no NEXT, no INVARIANT and no PROPERTY, so there is
+# no behaviour to explore and nothing to refute:
+#
+#     0    OK                  the two values are equal
+#     10   ASSUMPTION_FAILED   they are not, OR the ASSUME blew up evaluating
+#     150  PARSE_ERROR         SANY rejected it
+#
+# 11 DEADLOCK, 12 SAFETY_VIOLATION, 13 LIVENESS_VIOLATION, 14
+# ASSERT_VIOLATION, 76 SAFETY_EVAL_FAILURE and 77 LIVENESS_EVAL_FAILURE all
+# need a .cfg keyword this scaffold's empty .cfg does not carry. 151
+# CONFIG_ERROR needs a .cfg naming an operator, and the .cfg names nothing. 99
+# CHECK_DID_NOT_RUN is verdict.sh's deadlock refusal, which cannot fire
+# without a CHECK_DEADLOCK keyword or a --check-deadlock this script never
+# passed.
+#
+# 75 SPEC_EVAL_FAILURE IS THE ONE THAT SURPRISES, and it is why the rows above
+# were measured rather than reasoned about. Every evaluation failure inside an
+# ASSUME comes back 10 and not 75: 1 \div 0, CHOOSE over the empty set,
+# Head(<<>>), Cardinality of a function, and a set built past TLC's million-
+# element ceiling. All five measured 2026-10-17 on TLC2 2026.07.31.184830
+# through verdict.sh itself. 75 belongs to the initial-state computation,
+# which this scaffold never reaches.
+#
+# TWO ROWS ARE STRUCTURAL RATHER THAN REACHABLE, and they are named anyway:
+# 124 TIMEOUT, because the run is wrapped in timeout(1), and 255
+# TLC_EXCEPTION, because a .cfg that failed to be written is a missing .cfg.
+# Neither was provoked from a learner-typed answer in the probes that found
+# the three above. Naming them costs two lines and misnaming them would cost
+# a learner a sentence about their answer that was really about the run.
+#
+# EVERY OTHER CODE IS UNKNOWN_<rc> AND THAT IS THE POINT. A renumbered TLC
+# surfaces loudly here instead of quietly matching a familiar name, which is
+# verdict.sh's own posture for an unmapped code and the reason to keep it.
+#
+# THE DUPLICATION IS REAL AND IT IS GATED. verdict.sh's header says it is the
+# one place the exit-code table lives, and five of its thirteen mapped codes
+# now also live here. harness/test-recall-runner.sh part 8 reads both files
+# and requires every code this script names to carry verdict.sh's own token
+# for it, so the second copy drifting is a red suite rather than a learner
+# being told the wrong word. That gate lives in the repo, where both files
+# are. The delivered tree needs neither it nor verdict.sh.
+#
+# THE INVOCATION IS verdict.sh's, COPIED FLAG FOR FLAG. Nothing below is tuned
+# for this rung. A flag dropped because a grading run cannot reach what it
+# guards would be a new measurement wearing an old table's authority, and
+# harness/test-recall-runner.sh part 2 corroborates every code here by running
+# the real verdict.sh over an equivalent scaffold. Identical flags is what
+# makes that corroboration mean something.
 #
 # THE GRADING SCAFFOLD, measured on TLC2 2026.07.31.184830:
 #
@@ -268,6 +339,13 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+# REPO_ROOT IS THE SHEET'S DEFAULT AND NOTHING ELSE NOW. It used to carry the
+# verdict channel too, which is what made a delivered tree ungradable. What is
+# left of it points at drill/SHEET.md, and a sheet that is not there is silence
+# rather than a refusal, so the parent of the delivered directory being a
+# practice tree rather than a repo costs a wrong answer one explanation layer
+# of three and costs a right answer nothing.
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 EXTENDS_LIST="Naturals, Integers, Sequences, FiniteSets, TLC"
@@ -294,7 +372,6 @@ VALUE_TAIL=2
 # two-space indent leaves a column clear of an 80-column terminal.
 PROSE_WIDTH=76
 
-VERDICT="${REPO_ROOT}/harness/verdict.sh"
 REPS="${SCRIPT_DIR}/REPS.tsv"
 ENV_DIR="${SCRIPT_DIR}/env"
 SHEET="${REPO_ROOT}/drill/SHEET.md"
@@ -373,7 +450,13 @@ done
 [ -n "$REP_ID" ]        || die_usage "no rep id given"
 [ "$HAVE_ANSWER" = "1" ] || die_usage "no answer given"
 
-[ -x "$VERDICT" ] || die_cannot_run "no harness/verdict.sh at ${VERDICT}, so nothing was graded."
+# The ONE thing outside this directory a rep needs. An absent tlc is exit 3
+# with a message, never a quiet pass: drill/study/check line 722 is the
+# precedent and the reason is the same one. Without this the run would come
+# back 127 from the shell and be reported as UNKNOWN_127, which is a true
+# number attached to a false frame -- "the grading run came back 127" says
+# something about the answer, and there was no grading run.
+command -v tlc >/dev/null 2>&1 || die_cannot_run "tlc is not on the path, so nothing was graded."
 [ -r "$REPS" ]    || die_cannot_run "no rep table at ${REPS}, so nothing was graded."
 
 # ---------------------------------------------------------------------------
@@ -601,18 +684,65 @@ show_sheet() {
   show_prose "$(sed -n '2,$p' <<<"$entry")"
 }
 
-# One TLC run, through the one verdict channel. The token comes back on
-# verdict.sh's stdout and the code comes back as its exit status, so neither is
-# this script's opinion: verdict.sh owns the exit-code table, including the
-# UNKNOWN_<rc> row that makes a renumbered TLC surface loudly instead of
-# quietly matching a familiar name.
+# The rows this script names, and nothing else. See IT DEPENDS ON NOTHING BUT
+# TLC in the header for which three a grading run can reach, which two are
+# named for being structural, and which gate keeps all five agreeing with
+# harness/verdict.sh.
+#
+# THE CATCH-ALL IS NOT A FALLBACK, it is the whole reason the table is safe to
+# copy. An unmapped code is reported as itself rather than bucketed into the
+# nearest familiar row, so a renumbered TLC reaches a learner as a loud
+# UNKNOWN_<rc> instead of a plausible-looking wrong answer.
+verdict_token() {
+  case "$1" in
+    0)   printf 'OK\n' ;;
+    10)  printf 'ASSUMPTION_FAILED\n' ;;
+    124) printf 'TIMEOUT\n' ;;
+    150) printf 'PARSE_ERROR\n' ;;
+    255) printf 'TLC_EXCEPTION\n' ;;
+    *)   printf 'UNKNOWN_%s\n' "$1" ;;
+  esac
+}
+
+# One TLC run. The code is TLC's own, taken from the process status and from
+# nothing it printed, and the token is this script's name for that code.
+#
+# THE FLAGS ARE harness/verdict.sh's, IN ITS ORDER, AND NONE OF THEM IS
+# DECORATION:
+#
+#   -workers 1          pinned, so a run is reproducible
+#   -noGenerateSpecTE   no *_TTrace_*.tla spillage beside anything
+#   -nowarning          the log is read by a person
+#   -coverage 1         carried rather than dropped, see the header
+#   -dumpTrace json     a counterexample would be data, not console text
+#   -metadir            TLC's states/ tree, into scratch, never beside a spec
+#   -deadlock           TLC's flag means "do NOT check", and with no spec to
+#                       explore there is nothing to deadlock on. It is here
+#                       because verdict.sh's default run carries it, and this
+#                       invocation is that one.
+#
+# BOTH PATHS ARE ABSOLUTE OR BOTH ARE RELATIVE, never one of each. TLC moves
+# the base a relative --config resolves against when, and only when, the
+# module argument is absolute (bead tla-sn0h), so an absolute module with a
+# relative config is the one cell of four that exits 255 on a file the caller
+# can see. Both of these come out of the same mktemp root, so they always
+# agree and the trap cannot be sprung from here.
 run_verdict() {
-  local module="$1" cfg="$2" log="$3" stem rc=0
+  local module="$1" cfg="$2" log="$3" stem states rc=0
   stem="$(basename -- "$module" .tla)"
-  VERDICT_TOKEN="$("$VERDICT" -t "$TIMEOUT" -c "$cfg" \
-    --scratch "${SCRATCH}/states-${stem}" --log "$log" "$module" 2>/dev/null)" || rc=$?
+  states="${SCRATCH}/states-${stem}"
+  mkdir -p "$states"
+  timeout "$TIMEOUT" tlc \
+    -workers 1 \
+    -noGenerateSpecTE \
+    -nowarning \
+    -coverage 1 \
+    -dumpTrace json "${states}/trace.json" \
+    -metadir "${states}/states" \
+    -deadlock \
+    "$module" -config "$cfg" >"$log" 2>&1 || rc=$?
   VERDICT_RC="$rc"
-  [ -n "$VERDICT_TOKEN" ] || VERDICT_TOKEN="NO_TOKEN"
+  VERDICT_TOKEN="$(verdict_token "$rc")"
 }
 
 # ---------------------------------------------------------------------------
@@ -636,7 +766,7 @@ esac
 # The construct gate's refusal. It only ever replaces a grading run that came
 # back 0, so a wrong value keeps its value block and the gate has nothing to
 # say about it. REPORT_RC is what leaves this script; GRADE_RC stays the
-# verdict channel's own number and is printed under the refusal.
+# grading run's own number and is printed under the refusal.
 REPORT_RC="$GRADE_RC"
 REPORT_TOKEN="$GRADE_TOKEN"
 if [ "$GRADE" = "correct" ] && [ "$REQUIRES_MET" = "0" ]; then
