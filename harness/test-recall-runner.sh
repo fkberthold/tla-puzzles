@@ -393,23 +393,43 @@ mkdir -p "$MIRROR/recall"
 # Separate `local` statements, because `local a=$1 b=$a` reads $a as unbound
 # under `set -u` on this bash.
 #
-# A REFUSAL IS RECORDED IN A FILE, not in a counter. Every caller captures
-# this function's stdout, so a message printed here never reaches the
-# terminal, and a fail_count bumped here is bumped in the command
-# substitution's subshell and discarded with it. The sentinel row at the end
-# of part 14 reads the file back in the main shell, which is the only place a
-# missing control can be reported from.
+# THE PATH LANDS IN MUTANT AND THE RETURN CODE SAYS WHETHER THERE IS ONE.
+#
+# IT USED TO RETURN THE PATH ON STDOUT, and that made this guard unable to
+# fail the suite. Every call site read it through `M1=$(mutate ...) || M1=""`,
+# which is a subshell, so a vacuous mutation called nope inside one. The FAIL
+# row went into the variable, the `|| M1=""` then cleared it, and the
+# fail_count increment died with the subshell. A mutation that stopped
+# applying left nothing behind at all.
+#
+# Watched doing exactly that on 2026-10-17 while part 14 was being written:
+# M9 and M10 both failed to apply, and the suite printed nothing between the
+# mutant header and the tally. Bead tla-vo5l measured the same defect in
+# harness/test-drill-runner.sh the day before, named this file as carrying it
+# at eight call sites, and left it as follow-up because it was outside that
+# bead's footprint. This is that follow-up, and the mechanism is tla-vo5l's
+# so the two suites do not carry two fixes for one bug.
+#
+# So the call sites below are `if mutate ...; then`, not a capture. Keep them
+# that way. A capture puts nope back in a subshell and the guard goes quiet
+# again.
+#
+# Separate `local` statements, because `local a=$1 b=$a` reads $a as unbound
+# under `set -u` on this bash.
+MUTANT=""
 mutate() {
   local name="$1"
   local script="$2"
   local out="$MIRROR/recall/$name.sh"
+  MUTANT=""
   sed "$script" "$RUNNER" >"$out"
   chmod +x "$out"
   if [ "$(cat "$out")" = "$(cat "$RUNNER")" ]; then
-    printf '%s\n' "$name" >>"$TMPROOT/mutate-refused"
+    nope "mutant $name changed nothing, so its control below is vacuous"
     return 1
   fi
-  printf '%s\n' "$out"
+  MUTANT="$out"
+  return 0
 }
 
 # Every sed script is single-quoted on purpose: both sides of the substitution
@@ -419,18 +439,16 @@ mutate() {
 
 # M1. the reported code stops being the one verdict.sh returned.
 # shellcheck disable=SC2016
-M1=$(mutate inferred-code 's|^GRADE_RC="\$VERDICT_RC"$|GRADE_RC=0|') || M1=""
-if [ -n "$M1" ]; then
-  run_runner "$M1" R001 '[w \in Wagons |-> Tracks]'
+if mutate inferred-code 's|^GRADE_RC="\$VERDICT_RC"$|GRADE_RC=0|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   assert_ne "control: a runner reporting its own code is DETECTED by part 1's code row" \
     "10" "$RUN_RC"
   assert_eq "and it fails the way the mutation says, a wrong answer exiting 0" "0" "$RUN_RC"
 fi
 
 # M2. rc 150 is reported as a wrong answer rather than as its own thing.
-M2=$(mutate parse-called-wrong 's|^  150) GRADE="parse-error" ;;$|  150) GRADE="incorrect" ;;|') || M2=""
-if [ -n "$M2" ]; then
-  run_runner "$M2" R001 '[Wagons ->'
+if mutate parse-called-wrong 's|^  150) GRADE="parse-error" ;;$|  150) GRADE="incorrect" ;;|'; then
+  run_runner "$MUTANT" R001 '[Wagons ->'
   if has "$RUN_OUT" 'grade=parse-error'; then
     nope "control: a runner calling a parse error a wrong answer is DETECTED"
   else
@@ -447,9 +465,8 @@ fi
 # The `$CANON` must stay literal: it is a character of the runner's source
 # that the pattern has to match, not a variable of this suite's.
 # shellcheck disable=SC2016
-M3=$(mutate lost-value-block 's|^show_value "the answer" "Canon" "\$CANON"$|:|') || M3=""
-if [ -n "$M3" ]; then
-  run_runner "$M3" R001 '[w \in Wagons |-> Tracks]'
+if mutate lost-value-block 's|^show_value "the answer" "Canon" "\$CANON"$|:|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   if has "$RUN_OUT" '^the answer '; then
     nope "control: a runner showing only one value is DETECTED by part 3"
   else
@@ -464,9 +481,8 @@ fi
 
 # M4. the skipped-count note never prints, so a refused count passes silently.
 # shellcheck disable=SC2016
-M4=$(mutate count-claimed 's|^  if \[ "\$VERDICT_RC" != "0" \]; then$|  if false; then|') || M4=""
-if [ -n "$M4" ]; then
-  run_runner "$M4" R001 '[w \in Wagons |-> Tracks]'
+if mutate count-claimed 's|^  if \[ "\$VERDICT_RC" != "0" \]; then$|  if false; then|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   if has "$RUN_OUT" 'no count'; then
     nope "control: a runner silent about a refused count is DETECTED by part 4"
   else
@@ -1011,9 +1027,8 @@ assert_eq "and its own 27-member block is capped on the same rule" "2" \
 # The mutant for the cap. Lifting the head past any block disables the
 # elision, and part 11's elision row has to go red when it does.
 # shellcheck disable=SC2016
-M5=$(mutate cap-disabled 's|^VALUE_HEAD=2$|VALUE_HEAD=9999|') || M5=""
-if [ -n "$M5" ]; then
-  run_runner "$M5" R001 '[w \in Wagons |-> Tracks]'
+if mutate cap-disabled 's|^VALUE_HEAD=2$|VALUE_HEAD=9999|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   if has "$RUN_OUT" 'more lines'; then
     nope "control: a runner that stopped capping is DETECTED by part 11"
   else
@@ -1206,9 +1221,8 @@ echo "-- the mutants for the two layers --"
 # M6. the sheet entry never prints. The column-0 call is the one on the wrong
 # answer path; the indented one belongs to the construct-gate refusal.
 # shellcheck disable=SC2016
-M6=$(mutate sheet-dropped 's|^show_sheet "\$CONSTRUCT"$|:|') || M6=""
-if [ -n "$M6" ]; then
-  run_runner "$M6" R001 '[w \in Wagons |-> Tracks]'
+if mutate sheet-dropped 's|^show_sheet "\$CONSTRUCT"$|:|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   if has "$RUN_OUT" '^K050  ch06'; then
     nope "control: a runner that stopped printing the sheet entry is DETECTED"
   else
@@ -1223,9 +1237,8 @@ fi
 
 # M7. the miss row never prints.
 # shellcheck disable=SC2016
-M7=$(mutate miss-dropped 's|^show_misconception "\$REP_ID"$|:|') || M7=""
-if [ -n "$M7" ]; then
-  run_runner "$M7" R001 '[w \in Wagons |-> Tracks]'
+if mutate miss-dropped 's|^show_misconception "\$REP_ID"$|:|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   if has "$RUN_OUT" 'what you wrote says'; then
     nope "control: a runner that stopped printing the miss row is DETECTED"
   else
@@ -1242,15 +1255,14 @@ fi
 # spaced-out answers have to stop reaching the row and the row's own spelling
 # has to keep reaching it -- a mutant that broke BOTH would prove nothing
 # about the rule, only that the lookup ran.
-M8=$(mutate match-exact 's|^      return out$|      return s|') || M8=""
-if [ -n "$M8" ]; then
-  run_runner "$M8" R001 '[w \in Wagons|->Tracks]'
+if mutate match-exact 's|^      return out$|      return s|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons|->Tracks]'
   if has "$RUN_OUT" 'what you wrote says'; then
     nope "control: a runner matching text rather than tokens is DETECTED"
   else
     ok "control: a runner matching text rather than tokens is DETECTED"
   fi
-  run_runner "$M8" R001 '[w \in Wagons |-> Tracks]'
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
   if has "$RUN_OUT" 'what you wrote says'; then
     ok "and it fails the way the mutation says, the row's own spelling still hits"
   else
@@ -1868,8 +1880,7 @@ echo "-- the mutants for the walk and for the serving --"
 # whatever the seed, and makes the mutant's repeat a coin toss per step, so
 # ten seeds settle it.
 # shellcheck disable=SC2016
-M9=$(mutate walk-blocked 's|\[ "\$WALK_KI" = "\$WALK_CUR_K" \] && continue|:|') || M9=""
-if [ -n "$M9" ]; then
+if mutate walk-blocked 's|\[ "\$WALK_KI" = "\$WALK_CUR_K" \] && continue|:|'; then
   M9_REPS=$(sub_reps "$TMPROOT/alternate.tsv" S01 S02 S03 S04)
   repeats_over_seeds() {
     local script="$1" seed out id ki prev found=""
@@ -1889,38 +1900,22 @@ if [ -n "$M9" ]; then
   assert_eq "the real walk alternates the two constructs at every one of ten seeds" \
     "" "$(repeats_over_seeds "$RUNNER")"
   assert_ne "control: a walk that stopped excluding the served construct is DETECTED" \
-    "" "$(repeats_over_seeds "$M9")"
+    "" "$(repeats_over_seeds "$MUTANT")"
 fi
 
 # M10. the prompt is never printed, so a session serves nothing a reader can
 # answer. This is the mutant for the defect itself.
 # shellcheck disable=SC2016
-M10=$(mutate prompt-dropped 's|printf .%s  %s.n. "\$WALK_ID" "\$WALK_PROMPT"|:|') || M10=""
-if [ -n "$M10" ]; then
-  M10_OUT=$("$M10" --reps "$SREPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
+if mutate prompt-dropped 's|printf .%s  %s.n. "\$WALK_ID" "\$WALK_PROMPT"|:|'; then
+  M10_OUT=$("$MUTANT" --reps "$SREPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sheet "$SHEET" \
     --session --count 2 --seed 1 <"$(blank_input 2)" 2>&1) || true
   assert_eq "control: a session that stopped printing the prompt is DETECTED" "0" \
     "$(prompted_ids "$M10_OUT" | wc -l)"
 fi
 
-# ---------------------------------------------------------------------------
-# A MUTATION THAT DID NOT APPLY IS A CONTROL THAT WENT MISSING SILENTLY, and
-# until this bead nothing said so. mutate() prints its own refusal on STDOUT,
-# and every caller captures stdout into a variable, so the message was
-# swallowed and the fail_count it bumped was bumped inside a subshell and
-# thrown away. Watched happening: M9 and M10 both failed to apply during this
-# bead's red run and the suite printed nothing at all between the mutant
-# header and the tally.
-#
-# A file is the fix, because a file crosses the subshell the variable could
-# not. mutate() touches it, and this row reads it in the main shell.
-# ---------------------------------------------------------------------------
-if [ -e "$TMPROOT/mutate-refused" ]; then
-  nope "every mutation in this suite applied, so no control is silently missing"
-  printf '          refused: %s\n' "$(tr '\n' ' ' <"$TMPROOT/mutate-refused")"
-else
-  ok "every mutation in this suite applied, so no control is silently missing"
-fi
+# A MUTATION THAT DID NOT APPLY NEEDS NO ROW OF ITS OWN HERE. mutate() calls
+# nope from the main shell now, so its refusal is a FAIL row like any other
+# and it names the mutant. See the function's own header.
 
 echo
 printf 'test-recall-runner.sh: %d passed, %d failed\n' "$pass_count" "$fail_count"
