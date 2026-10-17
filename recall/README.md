@@ -53,6 +53,25 @@ The top half is one function against a set of 27 of them. Nobody wrote that
 comparison; it is what the two values look like. The bottom half is the next
 section.
 
+## What it needs
+
+`tlc` on the path, and nothing else. No harness beside this directory, no repo
+above it, no environment variable to set. An absent `tlc` is exit `3` with a
+message rather than a quiet pass, so a tree that cannot grade says so on the
+first rep instead of scoring one.
+
+`drill/SHEET.md` is the one optional file, and it is read from the parent of
+this directory. It carries the construct entry a wrong answer ends on. A tree
+without it grades every rep exactly as before and prints two layers instead of
+three, which is silence rather than a refusal.
+
+**This was not true until 2026-10-17.** The runner used to resolve
+`harness/verdict.sh` from the parent directory and refuse to start without it,
+so a delivered tree answered exit `3` to every rep and every answer, right
+ones included. It now runs TLC itself, under the same flags that channel runs
+it under, and names five exit codes, three of which a grading run can reach.
+Bead `tla-1sh7.10`, and the runner's own header carries the measurement.
+
 ## The three layers under a wrong answer
 
 The values are the first and they are not the whole of it. Two more come out
@@ -225,16 +244,16 @@ about an answer the grading run already accepted.
 | `parse-error` | 150 | SANY rejected it, so nothing was graded |
 | `other` | whatever came back | a report about the run, not about the answer |
 
-The exit code is the raw code `harness/verdict.sh` returned, never one read
-back out of anything TLC printed. Three codes belong to the runner instead and
-none of them collides with a code of TLC's. `2` is a usage error and `3` is
-"could not run", meaning no such rep, no environment file, no scratch
-directory. Both happen before TLC starts.
+The exit code is the raw code the grading run returned, never one read back
+out of anything TLC printed. Three codes belong to the runner instead and none
+of them collides with a code of TLC's. `2` is a usage error and `3` is "could
+not run", meaning no such rep, no environment file, no `tlc` on the path, no
+scratch directory. Both happen before TLC starts.
 
 `4` is the one that happens after a run, and it replaces a grading run that
 came back `0`. The status line carries `4` and the runner's own token, and the
-line under it names the rc and token the verdict channel returned, so nothing
-the channel said goes missing.
+line under it names the rc and token the grading run returned, so nothing the
+run said goes missing.
 
 `parse-error` is its own row on purpose. Telling somebody their answer is
 wrong when it never parsed is a false statement about a check that did not
