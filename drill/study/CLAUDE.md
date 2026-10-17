@@ -151,7 +151,9 @@ The runner says which mode you're in on a line of its own, and the two want
 different output.
 
 **`MODE: check`**: the whole report. Work the passes in `/check` in the order
-they're written, and hand back everything its last section asks for.
+they're written, and hand back everything its last section asks for. The
+runner cats `/check`'s own file into a check prompt, so the passes and that
+last section are in front of you rather than at a path you can't open.
 
 **`MODE: hint`**: one rung, with the gate in `/hint` first. A one-shot carries
 no history of the session, so the rung is the first one unless what he typed
@@ -176,6 +178,11 @@ a path the one-shot can't open.
 They sat at that path until 2026-10-16. A hint classified on this summary alone
 laddered a question Frank had marked as a mechanism question in his own text.
 That cost him an hour.
+
+`/check`'s file sat there a day longer, and what it risked is quieter. A check
+working from the four sentences above it reports a clean run without making the
+pass that catches a right count reached by a wrong model, and a report with a
+pass missing from it reads like a report with nothing to say.
 
 None of this touches the third prohibition above. The construct that's missing
 from his rule stays unnamed whatever he asks, and a flat answer is about
