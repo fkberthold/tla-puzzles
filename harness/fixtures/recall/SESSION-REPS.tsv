@@ -1,0 +1,51 @@
+# Fixture rep table for the session walk (bead tla-1sh7.11).
+#
+# WHY THIS IS A SECOND TABLE RATHER THAN ROWS ADDED TO REPS.tsv. The four reps
+# in REPS.tsv are pinned by name all through harness/test-recall-runner.sh:
+# part 1 grades every CASE row over them, part 9 counts the six-field and
+# seven-field rows, and part 11 pins two block lengths to the line. Rows added
+# there would move numbers that have nothing to do with a session. This table
+# is read by part 14 and by nothing else.
+#
+# WHAT IT IS SHAPED FOR, which is the ordering rather than the grading. The
+# walk draws the next rep from the constructs NEAR the one just served, so a
+# table has to carry enough distinct constructs for "near" to mean something.
+# Eight constructs at two reps each is the smallest table where a window of
+# two reaches 2 of the 7 other constructs rather than most of them.
+#
+# THE ORDER OF THE ROWS IS THE DATA. recall/REPS.tsv is sorted by family, then
+# by construct, and the reps for one construct are contiguous. Measured over
+# the shipped table on 2026-10-17: 37 constructs in four family runs, core
+# then sequences then sets then functions-records, so 33 of the 36 adjacent
+# construct pairs are same-family. That is what makes file-order adjacency a
+# family proxy, and it is why the walk needs no second file in a delivered
+# tree. This fixture is sorted the same way: core, then sets, then
+# functions-records.
+#
+# Every canonical here evaluates over harness/fixtures/recall/env/shunting.tla,
+# which declares Wagons and Tracks and nothing else. They are deliberately
+# cheap: part 14 grades a handful of them for real and skips the rest, and a
+# canonical whose value enumerates is wall time the ordering rows do not need.
+#
+#   1  marker       the literal REP
+#   2  id           stable, never renumbered
+#   3  construct    K001-K105, resolving to a drill/INVENTORY.md row
+#   4  environment  resolves to <env-dir>/<name>.tla
+#   5  prompt       English, naming none of the notation it asks for
+#   6  canonical    the answer, as TLA+
+REP	S01	K003	shunting	whether three and three are the same number	TRUE
+REP	S02	K003	shunting	whether two and three are the same number	FALSE
+REP	S03	K005	shunting	the number of tracks in the yard, written out	3
+REP	S04	K005	shunting	the number of wagons in the yard, written out	3
+REP	S05	K007	shunting	what you get when something true is also required to be true	TRUE
+REP	S06	K007	shunting	what you get when something true is also required to be false	FALSE
+REP	S07	K012	shunting	the first and the second track, gathered together	{1, 2}
+REP	S08	K012	shunting	the first two wagons by name, gathered together	{"a", "b"}
+REP	S09	K013	shunting	the tracks, together with a fourth one the yard does not have	Tracks \union {4}
+REP	S10	K013	shunting	the tracks the yard has that are also the first track	Tracks \intersect {1}
+REP	S11	K015	shunting	every whole number from one to three	1..3
+REP	S12	K015	shunting	every whole number from two to four	2..4
+REP	S13	K047	shunting	the parking that leaves every wagon on the first track	[w \in Wagons |-> 1]
+REP	S14	K047	shunting	for each track, the track itself	[t \in Tracks |-> t]
+REP	S15	K050	shunting	every way the wagons could be parked, one track each	[Wagons -> Tracks]
+REP	S16	K050	shunting	every way the tracks could be labelled, one wagon each	[Tracks -> Wagons]

@@ -9,16 +9,24 @@
 # canonical answer. Correctness is ONE EXIT CODE, TLC's own.
 #
 # Usage:
-#   recall/recall.sh [OPTIONS] <rep-id> <answer>
+#   recall/recall.sh --session [OPTIONS]             work rep after rep
+#   recall/recall.sh [OPTIONS] <rep-id> <answer>     grade one rep
 #
 # OPTIONS, and every one of them goes BEFORE the rep id. Once the rep id is in
 # hand the next argument is the answer, whatever it starts with.
+#   --session         serve reps one at a time: the prompt, then your answer
+#                     read from stdin, then the grade, then the next rep
+#   --count N         stop a session after N reps. Default: until the table
+#                     runs out, or until you do
+#   --seed N          seed a session's walk, so one can be run again
 #   --reps FILE       rep table (default: recall/REPS.tsv beside this script)
 #   --env-dir DIR     constant environments (default: recall/env)
 #   --sheet FILE      construct sheet (default: drill/SHEET.md)
 #   --misses FILE     miss table (default: recall/MISSES.tsv beside this file)
 #   --full            print each value whole, however long it runs
 #   -q, --quiet       the status line only, no prompt and no value block
+#   --no-prompt       do not echo the rep's prompt line. This is what a
+#                     session hands its own child, having printed it already
 #   -h, --help        this text
 #
 # AN ANSWER BEGINNING WITH A DASH NEEDS NOTHING IN FRONT OF IT. Negative
@@ -27,6 +35,100 @@
 # The `--` escape still works wherever it appears, and it was the only route
 # until 2026-10-16, which cost a learner typing the right answer a usage dump.
 #
+# ---------------------------------------------------------------------------
+# THE SESSION, AND THE DEFECT IT CLOSES (bead tla-1sh7.11)
+#
+# Until 2026-10-17 the single-rep invocation above was the ONLY one, and it
+# takes a rep id. So finding out what a rep asked meant opening REPS.tsv,
+# where field 5 sits on the same tab-delimited line as field 6, the canonical
+# answer. READING THE QUESTION HANDED OVER THE ANSWER, which is exactly the
+# lookup this rung exists to replace: exposure without a retrieval attempt
+# buys very little durability, and drill/study/CLAUDE.md cites the same
+# finding where it forbids a checking agent to name a missing construct.
+#
+# `--session` prints the prompt and nothing else, reads the answer from
+# stdin, grades it, prints the block below, and serves the next rep. No id is
+# ever typed.
+#
+# IT RE-ENTERS THIS SCRIPT ONCE PER REP RATHER THAN GRADING INLINE. A session
+# runs `recall.sh --no-prompt -- <rep> <answer>`, so what it grades is the
+# single-rep invocation itself and there is no second grading path to drift
+# from the first. The cost is one process per rep against a 320 ms TLC run,
+# which is nothing. The gain is that every row of
+# harness/test-recall-runner.sh parts 1 to 13 covers what a session grades.
+#
+# WHICH REP COMES NEXT: NEAR THE LAST ONE, NEVER THE SAME CONSTRUCT.
+#
+# Uniform random is the cheap answer and it throws away what the rep table was
+# built for. tla-1sh7.2 wrote two to six differently-phrased reps per
+# construct so the FACT is retrieved rather than the sentence, and
+# interleaving is stronger when consecutive items are similar enough to be
+# confusable. The confusions this rung exists for are within-family ones:
+# recall/MISSES.tsv's 30 rows are mostly a function written where a function
+# SET was asked for, which is K047 against K050.
+#
+# Two reps of ONE construct back to back is the other failure. That is lag 0,
+# where the answer was typed a second ago and the second rep is recognition
+# rather than recall.
+#
+# So the walk draws the next rep from a construct WITHIN TWO POSITIONS of the
+# one just served and never from that construct itself. The construct's
+# remaining reps stay in the pool and come round again after an intervening
+# rep or two, which is the spacing a blocked order has none of.
+#
+# POSITION MEANS FILE ORDER, AND THAT IS A MEASUREMENT RATHER THAN AN
+# ASSUMPTION. recall/REPS.tsv is sorted by family, then by construct, and the
+# reps of one construct are contiguous. Measured 2026-10-17 over the shipped
+# table: 120 reps, 37 constructs, four unbroken family runs -- core, then
+# sequences, then sets, then functions-records -- so 33 of the 36 adjacent
+# construct pairs are same-family. That is what lets the window be computed
+# from the delivered table alone. A delivered tree carries no
+# drill/INVENTORY.md and this script reads no family anywhere.
+# harness/test-recall-runner.sh part 14 gates both halves: the contiguity and
+# the four runs.
+#
+# AT THE TAIL IT REPEATS A CONSTRUCT RATHER THAN STOPPING. When every
+# unserved rep belongs to the construct just served, the choice is between
+# breaking the lag and ending a session early, and a rep the reader has not
+# seen is worth more than the lag.
+#
+# NOTHING IS KEPT BETWEEN SESSIONS, AND THAT IS A DECISION.
+#
+# scripts/deliver-recall.sh overwrites every file it delivers, and its header
+# justifies that by saying no file in this channel is learner-owned. A
+# progress file would make that false, and the delivery would then overwrite
+# a learner's own record in a tree that is not a git repo -- which is the
+# shape of the 2026-10-02 incident that took 39 delivered files.
+#
+# The rung does not need one either. A drill item declares eight to twelve
+# minutes and must not be lost. A rep costs about a third of a second, so a
+# session that ends has cost nothing. What a session does keep, for as long as
+# it runs, is which reps it has served, so no rep comes round twice.
+#
+# HOW A SESSION ENDS, three ways, and a loop that cannot be left is worse than
+# no loop:
+#
+#     --count N       stop after N reps
+#     EOF on stdin    Ctrl-D at a terminal, or the end of a pipe
+#     the table       every rep served once, and it says so
+#
+# EOF leaves ONE PROMPT UNANSWERED on screen, and that is not a bug to fix.
+# The prompt goes out before the read can discover there is nothing to read,
+# so a reader who answers a question with Ctrl-D sees that question last.
+#
+# A BLANK LINE SKIPS THE REP AND SHOWS THE ANSWER. A reader who declines to
+# attempt is past the point the attempt was protecting, and withholding it
+# there teaches nothing. A skip runs no TLC at all.
+#
+# A SESSION ECHOES THE ANSWER WHEN STDIN IS NOT A TERMINAL. A terminal echoes
+# what is typed and a pipe does not, so without this a piped transcript is a
+# prompt character with the feedback jammed against it and no record of what
+# was answered. It is the only behaviour in this script keyed on a terminal.
+#
+# A SESSION EXITS 0 WHENEVER IT RAN. It is not a grade, so it carries none:
+# the grade of each rep left on that rep's own status line.
+#
+# ---------------------------------------------------------------------------
 # EXIT, and this is the contract the gate depends on: the exit code is the
 # RAW CODE THE GRADING RUN RETURNED, never a code inferred from anything TLC
 # printed. Three codes are this script's own and none of them collides with a
@@ -340,6 +442,12 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+# What a session re-enters once per rep. Absolute, resolved the same way
+# SCRIPT_DIR is, so it does not depend on the caller's working directory and
+# it points at THIS copy -- a mutant or a delivered tree runs itself, never
+# some other recall.sh that happens to be nearer.
+SELF="${SCRIPT_DIR}/$(basename -- "${BASH_SOURCE[0]}")"
+
 # REPO_ROOT IS THE SHEET'S DEFAULT AND NOTHING ELSE NOW. It used to carry the
 # verdict channel too, which is what made a delivered tree ungradable. What is
 # left of it points at drill/SHEET.md, and a sheet that is not there is silence
@@ -378,14 +486,27 @@ SHEET="${REPO_ROOT}/drill/SHEET.md"
 MISSES="${SCRIPT_DIR}/MISSES.tsv"
 QUIET=0
 FULL=0
+NO_PROMPT=0
+SESSION=0
+SESSION_COUNT=0
+SESSION_SEED=""
 REP_ID=""
 ANSWER=""
 HAVE_ANSWER=0
 
-# Lines 2 to 22 of this file: what the script is, how it is called, and the
-# flags. The range is a line number and nothing gates it, so moving the OPTIONS
-# block means moving this too.
-usage() { sed -n '2,22p' "${BASH_SOURCE[0]}"; }
+# How far the session's walk reaches for the next construct, in positions of
+# the rep table's own construct order. Two is the smallest window that holds
+# more than one other construct, and the file is sorted by family, so two
+# positions is within the family almost everywhere. See THE SESSION in the
+# header for the measurement.
+WALK_WINDOW=2
+
+# Lines 2 to 30 of this file: what the script is, how it is called, and the
+# flags. The range is a line number, so moving or growing the OPTIONS block
+# means moving this too. It used to be ungated and silently truncated the
+# help when the session flags were added. harness/test-recall-runner.sh part
+# 14 now pins the first and last line this prints.
+usage() { sed -n '2,30p' "${BASH_SOURCE[0]}"; }
 
 die_usage() {
   printf 'recall.sh: %s\n' "$1" >&2
@@ -421,8 +542,16 @@ while [ "$#" -gt 0 ]; do
     --env-dir) [ "$#" -ge 2 ] || die_usage "--env-dir needs a directory"; ENV_DIR="$2"; shift 2 ;;
     --sheet)   [ "$#" -ge 2 ] || die_usage "--sheet needs a file"; SHEET="$2"; shift 2 ;;
     --misses)  [ "$#" -ge 2 ] || die_usage "--misses needs a file"; MISSES="$2"; shift 2 ;;
+    --session)  SESSION=1; shift ;;
+    --count)    [ "$#" -ge 2 ] || die_usage "--count needs a number"
+                case "$2" in ''|*[!0-9]*) die_usage "--count takes a whole number, not: $2" ;; esac
+                SESSION_COUNT="$2"; shift 2 ;;
+    --seed)     [ "$#" -ge 2 ] || die_usage "--seed needs a number"
+                case "$2" in ''|*[!0-9]*) die_usage "--seed takes a whole number, not: $2" ;; esac
+                SESSION_SEED="$2"; shift 2 ;;
     --full)     FULL=1; shift ;;
     -q|--quiet) QUIET=1; shift ;;
+    --no-prompt) NO_PROMPT=1; shift ;;
     -h|--help)  usage; exit 0 ;;
     -*)         die_usage "unknown option: $1" ;;
     *)
@@ -447,8 +576,16 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-[ -n "$REP_ID" ]        || die_usage "no rep id given"
-[ "$HAVE_ANSWER" = "1" ] || die_usage "no answer given"
+# A SESSION TAKES NEITHER OF THESE, and saying so is better than a usage dump
+# whose first line is about a rep id. Checked before the two lines below,
+# which are about the single-rep invocation.
+if [ "$SESSION" = "1" ]; then
+  [ -z "$REP_ID" ] || die_usage "--session takes no rep id: a session serves the reps itself"
+  [ "$HAVE_ANSWER" = "0" ] || die_usage "--session takes no answer: each one is typed into the session"
+else
+  [ -n "$REP_ID" ]        || die_usage "no rep id given"
+  [ "$HAVE_ANSWER" = "1" ] || die_usage "no answer given"
+fi
 
 # The ONE thing outside this directory a rep needs. An absent tlc is exit 3
 # with a message, never a quiet pass: drill/study/check line 722 is the
@@ -458,6 +595,214 @@ done
 # something about the answer, and there was no grading run.
 command -v tlc >/dev/null 2>&1 || die_cannot_run "tlc is not on the path, so nothing was graded."
 [ -r "$REPS" ]    || die_cannot_run "no rep table at ${REPS}, so nothing was graded."
+
+# ---------------------------------------------------------------------------
+# THE SESSION LOOP (bead tla-1sh7.11). See THE SESSION in the header for why
+# the walk is what it is, why nothing is kept, and how a session ends.
+#
+# IT SITS HERE, ABOVE THE REP LOOKUP, because the lookup below refuses to
+# proceed without a rep id and a session has none. Everything it calls is
+# therefore defined in this block: bash has not read the rest of this file
+# when the branch at the bottom runs, so a helper from further down would be
+# an unknown command rather than a helper.
+# ---------------------------------------------------------------------------
+
+# Two spaces of indent, wrapped. The same shape show_prose uses further down,
+# and it is written twice rather than shared for the reason above.
+session_prose() {
+  local wrapped
+  wrapped="$(fold -s -w "$PROSE_WIDTH" <<<"$1")"
+  sed -e 's/[[:space:]]*$//' -e 's/^/  /' <<<"$wrapped"
+}
+
+# The walk's tables, read in three passes rather than one. A row is never
+# field-split with `IFS=$'\t' read`: tab is an IFS whitespace character, so
+# read folds a run of tabs into one delimiter and drops a trailing empty
+# field, which shifts every field after it. Three awk passes over one file
+# cost nothing against a single TLC run and cannot shift.
+WALK_IDS=()
+WALK_KS=()
+WALK_PROMPTS=()
+WALK_KIDX=()
+WALK_SERVED=()
+WALK_KN=0
+WALK_CUR_K=-1
+WALK_PICK=-1
+WALK_KI=0
+WALK_ID=""
+WALK_PROMPT=""
+
+walk_load() {
+  local v k i
+  while IFS= read -r v; do WALK_IDS+=("$v"); done < <(awk -F'\t' '$1 == "REP" { print $2 }' "$REPS")
+  while IFS= read -r v; do WALK_KS+=("$v"); done < <(awk -F'\t' '$1 == "REP" { print $3 }' "$REPS")
+  while IFS= read -r v; do WALK_PROMPTS+=("$v"); done < <(awk -F'\t' '$1 == "REP" { print $5 }' "$REPS")
+
+  # The construct order IS the file order, which is what makes a window of two
+  # positions a window of one family. See the header.
+  local -A first_seen=()
+  for i in "${!WALK_IDS[@]}"; do
+    k="${WALK_KS[i]}"
+    if [ -z "${first_seen[$k]+set}" ]; then
+      first_seen[$k]="$WALK_KN"
+      WALK_KN=$(( WALK_KN + 1 ))
+    fi
+    WALK_KIDX+=("${first_seen[$k]}")
+    WALK_SERVED+=(0)
+  done
+}
+
+# The canonical answer for a rep, read at the moment a skip needs it and never
+# held in a table. There is no list of answers anywhere in a session.
+walk_canon() {
+  awk -F'\t' -v id="$1" '$1 == "REP" && $2 == id { print $6; exit }' "$REPS"
+}
+
+# Sets WALK_PICK to the index of the next rep, or returns 1 when every rep has
+# been served.
+walk_pick() {
+  local w="$WALK_WINDOW" i d
+  local -a cand
+  while :; do
+    cand=()
+    for i in "${!WALK_IDS[@]}"; do
+      [ "${WALK_SERVED[i]}" = "1" ] && continue
+      WALK_KI="${WALK_KIDX[i]}"
+      if [ "$WALK_CUR_K" -ge 0 ]; then
+        # NEVER THE CONSTRUCT JUST SERVED. Two reps of one construct back to
+        # back is lag 0, where the second is recognition rather than recall.
+        [ "$WALK_KI" = "$WALK_CUR_K" ] && continue
+        d=$(( WALK_KI - WALK_CUR_K ))
+        [ "$d" -lt 0 ] && d=$(( 0 - d ))
+        [ "$d" -gt "$w" ] && continue
+      fi
+      cand+=("$i")
+    done
+    if [ "${#cand[@]}" -gt 0 ]; then
+      WALK_PICK="${cand[$(( RANDOM % ${#cand[@]} ))]}"
+      return 0
+    fi
+    # Nothing in the window. On the first rep there is no window to widen, so
+    # an empty table is the only way to get here.
+    [ "$WALK_CUR_K" -lt 0 ] && break
+    if [ "$w" -lt "$WALK_KN" ]; then w=$(( w * 2 )); continue; fi
+    break
+  done
+  # THE TAIL. Every unserved rep belongs to the construct just served, so the
+  # choice is between repeating a construct and ending the session early. A
+  # rep the reader has not seen is worth more than the lag.
+  for i in "${!WALK_IDS[@]}"; do
+    if [ "${WALK_SERVED[i]}" != "1" ]; then WALK_PICK="$i"; return 0; fi
+  done
+  WALK_PICK=-1
+  return 1
+}
+
+run_session() {
+  local answer rc ended="count" echo_answer=1
+  local served=0 right=0 wrong=0 skipped=0 ungraded=0
+  local -a child
+
+  # The only thing in this script keyed on a terminal. A terminal echoes what
+  # is typed and a pipe does not, so a piped transcript would otherwise be a
+  # prompt character with the feedback jammed against it.
+  if [ -t 0 ]; then echo_answer=0; fi
+
+  [ -x "$SELF" ] || die_cannot_run "${SELF} is not executable, so a session cannot grade."
+
+  walk_load
+  if [ "${#WALK_IDS[@]}" -eq 0 ]; then
+    die_cannot_run "${REPS} carries no REP rows, so there is nothing to serve."
+  fi
+
+  # The walk is a draw, and a seeded draw can be run again. Unseeded, bash
+  # seeds RANDOM itself and every session differs.
+  if [ -n "$SESSION_SEED" ]; then RANDOM="$SESSION_SEED"; fi
+
+  # Built once. It is never empty, so expanding it under `set -u` is safe on
+  # every bash this script might meet.
+  child=(--no-prompt)
+  [ "$FULL" = "1" ] && child+=(--full)
+  [ "$QUIET" = "1" ] && child+=(-q)
+
+  while :; do
+    if [ "$SESSION_COUNT" -gt 0 ] && [ "$served" -ge "$SESSION_COUNT" ]; then
+      ended="count"
+      break
+    fi
+    if ! walk_pick; then
+      ended="exhausted"
+      break
+    fi
+    WALK_SERVED[WALK_PICK]=1
+    WALK_CUR_K="${WALK_KIDX[WALK_PICK]}"
+    WALK_ID="${WALK_IDS[WALK_PICK]}"
+    WALK_PROMPT="${WALK_PROMPTS[WALK_PICK]}"
+
+    # The prompt and nothing else. This is the whole of the fix: a reader
+    # finds out what a rep asks without the line its answer is on.
+    printf '%s  %s\n' "$WALK_ID" "$WALK_PROMPT"
+    printf '> '
+
+    # EOF leaves the prompt above unanswered on screen, which is what a reader
+    # who presses Ctrl-D at a question is looking at anyway.
+    if ! IFS= read -r answer; then
+      printf '\n'
+      ended="eof"
+      break
+    fi
+    [ "$echo_answer" = "1" ] && printf '%s\n' "$answer"
+
+    if [ -z "$answer" ]; then
+      skipped=$(( skipped + 1 ))
+      served=$(( served + 1 ))
+      printf '\nskipped. the answer was:\n'
+      session_prose "$(walk_canon "$WALK_ID")"
+      printf '\n'
+      continue
+    fi
+
+    # STDIN COMES FROM /dev/null, so nothing downstream can read the answers
+    # still queued for this loop. TLC reading one would take a rep away and
+    # leave no trace of having done it.
+    rc=0
+    "$SELF" "${child[@]}" --reps "$REPS" --env-dir "$ENV_DIR" \
+      --sheet "$SHEET" --misses "$MISSES" -- "$WALK_ID" "$answer" </dev/null || rc=$?
+    case "$rc" in
+      0)      right=$(( right + 1 )) ;;
+      4|10)   wrong=$(( wrong + 1 )) ;;
+      *)      ungraded=$(( ungraded + 1 )) ;;
+    esac
+    served=$(( served + 1 ))
+    printf '\n'
+  done
+
+  if [ "$ended" = "exhausted" ]; then
+    printf 'that was every rep in the table; it ran out.\n'
+  fi
+
+  if [ "$served" -eq 0 ]; then
+    printf 'no reps answered.\n'
+    return 0
+  fi
+
+  # Only the categories that happened. A line of zeroes says nothing and a
+  # reader working at seconds a rep reads this one every time.
+  local line
+  line="$(printf '%d rep' "$served")"
+  [ "$served" -eq 1 ] || line="${line}s"
+  [ "$right" -gt 0 ]    && line="${line}, ${right} right"
+  [ "$wrong" -gt 0 ]    && line="${line}, ${wrong} wrong"
+  [ "$skipped" -gt 0 ]  && line="${line}, ${skipped} skipped"
+  [ "$ungraded" -gt 0 ] && line="${line}, ${ungraded} not graded"
+  printf '%s.\n' "$line"
+  return 0
+}
+
+if [ "$SESSION" = "1" ]; then
+  run_session
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # The rep.
@@ -775,7 +1120,10 @@ if [ "$GRADE" = "correct" ] && [ "$REQUIRES_MET" = "0" ]; then
   REPORT_TOKEN="$CONSTRUCT_TOKEN"
 fi
 
-if [ "$QUIET" = "0" ]; then
+# The prompt echo. A session has already printed this line and read an answer
+# under it, so it passes --no-prompt and the block starts at the status line.
+# Nothing else is conditional on it.
+if [ "$QUIET" = "0" ] && [ "$NO_PROMPT" = "0" ]; then
   printf '%s  %s\n' "$REP_ID" "$PROMPT"
 fi
 printf 'rep=%s rc=%s token=%s grade=%s\n' "$REP_ID" "$REPORT_RC" "$REPORT_TOKEN" "$GRADE"
