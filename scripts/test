@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 719.1 s wall, measured 2026-10-17, against the ~805 s
+# Here the full run is 719.2 s wall, measured 2026-10-17, against the ~807 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -102,14 +102,14 @@
 #   slow  60.0 s  harness/test-vacuity.sh
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
-#   slow  88.6 s  harness/test-recall-runner.sh              (re-based, 169d53a)
+#   slow  91.0 s  harness/test-recall-runner.sh              (re-based, ea9de77)
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
 #   ----  ------
 #         46.0 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        758.5 s  slow tier, 14 suites
-#        804.5 s  whole registry
+#        760.9 s  slow tier, 14 suites
+#        806.9 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -150,6 +150,21 @@
 # ONLY ONE OF THE THREE TRIPPED THE DRIFT NUDGE. The other two were 2.01x and
 # 2.25x, under the 3.0x factor, while being +44.3 s and +108.0 s in absolute
 # terms. Bead tla-ve87 carries that, and it is Frank's judgment to make.
+#
+# ONE ROW MOVED A FOURTH TIME THE SAME NIGHT, the recall runner from 88.6 to
+# 91.0, after bead tla-1sh7.14 merged at ea9de77 and added nine rows to part
+# 16. Six of the nine run a session with a retry in it, and a retry is two
+# goes at TLC rather than one, so the 2.6 s is the model checker again. The
+# whole registry read 719.2 s with the new row in it, which is the same number
+# the three passes above read.
+#
+# THE IN-SUITE PREMIUM DID NOT REPRODUCE ON THAT FOURTH MOVE. Three standalone
+# passes read 89.4, 90.5 and 89.6 s and the one in-suite pass read 89.8, which
+# is inside that band rather than above it. One reading is not a refutation of
+# three rows measured three times, and it is why 91.0 clears the slowest
+# reading rather than the slowest plus a premium. Anybody re-measuring this
+# table should take the premium as a thing to check rather than a property of
+# the suite.
 #
 # A BUDGET LIVES IN TWO PLACES AND ONLY ONE OF THEM GATES. The figures above
 # are a comment. The enforced number is the second field of the row's own
@@ -1147,7 +1162,10 @@ SUITES=(
   # reason rather than for its wall clock.
   # RE-BASED 43.7 -> 88.0 on 2026-10-17, after beads tla-1sh7.12 and tla-1sh7.13
   # merged at 169d53a and added part 16, which took the suite from 339
-  # assertions to 393 and from four mutants to nine. Measured standalone over
+  # assertions to 393 and from 13 mutants to 18.
+  # (That last count read "from four mutants to nine" until 2026-10-17 and was
+  # wrong both sides. `grep -c '^if mutate '` reads 13 at 3d05932 and 18 at
+  # 92589b4.) Measured standalone over
   # three back-to-back serial runs on the green tree: 86.770 / 86.327 /
   # 87.166 s, a 1.0% spread, so the standalone figure is 87.2.
   #
@@ -1164,10 +1182,25 @@ SUITES=(
   # matrix 50.8 against 57.8, the completion corpus gate 60.7 against 78.0. A
   # box that had slowed would have moved those too.
   #
-  # Part 16's 54 rows grade real fixture submissions through recall/recall.sh,
+  # Part 16's 63 rows grade real fixture submissions through recall/recall.sh,
   # several of them deliberate parse errors that now re-prompt, so each row is
   # one TLC run or more and the cost model in the note above is unchanged.
-  "slow|88.6|recall runner|./harness/test-recall-runner.sh"
+  #
+  # RE-BASED AGAIN 88.6 -> 91.0 on 2026-10-17, after bead tla-1sh7.14 merged at
+  # ea9de77. Part 16 went from 54 rows to 63, the suite from 393 assertions to
+  # 402, and the mutants from 18 to 19. Standalone over three back-to-back
+  # serial runs on the green tree: 89.367 / 90.506 / 89.604 s, a 1.3% spread.
+  #
+  # THE ONE IN-SUITE READING WAS 89.8, INSIDE THAT BAND RATHER THAN ABOVE IT,
+  # which is the opposite of what the three rows re-based earlier the same
+  # night all did. So 91.0 clears the slowest of the four readings by 0.5 s and
+  # adds no premium on top of it. The premium is a thing to measure per row
+  # rather than a property of this suite, and this row has now said both.
+  #
+  # THE MOVE IS THE SUITE AGAIN AND NOT THE BOX. The whole registry read
+  # 719.2 s against 719.4, 722.3 and 719.1 earlier the same night, and the
+  # grader came in at 85.0 against 99.0 on the same pass.
+  "slow|91.0|recall runner|./harness/test-recall-runner.sh"
   # Added 2026-10-16, bead tla-1sh7.4, and with the row above it this is the
   # largest addition this registry has taken.
   #
