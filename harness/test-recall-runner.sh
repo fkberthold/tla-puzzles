@@ -13,8 +13,11 @@
 #   one value and both score 0, which is the property that keeps a rep from
 #   being a spelling test.
 #
-#   A wrong answer prints BOTH values. A value that is not a set prints and
-#   then has its count skipped, and the runner says the count was skipped.
+#   A wrong answer prints BOTH values. A value that is not a set prints ONCE
+#   and says nothing further: the count probe failed, but the probe is the
+#   runner's own and the value it refused is perfectly good. A value that
+#   never evaluated keeps TLC's sentence about why, because there the
+#   sentence is the whole of what the reader is told.
 #
 #   A parse error is its own report rather than a wrong answer, because
 #   telling somebody their answer is wrong when nothing was graded is a false
@@ -45,12 +48,17 @@
 # which is also what a suite driving a runner that silently stopped working
 # would report if a comparison went slack. So part 5 copies the real runner,
 # breaks ONE line of it, and requires the row that owns that line to go red.
-# Four mutants:
+# Six mutants:
 #
 #   an inferred code     the reported code stops being verdict.sh's
 #   a parse called wrong rc 150 is reported as a wrong answer
 #   a lost value block   the canonical value is never shown
 #   a count claimed      the skipped-count note never prints
+#   the drop always on   TLC's text goes even where it is the explanation
+#   the drop never on    the refused count's noise comes back
+#
+# The last two are one clause read in both directions, and the comment above
+# them says why one mutant could not cover it.
 #
 # A mutant that passes means the row above it is vacuous. The mutant runs
 # against a MIRROR ROOT under the temp tree -- recall/ holding the mutant and
@@ -283,24 +291,45 @@ else
 fi
 
 echo
-echo "== part 4: the cardinality skip, which is explanation and not failure =="
+echo "== part 4: the cardinality probe, whose failure is the runner's own =="
 # ---------------------------------------------------------------------------
 # Cardinality ERRORS on a value that is not a set, and there is no in-TLA+
 # guard to reach for instead: IsFiniteSet answers TRUE, rc 0, on the very
 # value whose Cardinality errors. That is asserted below rather than taken on
 # trust, because the whole design of the value block rests on it.
+#
+# THE HEADING READ "the cardinality skip, which is explanation and not
+# failure" UNTIL BEAD tla-1sh7.8, AND THE TWO ROWS UNDER IT ASSERTED WHAT
+# THEY NOW DENY. The old claim was that TLC's sentence about the refused
+# count belongs in the report, on the reading that a count refused on a
+# function is the clearest statement of a function written where a set was
+# asked for. Measured, the reach is nothing like that: 84 of the 120 shipped
+# canonicals are not sets, booleans and strings and numbers among them, so
+# the sentence was landing under "the answer" on most reps, attached to a
+# value that is perfectly correct. The probe is this script's own and its
+# failure is the script's own.
+#
+# WHAT SURVIVES THE REVERSAL is TLC's sentence about a value that never
+# evaluated, which the block below part 4's own rows pins. Those are the
+# three shapes tla-1sh7.3 measured, and on each one the sentence is the
+# whole of what the reader is told.
 # ---------------------------------------------------------------------------
 
 if has "$WRONG_OUT" 'Attempted to compute cardinality of the value'; then
-  ok "TLC's own sentence about the refused count is part of the explanation"
+  nope "TLC's sentence about the refused count is gone, since the value was fine"
 else
-  nope "TLC's own sentence about the refused count is part of the explanation"
+  ok "TLC's sentence about the refused count is gone, since the value was fine"
 fi
 if has "$WRONG_OUT" 'no count'; then
-  ok "and the runner says the count was skipped"
+  nope "and so is the note about it, which complained about a correct answer"
 else
-  nope "and the runner says the count was skipped"
+  ok "and so is the note about it, which complained about a correct answer"
 fi
+# The whole of the bead: four lines where one carries the information. The
+# value printed, then TLC's sentence, then the value AGAIN as that sentence's
+# subject, then the note.
+assert_eq "so the submitted value prints once rather than twice" "1" \
+  "$(grep -cE '^  \[a \|-> 1\.\.3, b \|-> 1\.\.3, c \|-> 1\.\.3\]$' <<<"$WRONG_OUT")"
 # The line citing a line of a module in an already-deleted scratch directory
 # is dropped, because it sends a reader somewhere they cannot go.
 if has "$WRONG_OUT" '^ +Error: Evaluating assumption line'; then
@@ -309,23 +338,87 @@ else
   ok "the scratch module's line citation is not shown"
 fi
 
-# C006: both values are functions, so the count is skipped on BOTH sides and
+# C006: both values are functions, so the count is refused on BOTH sides and
 # neither side loses its value to the other's failure. That is the whole
 # reason there is one probe per value rather than one probe with four
 # assumptions.
 run_runner "$RUNNER" R002 '[w \in Wagons |-> 2]'
 BOTH_OUT="$RUN_OUT"
-assert_eq "a non-set rep: the count is skipped on both sides" "2" \
-  "$(grep -cE 'no count' <<<"$BOTH_OUT")"
-if has "$BOTH_OUT" '\[a \|-> 2, b \|-> 2, c \|-> 2\]'; then
-  ok "and the submitted value still prints"
+assert_eq "a non-set rep: neither side says a word about the refused count" "0" \
+  "$(grep -cE 'no count|Attempted to compute cardinality' <<<"$BOTH_OUT")"
+assert_eq "and the submitted value still prints, once" "1" \
+  "$(grep -cE '^  \[a \|-> 2, b \|-> 2, c \|-> 2\]$' <<<"$BOTH_OUT")"
+assert_eq "and so does the canonical one, which failed its own count" "1" \
+  "$(grep -cE '^  \[a \|-> 1, b \|-> 1, c \|-> 1\]$' <<<"$BOTH_OUT")"
+
+# ---------------------------------------------------------------------------
+# THE DISCRIMINATOR, AND WHY IT IS NOT THE EXIT CODE (bead tla-1sh7.8).
+#
+# rc 10 covers both shapes below. On the first the value evaluated and only
+# the count was refused, so TLC's text says nothing about the answer. On the
+# second the value never evaluated, so TLC's text is the whole of what the
+# reader is told. A drop keyed on rc 10 would take the sentence away from
+# exactly the rows that need it, which is the fix the bead was filed
+# proposing and the one it had to drop.
+#
+# write_value_module plants three ASSUMEs -- the sentinel, Shown, and
+# Cardinality(Shown) -- so which one failed is readable off the log: a value
+# that evaluates prints BEFORE TLC's first Error line and a value that does
+# not prints nothing there.
+#
+# THE THREE SCALARS ARE THE REACH, and they are why this is not a
+# functions-and-sequences defect. R018 of the shipped table carries it on a
+# plain conjunction of two equalities.
+# ---------------------------------------------------------------------------
+echo
+echo "-- a value that evaluated: shown once, and nothing about the count --"
+for scalar in 'TRUE' '"ann"' '5'; do
+  run_runner "$RUNNER" R001 "$scalar"
+  SCALAR_OUT="$RUN_OUT"
+  assert_eq "an answer of $scalar shows that value once" "1" \
+    "$(grep -cFx "  $scalar" <<<"$SCALAR_OUT")"
+  if has "$SCALAR_OUT" 'Attempted to compute cardinality'; then
+    nope "and $scalar carries no sentence about the count TLC refused"
+  else
+    ok "and $scalar carries no sentence about the count TLC refused"
+  fi
+  # The other side of the same report, so each row is a statement about the
+  # discriminator rather than about the drop. R001's canonical IS a set.
+  assert_eq "while the canonical set in the same report is still counted ($scalar)" "1" \
+    "$(grep -cE '^ +27$' <<<"$SCALAR_OUT")"
+done
+
+echo
+echo "-- a value that never evaluated: TLC's sentence is all there is --"
+# ---------------------------------------------------------------------------
+# The three shapes tla-1sh7.3 measured. None of them prints a value at all,
+# so the drop above must not reach them. These rows are green on the runner
+# as it stood before the bead as well as after it -- what makes them mean
+# something is mutant M17, which drops unconditionally and turns all three
+# red.
+# ---------------------------------------------------------------------------
+run_runner "$RUNNER" R001 '1 + "a"'
+NOVALUE_OUT="$RUN_OUT"
+if has "$NOVALUE_OUT" 'Cannot cast .*StringValue to .*IntValue'; then
+  ok "an answer adding a string to a number keeps TLC's explanation"
 else
-  nope "and the submitted value still prints"
+  nope "an answer adding a string to a number keeps TLC's explanation"
 fi
-if has "$BOTH_OUT" '\[a \|-> 1, b \|-> 1, c \|-> 1\]'; then
-  ok "and so does the canonical one, which failed its own count"
+# The one place the skipped-count note still prints, and M4's control below
+# is the row that depends on it.
+assert_eq "and the note about the skipped count, which is the last row that has one" "1" \
+  "$(grep -c 'no count' <<<"$NOVALUE_OUT")"
+run_runner "$RUNNER" R001 'Tracks[9]'
+if has "$RUN_OUT" 'non-function .* was applied as a function'; then
+  ok "and so does one that indexes something that is not a function"
 else
-  nope "and so does the canonical one, which failed its own count"
+  nope "and so does one that indexes something that is not a function"
+fi
+run_runner "$RUNNER" R001 'CASE 1 = 2 -> 1'
+if has "$RUN_OUT" 'CASE with no conditions true'; then
+  ok "and so does one whose CASE has no true arm"
+else
+  nope "and so does one whose CASE has no true arm"
 fi
 
 # IsFiniteSet against Cardinality, on one value, measured here.
@@ -500,19 +593,68 @@ if mutate lost-value-block 's|^show_value "the answer" "Canon" "\$CANON"$|:|'; t
 fi
 
 # M4. the skipped-count note never prints, so a refused count passes silently.
+#
+# AMENDED 2026-10-17 (bead tla-1sh7.8), AND THE INPUT MOVED RATHER THAN THE
+# MUTATION. The note used to print on every value whose count was refused,
+# which was most of them, so a function was the natural input. It now prints
+# only where the value itself never evaluated, so the input is an answer that
+# does not evaluate and the second row reads TLC's own sentence instead of
+# the cardinality one, which no longer appears anywhere.
 # shellcheck disable=SC2016
-if mutate count-claimed 's|^  if \[ "\$VERDICT_RC" != "0" \]; then$|  if false; then|'; then
-  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
+if mutate count-claimed 's|^  if \[ "\$VERDICT_RC" != "0" \] && \[ "\$value_printed" = "0" \]; then$|  if false; then|'; then
+  run_runner "$MUTANT" R001 '1 + "a"'
   if has "$RUN_OUT" 'no count'; then
     nope "control: a runner silent about a refused count is DETECTED by part 4"
   else
     ok "control: a runner silent about a refused count is DETECTED by part 4"
   fi
-  if has "$RUN_OUT" 'Attempted to compute cardinality'; then
-    ok "and it fails the way the mutation says, TLC's sentence still shows"
+  if has "$RUN_OUT" 'Cannot cast .*StringValue to .*IntValue'; then
+    ok "and it fails the way the mutation says, TLC's own sentence still shows"
   else
-    nope "and it fails the way the mutation says, TLC's sentence still shows"
+    nope "and it fails the way the mutation says, TLC's own sentence still shows"
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# M17 AND M18: THE DISCRIMINATOR, ONE MUTANT PER DIRECTION (bead tla-1sh7.8).
+#
+# TWO MUTANTS FOR ONE CLAUSE, because the clause makes two claims and a
+# mutant can only refute one of them at a time. It drops TLC's text when the
+# value printed and keeps it when nothing did. A single mutant forcing one
+# branch leaves the other branch's rows vacuous, which is the thing this part
+# exists to prevent.
+# ---------------------------------------------------------------------------
+
+# M17. the drop stops asking whether a value printed and fires every time, so
+# the explanation is stripped from the three rows where it is the whole
+# feedback. The control is tla-1sh7.3's own case.
+# shellcheck disable=SC2016
+if mutate drop-always 's|{ seen_error = 1; if (shown) exit }|{ seen_error = 1; exit }|'; then
+  run_runner "$MUTANT" R001 '1 + "a"'
+  if has "$RUN_OUT" 'Cannot cast .*StringValue to .*IntValue'; then
+    nope "control: a runner that drops TLC's text unconditionally is DETECTED"
+  else
+    ok "control: a runner that drops TLC's text unconditionally is DETECTED"
+  fi
+  if has "$RUN_OUT" 'could not be evaluated at all'; then
+    ok "and it fails the way the mutation says, an empty region and nothing to show"
+  else
+    nope "and it fails the way the mutation says, an empty region and nothing to show"
+  fi
+fi
+
+# M18. the drop never fires, which is the runner as it stood the day the bead
+# was filed. The control is the cardinality noise coming back.
+# shellcheck disable=SC2016
+if mutate drop-never 's|{ seen_error = 1; if (shown) exit }|{ seen_error = 1 }|'; then
+  run_runner "$MUTANT" R001 '[w \in Wagons |-> Tracks]'
+  if has "$RUN_OUT" 'Attempted to compute cardinality'; then
+    ok "control: a runner that never drops the count noise is DETECTED by part 4"
+  else
+    nope "control: a runner that never drops the count noise is DETECTED by part 4"
+  fi
+  assert_eq "and it fails the way the mutation says, the typed value printed twice" "2" \
+    "$(grep -cE '^  \[a \|-> 1\.\.3, b \|-> 1\.\.3, c \|-> 1\.\.3\]$' <<<"$RUN_OUT")"
 fi
 
 echo
@@ -1041,8 +1183,14 @@ FULL_OUT=$("$RUNNER" --reps "$REPS" --env-dir "$ENV_DIR" --misses "$MISSES" --sh
 # of the miss row, then a blank, the sheet header and its one line. The cap
 # itself is untouched -- the value block is the same 5 lines a side it was
 # cut to -- and that is what the rows under these two check.
-assert_eq "the whole block is 47 lines when --full asks for it" "47" "$(wc -l <<<"$FULL_OUT")"
-assert_eq "and 24 by default" "24" "$(wc -l <<<"$CAPPED_OUT")"
+#
+# 44 AND 21 SINCE BEAD tla-1sh7.8, three lines lighter on both. The typed
+# value here is a function, so its count was refused, and the three lines are
+# TLC's sentence about that, the value repeated under it as that sentence's
+# subject, and the note. All three were about this script's own probe rather
+# than about the answer. The cap is still untouched.
+assert_eq "the whole block is 44 lines when --full asks for it" "44" "$(wc -l <<<"$FULL_OUT")"
+assert_eq "and 21 by default" "21" "$(wc -l <<<"$CAPPED_OUT")"
 
 # Two members, then the elision, then the closing member and the count. Two
 # rather than one because the second is what shows which position moves first,
@@ -1104,7 +1252,7 @@ if mutate cap-disabled 's|^VALUE_HEAD=2$|VALUE_HEAD=9999|'; then
   else
     ok "control: a runner that stopped capping is DETECTED by part 11"
   fi
-  assert_eq "and it fails the way the mutation says, the whole 47 lines" "47" \
+  assert_eq "and it fails the way the mutation says, the whole 44 lines" "44" \
     "$(wc -l <<<"$RUN_OUT")"
 fi
 

@@ -323,17 +323,20 @@
 #     Attempted to compute cardinality of the value
 #     [a |-> 1..3, b |-> 1..3, c |-> 1..3]
 #
-# and that error is part of the explanation rather than a failure -- it is
-# often the clearest statement of the mistake, which is that a function was
-# written where a set was asked for. So the value prints, the count is skipped,
-# and the script says the count was skipped.
+# and NONE OF THAT REACHES THE READER. This paragraph used to say the opposite,
+# that the error is part of the explanation rather than a failure and often the
+# clearest statement of the mistake. Bead tla-1sh7.8 measured the reach and
+# reversed it: 84 of the 120 shipped canonical answers are not sets, booleans
+# and strings and numbers among them, so what the old reading put under "the
+# answer" was an error message about a value that is perfectly correct. The
+# value prints, once, and that is the whole of it. printed_region's own header
+# carries the rule and the one case where TLC's text does stay.
 #
 # There is no in-TLA+ guard available, and it was measured rather than assumed.
 # IsFiniteSet([w \in Wagons |-> 1]) returns TRUE, rc 0, on the very value whose
 # Cardinality errors, so `IF IsFiniteSet(x) THEN Cardinality(x) ELSE ...` would
-# not skip anything. One value probe PER VALUE is what keeps the skip keyed on
-# an exit code: a probe that exits nonzero printed no count, and nothing has to
-# read TLC's prose to find that out.
+# not skip anything. One value probe PER VALUE is what keeps a count refused on
+# one side from costing the other side its value.
 #
 # WHY THE PROBE'S rc IS NEVER THE GRADE. A probe exits 10 on the cardinality
 # error, which is the SAME code a wrong answer scores on the grading run. The
@@ -1504,12 +1507,42 @@ write_value_module() {
 # that line -- the log is "for HUMANS and for witness extraction, never for
 # verdicts" -- and the grade in this script comes from the exit code of a
 # different run entirely.
-# The one line dropped is TLC's `Error: Evaluating assumption line N, col M ...
-# of module Yours failed.` It cites a line of a module in a scratch directory
-# that is already gone by the time anybody reads this, so it sends a reader
-# somewhere they cannot go. The sentence under it, "Attempted to compute
-# cardinality of the value X", is the part that says what went wrong, and it
-# stays.
+# TWO DROPS, AND THE SECOND ONE IS CONDITIONAL.
+#
+# The first is TLC's `Error: Evaluating assumption line N, col M ... of module
+# Yours failed.` It cites a line of a module in a scratch directory that is
+# already gone by the time anybody reads this, so it sends a reader somewhere
+# they cannot go.
+#
+# The second takes everything from that line on, and it fires only when the
+# VALUE ITSELF ALREADY PRINTED. This header used to say that the sentence
+# under the citation, "Attempted to compute cardinality of the value X", is
+# the part that says what went wrong and so it stays. Measured, it is not:
+# 84 of the 120 shipped canonical answers are not sets, so on most reps that
+# sentence lands under "the answer", complaining about a value that is
+# perfectly correct, with the value repeated below it as its subject. Four
+# lines where one carries the information. Bead tla-1sh7.8 is the reversal.
+#
+# THE DISCRIMINATOR IS WHAT PRINTED, NOT THE EXIT CODE, and keying it on the
+# code was the fix that bead proposed and then withdrew. write_value_module
+# plants three ASSUMEs, the sentinel and Shown and Cardinality(Shown), and a
+# failure of any of them comes back rc 10. What separates them is the log,
+# because a value that evaluates prints between the sentinel and TLC's first
+# Error line and a value that does not prints nothing there:
+#
+#   something printed   only the count failed, TLC's text is about this
+#                       script's own probe, and it goes
+#   nothing printed     the value itself failed, TLC's text is the whole of
+#                       what the reader is told, and all of it stays
+#
+# The three shapes bead tla-1sh7.3 measured are the second row. `1 + "a"`,
+# `Train[9]` and a CASE with no true arm each print no value and each carry a
+# real explanation, and a drop keyed on rc 10 would have taken it from all
+# three.
+#
+# THIS IS STILL DISPLAY AND NOT VERDICT. Reading TLC's prose to decide what to
+# SHOW is what this function has always done. The grade comes from the exit
+# code of a different run, and part 8 of the suite gates that separately.
 printed_region() {
   awk -v sentinel="$SENTINEL" '
     $0 == sentinel { on = 1; next }
@@ -1517,8 +1550,29 @@ printed_region() {
     on && /^Finished computing/ { exit }
     on && /^Finished in / { exit }
     on && /^Model checking completed/ { exit }
+    on && /^Error: / && !seen_error { seen_error = 1; if (shown) exit }
     on && /^Error: Evaluating assumption line/ { next }
-    on { print }
+    on { shown = 1; print }
+  ' "$1"
+}
+
+# The same discriminator, answered rather than applied: 0 when the value
+# printed before TLC's first Error line, 1 when it did not.
+#
+# A SECOND PASS OVER THE LOG RATHER THAN A FLAG OUT OF THE FIRST, because
+# printed_region runs in a command substitution and a subshell cannot hand a
+# variable back. The log is a few dozen lines.
+#
+# show_value needs this and not just the trimmed region, because the note it
+# prints about the skipped count sits outside the region and has to go with
+# it. A note saying a value is not a set, under a value nobody doubted, is
+# the same complaint one line further down.
+value_evaluated() {
+  awk -v sentinel="$SENTINEL" '
+    $0 == sentinel { on = 1; next }
+    on && /^Error: / { exit }
+    on && NF { shown = 1; exit }
+    END { exit (shown ? 0 : 1) }
   ' "$1"
 }
 
@@ -2076,7 +2130,8 @@ show_value() {
   run_verdict "${SCRATCH}/${name}.tla" "${SCRATCH}/${name}.cfg" "${SCRATCH}/${name}.log"
   echo
   printf '%-11s %s\n' "$label" "$expr"
-  local region
+  local region value_printed=0
+  if value_evaluated "${SCRATCH}/${name}.log"; then value_printed=1; fi
   region="$(printed_region "${SCRATCH}/${name}.log")"
   if [ -z "$region" ]; then
     echo "  that value could not be evaluated at all, so there is nothing to show."
@@ -2084,9 +2139,16 @@ show_value() {
   fi
   region="$(cap_region "$region")"
   sed -n 's/^/  /p' <<<"$region"
-  # The count is skipped exactly when the probe exited nonzero. Keyed on the
-  # code, not on the error text above it.
-  if [ "$VERDICT_RC" != "0" ]; then
+  # The count is skipped whenever the probe exited nonzero, and that half is
+  # keyed on the code rather than on the error text above it.
+  #
+  # THE NOTE IS WITHHELD WHEN THE VALUE PRINTED (bead tla-1sh7.8). There the only
+  # thing that failed is this script's own count probe, so the note is a
+  # complaint about a value nobody doubted, and 84 of the 120 shipped
+  # canonical answers would carry it. What is left is the value alone, which
+  # is what the reader came for. The note survives on a value that never
+  # evaluated, where printed_region keeps TLC's own sentence too.
+  if [ "$VERDICT_RC" != "0" ] && [ "$value_printed" = "0" ]; then
     echo "  (no count: TLC will not count that value, so it is not a set)"
   fi
 }
