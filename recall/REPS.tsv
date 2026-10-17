@@ -122,11 +122,11 @@ REP	R087	K020	shunting	the one highest numbered track in the yard, as a track ra
 REP	R088	K020	shunting	the single wagon standing on the first track, as a wagon rather than as a group of one	CHOOSE w \in Wagons : Parking[w] = 1
 REP	R089	K020	ledger	the single account that has been emptied, as an account rather than as a group of one	CHOOSE acct \in Accounts : Balance[acct] = 0
 REP	R090	K044	shunting	a label for a wagon saying it is bound for Bristol and weighs twelve tonnes	[dest |-> "Bristol", weight |-> 12]
-REP	R091	K044	shunting	where each of the three wagons stands, written out as one labelled value rather than read off the yard	[a |-> 1, b |-> 3, c |-> 3]
+REP	R091	K044	shunting	where each of the three wagons stands, written out as one labeled value rather than read off the yard	[a |-> 1, b |-> 3, c |-> 3]
 REP	R092	K044	ledger	one entry of the ledger: ann putting two in	[acct |-> "ann", amnt |-> 2, kind |-> "deposit"]
 REP	R093	K045	ledger	every entry this ledger could ever hold, each carrying an account, an amount and a kind	[acct: Accounts, amnt: Amounts, kind: Kinds]
-REP	R094	K045	shunting	every way of labelling a wagon with the track it is on and whether it is loaded	[track: Tracks, loaded: BOOLEAN]
-REP	R095	K045	ledger	every pairing of an account with an allowed amount, each one labelled by which is which	[acct: Accounts, amnt: Amounts]
+REP	R094	K045	shunting	every way of labeling a wagon with the track it is on and whether it is loaded	[track: Tracks, loaded: BOOLEAN]
+REP	R095	K045	ledger	every pairing of an account with an allowed amount, each one labeled by which is which	[acct: Accounts, amnt: Amounts]
 REP	R096	K046	shunting	the things the parking has something to say about	DOMAIN Parking
 REP	R097	K046	shunting	the positions the train has a wagon standing in	DOMAIN Train
 REP	R098	K046	ledger	the accounts this balance covers	DOMAIN Balance

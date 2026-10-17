@@ -59,7 +59,7 @@ MISS	R084	{Parking[w] = 3 : w \in Wagons}	That's a set of truth values with at m
 MISS	R088	{w \in Wagons : Parking[w] = 1}	That's a set holding one wagon. A set of one isn't its member, so nothing has been picked from it yet.
 MISS	R090	[dest : {"Bristol"}, weight : {12}]	Colons build the set of every label with those fields. That's a set holding one label rather than the label.
 MISS	R093	[acct |-> Accounts, amnt |-> Amounts, kind |-> Kinds]	That's a single entry. Its account field holds the whole set of accounts and its amount field holds the whole set of amounts.
-MISS	R095	Accounts \X Amounts	Those are ordered pairs. Nothing in them is labelled, so the two halves are told apart by position rather than by name.
+MISS	R095	Accounts \X Amounts	Those are ordered pairs. Nothing in them is labeled, so the two halves are told apart by position rather than by name.
 MISS	R096	{Parking[w] : w \in Wagons}	Those are the tracks the parking hands back. They're what it says, not what it has something to say about.
 MISS	R097	Len(Train)	That's how many positions there are, a single number, rather than the positions themselves.
 MISS	R099	[Wagons -> {1}]	That's a set with one parking in it rather than the parking. An arrow between two sets builds every function across them, and here only one fits.

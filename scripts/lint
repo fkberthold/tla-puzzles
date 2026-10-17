@@ -70,7 +70,7 @@ fi
 # all. Widening the root surfaced exactly one finding, a false SC2016 on a
 # markdown format string in drill/temporal/runs-table.sh, closed with a
 # per-site disable and its reason.
-LINT_ROOTS=(scripts harness drill)
+LINT_ROOTS=(scripts harness drill recall)
 
 LIST_ONLY=0
 declare -a EXPLICIT=()

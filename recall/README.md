@@ -47,7 +47,7 @@ Not uniform random. `REPS.tsv` carries two to six differently phrased reps per
 construct, so the fact gets retrieved rather than the sentence. Interleaving
 is stronger when consecutive items are close enough to confuse, and most of
 what `MISSES.tsv` records is a function written where a function set was
-wanted. That's one construct against its neighbour.
+wanted. That's one construct against its neighbor.
 
 Two reps of one construct back to back is the other failure. You typed the
 answer a second ago, so the second one is recognition rather than recall.

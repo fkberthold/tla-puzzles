@@ -1601,7 +1601,7 @@ assert_eq "no two reps in a row drill the same construct, over six seeds" "" "$S
 
 # The window itself is pinned at ONE seed rather than asserted across them,
 # the way part 1 pins a measured exit code. A walk that runs the pool of a
-# construct's neighbours dry has to widen, and whether a given seed does that
+# construct's neighbors dry has to widen, and whether a given seed does that
 # is a fact about that seed, not about the rule.
 session "$(blank_input 6)" --count 6 --seed 11
 assert_eq "at seed 11 every step stays inside the window of two constructs" "" \
@@ -1819,7 +1819,7 @@ echo "-- what a piped session and a terminal session differ by --"
 # A terminal echoes what is typed and a pipe does not, so a piped transcript
 # would read as a prompt character with the feedback jammed against it and no
 # record of what was answered. The session echoes the answer when stdin is not
-# a terminal, which is the only behaviour that is conditional on the terminal
+# a terminal, which is the only behavior that is conditional on the terminal
 # anywhere in this script.
 # ---------------------------------------------------------------------------
 SREPS_USE="$ONE"

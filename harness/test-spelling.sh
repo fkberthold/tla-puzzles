@@ -119,7 +119,7 @@ american_for() {
 # count that day, so it asserts that a root is still being walked rather than
 # how big it has grown.
 # ---------------------------------------------------------------------------
-SCAN_ROOTS=(drill completion reading harness exercises module-docs chapter)
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,

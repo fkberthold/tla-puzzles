@@ -123,7 +123,7 @@
 # A SESSION ECHOES THE ANSWER WHEN STDIN IS NOT A TERMINAL. A terminal echoes
 # what is typed and a pipe does not, so without this a piped transcript is a
 # prompt character with the feedback jammed against it and no record of what
-# was answered. It is the only behaviour in this script keyed on a terminal.
+# was answered. It is the only behavior in this script keyed on a terminal.
 #
 # A SESSION EXITS 0 WHENEVER IT RAN. It is not a grade, so it carries none:
 # the grade of each rep left on that rep's own status line.
@@ -169,7 +169,7 @@
 # on stdout and the exit status. Of the thirteen codes verdict.sh maps, a
 # grading run here can reach THREE. The scaffold below declares no
 # SPECIFICATION, no INIT, no NEXT, no INVARIANT and no PROPERTY, so there is
-# no behaviour to explore and nothing to refute:
+# no behavior to explore and nothing to refute:
 #
 #     0    OK                  the two values are equal
 #     10   ASSUMPTION_FAILED   they are not, OR the ASSUME blew up evaluating
