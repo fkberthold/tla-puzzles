@@ -398,10 +398,52 @@ resolution.
 What IS confirmed refused on this build, and is not going away, is `/\` on a command line. See
 the next hazard.
 
+**AMENDED A FOURTH TIME 2026-10-18, and it sharpens the rule rather than adding a case.** The
+`tla-z4f3` author hit two refusals where the interpreter name was in an ARGUMENT rather than in
+the command:
+
+- a `grep` whose **pattern** was the literal string `mapfile`, refused as "runs a string through
+  mapfile";
+- `awk --version`, refused under the awk rule, although it runs no program at all.
+
+So the scan reads tokens positionally rather than semantically. A word that names an interpreter
+is refused wherever it appears, including inside the thing you are searching FOR. That is the
+same shape as the `--alias` observation at the top of this section, which was attributed to the
+token and turned out to be about complexity, except here the token reading is the right one.
+
+The practical upshot: **when a pattern or a flag happens to contain `bash`, `awk`, `sed`, `perl`,
+`python` or `mapfile`, put it in a scratch script.** Do not spend a round trying to quote your way
+out of it.
+
 Lineage: bead `tla-kl5.8` for the original observation, `tla-pmm2.1` and `tla-pmm2.3` for the
 2026-10-08 measurements, `tla-fwkz.2.2` / `tla-fwkz.2.5` / `tla-fwkz.2.7` for the 2026-10-13
 `bash`-prefix measurements, and `tla-gz6m` for the 2026-10-13 `awk` measurement that generalises
-the second one.
+the second one, and `tla-z4f3` for the 2026-10-18 argument-position measurements.
+
+---
+
+## Hazard: the one gate a worker is never told to run is the one that covers prose
+
+`bash scripts/lint` is shellcheck and says nothing about words. The suite you are editing passes
+with a British spelling in a comment. So a worker writing ANY prose, in a code comment, a test
+label, a manifest reason or a README, can finish green and still turn `harness/test-spelling.sh`
+red on central's full pass.
+
+Measured 2026-10-18. The `tla-z4f3` author wrote "mislabelled" into one reason column of its
+new manifest, ran `harness/test-recall-gate.sh`, `harness/test-pipefail.sh` and `scripts/lint`
+as its brief asked, and all three were green. The spelling gate was the only red in 42 suites on
+the next full registry pass.
+
+**That is a BRIEF defect rather than a worker mistake**, the same way four workers running the
+full gate at once was. The brief named the suites to run and left this one out.
+
+**So: if your footprint includes prose of any kind, run `harness/test-spelling.sh`.** It is 0.3 s
+and starts no JVM, so there is no reason not to. American spelling is the standard here, settled
+by Frank on 2026-10-14, and the v2 tree is being normalized back from an earlier drift. Do not
+reach for a British form in new work.
+
+A dispatcher writing a brief should name it alongside `scripts/lint` whenever the bead touches a
+file a human reads.
 
 ---
 
