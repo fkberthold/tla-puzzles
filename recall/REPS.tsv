@@ -44,9 +44,9 @@
 # than a scalar so that the short way round is at least expensive. Even so,
 # value equality cannot see that a definition was written. Those rows drill
 # the construct; they do not gate it.
-REP	R001	K001	shunting	for each track, the wagons standing on it, with the per-track lookup given a name of its own rather than written out twice	LET Occupants(t) == {w \in Wagons : Parking[w] = t} IN [t \in Tracks |-> Occupants(t)]
-REP	R002	K001	ledger	whether ann and bo are both out of the red, where what it takes to be out of the red is spelled out once and then asked of each	LET Solvent(acct) == Balance[acct] >= 0 IN Solvent("ann") /\ Solvent("bo")
-REP	R003	K001	shunting	the tracks holding more than one wagon, with the count of a track's occupants named rather than repeated	LET Count(t) == Cardinality({w \in Wagons : Parking[w] = t}) IN {t \in Tracks : Count(t) > 1}
+REP	R001	K001	shunting	for each track, the wagons standing on it, with the per-track lookup given a name of its own rather than written out twice	LET Occupants(t) == {w \in Wagons : Parking[w] = t} IN [t \in Tracks |-> Occupants(t)]	\bLET\b
+REP	R002	K001	ledger	whether ann and bo are both out of the red, where what it takes to be out of the red is spelled out once and then asked of each	LET Solvent(acct) == Balance[acct] >= 0 IN Solvent("ann") /\ Solvent("bo")	\bLET\b
+REP	R003	K001	shunting	the tracks holding more than one wagon, with the count of a track's occupants named rather than repeated	LET Count(t) == Cardinality({w \in Wagons : Parking[w] = t}) IN {t \in Tracks : Count(t) > 1}	\bLET\b
 REP	R004	K002	shunting	for each wagon, the number one when it stands on the first track and zero when it does not	[w \in Wagons |-> IF Parking[w] = 1 THEN 1 ELSE 0]
 REP	R005	K002	shunting	the yard's capacity when that is more than three, and three otherwise	IF Capacity > 3 THEN Capacity ELSE 3
 REP	R006	K002	ledger	for each account, the word owing when it holds nothing and the word fine when it holds something	[acct \in Accounts |-> IF Balance[acct] = 0 THEN "owing" ELSE "fine"]
@@ -61,15 +61,15 @@ REP	R014	K005	shunting	the capacity shared out evenly between two tracks, with n
 REP	R015	K006	shunting	the wagon at the front of the train, written out as a value rather than read off the train	"c"
 REP	R016	K006	shunting	a label with nothing written on it at all	""
 REP	R017	K006	ledger	the word this ledger uses for money going in	"deposit"
-REP	R018	K007	shunting	whether wagon b is on the third track and wagon c is there too	Parking.b = 3 /\ Parking.c = 3
-REP	R019	K007	shunting	whether wagon a and wagon b are both on the third track	Parking.a = 3 /\ Parking.b = 3
-REP	R020	K007	shunting	whether the claim that wagon a is on the third track fails to hold	~(Parking.a = 3)
-REP	R021	K007	shunting	whether the train begins with wagon a or else ends with wagon b	Train[1] = "a" \/ Train[3] = "b"
-REP	R022	K007	ledger	whether bo is holding nothing while ann is holding something	Balance["bo"] = 0 /\ Balance["ann"] > 0
-REP	R023	K009	shunting	whether wagon b being on the third track would mean wagon c is on it too	Parking.b = 3 => Parking.c = 3
-REP	R024	K009	shunting	whether wagon c being on the third track would mean wagon a is on it too	Parking.c = 3 => Parking.a = 3
-REP	R025	K009	shunting	whether the train beginning with wagon a would mean the yard holds four wagons	Train[1] = "a" => Cardinality(Wagons) = 4
-REP	R026	K009	ledger	whether an account holding nothing would have to be bo	\A acct \in Accounts : Balance[acct] = 0 => acct = "bo"
+REP	R018	K007	shunting	whether wagon b is on the third track and wagon c is there too	Parking.b = 3 /\ Parking.c = 3	(/\\|\\land)
+REP	R019	K007	shunting	whether wagon a and wagon b are both on the third track	Parking.a = 3 /\ Parking.b = 3	(/\\|\\land)
+REP	R020	K007	shunting	whether the claim that wagon a is on the third track fails to hold	~(Parking.a = 3)	(~|\\lnot|\\neg)
+REP	R021	K007	shunting	whether the train begins with wagon a or else ends with wagon b	Train[1] = "a" \/ Train[3] = "b"	(\\/|\\lor)
+REP	R022	K007	ledger	whether bo is holding nothing while ann is holding something	Balance["bo"] = 0 /\ Balance["ann"] > 0	(/\\|\\land)
+REP	R023	K009	shunting	whether wagon b being on the third track would mean wagon c is on it too	Parking.b = 3 => Parking.c = 3	(^|[^<])=>
+REP	R024	K009	shunting	whether wagon c being on the third track would mean wagon a is on it too	Parking.c = 3 => Parking.a = 3	(^|[^<])=>
+REP	R025	K009	shunting	whether the train beginning with wagon a would mean the yard holds four wagons	Train[1] = "a" => Cardinality(Wagons) = 4	(^|[^<])=>
+REP	R026	K009	ledger	whether an account holding nothing would have to be bo	\A acct \in Accounts : Balance[acct] = 0 => acct = "bo"	(^|[^<])=>
 REP	R027	K021	shunting	the number of wagons sharing the third track, multiplied by itself, with that crowd worked out only once	LET Crowd == Cardinality({w \in Wagons : Parking[w] = 3}) IN Crowd * Crowd
 REP	R028	K021	shunting	how far wagon a and wagon b would each have to move to reach the highest numbered track, added together, with that track named once	LET Top == 3 IN (Top - Parking.a) + (Top - Parking.b)
 REP	R029	K021	ledger	the total held across both accounts, followed by that same total doubled, the two kept in that order	LET Total == Balance["ann"] + Balance["bo"] IN <<Total, 2 * Total>>
@@ -82,14 +82,14 @@ REP	R035	K038	shunting	whether some wagon is standing on the first track	\E w \i
 REP	R036	K038	shunting	whether any wagon at all has reached the second track	\E w \in Wagons : Parking[w] = 2
 REP	R037	K038	ledger	whether some account has been emptied	\E acct \in Accounts : Balance[acct] = 0
 REP	R038	K038	shunting	whether two different wagons are sharing a track	\E v \in Wagons : \E w \in Wagons : v # w /\ Parking[v] = Parking[w]
-REP	R039	K071	shunting	every whole number from one up to the highest track, built by taking one off the top at a time until there is none left	LET RECURSIVE Below(_) Below(n) == IF n = 0 THEN {} ELSE {n} \union Below(n - 1) IN Below(3)
-REP	R040	K071	ledger	the ledger's amounts added up, taken one at a time off the front until none are left	LET RECURSIVE Total(_) Total(s) == IF s = <<>> THEN 0 ELSE Head(s) + Total(Tail(s)) IN Total(Entries)
-REP	R041	K072	shunting	every track number doubled, where the doubling is written as a rule of its own and handed to a second rule that applies it across them	LET Twice(n) == n * 2 MapOver(Op(_), S) == {Op(x) : x \in S} IN MapOver(Twice, Tracks)
-REP	R042	K072	ledger	the ledger's amounts each doubled and left in order, where the doubling is a named rule handed to a second rule that walks the entries	LET Doubled(n) == n * 2 Through(Op(_), s) == [i \in DOMAIN s |-> Op(s[i])] IN Through(Doubled, Entries)
-REP	R043	K073	shunting	every track number doubled, with the doubling written out at the point it is handed over rather than named first	LET MapOver(Op(_), S) == {Op(x) : x \in S} IN MapOver(LAMBDA n : n * 2, Tracks)
-REP	R044	K073	ledger	the accounts that have been emptied, with the test written out where it is handed over rather than named first	LET Keep(Op(_), S) == {x \in S : Op(x)} IN Keep(LAMBDA acct : Balance[acct] = 0, Accounts)
-REP	R045	K074	shunting	the tracks that are in one of two groups but not in both, joined by a new symbol of your own standing between the two groups	LET S ++ T == (S \union T) \ (S \intersect T) IN Tracks ++ {2, 3, 4}
-REP	R046	K074	ledger	ann's holding and bo's holding combined by a rule of your own that adds them and then doubles the total, that rule standing between the two	LET a ++ b == 2 * (a + b) IN Balance["ann"] ++ Balance["bo"]
+REP	R039	K071	shunting	every whole number from one up to the highest track, built by taking one off the top at a time until there is none left	LET RECURSIVE Below(_) Below(n) == IF n = 0 THEN {} ELSE {n} \union Below(n - 1) IN Below(3)	\bRECURSIVE\b
+REP	R040	K071	ledger	the ledger's amounts added up, taken one at a time off the front until none are left	LET RECURSIVE Total(_) Total(s) == IF s = <<>> THEN 0 ELSE Head(s) + Total(Tail(s)) IN Total(Entries)	\bRECURSIVE\b
+REP	R041	K072	shunting	every track number doubled, where the doubling is written as a rule of its own and handed to a second rule that applies it across them	LET Twice(n) == n * 2 MapOver(Op(_), S) == {Op(x) : x \in S} IN MapOver(Twice, Tracks)	\([ ]*_
+REP	R042	K072	ledger	the ledger's amounts each doubled and left in order, where the doubling is a named rule handed to a second rule that walks the entries	LET Doubled(n) == n * 2 Through(Op(_), s) == [i \in DOMAIN s |-> Op(s[i])] IN Through(Doubled, Entries)	\([ ]*_
+REP	R043	K073	shunting	every track number doubled, with the doubling written out at the point it is handed over rather than named first	LET MapOver(Op(_), S) == {Op(x) : x \in S} IN MapOver(LAMBDA n : n * 2, Tracks)	\bLAMBDA\b
+REP	R044	K073	ledger	the accounts that have been emptied, with the test written out where it is handed over rather than named first	LET Keep(Op(_), S) == {x \in S : Op(x)} IN Keep(LAMBDA acct : Balance[acct] = 0, Accounts)	\bLAMBDA\b
+REP	R045	K074	shunting	the tracks that are in one of two groups but not in both, joined by a new symbol of your own standing between the two groups	LET S ++ T == (S \union T) \ (S \intersect T) IN Tracks ++ {2, 3, 4}	(\\[a-zA-Z]+|[^a-zA-Z0-9_ ]) *[a-zA-Z_][a-zA-Z0-9_]* *==
+REP	R046	K074	ledger	ann's holding and bo's holding combined by a rule of your own that adds them and then doubles the total, that rule standing between the two	LET a ++ b == 2 * (a + b) IN Balance["ann"] ++ Balance["bo"]	(\\[a-zA-Z]+|[^a-zA-Z0-9_ ]) *[a-zA-Z_][a-zA-Z0-9_]* *==
 REP	R047	K077	shunting	a word for where wagon a stands: near on the first track, middle on the second, and far on anything else	CASE Parking.a = 1 -> "near" [] Parking.a = 2 -> "middle" [] OTHER -> "far"
 REP	R048	K077	shunting	for each wagon, a word for its track: near, middle, or far, picked by which track it is on	[w \in Wagons |-> CASE Parking[w] = 1 -> "near" [] Parking[w] = 2 -> "middle" [] OTHER -> "far"]
 REP	R049	K010	shunting	the first two wagons of the train, kept in the order they stand	<<"c", "a">>
@@ -153,10 +153,10 @@ REP	R106	K049	shunting	where each wagon stands, with a fresh reading that puts w
 REP	R107	K050	shunting	every possible parking of this yard, each wagon on exactly one track	[Wagons -> Tracks]
 REP	R108	K050	shunting	every way of saying, for each track, whether it is free	[Tracks -> BOOLEAN]
 REP	R109	K050	ledger	every way of giving each account one of the allowed amounts	[Accounts -> Amounts]
-REP	R110	K075	shunting	for each track, that track doubled, the whole lookup given a name as it is built	LET Doubled[t \in Tracks] == t * 2 IN Doubled
-REP	R111	K075	ledger	for each account, twice what it holds, the whole lookup given a name as it is built	LET Twice[acct \in Accounts] == 2 * Balance[acct] IN Twice
-REP	R112	K076	shunting	for each number from none up to four, the product of every number up to it, each answer worked out from the one below	LET Fact[n \in 0..4] == IF n = 0 THEN 1 ELSE n * Fact[n - 1] IN Fact
-REP	R113	K076	shunting	for each number from none up to three, the total of every number up to it, each total built on the one below	LET Upto[t \in 0..3] == IF t = 0 THEN 0 ELSE t + Upto[t - 1] IN Upto
+REP	R110	K075	shunting	for each track, that track doubled, the whole lookup given a name as it is built	LET Doubled[t \in Tracks] == t * 2 IN Doubled	\][ ]*==
+REP	R111	K075	ledger	for each account, twice what it holds, the whole lookup given a name as it is built	LET Twice[acct \in Accounts] == 2 * Balance[acct] IN Twice	\][ ]*==
+REP	R112	K076	shunting	for each number from none up to four, the product of every number up to it, each answer worked out from the one below	LET Fact[n \in 0..4] == IF n = 0 THEN 1 ELSE n * Fact[n - 1] IN Fact	\][ ]*==.*\[
+REP	R113	K076	shunting	for each number from none up to three, the total of every number up to it, each total built on the one below	LET Upto[t \in 0..3] == IF t = 0 THEN 0 ELSE t + Upto[t - 1] IN Upto	\][ ]*==.*\[
 REP	R114	K087	shunting	the parking after wagon b has been moved to the first track, everything else left as it was	[Parking EXCEPT !["b"] = 1]
 REP	R115	K087	shunting	the train after its leading wagon has been swapped for wagon b	[Train EXCEPT ![1] = "b"]
 REP	R116	K087	ledger	the balance after ann's account has been cleared to nothing	[Balance EXCEPT !["ann"] = 0]
