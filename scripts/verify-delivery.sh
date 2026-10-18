@@ -54,26 +54,32 @@ esac
 
 PRACTICE_ROOT="${1:-$HOME/tla-practice}"
 
-# Every delivery channel this repo has, and how to verify it. The third field
-# is the reason a channel cannot be verified yet, empty when it can.
+# Every delivery channel this repo has, and how to verify it.
 #
-# recall     --verify, landed in tla-mjvx at 693ee8f
-# exercises  --check per chapter, landed in tla-oa0m at 86faa11. Exits 3 only
-#            on stale. A conflict is the learner's own work and is reported
-#            without failing, which is what the usage line has always said.
-# drill      two file classes and a learner owns one. REFERENCE_POLICIES has
-#            a 'once' entry, COLD-LIST.md, so a difference there is his.
-# completion, problems  never overwrite, so they need the digest record that
-#            deliver-exercises.sh now carries. Same pattern, not yet applied.
+# recall      --verify, landed in tla-mjvx at 693ee8f. Every manifest entry is
+#             repo-owned and the delivery overwrites all of them, so there any
+#             difference is drift and nothing else.
+# exercises   --check per chapter, landed in tla-oa0m at 86faa11. --verify is
+#             an accepted alias for the same mode.
+# completion  --verify over the `all` selector, landed in tla-mjvx.
+# problems    --verify over the reserved name `all`, landed in tla-mjvx.
+# drill       two file classes and a learner owns one. REFERENCE_POLICIES has
+#             a 'once' entry, COLD-LIST.md, so a difference there is his. That
+#             is design work rather than another loop, and it is the one
+#             channel still outside this wrapper's reach.
+#
+# THE THREE NEVER-OVERWRITE CHANNELS ALL EXIT 3 ON STALE ONLY. A conflict is
+# the learner's own work and no delivery will ever touch it, so it is counted
+# and reported and never failed on. Wiring a gate to an exit code that merged
+# the two put a permanent red on 10 of 12 exercise chapters on 2026-10-18,
+# every one of them red because Frank had done the exercises.
 KNOWN_CHANNELS='recall
 exercises
 drill
 completion
 problems'
 
-NO_VERIFY_YET='drill
-completion
-problems'
+NO_VERIFY_YET='drill'
 
 CLEAN_LIST=''
 DRIFT_LIST=''
@@ -157,6 +163,39 @@ elif [ "$ex_stale" -eq 1 ]; then
 else
   note_clean "exercises ($ex_conflict file(s) are your own work and were left alone)"
 fi
+
+# --- completion and problems, one whole-channel call each -------------------
+#
+# The argument shapes differ and that is why this is two blocks rather than a
+# loop. deliver-completion.sh takes <item|family|all> and `all` was already its
+# whole-corpus selector. deliver-problems.sh takes <name>, and `all` is a name
+# it reserves for --verify and --adopt, because a delivery there is one problem
+# at a time and the two questions should not share one argument.
+#
+# Both print the same STALE and CONFLICT lines as exercises, so the detail and
+# the conflict count are read the same way.
+
+verify_never_overwrite() {
+  local channel="$1" out rc n
+  shift
+  out=$("$@" 2>&1); rc=$?
+  n=$(grep -cE '^[[:space:]]*CONFLICT' <<<"$out")
+  case "$rc" in
+    0) note_clean "$channel ($n file(s) are your own work and were left alone)" ;;
+    3) note_drift "$channel"
+       DRIFT_DETAIL="${DRIFT_DETAIL}
+--- $channel
+$(grep -E '^[[:space:]]*STALE' <<<"$out")
+" ;;
+    *) note_error "$channel" "exit $rc" ;;
+  esac
+}
+
+verify_never_overwrite "completion" \
+  "$REPO_ROOT/scripts/deliver-completion.sh" --verify all "$PRACTICE_ROOT/completion"
+
+verify_never_overwrite "problems" \
+  "$REPO_ROOT/scripts/deliver-problems.sh" --verify all "$PRACTICE_ROOT/problems"
 
 # --- the report ------------------------------------------------------------
 

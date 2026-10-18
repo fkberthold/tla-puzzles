@@ -110,6 +110,10 @@ cd "$REPO_ROOT" || exit 1
 SCRIPT="scripts/deliver-completion.sh"
 TEST_RUNNER="scripts/test"
 
+# The delivery record, written into each delivered item directory. Named here
+# because three helpers below have to agree about it.
+RECORD_NAME=".delivered.sha256"
+
 # The real practice tree, captured before anything is sandboxed. Used only to
 # assert that no run ever names it. Nothing here reads or writes under it.
 REAL_PRACTICE="$HOME/tla-practice"
@@ -262,11 +266,18 @@ run_deliver_realrepo() {
   RUN_ERR=$(cat "$ERRFILE")
 }
 
-# relfiles <dir>: every file under a directory, sorted, relative to it.
+# relfiles <dir>: every DELIVERED file under a directory, sorted, relative to
+# it.
+#
+# The delivery record is excluded. It is written by the delivery and it is not
+# source material, so it is never part of the manifest the manifest rows
+# compare against. The exclusion is only safe because the record's presence is
+# asserted on its own, under "the delivery record", rather than taken on
+# trust: an exclusion nobody checks is how a file stops being looked at.
 relfiles() {
   local dir="$1"
   [ -d "$dir" ] || { printf '<absent>\n'; return; }
-  (cd "$dir" && find . -type f | LC_ALL=C sort)
+  (cd "$dir" && find . -type f ! -name "$RECORD_NAME" | LC_ALL=C sort)
 }
 
 # expected_manifest <src-root> <rel>...
@@ -900,6 +911,240 @@ else
 fi
 
 rm -rf "$FIX_REPO/completion/modal/02-delta"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the delivery record, and the third state it buys =="
+# ---------------------------------------------------------------------------
+#
+# Bead tla-mjvx. Never-overwrite froze every delivered item at its delivery
+# date, so a repair to a PROMPT.md reached the repo and never reached Frank.
+# The resolution is a record of what the delivery wrote, which splits "present"
+# into a file he has edited and a file he has not.
+#
+# EVERY ROW ABOVE STILL PASSES UNCHANGED, which is the first thing to check if
+# one of these goes red. The record adds one outcome and keeps every message
+# the old contract printed.
+#
+# A source root of its own, because these rows MOVE the source and the rows
+# above assert its content.
+
+SRC_MOVE="$TMPROOT/repo-move"
+DEST_FRESH="$TMPROOT/dest-fresh"   # delivered by this script, never edited
+DEST_EDITED="$TMPROOT/dest-edited" # delivered, then edited, then source moved
+DEST_NOREC="$TMPROOT/dest-norec"   # delivered before records existed
+DEST_VABSENT="$TMPROOT/dest-vabsent" # --verify over a root that is not there
+
+cp -r "$FIX_REPO" "$SRC_MOVE"
+
+ITEM_A="sets/01-alpha"
+
+run_deliver_from "$SRC_MOVE" all "$DEST_FRESH"
+assert_rc0 "a first delivery into the record fixture exits 0"
+
+# The exclusion in relfiles() is only safe because this row exists. Without it
+# the manifest comparisons would be quietly ignoring a file nobody checks.
+if [ -f "$DEST_FRESH/$ITEM_A/$RECORD_NAME" ]; then
+  ok "a first delivery writes the record into the item directory"
+else
+  nope "a first delivery writes no record at $DEST_FRESH/$ITEM_A/$RECORD_NAME"
+fi
+
+assert_says "the record carries an entry for PROMPT.md" \
+  '^[0-9a-f]{64}  PROMPT\.md$' "$(cat "$DEST_FRESH/$ITEM_A/$RECORD_NAME")"
+
+assert_says "the record keys a work/ file on its path inside the item" \
+  '^[0-9a-f]{64}  work/Claims\.tla$' \
+  "$(cat "$DEST_FRESH/$ITEM_A/$RECORD_NAME")"
+
+assert_absent "the record never leaks into the source tree" \
+  "$SRC_MOVE/completion/$ITEM_A/$RECORD_NAME"
+
+# --- --verify on a current tree, which is the control ----------------------
+#
+# Without this row the three drift rows below could all be passing because the
+# comparison never ran at all.
+
+run_deliver_from "$SRC_MOVE" --verify all "$DEST_FRESH"
+assert_rc0 "--verify over a current tree exits 0"
+assert_says "--verify over a current tree reports nothing stale or conflicted" \
+  '^[1-9][0-9]* in sync, 0 stale, 0 conflicted, ' "$RUN_OUT"
+assert_never_names "--verify over a current tree names no stale path" \
+  "STALE" "$RUN_OUT"
+
+# --- STALE: the case the bead exists for ------------------------------------
+
+printf 'prompt for sets/01-alpha, repaired\n' \
+  >"$SRC_MOVE/completion/$ITEM_A/PROMPT.md"
+
+run_deliver_from "$SRC_MOVE" --verify all "$DEST_FRESH"
+assert_rc "--verify exits 3 when a recorded, unedited file has gone stale" 3
+assert_says_literal "--verify names the stale path" \
+  "STALE, you have not edited it so a delivery would update it: $DEST_FRESH/$ITEM_A/PROMPT.md" \
+  "$RUN_OUT"
+assert_says "--verify counts the stale file in its summary line" \
+  '^[0-9]+ in sync, 1 stale, ' "$RUN_OUT"
+
+# AND IT WROTE NOTHING. The exit code alone would be satisfied by a mode that
+# reported correctly and then delivered, which is the one thing a verify must
+# never do. Compare the bytes, not the status.
+assert_file_is "--verify left the stale file exactly as it found it" \
+  "$DEST_FRESH/$ITEM_A/PROMPT.md" "prompt for sets/01-alpha"
+
+VERIFY_RECORD_BEFORE=$(cat "$DEST_FRESH/$ITEM_A/$RECORD_NAME")
+run_deliver_from "$SRC_MOVE" --verify all "$DEST_FRESH"
+if [ "$(cat "$DEST_FRESH/$ITEM_A/$RECORD_NAME")" = "$VERIFY_RECORD_BEFORE" ]; then
+  ok "--verify writes no entry into the record either"
+else
+  nope "--verify changed $DEST_FRESH/$ITEM_A/$RECORD_NAME, and only a delivery may write an entry"
+fi
+
+# --- and a delivery clears it, which is what makes STALE actionable ---------
+
+run_deliver_from "$SRC_MOVE" all "$DEST_FRESH"
+assert_rc0 "a delivery over an unedited copy exits 0"
+assert_file_is "the repaired PROMPT.md reaches an unedited copy" \
+  "$DEST_FRESH/$ITEM_A/PROMPT.md" "prompt for sets/01-alpha, repaired"
+assert_says_literal "the update says the learner had not edited it" \
+  "updated, you had not edited it: $DEST_FRESH/$ITEM_A/PROMPT.md" "$RUN_OUT"
+assert_says "the counts line carries the updated file" \
+  ', [1-9][0-9]* updated$' "$RUN_OUT"
+
+run_deliver_from "$SRC_MOVE" --verify all "$DEST_FRESH"
+assert_rc0 "--verify is clean again after the delivery it asked for"
+
+# --- CONFLICT: the learner's work is untouchable, and is never a failure ----
+#
+# THIS IS THE ROW THAT MATTERS MOST. A conflict is work Frank did, no run of
+# this script will ever touch it, and so it can never be something a gate asks
+# him to fix. Wiring a wrap-up gate to an exit code that merged the two put a
+# permanent red on 10 of his 12 exercise chapters on 2026-10-18, every one of
+# them red because he had done the exercises.
+
+# The tree is delivered from the CURRENT source and only then is one file
+# edited and only that file moved in the source. The first draft of this row
+# delivered from the pre-repair fixture, which left a stale PROMPT.md beside
+# the conflict, so the run exited 3 for a reason that had nothing to do with
+# what the row was asserting. A conflict-only tree is what the row needs and
+# building one takes this much care.
+run_deliver_from "$SRC_MOVE" all "$DEST_EDITED"
+assert_rc0 "a first delivery into the edited-copy tree exits 0"
+
+EDIT_SENTINEL="$TMPROOT/edited-claims.tla"
+printf 'Walked == my own answer, half done\n' >"$EDIT_SENTINEL"
+cp -- "$EDIT_SENTINEL" "$DEST_EDITED/$ITEM_A/work/Claims.tla"
+printf 'claims for sets/01-alpha, repaired\n' \
+  >"$SRC_MOVE/completion/$ITEM_A/work/Claims.tla"
+
+run_deliver_from "$SRC_MOVE" --verify all "$DEST_EDITED"
+assert_rc "--verify exits 0 when the only finding is a conflict" 0
+assert_says_literal "--verify names the conflicted path" \
+  "CONFLICT, your edit and a moved source: $DEST_EDITED/$ITEM_A/work/Claims.tla" \
+  "$RUN_OUT"
+assert_says "--verify counts the conflict in its summary line even at rc 0" \
+  '^[0-9]+ in sync, [0-9]+ stale, [1-9][0-9]* conflicted, ' "$RUN_OUT"
+assert_bytes "--verify left the learner's file byte for byte" \
+  "$DEST_EDITED/$ITEM_A/work/Claims.tla" "$EDIT_SENTINEL"
+
+run_deliver_from "$SRC_MOVE" all "$DEST_EDITED"
+assert_rc0 "a delivery over an edited copy still exits 0"
+assert_survived "a delivery never touches the conflicted file" \
+  "$DEST_EDITED/$ITEM_A/work/Claims.tla" "$EDIT_SENTINEL" \
+  "$DEST_EDITED/modal/01-gamma/work/Claims.tla"
+assert_says_literal "the conflict still prints the old skip line on stdout" \
+  "skipped (exists): $DEST_EDITED/$ITEM_A/work/Claims.tla" "$RUN_OUT"
+assert_says "the conflict is explained on stderr with a path to merge" \
+  'source has moved since you edited it' "$RUN_ERR"
+
+# --- no record means treat it as the learner's ------------------------------
+#
+# Every delivered completion item on Frank's box is in exactly this state
+# today: delivered 2026-10-13, before anything kept a record.
+
+run_deliver_from "$FIX_REPO" all "$DEST_NOREC"
+assert_rc0 "a first delivery into the no-record tree exits 0"
+find "$DEST_NOREC" -name "$RECORD_NAME" -delete
+NOREC_SENTINEL="$TMPROOT/norec-claims.tla"
+printf 'a copy of unknown provenance\n' >"$NOREC_SENTINEL"
+cp -- "$NOREC_SENTINEL" "$DEST_NOREC/$ITEM_A/work/Claims.tla"
+
+run_deliver_from "$SRC_MOVE" --verify all "$DEST_NOREC"
+assert_rc "--verify over a record-less tree still exits 0" 0
+assert_says_literal "--verify says the missing record is why it will not touch it" \
+  "CONFLICT, differs from source and has no record, so it may be your work: $DEST_NOREC/$ITEM_A/work/Claims.tla" \
+  "$RUN_OUT"
+
+run_deliver_from "$SRC_MOVE" all "$DEST_NOREC"
+assert_bytes "a file with no record is never overwritten" \
+  "$DEST_NOREC/$ITEM_A/work/Claims.tla" "$NOREC_SENTINEL"
+assert_says "the missing record is named as the reason" \
+  'no record of delivery' "$RUN_ERR"
+
+# --- --adopt bootstraps that tree -------------------------------------------
+
+run_deliver_from "$FIX_REPO" --adopt all "$DEST_NOREC"
+assert_rc0 "--adopt exits 0"
+assert_says_literal "--adopt takes a file byte-identical to its source" \
+  "adopted, byte-identical to its source: $DEST_NOREC/$ITEM_A/PROMPT.md" "$RUN_OUT"
+assert_says_literal "--adopt refuses a file that differs, because it may be his work" \
+  "not adopted, it differs from its source so it may be your work: $DEST_NOREC/$ITEM_A/work/Claims.tla" \
+  "$RUN_OUT"
+assert_bytes "--adopt copies nothing over his edit" \
+  "$DEST_NOREC/$ITEM_A/work/Claims.tla" "$NOREC_SENTINEL"
+
+# AND THE SUMMARY COUNTS WHAT IT LEFT BEHIND. The bootstrap's whole job is to
+# say which files it could not vouch for, since those are the learner's and no
+# later repair will reach them. A line reading "0 left unrecorded" on a run
+# that left one unrecorded is the only number somebody would act on, and it is
+# the number that was wrong on the exercises channel until 2026-10-18.
+assert_says "--adopt counts the file it left unrecorded" \
+  '^[0-9]+ file\(s\) adopted, [1-9][0-9]* left unrecorded$' "$RUN_OUT"
+
+# The payoff: an adopted file now takes a repair, and the edited one still does
+# not.
+run_deliver_from "$SRC_MOVE" all "$DEST_NOREC"
+assert_file_is "an adopted file takes a later repair" \
+  "$DEST_NOREC/$ITEM_A/PROMPT.md" "prompt for sets/01-alpha, repaired"
+assert_bytes "his edit is still untouched after adoption" \
+  "$DEST_NOREC/$ITEM_A/work/Claims.tla" "$NOREC_SENTINEL"
+
+# --- an absent destination root is a skip, never a failure ------------------
+#
+# No box but Frank's has a delivered tree and a CI runner never will, so a
+# verify that failed on absence would be red everywhere it does not apply.
+
+run_deliver_from "$FIX_REPO" --verify all "$DEST_VABSENT"
+assert_rc "--verify over an absent destination root exits 0" 0
+assert_says_literal "--verify says which path it looked for" \
+  "no delivered tree at $DEST_VABSENT" "$RUN_OUT"
+assert_says_literal "--verify says it is skipping" "Skipping." "$RUN_OUT"
+assert_absent "--verify over an absent destination root creates nothing" \
+  "$DEST_VABSENT"
+
+# An item the destination does not hold at all is one line rather than one per
+# file. Most of the corpus is undelivered on any real tree at any moment, and a
+# line per file would bury the finding somebody has to act on.
+DEST_PARTIALTREE="$TMPROOT/dest-partialtree"
+run_deliver_from "$FIX_REPO" "$ITEM_A" "$DEST_PARTIALTREE"
+assert_rc0 "a one-item delivery into the partial tree exits 0"
+run_deliver_from "$FIX_REPO" --verify all "$DEST_PARTIALTREE"
+assert_rc "--verify over a partly-delivered tree exits 0" 0
+assert_says_literal "a wholly undelivered item is named once, as a directory" \
+  "not delivered, so there is nothing to compare: $DEST_PARTIALTREE/modal/01-gamma" \
+  "$RUN_OUT"
+assert_never_names "and its files are not named one by one" \
+  "$DEST_PARTIALTREE/modal/01-gamma/work/Claims.tla" "$RUN_OUT"
+assert_says "the summary counts the whole items it did not find" \
+  'not delivered \([1-9][0-9]* whole item\(s\)\)$' "$RUN_OUT"
+
+# --- the modes are not combinable -------------------------------------------
+
+run_deliver_from "$FIX_REPO" --check --verify all "$DEST_FRESH"
+assert_rc "--check and --verify together are refused" 1
+assert_says "and the refusal says to pick one" 'pick one' "$RUN_ERR"
+
+run_deliver_from "$FIX_REPO" --verify --adopt all "$DEST_FRESH"
+assert_rc "--verify and --adopt together are refused" 1
 
 # ---------------------------------------------------------------------------
 echo

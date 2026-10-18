@@ -115,6 +115,10 @@ SCRIPT="scripts/deliver-problems.sh"
 NUMBER_SCRIPT="scripts/number-problems.sh"
 TEST_RUNNER="scripts/test"
 
+# The delivery record, written into each delivered problem directory. Named
+# here because three helpers below have to agree about it.
+RECORD_NAME=".delivered.sha256"
+
 # The real practice tree, captured before anything is sandboxed. Only used to
 # assert that no run ever names it. Nothing in this suite reads or writes under
 # it, and no run is ever given it as a destination.
@@ -336,6 +340,18 @@ run_deliver() {
   RUN_ERR=$(cat "$ERRFILE")
 }
 
+# run_deliver_from <src-root> [args...]: the same, against another fixture
+# source root. The record rows below MOVE their source, and every row above
+# asserts the content of $FIX_REPO, so those rows need a root of their own.
+run_deliver_from() {
+  local src="$1"
+  shift
+  RUN_OUT=$(HOME="$SANDBOX_HOME" DELIVER_PROBLEMS_SRC_ROOT="$src" \
+    bash "$SCRIPT" "$@" 2>"$ERRFILE")
+  RUN_RC=$?
+  RUN_ERR=$(cat "$ERRFILE")
+}
+
 # run_deliver_realrepo [args...]
 #
 # The one runner that reads the real repo as its source, for the probe that
@@ -348,11 +364,18 @@ run_deliver_realrepo() {
 
 # relfiles <dir>
 #
-# Every file under a directory, as a sorted list of paths relative to it.
+# Every DELIVERED file under a directory, as a sorted list of paths relative to
+# it.
+#
+# The delivery record is excluded. It is written by the delivery and it is not
+# source material, so it is never part of the statement/ tree the manifest rows
+# compare against. The exclusion is only safe because the record's presence is
+# asserted on its own, under "the delivery record", rather than taken on trust:
+# an exclusion nobody checks is how a file stops being looked at.
 relfiles() {
   local dir="$1"
   [ -d "$dir" ] || { printf '<absent>\n'; return; }
-  (cd "$dir" && find . -type f | LC_ALL=C sort)
+  (cd "$dir" && find . -type f ! -name "$RECORD_NAME" | LC_ALL=C sort)
 }
 
 # deliverable_relfiles <statement-dir>
@@ -415,6 +438,20 @@ assert_says() {
   fi
 }
 
+# assert_says_literal <label> <literal-string> <captured-text>
+#
+# Fixed-string, for the rows whose needle is a filesystem path. A path read as
+# a regex matches more than itself, and an unanchored `.` in a directory name
+# is exactly how a row passes against the wrong file.
+assert_says_literal() {
+  local label="$1" needle="$2" body="$3"
+  if grep -qF -- "$needle" <<<"$body"; then
+    ok "$label"
+  else
+    nope "$label. The output never said: $needle"
+  fi
+}
+
 # assert_never_names <label> <literal-string> <captured-text>
 #
 # Fixed-string, because the thing being looked for is a filesystem path and a
@@ -471,7 +508,7 @@ assert_identical() {
     nope "$label. Nothing landed at all: $dest"
     return
   fi
-  out=$(diff -r "$src" "$dest" 2>&1)
+  out=$(diff -r -x "$RECORD_NAME" "$src" "$dest" 2>&1)
   if [ -z "$out" ]; then
     ok "$label"
   else
@@ -1008,6 +1045,282 @@ assert_bytes "a hand-edited trace survives the second run" \
 # destination changes no file at all.
 assert_unchanged "a second run over a full destination changes nothing" \
   "$DEST_KEEP" "$KEEP_BEFORE" 0
+
+# ---------------------------------------------------------------------------
+echo
+echo "== the delivery record, and the third state it buys =="
+# ---------------------------------------------------------------------------
+#
+# Bead tla-mjvx. Never-overwrite froze every delivered problem at its delivery
+# date, so a repair to a statement reached the repo and never reached Frank.
+# The resolution is a record of what the delivery wrote, which splits "present"
+# into a file he has edited and a file he has not.
+#
+# EVERY ROW ABOVE STILL PASSES UNCHANGED, which is the first thing to check if
+# one of these goes red. The record adds one outcome and keeps every message
+# the old contract printed.
+
+SRC_MOVE="$TMPROOT/repo-move"
+DEST_FRESH="$TMPROOT/dest-fresh"     # delivered by this script, never edited
+DEST_EDITED="$TMPROOT/dest-edited"   # delivered, then edited, then source moved
+DEST_NOREC="$TMPROOT/dest-norec"     # delivered before records existed
+DEST_VABSENT="$TMPROOT/dest-vabsent" # --verify over a root that is not there
+DEST_RENUM="$TMPROOT/dest-renum"     # the same problem under another number
+
+cp -r "$FIX_REPO" "$SRC_MOVE"
+write_main_order "$DEST_FRESH"
+write_main_order "$DEST_EDITED"
+write_main_order "$DEST_NOREC"
+write_main_order "$DEST_RENUM"
+
+ALPHA_SRC="$SRC_MOVE/authoring/alpha-fixture/statement"
+ALPHA_DIR="$DEST_FRESH/01_alpha-fixture"
+
+run_deliver_from "$SRC_MOVE" alpha-fixture "$DEST_FRESH"
+assert_rc0 "a first delivery into the record fixture exits 0"
+
+# The exclusion in relfiles() and the -x in assert_identical are only safe
+# because this row exists. Without it the manifest comparisons would be quietly
+# ignoring a file nobody checks.
+if [ -f "$ALPHA_DIR/$RECORD_NAME" ]; then
+  ok "a first delivery writes the record into the delivered problem directory"
+else
+  nope "a first delivery writes no record at $ALPHA_DIR/$RECORD_NAME"
+fi
+
+assert_says "the record carries an entry for PROBLEM.md" \
+  '^[0-9a-f]{64}  PROBLEM\.md$' "$(cat "$ALPHA_DIR/$RECORD_NAME")"
+
+# Keyed on the path INSIDE the problem directory, which is what lets
+# scripts/number-problems.sh renumber the directory without invalidating it.
+assert_says "the record keys a nested file on its path inside the problem" \
+  '^[0-9a-f]{64}  traces/pair-1\.md$' "$(cat "$ALPHA_DIR/$RECORD_NAME")"
+
+assert_not_delivered "the record never leaks into the source tree" \
+  "$ALPHA_SRC" "$RECORD_NAME"
+
+# --- --verify on a current tree, which is the control ----------------------
+#
+# Without this row the drift rows below could all be passing because the
+# comparison never ran at all.
+
+run_deliver_from "$SRC_MOVE" --verify alpha-fixture "$DEST_FRESH"
+assert_rc "--verify over a current tree exits 0" 0
+assert_says "--verify over a current tree reports nothing stale or conflicted" \
+  '^[1-9][0-9]* in sync, 0 stale, 0 conflicted, ' "$RUN_OUT"
+assert_never_names "--verify over a current tree names no stale path" \
+  "STALE" "$RUN_OUT"
+
+# --- STALE: the case the bead exists for ------------------------------------
+
+printf 'alpha problem statement, repaired\n' >"$ALPHA_SRC/PROBLEM.md"
+FRESH_BEFORE=$(snapshot "$DEST_FRESH")
+
+run_deliver_from "$SRC_MOVE" --verify alpha-fixture "$DEST_FRESH"
+assert_rc "--verify exits 3 when a recorded, unedited file has gone stale" 3
+assert_says_literal "--verify names the stale path" \
+  "STALE, you have not edited it so a delivery would update it: $ALPHA_DIR/PROBLEM.md" \
+  "$RUN_OUT"
+assert_says "--verify counts the stale file in its summary line" \
+  '^[0-9]+ in sync, 1 stale, ' "$RUN_OUT"
+
+# AND IT WROTE NOTHING, record included. The exit code alone would be satisfied
+# by a mode that reported correctly and then delivered, which is the one thing
+# a verify must never do. Compare the bytes, not the status.
+assert_unchanged "--verify changed no file and wrote no record entry" \
+  "$DEST_FRESH" "$FRESH_BEFORE" 3
+
+# --- and a delivery clears it, which is what makes STALE actionable ---------
+
+run_deliver_from "$SRC_MOVE" alpha-fixture "$DEST_FRESH"
+assert_rc0 "a delivery over an unedited copy exits 0"
+assert_delivered "the repaired PROBLEM.md reaches an unedited copy" \
+  "$ALPHA_DIR" "PROBLEM.md" "alpha problem statement, repaired"
+assert_says_literal "the update says the learner had not edited it" \
+  "updated, you had not edited it: $ALPHA_DIR/PROBLEM.md" "$RUN_OUT"
+
+run_deliver_from "$SRC_MOVE" --verify alpha-fixture "$DEST_FRESH"
+assert_rc "--verify is clean again after the delivery it asked for" 0
+
+# --- CONFLICT: the learner's work is untouchable, and is never a failure ----
+#
+# THIS IS THE ROW THAT MATTERS MOST. A conflict is work Frank did, no run of
+# this script will ever touch it, and so it can never be something a gate asks
+# him to fix. Wiring a wrap-up gate to an exit code that merged the two put a
+# permanent red on 10 of his 12 exercise chapters on 2026-10-18, every one of
+# them red because he had done the exercises.
+#
+# The tree is delivered from the CURRENT source and only then is one file
+# edited and only that file moved in the source, so the run has a conflict and
+# nothing else. A tree carrying a stale file beside the conflict would exit 3
+# for a reason that has nothing to do with what this row asserts.
+
+run_deliver_from "$SRC_MOVE" alpha-fixture "$DEST_EDITED"
+assert_rc0 "a first delivery into the edited-copy tree exits 0"
+
+EDIT_SENTINEL="$TMPROOT/edited-log.md"
+printf 'my own attempt, half done\n' >"$EDIT_SENTINEL"
+cp -- "$EDIT_SENTINEL" "$DEST_EDITED/01_alpha-fixture/ATTEMPT-LOG.md"
+printf 'alpha attempt log, repaired\n' >"$ALPHA_SRC/ATTEMPT-LOG.md"
+
+run_deliver_from "$SRC_MOVE" --verify alpha-fixture "$DEST_EDITED"
+assert_rc "--verify exits 0 when the only finding is a conflict" 0
+assert_says_literal "--verify names the conflicted path" \
+  "CONFLICT, your edit and a moved source: $DEST_EDITED/01_alpha-fixture/ATTEMPT-LOG.md" \
+  "$RUN_OUT"
+assert_says "--verify counts the conflict in its summary line even at rc 0" \
+  '^[0-9]+ in sync, [0-9]+ stale, [1-9][0-9]* conflicted, ' "$RUN_OUT"
+assert_bytes "--verify left the learner's file byte for byte" \
+  "$DEST_EDITED/01_alpha-fixture/ATTEMPT-LOG.md" "$EDIT_SENTINEL"
+
+run_deliver_from "$SRC_MOVE" alpha-fixture "$DEST_EDITED"
+assert_rc0 "a delivery over an edited copy still exits 0"
+assert_bytes "a delivery never touches the conflicted file" \
+  "$DEST_EDITED/01_alpha-fixture/ATTEMPT-LOG.md" "$EDIT_SENTINEL"
+assert_says_literal "the conflict still prints the old skip line on stdout" \
+  "skipped (exists): $DEST_EDITED/01_alpha-fixture/ATTEMPT-LOG.md" "$RUN_OUT"
+assert_says "the conflict is explained on stderr with a path to merge" \
+  'source has moved since you edited it' "$RUN_ERR"
+
+# --- no record means treat it as the learner's ------------------------------
+#
+# Every delivered problem on Frank's box is in exactly this state today:
+# delivered 2026-10-02, before anything kept a record.
+
+run_deliver alpha-fixture "$DEST_NOREC"
+assert_rc0 "a first delivery into the no-record tree exits 0"
+find "$DEST_NOREC" -name "$RECORD_NAME" -delete
+NOREC_SENTINEL="$TMPROOT/norec-problem.md"
+printf 'a copy of unknown provenance\n' >"$NOREC_SENTINEL"
+cp -- "$NOREC_SENTINEL" "$DEST_NOREC/01_alpha-fixture/PROBLEM.md"
+
+run_deliver_from "$SRC_MOVE" --verify alpha-fixture "$DEST_NOREC"
+assert_rc "--verify over a record-less tree still exits 0" 0
+assert_says_literal "--verify says the missing record is why it will not touch it" \
+  "CONFLICT, differs from source and has no record, so it may be your work: $DEST_NOREC/01_alpha-fixture/PROBLEM.md" \
+  "$RUN_OUT"
+
+run_deliver_from "$SRC_MOVE" alpha-fixture "$DEST_NOREC"
+assert_bytes "a file with no record is never overwritten" \
+  "$DEST_NOREC/01_alpha-fixture/PROBLEM.md" "$NOREC_SENTINEL"
+assert_says "the missing record is named as the reason" \
+  'no record of delivery' "$RUN_ERR"
+
+# --- --adopt bootstraps that tree -------------------------------------------
+
+run_deliver --adopt alpha-fixture "$DEST_NOREC"
+assert_rc0 "--adopt exits 0"
+assert_says_literal "--adopt takes a file byte-identical to its source" \
+  "adopted, byte-identical to its source: $DEST_NOREC/01_alpha-fixture/traces/pair-1.md" \
+  "$RUN_OUT"
+assert_says_literal "--adopt refuses a file that differs, because it may be his work" \
+  "not adopted, it differs from its source so it may be your work: $DEST_NOREC/01_alpha-fixture/PROBLEM.md" \
+  "$RUN_OUT"
+assert_bytes "--adopt copies nothing over his edit" \
+  "$DEST_NOREC/01_alpha-fixture/PROBLEM.md" "$NOREC_SENTINEL"
+
+# AND THE SUMMARY COUNTS WHAT IT LEFT BEHIND. The bootstrap's whole job is to
+# say which files it could not vouch for, since those are the learner's and no
+# later repair will reach them. A line reading "0 left unrecorded" on a run
+# that left one unrecorded is the only number somebody would act on, and it is
+# the number that was wrong on the exercises channel until 2026-10-18.
+assert_says "--adopt counts the file it left unrecorded" \
+  '^[0-9]+ file\(s\) adopted, [1-9][0-9]* left unrecorded$' "$RUN_OUT"
+
+# The payoff: an adopted file now takes a repair, and the edited one still does
+# not.
+printf 'alpha pair 1, repaired\n' >"$ALPHA_SRC/traces/pair-1.md"
+run_deliver_from "$SRC_MOVE" alpha-fixture "$DEST_NOREC"
+assert_delivered "an adopted file takes a later repair" \
+  "$DEST_NOREC/01_alpha-fixture" "traces/pair-1.md" "alpha pair 1, repaired"
+assert_bytes "his edit is still untouched after adoption" \
+  "$DEST_NOREC/01_alpha-fixture/PROBLEM.md" "$NOREC_SENTINEL"
+
+# --- 'all' is the whole-channel form, and only in the reporting modes -------
+#
+# A source root of its own, holding two whole problems and nothing else. The
+# main fixture deliberately carries three broken sources (dup-fixture in two
+# locations, empty-fixture, notesonly-fixture) for the fatal rows further down,
+# and `all` walks every one of them. Running this row against it exited 1 on
+# the ambiguous name, which is correct behavior reported against the wrong
+# question; the row below asserts that behavior on purpose instead.
+
+ALL_REPO="$TMPROOT/repo-all"
+DEST_ALL="$TMPROOT/dest-all"
+mkdir -p "$ALL_REPO/authoring"
+cp -r "$FIX_REPO/authoring/alpha-fixture" "$ALL_REPO/authoring/alpha-fixture"
+cp -r "$FIX_REPO/authoring/gamma-fixture" "$ALL_REPO/authoring/gamma-fixture"
+write_main_order "$DEST_ALL"
+
+run_deliver_from "$ALL_REPO" alpha-fixture "$DEST_ALL"
+assert_rc0 "a one-problem delivery into the all-fixture tree exits 0"
+
+run_deliver_from "$ALL_REPO" --verify all "$DEST_ALL"
+assert_rc "--verify all exits 0 over a tree whose one delivered problem is current" 0
+assert_says_literal "--verify all names a problem the destination does not hold, once" \
+  "not delivered, so there is nothing to compare: $DEST_ALL/03_gamma-fixture" "$RUN_OUT"
+assert_never_names "and does not name that problem's files one by one" \
+  "$DEST_ALL/03_gamma-fixture/PROBLEM.md" "$RUN_OUT"
+assert_says "the summary counts the whole problems it did not find" \
+  'not delivered \([1-9][0-9]* whole problem\(s\)\)$' "$RUN_OUT"
+
+# And a source carrying a problem it cannot resolve is an error rather than a
+# silent omission. A verify that walked past an ambiguous name would be
+# reporting on a corpus it had not finished reading.
+run_deliver --verify all "$DEST_ALL"
+assert_rc "--verify all exits 1 when a problem in the source cannot be resolved" 1
+assert_says "and says which name it could not resolve" \
+  "ambiguous: more than one location carries a problem called 'dup-fixture'" "$RUN_ERR"
+
+run_deliver all "$DEST_ALL"
+assert_rc "a plain delivery refuses 'all'" 1
+assert_says "and says a delivery is one problem at a time" \
+  'one problem at a time' "$RUN_ERR"
+
+run_deliver --check all "$DEST_ALL"
+assert_rc "--check refuses 'all' too" 1
+
+# --- a renumbered directory is followed rather than called missing ----------
+#
+# A destination can legitimately be mid-renumber. Reporting "not delivered"
+# about a directory sitting right there would be a true statement about the
+# wrong question.
+
+run_deliver alpha-fixture "$DEST_RENUM"
+assert_rc0 "a delivery into the renumber fixture exits 0"
+mv "$DEST_RENUM/01_alpha-fixture" "$DEST_RENUM/09_alpha-fixture"
+
+run_deliver --verify alpha-fixture "$DEST_RENUM"
+assert_rc "--verify over a problem under a stale number exits 0" 0
+assert_says "--verify says which directory it compared instead" \
+  "delivered as '09_alpha-fixture' rather than '01_alpha-fixture'" "$RUN_ERR"
+assert_says "--verify counted the files in it rather than calling them missing" \
+  '^[1-9][0-9]* in sync, ' "$RUN_OUT"
+
+# --- an absent destination root is a skip, never a failure ------------------
+#
+# No box but Frank's has a delivered tree and a CI runner never will, so a
+# verify that failed on absence would be red everywhere it does not apply.
+
+run_deliver --verify all "$DEST_VABSENT"
+assert_rc "--verify over an absent destination root exits 0" 0
+assert_says_literal "--verify says which path it looked for" \
+  "no delivered tree at $DEST_VABSENT" "$RUN_OUT"
+assert_says_literal "--verify says it is skipping" "Skipping." "$RUN_OUT"
+if [ -e "$DEST_VABSENT" ]; then
+  nope "--verify over an absent destination root created $DEST_VABSENT"
+else
+  ok "--verify over an absent destination root creates nothing"
+fi
+
+# --- the modes are not combinable -------------------------------------------
+
+run_deliver --check --verify alpha-fixture "$DEST_FRESH"
+assert_rc "--check and --verify together are refused" 1
+assert_says "and the refusal says to pick one" 'pick one' "$RUN_ERR"
+
+run_deliver --verify --adopt alpha-fixture "$DEST_FRESH"
+assert_rc "--verify and --adopt together are refused" 1
 
 # ---------------------------------------------------------------------------
 echo

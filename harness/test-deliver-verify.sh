@@ -289,10 +289,115 @@ else
   nope "the wrapper gave rc=$EMPTY_RC on an empty tree and may not have named the unchecked channels"
 fi
 
-if grep -qE '^  (drill|completion|problems)$' <<<"$EMPTY_OUT"; then
-  ok "the unchecked channels are named individually, not summarized"
+if grep -qE '^  drill$' <<<"$EMPTY_OUT"; then
+  ok "the unchecked channel is named individually, not summarized"
 else
-  nope "the wrapper did not name drill, completion and problems by name"
+  nope "the wrapper did not name drill by name"
+fi
+
+# The other direction, and it is the row that would catch a channel being
+# listed as unchecked while a call for it sits right above. Until 2026-10-18
+# this block read drill, completion and problems; the last two gained a verify
+# mode in bead tla-mjvx, so naming them here would now be a false report.
+NOTCHECKED=$(sed -n '/^NOT CHECKED/,$p' <<<"$EMPTY_OUT")
+still_listed=''
+for ch in completion problems; do
+  if grep -qE "^  $ch\$" <<<"$NOTCHECKED"; then
+    still_listed="$still_listed $ch"
+  fi
+done
+if [ -z "$still_listed" ]; then
+  ok "a channel that has a verify mode is no longer listed as unchecked"
+else
+  nope "channel(s) listed as unchecked although they have a verify mode:$still_listed"
+fi
+
+# And the positive half: the wrapper actually CALLED them. Without this row the
+# one above would pass just as well if the two calls had been deleted rather
+# than added, since a channel nobody calls is also a channel nobody lists.
+for ch in completion problems; do
+  if grep -qE "^  $ch( |\$)" <<<"$EMPTY_OUT"; then
+    ok "the wrapper reports a result for the $ch channel"
+  else
+    nope "the wrapper never reported on the $ch channel at all"
+  fi
+done
+
+# --- part 5: a never-overwrite channel's drift reaches the wrapper's rc -----
+#
+# Parts 1 to 4 prove the wrapper's table and its skip. This part proves the one
+# thing the ritual depends on: that a stale file in a never-overwrite channel
+# turns the whole command red. It builds a tree that is stale against a source
+# nobody may edit, which takes the record: deliver, change one delivered byte,
+# then record THAT byte as the delivered digest. Disk now matches the record
+# and differs from the source, which is exactly the state a merged repair
+# leaves behind.
+#
+# Writing a record by hand is a thing only a fixture may do. The whole safety
+# argument of the record is that only a delivery writes an entry, and this
+# suite is standing in for one delivery that already happened.
+
+echo
+echo "== part 5: a stale never-overwrite channel turns the wrapper red =="
+
+STALE_ROOT="$WORK/stale-practice"
+mkdir -p "$STALE_ROOT"
+DELIVER_COMPLETION="$REPO_ROOT/scripts/deliver-completion.sh"
+
+# This part DELIVERS, where every part above only reads, so it is the one
+# place in this suite that sandboxes HOME. Both runs already pass an explicit
+# root under $WORK; the redirect is what covers a script that dropped its
+# argument, because the default root resolves from HOME and the real one has
+# no git behind it. Part 3 deliberately keeps the real HOME, which is why this
+# is per-invocation rather than at the top of the file.
+SANDBOX_HOME="$WORK/sandbox-home"
+mkdir -p "$SANDBOX_HOME"
+
+PLANT_OUT=$(HOME="$SANDBOX_HOME" "$DELIVER_COMPLETION" all "$STALE_ROOT/completion" 2>&1)
+PLANT_RC=$?
+# sort consumes its whole input, so this pipeline has no early-exiting
+# consumer. The first line comes off the captured string instead of from a
+# head, which under pipefail returns 141 and reports a found file as absent.
+PLANT_LIST=$(find "$STALE_ROOT/completion" -name 'PROMPT.md' | LC_ALL=C sort)
+PLANTED=${PLANT_LIST%%$'\n'*}
+if [ "$PLANT_RC" -eq 0 ] && [ -n "$PLANTED" ]; then
+  ok "the completion corpus delivers into a sandbox root, so part 5 has a tree to work on"
+else
+  nope "could not plant a completion tree (rc=$PLANT_RC): $(tr '\n' ' ' <<<"$PLANT_OUT")"
+fi
+
+if [ -n "$PLANTED" ]; then
+  PLANTED_DIR=${PLANTED%/*}
+  printf '\na line the repo does not have\n' >>"$PLANTED"
+  printf '%s  %s\n' "$(sha256sum -- "$PLANTED" | cut -d' ' -f1)" "PROMPT.md" \
+    >>"$PLANTED_DIR/.delivered.sha256"
+
+  STALE_WRAP=$(HOME="$SANDBOX_HOME" "$WRAPPER" "$STALE_ROOT" 2>&1)
+  STALE_WRAP_RC=$?
+  if [ "$STALE_WRAP_RC" -eq 3 ]; then
+    ok "a stale completion file makes the wrapper exit 3"
+  else
+    nope "the wrapper exited $STALE_WRAP_RC over a stale completion tree, wanted 3"
+  fi
+
+  if grep -qE '^  completion$' <<<"$(sed -n '/^DRIFTED/,$p' <<<"$STALE_WRAP")"; then
+    ok "the wrapper names completion under DRIFTED"
+  else
+    nope "the wrapper exited $STALE_WRAP_RC without naming completion as drifted"
+  fi
+
+  if grep -qF -- "$PLANTED" <<<"$STALE_WRAP"; then
+    ok "the wrapper's detail block carries the stale path itself"
+  else
+    nope "the wrapper reported drift without naming $PLANTED"
+  fi
+
+  # And it wrote nothing while doing it. The whole wrapper is a read.
+  if grep -qF 'a line the repo does not have' "$PLANTED"; then
+    ok "the wrapper left the planted file exactly as it found it"
+  else
+    nope "the wrapper rewrote $PLANTED, and it must never write anywhere"
+  fi
 fi
 
 echo
