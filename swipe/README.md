@@ -24,6 +24,15 @@ VARIABLE, so a claim naming one is a free identifier and SANY refuses the
 module. `harness/test-swipe-level0.sh` asserts the absence of both
 declarations.
 
+The gate also scans each claim's text for a prime, a temporal operator and a
+free identifier, which is the fast half of the same check. **That scan should
+probably be replaced by `harness/levels/levels.sh`**, which landed with bead
+`tla-7xql.3` after this corpus was built and reads the level off SANY's
+semantic tree rather than guessing from text. One parse per module, no TLC.
+The two routes agree on the corpus as it stands, and I'd rather have the
+parser than my own tokenizer: mine already got TLA+'s backslash operators
+wrong once, reading `\cup` as a name called `cup` on 20 of 80 claims.
+
 ## What is here
 
 ```
@@ -71,20 +80,27 @@ written one level down.
 
 ### A constant INVARIANT is not the channel
 
-This corrects the table the bead was briefed with. A level 0 expression
-declared as an `INVARIANT` and found false comes back **rc 151
-CONFIG_ERROR**, not rc 12:
+This corrects the table the bead was briefed with, which said `{12, 13}` means
+refuted. A level 0 expression declared as an `INVARIANT` and found false comes
+back **rc 151 CONFIG_ERROR**, not rc 12:
 
 ```
 Error: The invariant of Refuted is equal to FALSE
 ```
 
-TLC folds a constant invariant at config time and refuses the config, so every
-false item would have been labeled a config defect. rc 12 needs an invariant
-TLC cannot fold, which means a state-dependent one, which means level 1 or
-above. Measured on TLC 2026.07.31.184830: the same claim with one
-state-dependent disjunct added does come back 12. So the `{12, 13}` row
-belongs to the other rungs and this one reads `{0}` against `{10}`.
+The mechanism is not new here. `V2-PLAN.md` already records it for the literal
+`INVARIANT FALSE`, and its workaround is to assert something state-dependent
+that TLC cannot fold. What is new is the reach: it is not about the literal
+`FALSE` at all, it covers **every constant-level expression that evaluates to
+FALSE**, which is the whole refuted class of this corpus. Measured on TLC
+2026.07.31.184830 against `Cardinality(SUBSET {1, 2, 3}) = 6`, and the same
+claim with one state-dependent disjunct added does come back 12.
+
+So an invariant channel would have labeled every false item a config defect
+and sent it down instead of left. rc 12 needs an invariant TLC cannot fold,
+which means a state-dependent one, which means level 1 or above. The
+`{12, 13}` row belongs to the other rungs, and this one reads `{0}` against
+`{10}`.
 
 ### Batching is the whole reason level 0 is cheap
 

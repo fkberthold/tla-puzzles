@@ -32,10 +32,15 @@
 #
 #   Error: The invariant of Refuted is equal to FALSE
 #
-# TLC folds a constant invariant at config time and refuses the config, so
-# every false item would have been labeled a config defect. rc 12 needs an
-# invariant TLC cannot fold, which means a state-dependent one, which means
-# level 1 or above. The {12, 13} row belongs to the other rungs.
+# V2-PLAN.md already records the folding for the literal INVARIANT FALSE. What
+# it does not say, and what this rung turns on, is that the literal is not the
+# point: EVERY constant-level expression that evaluates to FALSE folds the same
+# way, which is the whole refuted class here. Measured against
+# Cardinality(SUBSET {1, 2, 3}) = 6.
+#
+# So an invariant channel would have labeled every false item a config defect.
+# rc 12 needs an invariant TLC cannot fold, which means a state-dependent one,
+# which means level 1 or above. The {12, 13} row belongs to the other rungs.
 #
 # BATCHING IS THE WHOLE REASON LEVEL 0 IS CHEAP. One module with N assumes
 # costs one JVM. Measured, worst of three back-to-back runs:
