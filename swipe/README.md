@@ -131,13 +131,19 @@ The fix is structural rather than a list of tokens to avoid. **Items are
 authored in matched groups that share their surface and differ in their
 label.** The unit is either a four, one item of each kind built from one idea,
 or a pair, a true and a false item built from one idea. Six fours and twelve
-pairs is 48, and it lands the mix at 18 true, 18 false, 6 vacuous and
+pairs is 48, and it landed the mix at 18 true, 18 false, 6 vacuous and
 6 ill-formed without anybody counting.
 
 A few groups came apart when the bake contradicted a label or when the probe
 named a token, so the file is not six clean fours and twelve clean pairs
 today. The arithmetic is the reason the mix holds, and the discipline is what
 keeps a token from carrying the answer.
+
+**The mix reads 18 true, 18 false, 6 vacuous, 5 ill-formed and 1 unparsed
+now**, and the five rows that changed came out of groups that had already come
+apart rather than out of clean fours. `illformed` and `unparsed` share the
+down swipe, so the swipe mix and the base rate are untouched by that. The
+section on the fourth outcome below carries the ruling and the five claims.
 
 A token that enters the corpus inside a matched group carries the label
 distribution of that group, so a decision stump learns nothing from it. A
@@ -293,16 +299,74 @@ declared `true` that fails to parse still reddens the holds batch, and
 declared `unparsed` that parses fine reddens its own probe at 0 or 10. Section
 10 of `harness/test-swipe-level0.sh` controls both directions over a fixture.
 
-**No item in `ITEMS.tsv` carries this kind today**, and adding one is a
-separate decision rather than a loose end. The shipped mix is 18 true,
-18 false, 6 vacuous and 6 ill-formed per template, and that arithmetic is what
-holds the base rate at 0.3750. The power table above is computed from it, so
-an added item moves the mix, the base rate and the detection floor together.
+### Every kind in the channel ships an item, or says why it does not
 
-I expect T2 is the family that will produce these, since a precedence trap
-that goes one step further than a surprising parse stops parsing altogether. A
-generator working that family will hit it far more often than a human author
-does.
+Bead `tla-7xql.10` built the `unparsed` machinery and deliberately shipped no
+item of the kind, which left a channel row nobody had ever read. Frank ruled
+on 2026-10-18 that the corpus closes that by **conversion rather than
+addition**: five `illformed` rows became `unparsed` rows, and no row was
+added.
+
+<!-- KIND TABLE: harness/test-swipe-level0.sh section 11 reads the rows below. Column 3 is a dash when the kind ships and a reason when it does not. -->
+
+| kind | swipe | deliberately unshipped, and why |
+|---|---|---|
+| `true` | right | - |
+| `false` | left | - |
+| `vacuous` | down | - |
+| `illformed` | down | - |
+| `unparsed` | down | - |
+
+The gate reads that third column in both directions. A kind with no item and
+no reason is a channel row no reader has ever met, which is the defect this
+table exists to catch. A kind that ships while the column still carries a
+reason is a record that has gone stale, which is the same defect wearing the
+uniform of its own fix. Section 11 of `harness/test-swipe-level0.sh` reads
+this table against the real `ITEMS.tsv`, which section 10 deliberately does
+not.
+
+**Conversion is what keeps every number above still true.** `illformed` and
+`unparsed` both bake to `down`, so the swipe mix is still 18 right, 18 left
+and 12 down per template, the base rate is still 18 of 48 and so 0.3750, and
+the power table is unmoved. What moved is the kind mix under the down swipe:
+6 vacuous, 5 ill-formed and 1 unparsed, which is still 12. Addition would have
+moved n, the base rate and the detection floor together, and every number in
+the power table with them.
+
+All five templates carry a parse trap in their own subject matter, so none of
+them needed the escape the table offers. The five, each with the message SANY
+gives it:
+
+| item | claim | what SANY says |
+|---|---|---|
+| `L0-T1-21` | `Cardinality({1, 2} \cup {3} \cap {2}) = 2` | precedence conflict between `\union` and `\intersect` |
+| `L0-T2-48` | `TRUE \/ FALSE /\ FALSE` | precedence conflict between `\lor` and `\land` |
+| `L0-T3-45` | `DOMAIN (1 :> 2 :> 3) = {1}` | precedence conflict between `:>` and `:>` |
+| `L0-T4-47` | `Head <<1, 2, 3>> = 1` | encountered `<<` at the token `Head` |
+| `L0-T5-45` | `2 ^ 3 ^ 2 = 512` | precedence conflict between `^` and `^` |
+
+**What each conversion cost the group it came out of.** `L0-T1-21` was the
+ill-formed member of the intersection idea, so that idea is the pair
+`L0-T1-39` and `L0-T1-40` now. `L0-T2-48` was the ill-formed member of the
+interval-beside-union idea, leaving `L0-T2-04` and `L0-T2-11`. The other
+three cost a duplicate rather than a group: `L0-T3-45` and `L0-T4-47` were
+each the second out-of-domain item on a surface that still carries one, at
+`L0-T3-15` and `L0-T4-15`, and `L0-T5-45` was the second divide-by-zero
+behind `L0-T5-15`. I picked the duplicates first and took an ill-formed
+member off a three-item remnant only where no duplicate was there to take.
+
+Four of the five are the shape all six of the `tla-7xql.7` refusals had, two
+operators from one precedence band that SANY will not associate, and each one
+sits on an operator its own template is about. T4's is a different parse
+failure and it is the one a reader arriving from another language writes:
+TLA+ has no juxtaposition, so SANY reads `Head` as a finished expression and
+then meets the tuple. Parentheses fix all five, and in four of them the two
+readings the parentheses choose between give different answers, which is what
+makes the trap worth an item.
+
+I expected T2 to be the only family that could produce these, and measuring
+the candidates said otherwise. A generator working T2 will still hit them far
+more often than a human author does.
 
 ### TLC does not always return FALSE on a mismatched comparison
 
@@ -327,13 +391,17 @@ batch modules over the whole corpus rather than one process per item.
 
 The one class that cannot batch is the items that do not evaluate. The first
 evaluation error aborts the whole batch at rc 10, and only the items before it
-print, so each of those gets its own run. At 48 items per template that is 30
-ill-formed items, so 30 JVMs, and three batches cover the other 210.
+print, so each of those gets its own run. At 48 items per template that is 25
+ill-formed items, so 25 JVMs.
 
 An `unparsed` item cannot batch either, and for a harder reason. SANY refuses
 the whole module, so one bad claim hides every other row sitting in it rather
-than only the rows after it. The corpus carries none today, so the count above
-stands.
+than only the rows after it, and the probe is the plain claim rather than the
+well-formedness form. The corpus carries 5 of those, one per template, so the
+single-run class is 30 in all and three batches cover the other 210. The
+total did not move when bead `tla-7xql.11` converted five rows, because a row
+that cannot batch for one reason costs the same as a row that cannot batch
+for the other.
 
 ## The two kind fields, and why they are two
 
@@ -389,8 +457,10 @@ sits on the measured floor, so field 11 is required and the gate rejects a
 blank one and a five-character stub.
 
 **The .04 covers 150 of the 240 items.** L2 tracked whether a falsehood comes
-back, so it speaks to the 90 false, 30 vacuous and 30 illformed items. Those
-have something to correct. The 90 true items carry the reason the claim holds
+back, so it speaks to the 90 false, 30 vacuous, 25 ill-formed and 5 unparsed
+items. Those have something to correct, and an unparsed item is corrected by a
+pair of parentheses rather than by a new value. The 90 true items carry the
+reason the claim holds
 instead, because there is nothing to correct about a true statement, and no
 measurement says .04 carries to them. Frank ruled on 2026-10-18 that the field
 is required on every row and the number is not claimed over the true ones.
@@ -399,13 +469,19 @@ is required on every row and the number is not claimed over the true ones.
 
 L7 says the mix must carry true and false substantively, because a true-heavy
 corpus transfers back to recognition and nowhere else. Every template carries
-eighteen right, eighteen left and twelve down, which is the 6/6/2/2 ratio of
-the first 80 items scaled by three.
+eighteen right, eighteen left and twelve down, which is the 6/6/2/2 swipe
+ratio of the first 80 items scaled by three.
 
 **The ratio is what holds the floor still.** Right is 18 of 48, so the base
 rate stays 0.3750 whatever the size, and the power table above can be read
 against the item count alone. A size that is not a multiple of eight moves the
 floor and every number under it.
+
+**The swipe ratio and the kind mix are two different things, and only the
+first one holds the floor.** The twelve down items read 6 vacuous, 5
+ill-formed and 1 unparsed per template since bead `tla-7xql.11`, and the floor
+did not move, because all three kinds bake to the same swipe. That is the
+whole reason the bead converted rows instead of adding them.
 
 The base rate the stem-blind gate needs is the share of the most common swipe
 in that template's own output, not one third. Here it is 37.5% in all five

@@ -62,10 +62,19 @@
 # ITEMS ARE AUTHORED IN MATCHED GROUPS, AND THAT IS WHAT KEEPS THE STEM-BLIND
 # GATE GREEN. The unit is either a four, one item of each kind built from one
 # idea, or a pair, a true and a false item built from one idea. Six fours and
-# twelve pairs is 48, and it lands the mix at 18 true, 18 false, 6 vacuous and
+# twelve pairs is 48, and it landed the mix at 18 true, 18 false, 6 vacuous and
 # 6 illformed without anybody counting. A few groups came apart when the bake
 # contradicted a label or the probe named a token, so the file is not six
 # clean fours and twelve clean pairs today.
+#
+# THE MIX IS 18 TRUE, 18 FALSE, 6 VACUOUS, 5 ILLFORMED AND 1 UNPARSED NOW, per
+# template, and the arithmetic that matters did not move. illformed and
+# unparsed both bake to down, so the swipe mix is still 18 right, 18 left and
+# 12 down, and the base rate is still 18 of 48, which is 0.3750. That is why
+# bead tla-7xql.11 CONVERTED five illformed rows rather than adding five rows:
+# adding would have moved n, the base rate and the whole power table in
+# swipe/README.md together. swipe/README.md names the five rows and says what
+# each conversion cost the group it came out of.
 #
 # A token that enters inside a matched group carries that group's label
 # distribution, so a decision stump over the claim surface learns nothing from
@@ -109,13 +118,23 @@
 # illformed -17 % 0. No item depends on the truncation, so no field 11 says it
 # does. Bead tla-7n7e is open on the divergence.
 #
-# A CLAIM SANY REFUSES COMES BACK (150, 150), WHICH IS NOT A ROW IN THE
+# A CLAIM SANY REFUSES COMES BACK (150, 150), AND IT IS THE FOURTH ROW IN THE
 # CHANNEL. Six of the items authored for tla-7xql.7 landed there, and the
 # cause was the same every time: two operators from one precedence band that
 # do not associate with each other, as in 12 \div 2 * 3, TRUE \/ FALSE /\
-# FALSE, and 12 % 5 + 12 \div 5. Parentheses fix all three. Whether a parse
-# failure should be a down-swipe item is open, and those six were replaced
-# with claims that parse rather than settled here.
+# FALSE, and 12 % 5 + 12 \div 5. Parentheses fix all three. Those six were
+# replaced with claims that parse, because at the time the row was not
+# settled.
+#
+# IT IS SETTLED NOW. Frank ruled on 2026-10-18, bead tla-7xql.10, that a parse
+# failure is a down-swipe item under its own kind, unparsed, and on bead
+# tla-7xql.11 that the corpus gains those items by CONVERSION rather than by
+# addition. Five rows carry the kind today, one per template, and each is a
+# trap in its own template's subject matter rather than a precedence item
+# wearing another label. The lesson the row teaches is that TLC never ran: SANY
+# refuses the module, so the pair is one fact reported twice rather than two
+# readings that agree. Section 11 of harness/test-swipe-level0.sh is what keeps
+# a channel row from shipping with no item behind it again.
 #
 # FIELD 11 IS NOT OPTIONAL AND IT IS NOT DECORATION. Measured on this task
 # shape and recorded as L2 on the epic: a falsehood is reproduced later at .19
@@ -124,8 +143,10 @@
 # carries a flash.
 #
 # AND THE .04 COVERS 150 OF THE 240 ROWS, NOT ALL OF THEM. L2 measured whether
-# a FALSEHOOD comes back, so it speaks to the 90 false, 30 vacuous and 30
-# illformed items, which have something to correct. The 90 true items have no
+# a FALSEHOOD comes back, so it speaks to the 90 false, 30 vacuous, 25
+# illformed and 5 unparsed items, which have something to correct. An unparsed
+# item is corrected by a pair of parentheses rather than by a new value, and
+# that is still a correction. The 90 true items have no
 # corrected claim, only a reason they hold, and nothing measured says .04
 # carries to them. So field 11 stays required on every row and the number
 # attached to it does not. Frank ruled on 2026-10-18.
@@ -151,7 +172,7 @@ ITEM	L0-T1-17	T1	holds	true	right	0	0	Cardinality({1, 2, 3} \cup {3, 4, 5}) = 5	
 ITEM	L0-T1-18	T1	holds	false	left	10	0	Cardinality({1, 2, 3} \cup {3, 4, 5}) = 6	-	The shared 3 is one member of the union and not two, so the count is five.
 ITEM	L0-T1-19	T1	holds	vacuous	down	0	0	\A x \in {y \in {1, 2, 3} \cup {3, 4, 5} : y > 5} : x = 6	{y \in {1, 2, 3} \cup {3, 4, 5} : y > 5} = {}	Nothing in that union is above 5, so the claim ranges over nothing.
 ITEM	L0-T1-20	T1	implies	false	left	10	0	{1, 2} \subseteq Nat => {1, 2} \subseteq {1}	-	The left side holds, since both are natural numbers, and the right side leaves the 2 out.
-ITEM	L0-T1-21	T1	holds	illformed	down	10	10	Cardinality({1, 2} \cap 3) = 0	-	An intersection needs a set on both sides, and 3 is a number, so the line has no value.
+ITEM	L0-T1-21	T1	holds	unparsed	down	150	150	Cardinality({1, 2} \cup {3} \cap {2}) = 2	-	Union and intersection sit in one precedence band, so SANY refuses the line rather than picking an order. Parenthesize the intersection and the count is 2.
 ITEM	L0-T1-22	T1	holds	true	right	0	0	Cardinality(SUBSET {1, 2, 3, 4}) = 16	-	A power set doubles for every member of the original, so four gives sixteen.
 ITEM	L0-T1-23	T1	holds	false	left	10	0	Cardinality(SUBSET {1, 2, 3, 4}) = 8	-	Eight is what three members would give, and four of them double it again.
 ITEM	L0-T1-24	T1	implies	vacuous	down	0	0	Cardinality(SUBSET {1, 2, 3, 4}) = 8 => Cardinality(SUBSET {1, 2}) = 16	~(Cardinality(SUBSET {1, 2, 3, 4}) = 8)	The left side is false, so the implication holds whatever the right side says.
@@ -227,7 +248,7 @@ ITEM	L0-T2-44	T2	holds	vacuous	down	0	0	\A n \in {x \in 1 .. 9 : x % 2 = 3} : n 
 ITEM	L0-T2-45	T2	holds	illformed	down	10	10	UNION 1 .. 3 = {1, 2, 3}	-	The interval binds tighter than UNION, which is then handed a set of numbers and has no value.
 ITEM	L0-T2-46	T2	holds	illformed	down	10	10	DOMAIN 1 :> 2 = {1}	-	DOMAIN binds tighter than the function maker, so it is applied to 1 and has no value.
 ITEM	L0-T2-47	T2	holds	illformed	down	10	10	1 .. 2 \o <<3>> = <<1, 2, 3>>	-	Concatenation binds tighter than the interval, so it is handed the number 2 and has no value.
-ITEM	L0-T2-48	T2	holds	illformed	down	10	10	2 .. 3 \cup 4 \subseteq 1 .. 4	-	The interval binds tighter than the union, which is then handed the number 4 and has no value.
+ITEM	L0-T2-48	T2	holds	unparsed	down	150	150	TRUE \/ FALSE /\ FALSE	-	Disjunction and conjunction sit in one precedence band, so SANY refuses the line rather than picking an order. Parenthesize the conjunction and it holds.
 # T3  functions and records
 ITEM	L0-T3-01	T3	holds	true	right	0	0	DOMAIN [x \in 1..3 |-> x * x] = {1, 2, 3}	-	The domain is what the function is defined over, which is 1 to 3.
 ITEM	L0-T3-02	T3	holds	true	right	0	0	[x \in 1..3 |-> x * x][2] = 4	-	Applying the function to 2 gives two squared.
@@ -273,7 +294,7 @@ ITEM	L0-T3-41	T3	holds	vacuous	down	0	0	\A r \in [a : {}] : r.a = 1	[a : {}] = {
 ITEM	L0-T3-42	T3	implies	vacuous	down	0	0	Cardinality(DOMAIN [a |-> 1, b |-> 2]) = 3 => [a |-> 1, b |-> 2].c = 3	~(Cardinality(DOMAIN [a |-> 1, b |-> 2]) = 3)	The record carries two fields, so the left side is false and the missing c field is never reached.
 ITEM	L0-T3-43	T3	holds	vacuous	down	0	0	\A x \in DOMAIN [y \in {} |-> y] : x = 1	DOMAIN [y \in {} |-> y] = {}	A function over the empty set has an empty domain, so the claim ranges over nothing.
 ITEM	L0-T3-44	T3	implies	vacuous	down	0	0	[a |-> 1].a = 2 => [a |-> 1].b = 1	~([a |-> 1].a = 2)	The a field holds 1, so the left side is false and the missing b field is never reached.
-ITEM	L0-T3-45	T3	holds	illformed	down	10	10	[x \in 1..3 |-> x * x][4] = 16	-	The function is defined over 1 to 3, so 4 falls outside it and the line has no value.
+ITEM	L0-T3-45	T3	holds	unparsed	down	150	150	DOMAIN (1 :> 2 :> 3) = {1}	-	The function maker does not chain, so SANY refuses the line rather than reading one :> inside the other. Parenthesize the right-hand pair and the domain is {1}.
 ITEM	L0-T3-46	T3	holds	illformed	down	10	10	[a |-> 1, b |-> 2]["c"] = 2	-	The record has no c field, so the bracket form reaches nothing and the line has no value.
 ITEM	L0-T3-47	T3	holds	false	left	10	0	DOMAIN (1 :> 7) = {}	-	That function is defined at 1, so its domain holds the 1 rather than nothing.
 ITEM	L0-T3-48	T3	holds	illformed	down	10	10	DOMAIN 7 = {1}	-	DOMAIN takes a function, and 7 is a number, so the line has no value.
@@ -324,7 +345,7 @@ ITEM	L0-T4-43	T4	holds	vacuous	down	0	0	\A s \in {t \in {<<1>>, <<2>>} : Len(t) 
 ITEM	L0-T4-44	T4	implies	vacuous	down	0	0	Tail(<<1>>) = <<1>> => Head(<<>>) = 1	~(Tail(<<1>>) = <<1>>)	Tail of a one-element sequence is empty, so the left side is false and the head is never taken.
 ITEM	L0-T4-45	T4	holds	illformed	down	10	10	Tail(<<>>) = <<>>	-	The empty sequence has no front element to drop, so the line has no value.
 ITEM	L0-T4-46	T4	holds	false	left	10	0	Len(SubSeq(<<1, 2, 3>>, 1, 2)) = 0	-	Both bounds are inclusive, so two positions come back rather than none.
-ITEM	L0-T4-47	T4	holds	illformed	down	10	10	<<1, 2, 3>>[4] = 3	-	The tuple is defined over 1 to 3, so 4 falls outside its domain and the line has no value.
+ITEM	L0-T4-47	T4	holds	unparsed	down	150	150	Head <<1, 2, 3>> = 1	-	TLA+ has no juxtaposition, so SANY reads Head as a finished expression and then meets the tuple. Write Head(<<1, 2, 3>>) and the line holds.
 ITEM	L0-T4-48	T4	holds	illformed	down	10	10	Head(1 .. 3) = 1	-	An interval is a set rather than a sequence, so it has no head and the line has no value.
 # T5  integer arithmetic
 ITEM	L0-T5-01	T5	holds	true	right	0	0	17 % 5 = 2	-	Five goes into seventeen three times with two left over.
@@ -371,7 +392,7 @@ ITEM	L0-T5-41	T5	holds	vacuous	down	0	0	\A n \in 17..5 : n % 5 = 2	17..5 = {}	Th
 ITEM	L0-T5-42	T5	implies	vacuous	down	0	0	17 \div 5 = 4 => 17 % 5 = 4	~(17 \div 5 = 4)	The quotient is 3, so the left side is false and the implication holds.
 ITEM	L0-T5-43	T5	holds	vacuous	down	0	0	\A n \in {x \in -3..3 : x * x = 2} : n = -1	{x \in -3..3 : x * x = 2} = {}	No whole number squares to two, so the set is empty and the claim ranges over nothing.
 ITEM	L0-T5-44	T5	implies	vacuous	down	0	0	-5 % 3 = -2 => 1 \div 0 = 1	~(-5 % 3 = -2)	The remainder is 1 rather than minus two, so the division by zero is never done.
-ITEM	L0-T5-45	T5	holds	illformed	down	10	10	17 \div 0 = 17	-	A quotient needs a divisor above zero, so this line has no value.
+ITEM	L0-T5-45	T5	holds	unparsed	down	150	150	2 ^ 3 ^ 2 = 512	-	A power does not chain, so SANY refuses the line rather than picking an order for the two carets. Parenthesize the right-hand power and it holds.
 ITEM	L0-T5-46	T5	holds	illformed	down	10	10	-17 % 0 = 3	-	A remainder needs a divisor above zero, so this line has no value.
 ITEM	L0-T5-47	T5	holds	illformed	down	10	10	Cardinality(Int) = 0	-	Int runs without end in both directions, so it cannot be counted.
 ITEM	L0-T5-48	T5	holds	illformed	down	10	10	2 ^ (-1) = 1	-	The exponent has to be a natural number, so a negative one has no value.
