@@ -415,10 +415,38 @@ The practical upshot: **when a pattern or a flag happens to contain `bash`, `awk
 `python` or `mapfile`, put it in a scratch script.** Do not spend a round trying to quote your way
 out of it.
 
+**AMENDED A FIFTH TIME 2026-10-18, and this cause is not an interpreter at all.** The
+`tla-mjvx` channel author was refused this:
+
+```
+HOME=x DELIVER_COMPLETION_SRC_ROOT=y scripts/deliver-completion.sh --verify all
+```
+
+The message names the environment rather than the command: *"this command sets HOME,
+injecting git configuration whose effect on where git writes can't be verified."* So
+setting `HOME` on a command line is a fourth cause, alongside clause complexity, an
+interpreter name in any position, and `/\`.
+
+That one bites here specifically, because `HOME=` is how every delivery suite in this
+project points a script at a sandbox tree. A worker driving one by hand will meet it on
+its first try. The same author was also refused `/usr/bin/time -f '%e s'` inside a `for`
+loop, which is the complexity cause wearing a timing hat.
+
+**And `find -newermt` fails under the Bash tool's `bfs`.** `find . -newermt '-10 minutes'`
+reports *"Invalid timestamp"*, because bfs takes ISO-8601 only. `command find` gets GNU
+and accepts the relative form. Same family as the ugrep hazard above: the wrapper is a
+different implementation and it fails on the shapes GNU is most convenient for. That
+matters when you are checking whether your own run wrote anything outside the worktree,
+which is exactly when you want a relative time.
+
+The scratch-script workaround covers all five refusal causes, and `command <tool>` covers
+the wrapper substitutions.
+
 Lineage: bead `tla-kl5.8` for the original observation, `tla-pmm2.1` and `tla-pmm2.3` for the
 2026-10-08 measurements, `tla-fwkz.2.2` / `tla-fwkz.2.5` / `tla-fwkz.2.7` for the 2026-10-13
 `bash`-prefix measurements, and `tla-gz6m` for the 2026-10-13 `awk` measurement that generalises
-the second one, and `tla-z4f3` for the 2026-10-18 argument-position measurements.
+the second one, `tla-z4f3` for the 2026-10-18 argument-position measurements, and `tla-mjvx` for the
+2026-10-18 `HOME=` and `find -newermt` measurements.
 
 ---
 
