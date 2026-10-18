@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~835 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~866 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -106,12 +106,13 @@
 #   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
+#   slow  31.0 s  harness/test-swipe-level0.sh           (added, bead tla-7xql.2)
 #   ----  ------
 #         50.4 s  fast tier, 26 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        784.9 s  slow tier, 15 suites
-#        835.3 s  whole registry
+#        815.9 s  slow tier, 16 suites
+#        866.3 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -1341,6 +1342,24 @@ SUITES=(
   # this one flap than pad it: the spread is JVM startup, and 11.0 was the
   # author's own suggestion if it turns out 10.0 is tight.
   "slow|10.0|TLA+ definition levels|./harness/test-levels.sh"
+
+  # THE LEVEL 0 SWIPE CORPUS, bead tla-7xql.2, 2026-10-18. Re-bakes all 80
+  # items through verdict.sh and compares every verdict against what ships,
+  # so a TLC whose answers moved turns this red rather than letting a wrong
+  # item reach a phone. 37 assertions, 22 of them controls.
+  # 33 JVMs, which is why it is slow and why it is the dearest row outside
+  # the recall pair and the grader.
+  # The author read 30613 / 29008 / 29900 ms and said to re-measure on a
+  # quiet box. Central read 30599 / 30301 / 30606 at load 1.69, so the
+  # author's number was never contended and 31.0 is the slowest rounded up.
+  # Spread 1%, which is the tightest band in this registry.
+  # ONE ASSERTION IS A TRIPWIRE ON A TLC BUG and it is meant to go red. The
+  # jar's Naturals.tla states a = b * (a \div b) + (a % b) for b > 0 and TLC
+  # breaks it on a negative dividend, truncating toward zero where the
+  # contract rounds down. Three items had to be replaced over it. If this
+  # suite reddens on the \div row, TLC was FIXED, and the right move is to
+  # read bead tla-7n7e before touching anything.
+  "slow|31.0|level 0 swipe corpus|./harness/test-swipe-level0.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header
