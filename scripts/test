@@ -93,6 +93,7 @@
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
 #   fast   0.5 s  harness/test-deliver-verify.sh          (added, bead tla-mjvx)
 #   fast  12.0 s  harness/test-swipe-stemblind.sh         (re-based, bead tla-7xql.7)
+#   fast   1.0 s  harness/test-swipe-reader.sh            (added, bead tla-7xql.12)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
@@ -111,7 +112,7 @@
 #   slow  62.0 s  harness/test-swipe-level0.sh           (re-based, bead tla-7xql.7)
 #   slow  74.0 s  harness/test-swipe-enabled.sh          (added, bead tla-7xql.4)
 #   ----  ------
-#         62.4 s  fast tier, 27 suites   (measured --fast totals: 26.9 s at 18,
+#         63.4 s  fast tier, 28 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
 #        894.9 s  slow tier, 16 suites
@@ -958,6 +959,23 @@ SUITES=(
   # INVERSION HAS SINCE CLOSED in this header, which is about this exact
   # shape reappearing.
   "fast|12.0|swipe stem-blind gate|./harness/test-swipe-stemblind.sh"
+  # THE SWIPE READER GATE, bead tla-7xql.12, 2026-10-18. The corpus shipped
+  # with no interface, which was tla-rrwl's shape a second time. This row
+  # holds the published page honest: 240 items reach it, the four withheld
+  # fields do not, every claim round-trips byte for byte, and the generator
+  # really publishes the page rather than this suite agreeing with itself.
+  # FAST, and for the registry's stated reason rather than the clock: it
+  # starts no JVM. Sampled for a running tla2tools.jar at 200 ms through a
+  # whole run, 0 hits.
+  # 383 / 396 / 377 ms at load 1.5 to 2.2, so 1.0 is 2.5x the slowest. The
+  # margin is deliberate rather than lazy: the suite runs scripts/build-docs.sh
+  # twice in a mini-repo and a slow disk moves that more than the box does.
+  # IT CAN SKIP 11 ASSERTIONS. Part 5 needs a JavaScript runtime to drive the
+  # import refusals. Frank's box has one and so does the CI runner, so it runs
+  # in both. Where it does not, the row prints SKIP and part 6 reports how
+  # many, which is the pass-over-skipped-work rule this project already has a
+  # bead open on at tla-x5vl.
+  "fast|1.0|swipe reader and its payload|./harness/test-swipe-reader.sh"
   # THE FAST HALF OF THE DRILL GATE, added by bead tla-0eis.3. It asks ONE
   # question of the real drill/ tree — is the corpus STRUCTURALLY sound — by
   # running harness/drill-gate.sh --static-only, which runs check 1, check 3

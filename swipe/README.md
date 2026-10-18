@@ -585,6 +585,64 @@ harness/swipe/stemblind.sh probe --items swipe/level1/ITEMS.tsv --surface 9,13
 harness/test-swipe-enabled.sh
 ```
 
+## The reader
+
+The page is at `https://fkberthold.github.io/tla-puzzles/swipe/`. Frank ruled
+on 2026-10-18 that this channel is **published rather than delivered**, so it
+is the one rung that does not put files in `~/tla-practice`.
+
+`scripts/build-docs.sh` emits it beside the reading section. The reader itself
+is three files under `swipe/reader/`: `emit-items.sh` turns the corpus into
+`items.json`, `swipe.js` is the page, and `swipe.css` is phone-first because
+the phone is the only target.
+
+**Six fields reach the page and four do not.** `id`, `template`, `ask`,
+`swipe`, `claim` and `flash` ship. `kind`, `rc_claim`, `rc_wf` and `vacuity`
+stay here. The last one matters most: a vacuity witness states in TLA+ exactly
+when an item is vacuous, so shipping it hands over the down swipe in prose.
+
+The baked verdict ships, and it is the answer. A page with no server cannot
+grade without it, so the rule is narrow rather than absent: ship the verdict
+and nothing else that bears on it. `harness/test-swipe-reader.sh` is what
+holds the line, and it scans for every witness in both raw and escaped form.
+
+**The card never prints an item id.** The ids ran in kind order inside each
+template, so `L0-T1-09` carries its own answer, which is why
+`stemblind.sh emit` hashes it. The log needs the id and the screen must not
+have it.
+
+**The stream draws at random from what the browser has no answer for.** The
+file order puts a matched true and false pair next to each other for review,
+which is right for an author and wrong for a reader. Drawing at random also
+makes resume fall out with nothing to store: the pool is the corpus minus the
+log.
+
+### The record is a file and the browser is a cache
+
+The browser resumes where you left off. The record is `SWIPE.tsv`, which
+belongs at `~/tla-practice/swipe/SWIPE.tsv` beside the other channels' tables.
+
+The format carries a `SWIPEFMT` version row, and the import **refuses** a file
+it cannot read rather than starting over. Comments, blank lines and any row
+order are fine, the merge never destroys what the browser already holds, and
+field 5 is recomputed from the swipe so correcting one by hand needs no second
+edit.
+
+### A local server cannot test the page
+
+The theme runs `navigation.instant`, so `swipe.js` subscribes to
+mkdocs-material's `document$` rather than running on load.
+
+**That hazard does not reproduce on localhost, including under
+`mkdocs serve`.** The theme matches a clicked link against its sitemap after
+overwriting only the protocol and the hostname, never the port, so on
+`127.0.0.1:8000` nothing matches and every link falls through to a full
+document load. Three runs against a local server looked fine and said nothing.
+The reading that counts came from headless Chromium serving the real
+`site_url`, where a window sentinel survived the navigation and the reader
+booted anyway.
+
+
 ## What a rendered item looks like
 
 This is `L1-E1-10`, and the question is the two-conjunct guard trap: `open` is
@@ -738,14 +796,36 @@ item** and the bake is 100 runs over 48 items rather than 52.
 states.** Then `INVARIANT Claim` asks whether the claim holds at *every* state
 it admits. Measured: `text = <<>> /\ open \in 0..1` with `ENABLED Pop` reads
 12, because the claim splits across the two states. The item is still well
-posed, and four shipped items pin three states on purpose, because
-`Handover`'s `CONSTANT Site = {s1, s2, s3}` is a set of **model values** and a
-model value is not an identifier the pin module can name. Measured:
-`Ini == holder = s1` comes back rc 150 with a semantic error on `s1`, so
-`holder \in Site` is the only pin Handover has.
+posed, and four shipped items pin three states on purpose.
+
+**A model value CAN be pinned to one state, and the first write-up of this
+said it could not.** `Ini == holder = s1` does fail at rc 150 with a semantic
+error, because `s1` is a `.cfg` model value and not an identifier the module
+can name. The conclusion drawn from that was wrong. Declare a constant in the
+pin module and bind it in the `.cfg`:
+
+```
+CONSTANT H
+Ini == holder = H /\ want = TRUE
+```
+
+```
+CONSTANT Site = {s1, s2, s3}
+         H = s1
+```
+
+Measured by central on 2026-10-18, after the pilot shipped: rc 0, one state.
+So a multi-state pin is a CHOICE here rather than a constraint, and the four
+`Handover` items that pin three states could pin one. They are correct items
+and were left alone, but an author sizing template E2 or E3 should know that
+every model carrying model values can still be pinned to a single state. The
+machinery below is what makes a multi-state pin safe when you want one.
 
 So field 8 is the declared count and a `POSTCONDITION TLCGet("distinct") = n`
-confirms it. The auxiliary run reads 0 when the pin is type-correct and admits
+confirms it. The postcondition has to be a named operator in the module: an
+inline `POSTCONDITION TLCGet("distinct") = 1` in the `.cfg` is refused at rc
+255 with "The post condition TLCGet cannot be a constant", which central hit
+while checking the paragraph above. The auxiliary run reads 0 when the pin is type-correct and admits
 the declared count, 12 when it fails the type invariant, and 10 when the count
 is wrong, and the bake's report names which.
 
