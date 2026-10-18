@@ -1314,12 +1314,15 @@ fi
 # attempt for the bare problem name, because a matching name is easier to
 # track than a positional one you have to resolve first.
 #
-# EACH TREE ANSWERS TO THE ORDER SITTING BESIDE IT, and that is central's call
-# rather than Frank's, recorded on the bead. An attempt batch keeps its own
-# copy of ORDER, which is what makes the batch a record of what was worked and
-# in what order. Checking it against problems/ORDER instead would turn every
-# later reorder of the ramp into a demand to rename finished work, and the
-# rename would falsify the record it is stored in.
+# EACH TREE ANSWERS TO THE ORDER SITTING BESIDE IT. That went to Frank as a
+# refinement of his own ruling and he took it the same day, so the numbering
+# ruling stands and this settles which ORDER a tree is checked against.
+#
+# An attempt batch keeps its own copy of ORDER, which is what makes the batch
+# a record of what was worked and in what order. Checking it against
+# problems/ORDER instead would turn every later reorder of the ramp into a
+# demand to rename finished work, and the rename would falsify the record it
+# is stored in.
 #
 # scripts/number-problems.sh already takes a root as an argument and reads the
 # ORDER beside it, so no script change was needed. What was missing was anybody
