@@ -87,10 +87,26 @@ against something nobody else can see.
 each channel it named. Never close the gap by editing the source to match the
 delivered copy. That reverses the direction the whole channel runs in.
 
-**It prints what it did not check, every run.** Three channels have no verify
-mode yet and the bead for them is `tla-mjvx`. A run that said "in sync" while
-silently skipping three channels would be the failure this step exists to
-catch, wearing the uniform of its own fix.
+**It prints what it did not check, every run.** Three channels had no verify
+mode when this step was written, and a run that said "in sync" while silently
+skipping them would have been the failure this step exists to catch, wearing
+the uniform of its own fix. All five carry one since 2026-10-18, so the line
+now says that no channel is left out. That is a stronger claim and it is still
+a claim about reach, so it stays printed rather than going quiet.
+
+**The drill channel is read twice and only one root comes off the argument.**
+Its study configuration lives at `$DRILL_STUDY_ROOT`, or at
+`$HOME/Study/tla-drills` when that is unset, which no `practice-root` argument
+reaches. The run prints the study root it read. That tree is where
+`./drill --style` lives, which is the command that failed on 2026-10-15 and
+the reason the bead exists.
+
+**Drill has two findings and two remedies.** A `DRIFT` is a file Frank never
+edits, so a plain `scripts/deliver-drill.sh` run lands it. A `STALE` is a
+prompt or the cold list that matches the digest the delivery recorded, so he
+has not touched it and only `scripts/deliver-drill.sh --refresh-prompts`
+replaces it. A plain run still never overwrites a prompt, by his ruling on
+2026-10-18, and it now says in its summary how many differ.
 
 **Conflicts are not failures.** A delivered file that differs from its
 recorded digest is Frank's own work, and the only correct action is to leave

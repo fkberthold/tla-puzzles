@@ -64,8 +64,15 @@
 #   nothing.
 #
 #   Both modes end on a counts line. --check prints
-#   "<n> prompt(s) to land, <n> already there, <n> path(s) withheld" and a real
-#   run prints "<n> prompt(s) landed, <n> skipped, <n> path(s) withheld".
+#   "<n> prompt(s) to land, <n> already there (<n> differ from the source),
+#   <n> path(s) withheld" and a real run prints "<n> prompt(s) landed,
+#   <n> skipped (<n> differ from the source), <n> path(s) withheld".
+#
+#   THE PARENTHESIS IS BEAD tla-mjvx'S SECOND FINDING. Until 2026-10-18 the
+#   line said only "64 already there", so a run that landed none of eight
+#   changed prompts reported success and read as "nothing to do". The count of
+#   what differs is the number somebody acts on, and the run names
+#   --refresh-prompts as the only flag that replaces one.
 #
 # ---------------------------------------------------------------------------
 # WHY EVERY RUN IS SANDBOXED TWICE
@@ -385,6 +392,23 @@ printf 'the fixture readme\n' >"$NOREF_REPO/drill/README.md"
 PARTREF_REPO="$TMPROOT/repo-partref"
 mk_item "$PARTREF_REPO" "core/01-alpha"
 printf 'the fixture sheet\n' >"$PARTREF_REPO/drill/SHEET.md"
+
+# THE VERIFY FIXTURE CARRIES ONE OF EVERY FILE CLASS AT ONCE, which none of
+# the roots above does. --verify is the first mode that has to tell the two
+# apart in a single pass, so a fixture that held only prompts could not fail
+# the rows about the always-overwritten files and the other way round.
+#
+# It gets its own root rather than extending $FIX_REPO for the reason
+# $README_REPO and $REF_REPO have theirs: the manifest and write-footprint rows
+# above assert an exact file set, and four more files at the destination root
+# would redden them over a delivery that is working correctly.
+VERIFY_REPO="$TMPROOT/repo-verify"
+mk_item "$VERIFY_REPO" "core/01-alpha"
+mk_item "$VERIFY_REPO" "core/02-beta"
+printf '#!/bin/sh\necho the fixture runner\n' >"$VERIFY_REPO/drill/drill.sh"
+printf 'the fixture readme\n'                >"$VERIFY_REPO/drill/README.md"
+printf 'the fixture sheet\n'                 >"$VERIFY_REPO/drill/SHEET.md"
+printf 'the fixture cold list\n'             >"$VERIFY_REPO/drill/COLD-LIST.md"
 
 # A source whose study tree carries no check script. Bead tla-ytv2.2 owns that
 # file, so a source without it still has to deliver the rest.
@@ -756,6 +780,15 @@ assert_manifest() {
     return
   fi
   want=$(expected_prompts "$src")
+  # Every item that received a prompt also received the delivery record beside
+  # it, which is what --verify reads to tell a stale copy from the learner's
+  # own page. Derived from the prompt list rather than written down, so this
+  # row still asserts an exact two-way file set and a fourth name cannot land
+  # here unnoticed.
+  if [ -n "$want" ] && [ "$want" != "<absent>" ]; then
+    want=$(printf '%s\n%s\n' "$want" \
+      "${want//\/PROMPT.md//.delivered.sha256}" | LC_ALL=C sort)
+  fi
   got=$(relfiles "$dest")
   if [ -z "$want" ] || [ "$want" = "<absent>" ]; then
     nope "$label. The fixture source carries no prompt, so the comparison is vacuous: $src"
@@ -955,7 +988,7 @@ assert_file_is "the prompt lands byte for byte" \
   "$DEST_MAIN/core/01-alpha/PROMPT.md" "$(cat "$FIX_REPO/drill/core/01-alpha/PROMPT.md")"
 
 assert_says_literal "the counts line names what landed, what was skipped and what was withheld" \
-  "3 prompt(s) landed, 0 skipped, $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
+  "3 prompt(s) landed, 0 skipped (0 differ from the source), $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
 
 assert_absent "ANSWER.md never lands" "$DEST_MAIN/core/01-alpha/ANSWER.md"
 assert_absent "META.md never lands, which is the one that telegraphs" \
@@ -1049,7 +1082,7 @@ assert_says_literal "the skip is reported rather than silent" \
   "skipped (exists): $DEST_KEEP/core/01-alpha/PROMPT.md" "$RUN_OUT"
 
 assert_says_literal "the counts line separates what landed from what was skipped" \
-  "1 prompt(s) landed, 2 skipped," "$RUN_OUT"
+  "1 prompt(s) landed, 2 skipped (2 differ from the source)," "$RUN_OUT"
 
 assert_file_is "an untouched sibling item still lands" \
   "$DEST_KEEP/temporal/01-gamma/PROMPT.md" \
@@ -1137,10 +1170,13 @@ assert_never_names "a plain run never says it replaced anything" \
   "replaced" "$RUN_OUT"
 
 assert_says_literal "a plain run's counts line is the one it has always printed" \
-  "1 prompt(s) landed, 2 skipped, $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
+  "1 prompt(s) landed, 2 skipped (1 differ from the source), $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
 
-assert_touched_count "a plain run writes exactly the one file it says it landed" \
-  "$DEST_PLAINDIFF" 1
+# Two files, not one: the prompt and the record beside it. A delivery that
+# wrote the prompt and not the record would leave it in the ambiguous state
+# forever, so --verify could never call a later source move stale.
+assert_touched_count "a plain run writes the one prompt it landed and its record" \
+  "$DEST_PLAINDIFF" 2
 
 # --- the flag --------------------------------------------------------------
 
@@ -1180,7 +1216,7 @@ assert_says_literal "the counts line separates landed, replaced and left alone" 
 # One landed and one replaced is two files written, and nothing else in the
 # tree may have moved.
 assert_touched_count "--refresh-prompts writes exactly the files its counts line claims" \
-  "$DEST_REFRESH" 2
+  "$DEST_REFRESH" 4
 
 # The withholding is unchanged by the flag. ANSWER.md is the one that hands
 # over the answer and META.md is the one that names the trap in a line.
@@ -1286,7 +1322,7 @@ assert_says_literal "--check reports the withholding too" \
   "withheld (not PROMPT.md): $FIX_REPO/drill/core/01-alpha/ANSWER.md" "$RUN_OUT"
 
 assert_says_literal "--check ends on its own counts line" \
-  "3 prompt(s) to land, 0 already there, $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
+  "3 prompt(s) to land, 0 already there (0 differ from the source), $(count_withheld "$FIX_REPO") path(s) withheld" "$RUN_OUT"
 
 # --check over a destination that already holds the corpus is the shape central
 # reads before a re-delivery, so it has to separate the two.
@@ -1295,7 +1331,7 @@ assert_rc0 "--check over a delivered destination exits 0"
 assert_says_literal "--check names what is already there" \
   "would skip (exists): $DEST_MAIN/core/01-alpha/PROMPT.md" "$RUN_OUT"
 assert_says_literal "--check counts the already-there separately from the to-land" \
-  "0 prompt(s) to land, 3 already there," "$RUN_OUT"
+  "0 prompt(s) to land, 3 already there (0 differ from the source)," "$RUN_OUT"
 
 # ---------------------------------------------------------------------------
 echo
@@ -1314,7 +1350,7 @@ run_deliver "$DEST_TWICE"
 assert_rc0 "the second delivery exits 0"
 
 assert_says_literal "the second delivery lands only the new item" \
-  "1 prompt(s) landed, 3 skipped," "$RUN_OUT"
+  "1 prompt(s) landed, 3 skipped (0 differ from the source)," "$RUN_OUT"
 
 assert_file_is "the new item's prompt lands" \
   "$DEST_TWICE/temporal/02-delta/PROMPT.md" \
@@ -1434,7 +1470,7 @@ if [ "$REAL_ITEMS" -gt 0 ]; then
   assert_rc0 "--check over the real corpus exits 0"
 
   assert_says_literal "--check over the real corpus agrees with an independent walk of the tree" \
-    "$REAL_ITEMS prompt(s) to land, 0 already there, $REAL_WITHHELD path(s) withheld" "$RUN_OUT"
+    "$REAL_ITEMS prompt(s) to land, 0 already there (0 differ from the source), $REAL_WITHHELD path(s) withheld" "$RUN_OUT"
 
   assert_absent "--check over the real corpus creates no destination" "$DEST_REAL"
 
@@ -2545,6 +2581,450 @@ assert_never_names "and none ever named the real study tree" \
 
 assert_absent "nothing in this suite created a study tree under the sandboxed HOME" \
   "$SANDBOX_HOME/Study"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== --verify: a stale delivery, and the page the learner owns =="
+# ---------------------------------------------------------------------------
+#
+# Bead tla-mjvx. Frank ran ./drill --style on 2026-10-15 and got "unknown
+# option". The repo had carried that option for several hours and his copy had
+# not, because three waves merged and nobody re-delivered. No gate could see
+# it: ~/tla-practice is not a git repo and every suite here runs inside this
+# one.
+#
+# WHY THIS CHANNEL NEEDED A RULING WHERE THE OTHER FOUR DID NOT. Drill has two
+# file classes and the learner owns one of them. A verify that called every
+# difference drift would report every annotation he writes into a PROMPT.md as
+# staleness, and a gate that is red every night for a reason nobody can act on
+# is worse than no gate. Frank ruled on 2026-10-18: the digest record, the same
+# mechanism scripts/deliver-exercises.sh already carries.
+#
+#   ALWAYS class   SHEET.md, README.md and the runner. The repo is the source
+#                  of truth, the delivery overwrites them, so any difference is
+#                  DRIFT and a plain run fixes it.
+#   RECORD class   every PROMPT.md, and COLD-LIST.md. A delivery records the
+#                  digest it wrote. Matching that record and differing from the
+#                  source is STALE. Differing from the record is his own work,
+#                  counted and never failed on.
+#
+# THE TWO WORDS ARE THE SIBLING CHANNELS' WORDS rather than a third vocabulary.
+# DRIFT is what scripts/deliver-recall.sh prints over an always-overwritten
+# file, and STALE and CONFLICT are what the three never-overwrite channels
+# print. Each keeps the meaning it already has, and the distinction is load
+# bearing because the remedies differ: a plain run lands a DRIFT, and only
+# --refresh-prompts replaces a STALE prompt.
+
+# mk_verify_case <name>
+#
+# A private source root and a destination delivered from it, so a row can move
+# the source or edit the delivered copy without reaching any other row. Sets
+# VSRC and VDEST. The copy is what makes a stale case possible at all: staleness
+# is the source moving after a delivery, and $VERIFY_REPO is shared.
+VSRC=""
+VDEST=""
+mk_verify_case() {
+  local name="$1"
+  VSRC="$TMPROOT/vsrc-$name"
+  VDEST="$TMPROOT/vdest-$name"
+  cp -r -- "$VERIFY_REPO" "$VSRC"
+  run_deliver_from "$VSRC" "$VDEST"
+}
+
+run_verify() { run_deliver_from "$VSRC" --verify "$VDEST"; }
+run_adopt()  { run_deliver_from "$VSRC" --adopt "$VDEST"; }
+
+RECORD_NAME=".delivered.sha256"
+
+# assert_record_has <label> <record-file> <within>
+assert_record_has() {
+  local label="$1" record="$2" within="$3"
+  if [ ! -f "$record" ]; then
+    nope "$label. No record at $record"
+  elif grep -qF -- "  $within" "$record"; then
+    ok "$label"
+  else
+    nope "$label. $record carries no entry for $within"
+  fi
+}
+
+# assert_no_record <label> <record-file> <within>
+assert_no_record() {
+  local label="$1" record="$2" within="$3"
+  if [ ! -f "$record" ]; then
+    ok "$label"
+  elif grep -qF -- "  $within" "$record"; then
+    nope "$label. $record carries an entry for $within and should not"
+  else
+    ok "$label"
+  fi
+}
+
+# --- the control, first, so every drift row below means something -----------
+
+mk_verify_case current
+assert_rc0 "the fixture carrying every file class delivers"
+VCURRENT_SRC="$VSRC"
+VCURRENT_DEST="$VDEST"
+
+run_verify
+assert_rc "a tree delivered from this source verifies clean" 0
+assert_says_literal "and says so in one counts line" \
+  "6 in sync, 0 stale, 0 conflicted, 0 drifted" "$RUN_OUT"
+assert_never_names "a clean verify names no stale path" "STALE," "$RUN_OUT"
+assert_never_names "and no drifted path" "DRIFT," "$RUN_OUT"
+
+# A delivery records what it wrote, and that is the whole safety argument. An
+# entry means this script put those exact bytes there, so a file matching its
+# entry is provably unedited.
+assert_record_has "the delivery recorded the prompt it landed" \
+  "$VCURRENT_DEST/core/01-alpha/$RECORD_NAME" "PROMPT.md"
+assert_record_has "and the cold list it landed" \
+  "$VCURRENT_DEST/$RECORD_NAME" "COLD-LIST.md"
+assert_no_record "the always-overwritten sheet needs no record and gets none" \
+  "$VCURRENT_DEST/$RECORD_NAME" "SHEET.md"
+
+# --- an absent destination is a skip, which is every box but Frank's --------
+
+VSRC="$VCURRENT_SRC"
+VDEST="$TMPROOT/vdest-never"
+run_verify
+assert_rc "an absent destination root skips rather than failing" 0
+assert_says_literal "and names the path it looked for" \
+  "no delivered tree at $TMPROOT/vdest-never" "$RUN_OUT"
+assert_absent "and creates nothing" "$TMPROOT/vdest-never"
+
+# --- STALE: the delivered copy is the one this script wrote, and the source
+# --- has moved under it. This is Frank's actual case.
+
+mk_verify_case stale-prompt
+printf 'the prompt with the telegraph cut\n' >"$VSRC/drill/core/01-alpha/PROMPT.md"
+VSTALE_BEFORE=$(snapshot "$VDEST")
+run_verify
+assert_rc "a recorded prompt whose source moved is stale, and stale exits 3" 3
+assert_says_literal "it names the stale prompt and the flag that replaces it" \
+  "STALE, you have not edited it so --refresh-prompts would replace it: $VDEST/core/01-alpha/PROMPT.md" \
+  "$RUN_OUT"
+assert_says_literal "and counts it apart from the conflicts" \
+  "5 in sync, 1 stale, 0 conflicted, 0 drifted" "$RUN_OUT"
+assert_unchanged "--verify wrote nothing while finding it" "$VDEST" "$VSTALE_BEFORE" 3
+
+# --- CONFLICT: he wrote in it. Counted, named, never failed on. --------------
+
+mk_verify_case his-work
+printf '\nmy own notes under the question\n' >>"$VDEST/core/01-alpha/PROMPT.md"
+run_verify
+assert_rc "a prompt he has annotated is NOT a failure" 0
+assert_says_literal "it is reported as his work rather than as staleness" \
+  "CONFLICT, your edit and a moved source: $VDEST/core/01-alpha/PROMPT.md" "$RUN_OUT"
+assert_says_literal "and counted in its own column" \
+  "5 in sync, 0 stale, 1 conflicted, 0 drifted" "$RUN_OUT"
+
+# A prompt that differs from the source and has NO record is the ambiguous
+# state, and the safe reading is that it is his. Never stale, so never a
+# failure: a guess in the other direction is what overwrites his work.
+mk_verify_case unrecorded
+rm -f "$VDEST/core/01-alpha/$RECORD_NAME"
+printf 'a prompt from before records existed\n' >"$VDEST/core/01-alpha/PROMPT.md"
+run_verify
+assert_rc "a differing prompt with no record is not a failure either" 0
+assert_says_literal "and the report says the record is what is missing" \
+  "CONFLICT, differs from source and has no record, so it may be your work: $VDEST/core/01-alpha/PROMPT.md" \
+  "$RUN_OUT"
+
+# --- the cold list is in the record class, and the sheet beside it is not ----
+
+mk_verify_case cold-stale
+printf 'a cold list with a row the corpus grew\n' >"$VSRC/drill/COLD-LIST.md"
+run_verify
+assert_rc "a recorded cold list whose source moved is stale" 3
+assert_says "and it is named" 'STALE.*COLD-LIST\.md' "$RUN_OUT"
+
+mk_verify_case cold-ticked
+printf 'a cold list with my ticks in it\n' >"$VDEST/COLD-LIST.md"
+run_verify
+assert_rc "a cold list he has ticked is his work, not a failure" 0
+assert_says "and it is reported as a conflict" 'CONFLICT.*COLD-LIST\.md' "$RUN_OUT"
+
+# --- DRIFT: the always-overwritten class, where any difference is drift ------
+
+mk_verify_case sheet
+printf 'a sheet from before the corpus grew\n' >"$VDEST/SHEET.md"
+run_verify
+assert_rc "a sheet that differs is drift, because he never edits it" 3
+assert_says_literal "and the word is DRIFT rather than CONFLICT" \
+  "DRIFT, differs from $VSRC/drill/SHEET.md: $VDEST/SHEET.md" "$RUN_OUT"
+assert_says_literal "counted in the drifted column" \
+  "5 in sync, 0 stale, 0 conflicted, 1 drifted" "$RUN_OUT"
+
+mk_verify_case readme
+printf 'the readme that still says 32 drills\n' >"$VDEST/README.md"
+run_verify
+assert_rc "a stale readme is drift too" 3
+assert_says_literal "and names itself" \
+  "DRIFT, differs from $VSRC/drill/README.md: $VDEST/README.md" "$RUN_OUT"
+
+mk_verify_case runner
+printf '#!/bin/sh\necho the runner from before --style\n' >"$VDEST/drill"
+run_verify
+assert_rc "a runner behind the repo is drift, which is the bead's own failure" 3
+assert_says_literal "and names the delivered runner" \
+  "DRIFT, differs from $VSRC/drill/drill.sh: $VDEST/drill" "$RUN_OUT"
+
+# The mode. Content compares equal whatever the bit says, so nothing else here
+# would catch it, and a runner delivered 0644 is a channel that reports success
+# and cannot be run.
+mk_verify_case runner-mode
+chmod 0644 "$VDEST/drill"
+run_verify
+assert_rc "a runner that lost its executable bit is drift" 3
+assert_says_literal "and the finding says which thing is wrong" \
+  "DRIFT, not executable: $VDEST/drill" "$RUN_OUT"
+assert_says_literal "while the content count is untouched by the mode finding" \
+  "6 in sync, 0 stale, 0 conflicted, 1 drifted" "$RUN_OUT"
+
+# --- a file that never landed ------------------------------------------------
+#
+# Absent is DRIFT here and it is a FINDING on this channel, where on completion,
+# problems and exercises it is reported and never failed on. Those three hand
+# items over on a ramp, so most of the corpus is undelivered at any moment. This
+# one delivers the whole corpus on every run, so an absent file means a plain
+# run is owed and somebody can act on it tonight.
+
+mk_verify_case absent-prompt
+rm -rf "$VDEST/core/02-beta"
+run_verify
+assert_rc "a prompt that never landed is drift" 3
+assert_says_literal "and says never delivered rather than differs" \
+  "DRIFT, never delivered: $VDEST/core/02-beta/PROMPT.md" "$RUN_OUT"
+
+mk_verify_case absent-sheet
+rm -f "$VDEST/SHEET.md"
+run_verify
+assert_rc "a sheet that never landed is drift" 3
+assert_says_literal "and names it" "DRIFT, never delivered: $VDEST/SHEET.md" "$RUN_OUT"
+
+# --- --verify is a different question from --check --------------------------
+#
+# The two read alike and that confusion is the whole bead. --check reports what
+# a delivery WOULD do, so over a stale tree it says the prompts are already
+# there and exits 0.
+
+mk_verify_case check-vs-verify
+printf 'the prompt with the telegraph cut\n' >"$VSRC/drill/core/01-alpha/PROMPT.md"
+run_deliver_from "$VSRC" --check "$VDEST"
+assert_rc "--check over a stale tree exits 0" 0
+assert_says_literal "and calls the stale prompt one that is already there" \
+  "would skip (exists): $VDEST/core/01-alpha/PROMPT.md" "$RUN_OUT"
+run_verify
+assert_rc "--verify over the same tree exits 3" 3
+
+run_deliver_from "$VSRC" --check --verify "$VDEST"
+assert_rc "asking for both at once is refused" 1
+assert_says "and says to pick one" 'pick one' "$RUN_ERR"
+
+run_deliver_from "$VSRC" --adopt --verify "$VDEST"
+assert_rc "--adopt and --verify are refused together too" 1
+
+# ---------------------------------------------------------------------------
+echo
+echo "== --adopt bootstraps a tree delivered before records existed =="
+# ---------------------------------------------------------------------------
+#
+# Every delivered drill tree on this box predates the record: measured
+# 2026-10-18, find returned no .delivered.sha256 anywhere under
+# ~/tla-practice/drill. Without a bootstrap every prompt would sit in the
+# ambiguous state for good and --verify could never call one stale.
+#
+# IT RECORDS ONLY WHAT IT CAN PROVE. A delivered file byte-identical to its
+# source is provably unedited whoever put it there, so recording it is safe. A
+# file that differs may be his work, so it is left unrecorded and counted. The
+# count it reports is the one somebody acts on, because those files are the ones
+# no later repair will reach.
+
+# A tree delivered by hand, with no record anywhere. cp rather than the script,
+# because the script now writes records and this is the state that predates it.
+ADOPT_SRC="$TMPROOT/vsrc-adopt"
+ADOPT_DEST="$TMPROOT/vdest-adopt"
+cp -r -- "$VERIFY_REPO" "$ADOPT_SRC"
+mkdir -p "$ADOPT_DEST/core/01-alpha" "$ADOPT_DEST/core/02-beta"
+cp -- "$ADOPT_SRC/drill/core/01-alpha/PROMPT.md" "$ADOPT_DEST/core/01-alpha/PROMPT.md"
+cp -- "$ADOPT_SRC/drill/core/02-beta/PROMPT.md"  "$ADOPT_DEST/core/02-beta/PROMPT.md"
+cp -- "$ADOPT_SRC/drill/COLD-LIST.md" "$ADOPT_DEST/COLD-LIST.md"
+cp -- "$ADOPT_SRC/drill/SHEET.md"     "$ADOPT_DEST/SHEET.md"
+cp -- "$ADOPT_SRC/drill/README.md"    "$ADOPT_DEST/README.md"
+cp -- "$ADOPT_SRC/drill/drill.sh"     "$ADOPT_DEST/drill"
+chmod 0755 "$ADOPT_DEST/drill"
+# One prompt he has already worked, which is the file --adopt must refuse.
+printf 'the prompt, and my answer under it\n' >"$ADOPT_DEST/core/02-beta/PROMPT.md"
+predate_tree "$ADOPT_DEST"
+
+VSRC="$ADOPT_SRC"
+VDEST="$ADOPT_DEST"
+
+run_verify
+assert_rc "before the bootstrap, nothing in the tree is stale" 0
+assert_says_literal "the edited prompt reads as unrecorded rather than as his known work" \
+  "CONFLICT, differs from source and has no record, so it may be your work: $ADOPT_DEST/core/02-beta/PROMPT.md" \
+  "$RUN_OUT"
+
+run_adopt
+assert_rc "--adopt exits 0" 0
+assert_says_literal "it records the two files it can prove it is safe to record" \
+  "2 file(s) adopted, 1 left unrecorded" "$RUN_OUT"
+assert_says_literal "and names the one it refused, in the words that say why" \
+  "not adopted, it differs from its source so it may be your work: $ADOPT_DEST/core/02-beta/PROMPT.md" \
+  "$RUN_OUT"
+assert_record_has "the untouched prompt gained a record" \
+  "$ADOPT_DEST/core/01-alpha/$RECORD_NAME" "PROMPT.md"
+assert_record_has "and so did the cold list" \
+  "$ADOPT_DEST/$RECORD_NAME" "COLD-LIST.md"
+assert_no_record "while the one he had worked did not" \
+  "$ADOPT_DEST/core/02-beta/$RECORD_NAME" "PROMPT.md"
+
+assert_file_is "--adopt copied nothing over the prompt it refused" \
+  "$ADOPT_DEST/core/02-beta/PROMPT.md" "the prompt, and my answer under it"
+assert_mtime_is "nor opened the prompt it recorded" \
+  "$ADOPT_DEST/core/01-alpha/PROMPT.md" "$REF_EPOCH"
+assert_mtime_is "nor the cold list" "$ADOPT_DEST/COLD-LIST.md" "$REF_EPOCH"
+
+# The two record files are the only writes, which is what "copies nothing"
+# means on a tree where every other file was pre-dated.
+assert_touched_count "--adopt writes the records and nothing else" "$ADOPT_DEST" 2
+
+run_adopt
+assert_rc "a second --adopt exits 0" 0
+assert_says_literal "and adopts nothing, because only a delivery writes an entry" \
+  "0 file(s) adopted, 1 left unrecorded" "$RUN_OUT"
+assert_says_literal "naming what it already holds" \
+  "already recorded: $ADOPT_DEST/core/01-alpha/PROMPT.md" "$RUN_OUT"
+
+# THE CHAIN THIS WHOLE MECHANISM EXISTS FOR. Adopt a tree today, move the
+# source tomorrow, and the prompt he never touched reports as stale while the
+# one he worked stays his.
+printf 'the prompt with the telegraph cut\n' >"$ADOPT_SRC/drill/core/01-alpha/PROMPT.md"
+run_verify
+assert_rc "after the bootstrap, a moved source makes the untouched prompt stale" 3
+assert_says_literal "and it is the adopted one that goes stale" \
+  "STALE, you have not edited it so --refresh-prompts would replace it: $ADOPT_DEST/core/01-alpha/PROMPT.md" \
+  "$RUN_OUT"
+assert_says_literal "while the one he worked is still only a conflict" \
+  "CONFLICT, differs from source and has no record, so it may be your work: $ADOPT_DEST/core/02-beta/PROMPT.md" \
+  "$RUN_OUT"
+
+# An absent destination is a skip here too, and it creates nothing. --adopt is
+# the one mode that writes, so the refusal to create a tree matters more.
+VDEST="$TMPROOT/vdest-adopt-never"
+run_adopt
+assert_rc "--adopt over a tree that was never delivered skips" 0
+assert_says_literal "and names the path it looked for" \
+  "no delivered tree at $TMPROOT/vdest-adopt-never" "$RUN_OUT"
+assert_absent "and creates no destination at all" "$TMPROOT/vdest-adopt-never"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== a plain run says how many delivered prompts differ, and names the flag =="
+# ---------------------------------------------------------------------------
+#
+# THE SECOND FINDING IN THE BEAD, and it is this bead's own failure living
+# inside the channel that produced it. Measured 2026-10-18 by central against
+# the real tree: a run reported "0 prompt(s) to land, 64 already there" and
+# landed none of eight changed prompts, because only --refresh-prompts can
+# replace one. A delivery that reports success while delivering nothing is
+# exactly what tla-mjvx is about.
+#
+# THE DEFAULT DOES NOT CHANGE. A plain run still does not overwrite a prompt.
+# That default protects work with no git behind it, and the fix is to stop the
+# summary reading like "nothing to do".
+
+PLAINDIFF2="$TMPROOT/vdest-plaindiff2"
+cp -r -- "$VERIFY_REPO" "$TMPROOT/vsrc-plaindiff2"
+run_deliver_from "$TMPROOT/vsrc-plaindiff2" "$PLAINDIFF2"
+assert_rc0 "the first delivery exits 0"
+assert_says_literal "and a tree with nothing stale says so in the counts line" \
+  "2 prompt(s) landed, 0 skipped (0 differ from the source)," "$RUN_OUT"
+assert_never_names "a run with nothing stale does not advertise the flag" \
+  "--refresh-prompts to replace" "$RUN_OUT"
+
+printf 'the prompt with the telegraph cut\n' \
+  >"$TMPROOT/vsrc-plaindiff2/drill/core/01-alpha/PROMPT.md"
+
+run_deliver_from "$TMPROOT/vsrc-plaindiff2" "$PLAINDIFF2"
+assert_rc0 "a plain run over a stale tree still exits 0"
+assert_says_literal "the counts line now says how many differ" \
+  "0 prompt(s) landed, 2 skipped (1 differ from the source)," "$RUN_OUT"
+assert_says "and the run names the one flag that would replace them" \
+  '\-\-refresh-prompts' "$RUN_OUT"
+assert_file_is "while the default still refuses to overwrite the prompt" \
+  "$PLAINDIFF2/core/01-alpha/PROMPT.md" "prompt for core/01-alpha"
+
+run_deliver_from "$TMPROOT/vsrc-plaindiff2" --check "$PLAINDIFF2"
+assert_rc0 "--check over the same tree exits 0"
+assert_says_literal "and its counts line carries the same number" \
+  "0 prompt(s) to land, 2 already there (1 differ from the source)," "$RUN_OUT"
+
+# ---------------------------------------------------------------------------
+echo
+echo "== --study --verify reads the other root the bead names =="
+# ---------------------------------------------------------------------------
+#
+# The RED line on tla-mjvx names "~/tla-practice/drill OR the study root", and
+# the study root is a different tree reached by a different mode. Every file
+# there is in the always class: five tooling files the repo owns and he never
+# edits, all delivered through install_study_file(), which overwrites. So the
+# verify is a plain source comparison with no record in it anywhere.
+
+STUDY_VERIFY="$TMPROOT/study-verify"
+mkdir -p "$STUDY_VERIFY"
+run_study "$STUDY_VERIFY"
+assert_rc0 "the study fixture delivers"
+
+run_study --verify "$STUDY_VERIFY"
+assert_rc "a freshly delivered study root verifies clean" 0
+assert_says_literal "and says how many it compared" \
+  "6 file(s) in sync, 0 drifted" "$RUN_OUT"
+
+printf 'the configuration from before the refusal was reworded\n' \
+  >"$STUDY_VERIFY/CLAUDE.md"
+run_study --verify "$STUDY_VERIFY"
+assert_rc "a stale configuration is drift" 3
+assert_says_literal "and names it" \
+  "DRIFT, differs from $FIX_REPO/drill/study/CLAUDE.md: $STUDY_VERIFY/CLAUDE.md" "$RUN_OUT"
+
+STUDY_VERIFY2="$TMPROOT/study-verify2"
+mkdir -p "$STUDY_VERIFY2"
+run_study "$STUDY_VERIFY2"
+rm -f "$STUDY_VERIFY2/.claude/commands/hint.md"
+run_study --verify "$STUDY_VERIFY2"
+assert_rc "a command that never landed is drift" 3
+assert_says_literal "and says never delivered" \
+  "DRIFT, never delivered: $STUDY_VERIFY2/.claude/commands/hint.md" "$RUN_OUT"
+
+STUDY_VERIFY3="$TMPROOT/study-verify3"
+mkdir -p "$STUDY_VERIFY3"
+run_study "$STUDY_VERIFY3"
+chmod 0644 "$STUDY_VERIFY3/check"
+run_study --verify "$STUDY_VERIFY3"
+assert_rc "a checker that lost its executable bit is drift" 3
+assert_says_literal "and the finding says which thing is wrong" \
+  "DRIFT, not executable: $STUDY_VERIFY3/check" "$RUN_OUT"
+
+# The study mode REFUSES an absent root on a delivery, and that refusal must
+# not become a failure here. Nothing is owed on a box that never served a drill.
+run_study --verify "$TMPROOT/study-verify-absent"
+assert_rc "an absent study root skips rather than being refused" 0
+assert_says_literal "and names the path" \
+  "no delivered tree at $TMPROOT/study-verify-absent" "$RUN_OUT"
+assert_absent "and creates nothing" "$TMPROOT/study-verify-absent"
+
+# There is no record class in this tree, so there is nothing to bootstrap.
+run_study --adopt "$STUDY_VERIFY"
+assert_rc "--study --adopt is refused, because the study tree has no record class" 1
+
+STUDY_VERIFY_BEFORE=$(snapshot "$STUDY_VERIFY")
+run_study --verify "$STUDY_VERIFY"
+assert_unchanged "--study --verify writes nothing" \
+  "$STUDY_VERIFY" "$STUDY_VERIFY_BEFORE" 3
 
 # ---------------------------------------------------------------------------
 echo

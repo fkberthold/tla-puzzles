@@ -205,6 +205,56 @@ case "$REAL_RC" in
     ;;
 esac
 
+# The drill channel, which is the one the bead was filed about. `./drill
+# --style` came back "unknown option" on 2026-10-15 because the repo had
+# carried that option for hours and his copy had not. These two rows are what
+# would have said so, and they read the real trees exactly as the row above
+# reads the real recall tree: compare, report, write nothing.
+DELIVER_DRILL="scripts/deliver-drill.sh"
+
+DRILL_OUT=$("$DELIVER_DRILL" --verify 2>&1)
+DRILL_RC=$?
+case "$DRILL_RC" in
+  0)
+    if grep -qF "Skipping." <<<"$DRILL_OUT"; then
+      ok "no delivered drill tree on this box, so there is nothing to compare"
+    else
+      ok "the delivered drill tree matches the repo"
+    fi
+    ;;
+  3)
+    nope "THE DELIVERED DRILL TREE IS BEHIND THE REPO. Back up ~/tla-practice, then run $DELIVER_DRILL, and $DELIVER_DRILL --refresh-prompts for any STALE prompt."
+    printf '%s\n' "$DRILL_OUT" | grep -E '^(DRIFT|STALE)|drifted' | sed 's/^/        /'
+    ;;
+  *)
+    nope "$DELIVER_DRILL --verify failed with rc=$DRILL_RC rather than answering"
+    printf '%s\n' "$DRILL_OUT" | tail -5 | sed 's/^/        /'
+    ;;
+esac
+
+# The study root, which is where --style actually lives. It is a second tree
+# under a root no practice-root argument reaches, so it needs its own row or
+# the channel is half checked.
+STUDY_OUT=$("$DELIVER_DRILL" --study --verify 2>&1)
+STUDY_RC=$?
+case "$STUDY_RC" in
+  0)
+    if grep -qF "Skipping." <<<"$STUDY_OUT"; then
+      ok "no delivered study tree on this box, so there is nothing to compare"
+    else
+      ok "the delivered study tree matches the repo"
+    fi
+    ;;
+  3)
+    nope "THE DELIVERED STUDY TREE IS BEHIND THE REPO. Run $DELIVER_DRILL --study after backing it up."
+    printf '%s\n' "$STUDY_OUT" | grep -E '^DRIFT|drifted' | sed 's/^/        /'
+    ;;
+  *)
+    nope "$DELIVER_DRILL --study --verify failed with rc=$STUDY_RC rather than answering"
+    printf '%s\n' "$STUDY_OUT" | tail -5 | sed 's/^/        /'
+    ;;
+esac
+
 # --- part 4: the wrapper's channel table covers every delivery script -------
 #
 # scripts/verify-delivery.sh is the one command the wrap-up ritual names, and
@@ -289,19 +339,14 @@ else
   nope "the wrapper gave rc=$EMPTY_RC on an empty tree and may not have named the unchecked channels"
 fi
 
-if grep -qE '^  drill$' <<<"$EMPTY_OUT"; then
-  ok "the unchecked channel is named individually, not summarized"
-else
-  nope "the wrapper did not name drill by name"
-fi
-
 # The other direction, and it is the row that would catch a channel being
 # listed as unchecked while a call for it sits right above. Until 2026-10-18
-# this block read drill, completion and problems; the last two gained a verify
-# mode in bead tla-mjvx, so naming them here would now be a false report.
+# this block read drill, completion and problems. All three gained a verify
+# mode in bead tla-mjvx, so naming any of them here would now be a false
+# report.
 NOTCHECKED=$(sed -n '/^NOT CHECKED/,$p' <<<"$EMPTY_OUT")
 still_listed=''
-for ch in completion problems; do
+for ch in completion problems drill; do
   if grep -qE "^  $ch\$" <<<"$NOTCHECKED"; then
     still_listed="$still_listed $ch"
   fi
@@ -313,15 +358,47 @@ else
 fi
 
 # And the positive half: the wrapper actually CALLED them. Without this row the
-# one above would pass just as well if the two calls had been deleted rather
-# than added, since a channel nobody calls is also a channel nobody lists.
-for ch in completion problems; do
-  if grep -qE "^  $ch( |\$)" <<<"$EMPTY_OUT"; then
+# one above would pass just as well if the calls had been deleted rather than
+# added, since a channel nobody calls is also a channel nobody lists.
+#
+# IT READS ONLY THE PART OF THE REPORT ABOVE "NOT CHECKED", and that is not
+# tidiness. A name listed as unchecked sits two spaces in exactly like a result
+# row, so a whole-output grep passed for drill on 2026-10-18 while the wrapper
+# had never called it. A control that the thing it is checking for can satisfy
+# from the wrong block is a control that cannot fail.
+REPORTED=$(sed -n '1,/^NOT CHECKED/p' <<<"$EMPTY_OUT")
+for ch in completion problems drill; do
+  if grep -qE "^  $ch( |\$)" <<<"$REPORTED"; then
     ok "the wrapper reports a result for the $ch channel"
   else
     nope "the wrapper never reported on the $ch channel at all"
   fi
 done
+
+# The study tree is the one root this wrapper cannot derive from its argument.
+# drill/drill.sh creates it where the learner practices, so it comes from
+# DRILL_STUDY_ROOT or from $HOME/Study/tla-drills, and the run has to say which
+# root it read or the reader cannot tell what was compared.
+if grep -qE '^  drill study( |$)' <<<"$REPORTED"; then
+  ok "the wrapper reports a result for the drill study root too"
+else
+  nope "the wrapper never reported on the drill study root"
+fi
+
+if grep -qF "drill study root:" <<<"$EMPTY_OUT"; then
+  ok "and names the study root it read, which no argument of this script selects"
+else
+  nope "the wrapper never said which study root it compared"
+fi
+
+# The NOT CHECKED block still prints, and now it has to say that nothing is
+# left out rather than printing a header over an empty list. A heading claiming
+# unchecked channels with none under it reads as truncated output.
+if grep -qE 'NOT CHECKED: no channel is left out' <<<"$EMPTY_OUT"; then
+  ok "with every channel covered, the block says so rather than listing nothing"
+else
+  nope "the NOT CHECKED block does not state that every channel is covered"
+fi
 
 # --- part 5: a never-overwrite channel's drift reaches the wrapper's rc -----
 #
@@ -397,6 +474,108 @@ if [ -n "$PLANTED" ]; then
     ok "the wrapper left the planted file exactly as it found it"
   else
     nope "the wrapper rewrote $PLANTED, and it must never write anywhere"
+  fi
+fi
+
+# --- part 6: the drill channel's two findings both reach the wrapper --------
+#
+# Part 5 proves one never-overwrite channel's drift turns the command red.
+# Drill is the channel the bead was filed about and the only one with two file
+# classes, so both of its findings need a row: a STALE prompt, which only
+# --refresh-prompts can replace, and a DRIFT on an always-overwritten file,
+# which a plain run lands. A wrapper that greps for one word would report the
+# other as clean.
+#
+# THE CONFLICT ROW MATTERS AS MUCH AS THE TWO FAILURES. Frank annotates his
+# prompts, and a wrapper that went red on an annotation would be red every
+# night for a reason nobody can act on.
+
+echo
+echo "== part 6: the drill channel's stale and drifted findings both land =="
+
+DRILL_ROOT="$WORK/drill-practice"
+mkdir -p "$DRILL_ROOT"
+
+DRILL_PLANT=$(HOME="$SANDBOX_HOME" "$DELIVER_DRILL" "$DRILL_ROOT/drill" 2>&1)
+DRILL_PLANT_RC=$?
+DRILL_PROMPT_LIST=$(find "$DRILL_ROOT/drill" -name 'PROMPT.md' | LC_ALL=C sort)
+DRILL_PROMPT=${DRILL_PROMPT_LIST%%$'\n'*}
+if [ "$DRILL_PLANT_RC" -eq 0 ] && [ -n "$DRILL_PROMPT" ]; then
+  ok "the drill corpus delivers into a sandbox root, so part 6 has a tree to work on"
+else
+  nope "could not plant a drill tree (rc=$DRILL_PLANT_RC): $(tr '\n' ' ' <<<"$DRILL_PLANT")"
+fi
+
+# A clean tree first, or the two red rows below could both be passing because
+# the comparison never ran.
+CLEAN_WRAP=$(HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$WORK/no-study-root" \
+  "$WRAPPER" "$DRILL_ROOT" 2>&1)
+CLEAN_WRAP_RC=$?
+CLEAN_REPORTED=$(sed -n '1,/^NOT CHECKED/p' <<<"$CLEAN_WRAP")
+if [ "$CLEAN_WRAP_RC" -eq 0 ] && grep -qE '^  drill( |$)' <<<"$CLEAN_REPORTED"; then
+  ok "a freshly delivered drill tree reports in sync"
+else
+  nope "the wrapper exited $CLEAN_WRAP_RC over a fresh drill tree, wanted 0 with drill in sync"
+fi
+
+if [ -n "$DRILL_PROMPT" ]; then
+  # A prompt the learner has annotated. It differs from the record, so it is
+  # his and the wrapper must stay green over it.
+  printf '\nmy own notes under the question\n' >>"$DRILL_PROMPT"
+
+  HIS_WRAP=$(HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$WORK/no-study-root" \
+    "$WRAPPER" "$DRILL_ROOT" 2>&1)
+  HIS_WRAP_RC=$?
+  if [ "$HIS_WRAP_RC" -eq 0 ]; then
+    ok "a prompt he has annotated leaves the wrapper green"
+  else
+    nope "the wrapper exited $HIS_WRAP_RC over an annotated prompt, wanted 0"
+  fi
+  if grep -qF 'are your own work and were left alone' <<<"$HIS_WRAP"; then
+    ok "and it is counted as his work in the drill row"
+  else
+    nope "the drill row never counted the annotated prompt as his own work"
+  fi
+
+  # Now the same file as a STALE one. Recording the byte on disk as the
+  # delivered digest is standing in for a delivery that already happened, which
+  # is a thing only a fixture may do: the whole safety argument of the record is
+  # that only a delivery writes an entry.
+  DRILL_PROMPT_DIR=${DRILL_PROMPT%/*}
+  printf '%s  %s\n' "$(sha256sum -- "$DRILL_PROMPT" | cut -d' ' -f1)" "PROMPT.md" \
+    >>"$DRILL_PROMPT_DIR/.delivered.sha256"
+
+  STALE_DRILL=$(HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$WORK/no-study-root" \
+    "$WRAPPER" "$DRILL_ROOT" 2>&1)
+  STALE_DRILL_RC=$?
+  if [ "$STALE_DRILL_RC" -eq 3 ]; then
+    ok "a stale drill prompt makes the wrapper exit 3"
+  else
+    nope "the wrapper exited $STALE_DRILL_RC over a stale drill prompt, wanted 3"
+  fi
+  if grep -qE '^  drill$' <<<"$(sed -n '/^DRIFTED/,$p' <<<"$STALE_DRILL")"; then
+    ok "the wrapper names drill under DRIFTED"
+  else
+    nope "the wrapper exited 3 without naming drill as drifted"
+  fi
+  if grep -qF -- "$DRILL_PROMPT" <<<"$STALE_DRILL"; then
+    ok "and its detail block carries the stale prompt itself"
+  else
+    nope "the wrapper reported drill drift without naming $DRILL_PROMPT"
+  fi
+
+  # The other file class, and the reason this part has two halves. A DRIFT line
+  # is a different word from a STALE one, so a detail block grepping for only
+  # one of them would come back empty on a real finding.
+  rm -f "$DRILL_ROOT/drill/SHEET.md"
+  SHEET_DRILL=$(HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$WORK/no-study-root" \
+    "$WRAPPER" "$DRILL_ROOT" 2>&1)
+  SHEET_DRILL_RC=$?
+  if [ "$SHEET_DRILL_RC" -eq 3 ] &&
+     grep -qF "DRIFT, never delivered: $DRILL_ROOT/drill/SHEET.md" <<<"$SHEET_DRILL"; then
+    ok "an always-overwritten file that never landed reaches the detail block too"
+  else
+    nope "the wrapper gave rc=$SHEET_DRILL_RC and did not name the missing sheet"
   fi
 fi
 

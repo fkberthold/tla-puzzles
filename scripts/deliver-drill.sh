@@ -162,6 +162,68 @@
 # is a tree that was fine yesterday, not a defect today.
 #
 # ---------------------------------------------------------------------------
+# THE RECORD, AND THE THIRD STATE (bead tla-mjvx, ruled by Frank 2026-10-18)
+#
+# Read "THREE FILE CLASSES, THREE POLICIES" above first. This section is about
+# what the split costs anybody trying to answer one question: has this tree
+# been delivered since the repo moved?
+#
+# NOTHING COULD ANSWER IT, AND THE COST WAS MEASURED. Frank ran `./drill
+# --style` on 2026-10-15 and got "unknown option". The repo had carried that
+# option for several hours and his copy had not, because one delivery ran after
+# the tla-rzvk wave and then three more waves merged with nobody delivering
+# again. One of the three was a fix to a defect he had reported himself. No
+# gate could see it: ~/tla-practice is not a git repo and every suite runs
+# inside this one.
+#
+# AND --check CANNOT ANSWER IT EITHER, which is the trap. --check reports what
+# a delivery WOULD do, so over a tree carrying eight stale prompts it says they
+# are already there and exits 0. Only a content comparison tells a stale tree
+# from a current one.
+#
+# WHY A CONTENT COMPARISON IS NOT ENOUGH HERE, where it was enough for
+# scripts/deliver-recall.sh. Every entry in that manifest is repo-owned, so any
+# difference is drift. Half of this one is the learner's page. A delivered
+# PROMPT.md differs from its source either because the repo moved under it or
+# because he wrote in it, and the bytes do not say which. Calling both drift
+# reddens the gate on every annotation he makes, and a gate that is red every
+# night for a reason nobody can act on is worse than no gate.
+#
+# SO A DELIVERY RECORDS THE DIGEST IT WROTE, the same mechanism
+# scripts/deliver-exercises.sh carries, and there are three states:
+#
+#   matches the source           nothing to report
+#   matches its record and       STALE. This script wrote those exact bytes,
+#     differs from the source    so he has not touched it and the repo has
+#                                moved under it
+#   differs from its record,     his work. Reported, counted, and never
+#     or has no record           touched, and never a failure
+#
+# ONLY A DELIVERY WRITES AN ENTRY. An entry means this script put those exact
+# bytes there, so a file matching its entry is provably unedited. Infer one
+# from anything else and the inference is what calls his work stale.
+#
+# THE TWO CLASSES KEEP THEIR TWO ANSWERS. The runner, the readme and the
+# construct sheet are always overwritten and he never edits them, so a plain
+# source comparison answers the question for them completely and they carry no
+# record. Every PROMPT.md and COLD-LIST.md is in the record's class. That is
+# the same question "THREE FILE CLASSES" asks: could the learner have edited
+# it.
+#
+# WHAT THE RECORD DOES NOT CHANGE: a plain run still never overwrites a prompt.
+# scripts/deliver-exercises.sh and scripts/deliver-completion.sh DO land a
+# source that moved under an unedited file, and this script deliberately does
+# not. Frank ruled it that way on 2026-10-18: a prompt is the one delivered
+# file he annotates, the tree has no git behind it, and --refresh-prompts is
+# already the named route. What the plain run gained instead is a summary that
+# says how many have gone stale.
+#
+# --adopt is the bootstrap for a tree delivered before records existed, which
+# on 2026-10-18 was every delivered drill tree there is. It records only a file
+# byte-identical to its source, which is provably unedited whoever put it
+# there, and leaves the rest alone and counted.
+#
+# ---------------------------------------------------------------------------
 # WHY --refresh-prompts EXISTS, AND WHY IT IS A FLAG
 #
 # Never-overwrite kept the practice tree safe, it also kept it stale, and until
@@ -379,10 +441,20 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<USAGE >&2
-Usage: $0 [--check] [--refresh-prompts] [dest-root]
-       $0 --study [--check] [study-root]
+Usage: $0 [--check | --verify | --adopt] [--refresh-prompts] [dest-root]
+       $0 --study [--check | --verify] [study-root]
 
   --check            print what would be delivered, and write nothing
+  --verify           compare every delivered file against its source, and a
+                     prompt or the cold list against its delivery record too.
+                     Names every path that drifted or went stale, and exits 3
+                     if any did. A file that differs from its record is your
+                     own work: it is counted and never failed on. Writes
+                     nothing, and an absent destination is a skip at exit 0.
+  --adopt            record a digest for every delivered prompt and cold list
+                     that is byte-identical to its source, so a tree delivered
+                     before this script kept records can go stale visibly.
+                     Copies nothing.
   --refresh-prompts  replace a delivered PROMPT.md that differs from the
                      source. Off by default, and nothing else is overwritten.
   --study            deliver the study-side configuration instead of the
@@ -447,9 +519,16 @@ REFERENCE_NAMES=("SHEET.md" "COLD-LIST.md")
 REFERENCE_LABELS=("construct sheet" "cold list")
 REFERENCE_POLICIES=("always" "once")
 
+# The delivery record. It lives in the DESTINATION directory beside the file it
+# is about, and only a delivery writes an entry. Read "THE RECORD, AND THE
+# THIRD STATE" above before changing this name.
+RECORD_NAME=".delivered.sha256"
+
 CHECK_ONLY=0
 REFRESH_PROMPTS=0
 STUDY_MODE=0
+VERIFY_ONLY=0
+ADOPT_ONLY=0
 DEST_ROOT=""
 POSITIONAL=0
 
@@ -473,6 +552,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --refresh-prompts)
       REFRESH_PROMPTS=1
+      shift
+      ;;
+    --verify)
+      VERIFY_ONLY=1
+      shift
+      ;;
+    --adopt)
+      ADOPT_ONLY=1
       shift
       ;;
     --study)
@@ -500,6 +587,23 @@ while [ "$#" -gt 0 ]; do
   take_positional "$1"
   shift
 done
+
+# The three reporting modes ask three different questions of the same tree, so
+# two of them at once is a request nobody can answer rather than a combination
+# with a sensible reading.
+if [ $((CHECK_ONLY + VERIFY_ONLY + ADOPT_ONLY)) -gt 1 ]; then
+  echo "$0: --check, --verify and --adopt ask different questions, so pick one." >&2
+  usage
+  exit 1
+fi
+
+# A silently ignored flag is how somebody comes away believing a prompt was
+# refreshed, which is the reason --study refuses the same pair below.
+if [ "$REFRESH_PROMPTS" -eq 1 ] && [ $((VERIFY_ONLY + ADOPT_ONLY)) -gt 0 ]; then
+  echo "$0: --refresh-prompts replaces a prompt, and neither --verify nor --adopt writes one." >&2
+  echo "$0: run them as two commands." >&2
+  exit 1
+fi
 
 SRC_DRILL="$SRC_ROOT/drill"
 
@@ -546,6 +650,15 @@ if [ "$STUDY_MODE" -eq 1 ]; then
     exit 1
   fi
 
+  # Every file in this tree is in the always-overwritten class, so there is no
+  # record here to bootstrap. A tolerated --adopt would write nothing and
+  # report success, which reads as a tree that has been bootstrapped.
+  if [ "$ADOPT_ONLY" -eq 1 ]; then
+    echo "$0: --study delivers only always-overwritten files, so there is no record to adopt." >&2
+    echo "$0: --study --verify compares them against the source directly." >&2
+    exit 1
+  fi
+
   STUDY_ROOT="$DEST_ROOT"
   if [ -z "$STUDY_ROOT" ]; then
     STUDY_ROOT="${DRILL_STUDY_ROOT:-}"
@@ -560,6 +673,17 @@ if [ "$STUDY_MODE" -eq 1 ]; then
     echo "$0: no study configuration at $SRC_STUDY" >&2
     echo "$0: set DELIVER_DRILL_SRC_ROOT to the repo root that carries drill/." >&2
     exit 1
+  fi
+
+  # AN ABSENT ROOT IS A SKIP UNDER --verify, NOT THE REFUSAL BELOW. The refusal
+  # is about a delivery putting configuration somewhere nobody asked for. A
+  # verify writes nothing, so there is nothing to refuse, and an absent root
+  # means nothing is owed because no drill has been served here. Every box but
+  # Frank's is in that case, so failing on it would be red where it does not
+  # apply, which is how a gate gets switched off.
+  if [ "$VERIFY_ONLY" -eq 1 ] && [ ! -d "$STUDY_ROOT" ]; then
+    echo "no delivered tree at $STUDY_ROOT, so there is nothing to compare. Skipping."
+    exit 0
   fi
 
   # THE REFUSAL. drill/drill.sh creates the root when it serves a drill, so an
@@ -644,6 +768,54 @@ if [ "$STUDY_MODE" -eq 1 ]; then
     echo "no style script at $SRC_STUDY/$STUDY_STYLE_NAME, so none lands"
   fi
 
+  # -------------------------------------------------------------------------
+  # --study --verify: has this tree been delivered since the repo moved?
+  #
+  # A PLAIN SOURCE COMPARISON IS THE WHOLE ANSWER HERE, which is not true of
+  # the prompt side. Every entry resolved above goes through
+  # install_study_file(), which overwrites, so the repo is the source of truth
+  # for all of them and the learner edits none. A difference is drift and
+  # nothing else, the way it is for every entry in scripts/deliver-recall.sh's
+  # manifest. The prompt side needs a record precisely because it has a file
+  # class this one does not.
+  #
+  # The two executable bits are checked on their own, because content compares
+  # equal whatever the mode says. drill/drill.sh execs the style script and
+  # refuses when it is not executable, so a style script delivered 0644 is a
+  # channel that reports success and cannot be run.
+  # -------------------------------------------------------------------------
+  if [ "$VERIFY_ONLY" -eq 1 ]; then
+    study_sync=0
+    study_drift=0
+    i=0
+    while [ "$i" -lt "${#study_dests[@]}" ]; do
+      if [ ! -e "${study_dests[$i]}" ]; then
+        study_drift=$((study_drift + 1))
+        echo "DRIFT, never delivered: ${study_dests[$i]}"
+      elif ! cmp -s -- "${study_srcs[$i]}" "${study_dests[$i]}"; then
+        study_drift=$((study_drift + 1))
+        echo "DRIFT, differs from ${study_srcs[$i]}: ${study_dests[$i]}"
+      else
+        study_sync=$((study_sync + 1))
+      fi
+      i=$((i + 1))
+    done
+
+    for exec_name in "$STUDY_CHECK_NAME" "$STUDY_STYLE_NAME"; do
+      if [ -f "$STUDY_ROOT/$exec_name" ] && [ ! -x "$STUDY_ROOT/$exec_name" ]; then
+        study_drift=$((study_drift + 1))
+        echo "DRIFT, not executable: $STUDY_ROOT/$exec_name"
+      fi
+    done
+
+    echo "$study_sync file(s) in sync, $study_drift drifted"
+    if [ "$study_drift" -gt 0 ]; then
+      echo "run $0 --study $STUDY_ROOT to bring the delivered tree up to the repo." >&2
+      exit 3
+    fi
+    exit 0
+  fi
+
   if [ "$CHECK_ONLY" -eq 1 ]; then
     study_to_land=0
     study_to_overwrite=0
@@ -706,6 +878,121 @@ fi
 if [ -z "$DEST_ROOT" ]; then
   DEST_ROOT="$HOME/tla-practice/drill"
 fi
+
+# ---------------------------------------------------------------------------
+# THE DELIVERY RECORD, and the one classifier every mode reads.
+#
+# Bead tla-mjvx, and Frank ruled it on 2026-10-18. Without a record a verify
+# has two states and one of them is useless: a delivered prompt differs from
+# the source either because the repo moved under it or because he wrote in it,
+# and nothing on disk tells those apart. Calling both drift puts a red on every
+# annotation he makes, and calling neither drift is the silence this bead
+# exists to end.
+#
+# So a delivery records the digest it wrote, and there are three states:
+#
+#   matches the source           nothing to report
+#   matches its record and       STALE. This script wrote those exact bytes,
+#     differs from the source    so he has not touched it and the repo has
+#                                moved. --refresh-prompts replaces it.
+#   differs from its record,     his work. Reported, counted, and never
+#     or has no record           touched or failed on.
+#
+# ONLY A DELIVERY WRITES AN ENTRY, and that clause is the whole safety
+# argument. An entry means this script put those exact bytes there. Infer one
+# from anything else and the inference is what calls his work stale.
+#
+# THE ALWAYS-OVERWRITTEN FILES CARRY NO RECORD AND NEED NONE. The runner, the
+# readme and the construct sheet are the repo's, he never edits them, and the
+# delivery replaces them on every run, so a plain source comparison answers the
+# question for them completely. Two classes, two mechanisms, and the reason is
+# the same question asked in "THREE FILE CLASSES, THREE POLICIES" above: could
+# the learner have edited it.
+#
+# --adopt is the bootstrap for a tree delivered before records existed, which
+# on 2026-10-18 was every delivered drill tree there is. It records only a file
+# that is byte-identical to its source, which is provably unedited whoever put
+# it there, and leaves the rest unrecorded.
+#
+# recorded_digest and record_digest key on the file's BASENAME within the
+# directory holding the record, so the prompt's record sits in its item
+# directory and the cold list's at the drill root. A later entry wins, which is
+# what lets record_digest append rather than rewrite in place.
+# ---------------------------------------------------------------------------
+
+digest_of() {
+  [ -f "$1" ] || return 1
+  sha256sum -- "$1" | cut -d' ' -f1
+}
+
+# recorded_digest <record-dir> <basename>
+recorded_digest() {
+  local record="$1/$RECORD_NAME" within="$2" line found=''
+  [ -f "$record" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ "${line#*  }" = "$within" ] || continue
+    found="${line%%  *}"
+  done <"$record"
+  [ -n "$found" ] || return 1
+  printf '%s' "$found"
+}
+
+# record_digest <record-dir> <basename> <digest>
+record_digest() {
+  local dir="$1" within="$2" digest="$3"
+  mkdir -p -- "$dir" || return 1
+  printf '%s  %s\n' "$digest" "$within" >>"$dir/$RECORD_NAME"
+}
+
+# record_delivered <dest>
+#
+# The one call every writing path makes after a successful copy. It derives the
+# record directory and the key from the destination path, so a caller cannot
+# put an entry in the wrong place by passing the wrong pair.
+record_delivered() {
+  local dest="$1" src="$2" src_d
+  src_d=$(digest_of "$src") || return 0
+  record_digest "${dest%/*}" "${dest##*/}" "$src_d"
+}
+
+# classify <src> <dest> <record-dir> <basename>
+#
+# Sets CLASS. --verify and --adopt both read this one function, so neither can
+# report a state the other would treat differently.
+#
+# EQUAL CONTENT IS SETTLED BY cmp AND NOT BY TWO DIGESTS, which is a cost
+# decision rather than a style one. digest_of forks twice, so the digest route
+# costs four processes a file against cmp's one, and the corpus is 64 items
+# plus the cold list on a tree that is almost always in sync. Measured
+# 2026-10-18 over the real tree: 546 ms before this, 196 ms after. The digests
+# are still what decide a difference, because only a recorded digest can say
+# whether this script wrote the bytes that are there now.
+CLASS=""
+classify() {
+  local src="$1" dest="$2" dir="$3" within="$4" dest_d rec_d
+  if [ ! -e "$dest" ]; then
+    CLASS="absent"
+    return
+  fi
+  # Equal content first, and deliberately before the record is consulted. A
+  # file already carrying the source's bytes needs no decision about who wrote
+  # it, and reporting it would be noise on every run.
+  if [ -f "$dest" ] && cmp -s -- "$src" "$dest"; then
+    CLASS="insync"
+    return
+  fi
+  dest_d=$(digest_of "$dest") || dest_d=""
+  rec_d=$(recorded_digest "$dir" "$within") || rec_d=""
+  if [ -n "$dest_d" ] && [ -n "$rec_d" ] && [ "$rec_d" = "$dest_d" ]; then
+    CLASS="stale"
+    return
+  fi
+  if [ -n "$rec_d" ]; then
+    CLASS="conflict_recorded"
+  else
+    CLASS="conflict_unrecorded"
+  fi
+}
 
 # ---------------------------------------------------------------------------
 # Resolve the source, before the destination is created, so every fatal path
@@ -849,10 +1136,237 @@ for record_name in "${LEARNER_RECORD_NAMES[@]}"; do
   echo "left alone (the learner's record, never written here): $DEST_ROOT/$record_name"
 done
 
+# ---------------------------------------------------------------------------
+# --verify: has this channel been delivered since the repo moved?
+#
+# --check answers a different question and the two read alike, which is the
+# whole of bead tla-mjvx. --check reports what a delivery WOULD do, so over a
+# tree carrying eight stale prompts it says they are already there and exits 0.
+# --verify compares content, and for the two record-class files it compares
+# against the record as well, so it can say which difference is drift and which
+# is the learner's page.
+#
+# TWO WORDS, AND THE DIFFERENCE IS THE REMEDY RATHER THAN THE SEVERITY.
+# DRIFT is what scripts/deliver-recall.sh prints over an always-overwritten
+# file, and a plain run of this script fixes one. STALE and CONFLICT are what
+# the three never-overwrite channels print, and only --refresh-prompts replaces
+# a stale prompt. Keeping each word's existing meaning is what lets
+# scripts/verify-delivery.sh read five channels with one pair of patterns.
+#
+# STALE AND DRIFT EXIT 3. CONFLICT NEVER DOES. A conflict is his own work and
+# no run of this script will ever touch it, so it can never be the thing a gate
+# asks somebody to fix. Wiring a gate to an exit code that merged the two put a
+# permanent red on 10 of 12 exercise chapters on 2026-10-18, every one of them
+# red because he had done the exercises.
+#
+# AN ABSENT DESTINATION IS A SKIP AT EXIT 0. No box but Frank's has a delivered
+# tree and a CI runner never will.
+#
+# AN ABSENT FILE IS DRIFT HERE, where on completion, problems and exercises it
+# is reported and never failed on. Those three hand items over on a ramp, so
+# most of their corpus is undelivered at any moment. This one delivers the
+# whole corpus on every run, so an absent file means a plain run is owed and
+# somebody can act on it tonight.
+# ---------------------------------------------------------------------------
+
+v_sync=0
+v_stale=0
+v_conflict=0
+v_drift=0
+
+# verify_recorded <src> <dest> <record-dir> <basename>
+verify_recorded() {
+  classify "$1" "$2" "$3" "$4"
+  case "$CLASS" in
+    absent)
+      v_drift=$((v_drift + 1))
+      echo "DRIFT, never delivered: $2"
+      ;;
+    insync)
+      v_sync=$((v_sync + 1))
+      ;;
+    stale)
+      v_stale=$((v_stale + 1))
+      echo "STALE, you have not edited it so --refresh-prompts would replace it: $2"
+      ;;
+    conflict_recorded)
+      v_conflict=$((v_conflict + 1))
+      echo "CONFLICT, your edit and a moved source: $2"
+      ;;
+    *)
+      v_conflict=$((v_conflict + 1))
+      echo "CONFLICT, differs from source and has no record, so it may be your work: $2"
+      ;;
+  esac
+}
+
+# verify_always <src> <dest>
+verify_always() {
+  if [ ! -e "$2" ]; then
+    v_drift=$((v_drift + 1))
+    echo "DRIFT, never delivered: $2"
+  elif ! cmp -s -- "$1" "$2"; then
+    v_drift=$((v_drift + 1))
+    echo "DRIFT, differs from $1: $2"
+  else
+    v_sync=$((v_sync + 1))
+  fi
+}
+
+if [ "$VERIFY_ONLY" -eq 1 ]; then
+  if [ ! -d "$DEST_ROOT" ]; then
+    echo "no delivered tree at $DEST_ROOT, so there is nothing to compare. Skipping."
+    exit 0
+  fi
+
+  for rel in "${deliver_items[@]}"; do
+    verify_recorded "$SRC_DRILL/$rel/$PROMPT_NAME" "$DEST_ROOT/$rel/$PROMPT_NAME" \
+      "$DEST_ROOT/$rel" "$PROMPT_NAME"
+  done
+
+  if [ "$HAVE_RUNNER" -eq 1 ]; then
+    verify_always "$RUNNER_SRC" "$RUNNER_DEST"
+  fi
+  if [ "$HAVE_README" -eq 1 ]; then
+    verify_always "$README_SRC" "$README_DEST"
+  fi
+
+  # The policy decides the mechanism, exactly as it decides which install
+  # function a delivery calls. Reading it here rather than naming COLD-LIST.md
+  # is what keeps the two halves from drifting apart.
+  ref_i=0
+  while [ "$ref_i" -lt "${#reference_dests[@]}" ]; do
+    if [ "${reference_policies[$ref_i]}" = "once" ]; then
+      verify_recorded "${reference_srcs[$ref_i]}" "${reference_dests[$ref_i]}" \
+        "$DEST_ROOT" "${reference_dests[$ref_i]##*/}"
+    else
+      verify_always "${reference_srcs[$ref_i]}" "${reference_dests[$ref_i]}"
+    fi
+    ref_i=$((ref_i + 1))
+  done
+
+  # The runner's mode is set explicitly by the delivery for a stated reason, so
+  # the verify checks it. Content compares equal whatever the mode is, so
+  # nothing above would catch a runner delivered 0644, and that is a channel
+  # that reports success and cannot be run.
+  if [ "$HAVE_RUNNER" -eq 1 ] && [ -f "$RUNNER_DEST" ] && [ ! -x "$RUNNER_DEST" ]; then
+    v_drift=$((v_drift + 1))
+    echo "DRIFT, not executable: $RUNNER_DEST"
+  fi
+
+  echo "$v_sync in sync, $v_stale stale, $v_conflict conflicted, $v_drift drifted"
+
+  [ "${#missing_prompt[@]}" -eq 0 ] || exit 1
+
+  if [ "$v_drift" -gt 0 ]; then
+    echo "run $0 $DEST_ROOT to land what drifted." >&2
+  fi
+  if [ "$v_stale" -gt 0 ]; then
+    echo "run $0 --refresh-prompts $DEST_ROOT to replace the stale prompt(s)." >&2
+  fi
+  if [ "$v_stale" -gt 0 ] || [ "$v_drift" -gt 0 ]; then
+    exit 3
+  fi
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# --adopt: the bootstrap for a tree delivered before records existed.
+#
+# Measured 2026-10-18: find returned no .delivered.sha256 anywhere under
+# ~/tla-practice/drill, and all 64 delivered prompts plus COLD-LIST.md were
+# byte-identical to their sources. So an adopt run that day records all of them
+# correctly rather than guessing which ones he had annotated, and that window
+# is why the bootstrap was worth running then rather than later.
+#
+# It writes the record and copies nothing. The summary counts what it LEFT,
+# because those are the files no later repair will reach.
+# ---------------------------------------------------------------------------
+
+a_adopted=0
+a_left=0
+
+# adopt_one <src> <dest> <record-dir> <basename>
+adopt_one() {
+  local src_d
+  classify "$1" "$2" "$3" "$4"
+  if [ "$CLASS" = "absent" ]; then
+    echo "not delivered, so nothing to adopt: $2"
+    return 0
+  fi
+  if recorded_digest "$3" "$4" >/dev/null; then
+    echo "already recorded: $2"
+    return 0
+  fi
+  if [ "$CLASS" = "insync" ]; then
+    # The digest is taken here rather than in classify(), which is the one
+    # place in this script that needs it on an in-sync file. Taking it there
+    # would cost it on every file of every --verify run, which is where the
+    # cost of this mechanism is actually felt.
+    src_d=$(digest_of "$1") || src_d=""
+    [ -n "$src_d" ] || return 1
+    record_digest "$3" "$4" "$src_d" || return 1
+    a_adopted=$((a_adopted + 1))
+    echo "adopted, byte-identical to its source: $2"
+    return 0
+  fi
+  a_left=$((a_left + 1))
+  echo "not adopted, it differs from its source so it may be your work: $2"
+}
+
+if [ "$ADOPT_ONLY" -eq 1 ]; then
+  if [ ! -d "$DEST_ROOT" ]; then
+    echo "no delivered tree at $DEST_ROOT, so there is nothing to adopt. Skipping."
+    exit 0
+  fi
+
+  for rel in "${deliver_items[@]}"; do
+    adopt_one "$SRC_DRILL/$rel/$PROMPT_NAME" "$DEST_ROOT/$rel/$PROMPT_NAME" \
+      "$DEST_ROOT/$rel" "$PROMPT_NAME" || exit 1
+  done
+
+  ref_i=0
+  while [ "$ref_i" -lt "${#reference_dests[@]}" ]; do
+    if [ "${reference_policies[$ref_i]}" = "once" ]; then
+      adopt_one "${reference_srcs[$ref_i]}" "${reference_dests[$ref_i]}" \
+        "$DEST_ROOT" "${reference_dests[$ref_i]##*/}" || exit 1
+    fi
+    ref_i=$((ref_i + 1))
+  done
+
+  # Named rather than silent, for the reason the withheld report is. A
+  # bootstrap that quietly left three files out would read as one that covered
+  # the tree.
+  echo "the runner, the readme and the construct sheet are always overwritten, so they carry no record and none was written."
+  echo "$a_adopted file(s) adopted, $a_left left unrecorded"
+
+  [ "${#missing_prompt[@]}" -eq 0 ] || exit 1
+  exit 0
+fi
+
+# report_differing <count>
+#
+# THE SECOND HALF OF BEAD tla-mjvx, and it is the bead's own failure living
+# inside the channel that produced it. Measured 2026-10-18 against the real
+# tree: a run reported "0 prompt(s) to land, 64 already there" and landed none
+# of eight changed prompts, because only --refresh-prompts can replace one. The
+# summary was true and it read as "nothing to do".
+#
+# THE DEFAULT DOES NOT CHANGE. A plain run still refuses to overwrite a prompt,
+# because that default protects work with no git behind it and a prompt is the
+# one delivered file he annotates. What changes is that the run now says how
+# many have gone stale and names the one flag that would replace them.
+report_differing() {
+  [ "$1" -gt 0 ] || return 0
+  echo "$1 delivered prompt(s) differ from the source and a plain run cannot replace one."
+  echo "Run with --refresh-prompts to replace them, or with --verify to see which are stale and which are your own edits."
+}
+
 if [ "$CHECK_ONLY" -eq 1 ]; then
   to_land=0
   to_replace=0
   already=0
+  differing=0
   # Under --refresh-prompts this reads the destination's prompts to compare
   # them. Reading is all it does: every arm below prints and counts, and the
   # only two writing calls in this script sit past the exit at the bottom of
@@ -865,6 +1379,14 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
     elif [ "$REFRESH_PROMPTS" -eq 0 ]; then
       echo "would skip (exists): $dest_prompt"
       already=$((already + 1))
+      # Counted so the summary can say how many of the already-there have gone
+      # stale. Until 2026-10-18 this arm counted only that they existed, so a
+      # tree carrying eight changed prompts reported "64 already there" and
+      # read as a tree with nothing to do.
+      if [ -f "$dest_prompt" ] &&
+         ! cmp -s -- "$SRC_DRILL/$rel/$PROMPT_NAME" "$dest_prompt"; then
+        differing=$((differing + 1))
+      fi
     elif [ ! -f "$dest_prompt" ]; then
       echo "would leave alone (exists and is not a regular file): $dest_prompt"
       already=$((already + 1))
@@ -921,7 +1443,8 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
   if [ "$REFRESH_PROMPTS" -eq 1 ]; then
     echo "$to_land prompt(s) to land, $to_replace to replace, $already left alone, ${#withheld_paths[@]} path(s) withheld"
   else
-    echo "$to_land prompt(s) to land, $already already there, ${#withheld_paths[@]} path(s) withheld"
+    echo "$to_land prompt(s) to land, $already already there ($differing differ from the source), ${#withheld_paths[@]} path(s) withheld"
+    report_differing "$differing"
   fi
   [ "${#missing_prompt[@]}" -eq 0 ] || exit 1
   exit 0
@@ -936,19 +1459,33 @@ fi
 # file goes through here one at a time, so an item the learner has already
 # started is left alone without holding back the items beside it.
 #
-# Returns 0 for a file that landed and 2 for one left alone. The caller counts
-# off those two codes, so a third outcome needs a third code rather than a
-# flag on either function.
+# Returns 0 for a file that landed, 2 for one left alone, and 4 for one left
+# alone whose source has moved under it. The caller counts off those codes, so
+# a further outcome needs a further code rather than a flag on this function.
+#
+# THE 4 IS NOT A SECOND POLICY. Both 2 and 4 leave the file exactly as it was,
+# and the only difference is what the summary can say afterwards. The cmp is
+# read-only and runs after the skip line is already printed, so the string
+# harness/test-deliver-drill.sh pins is untouched.
+#
+# A LANDING RECORDS WHAT IT WROTE, which is what lets a later --verify tell a
+# stale copy from the learner's page. A skip records nothing: this script did
+# not write those bytes, so it cannot prove anything about them, and a guess
+# in that direction is what calls his work stale.
 # ---------------------------------------------------------------------------
 
 deliver_file() {
   local src="$1" dest="$2"
   if [ -e "$dest" ]; then
     echo "skipped (exists): $dest"
+    if [ -f "$dest" ] && ! cmp -s -- "$src" "$dest"; then
+      return 4
+    fi
     return 2
   fi
   mkdir -p -- "$(dirname -- "$dest")" || return 1
   cp -- "$src" "$dest" || return 1
+  record_delivered "$dest" "$src" || return 1
 }
 
 # refresh_prompt <src> <dest>
@@ -975,6 +1512,7 @@ refresh_prompt() {
   if [ ! -e "$dest" ]; then
     mkdir -p -- "$(dirname -- "$dest")" || return 1
     cp -- "$src" "$dest" || return 1
+    record_delivered "$dest" "$src" || return 1
     return 0
   fi
   if [ ! -f "$dest" ]; then
@@ -986,6 +1524,10 @@ refresh_prompt() {
     return 2
   fi
   cp -- "$src" "$dest" || return 1
+  # Recorded like any other write. This path is the one that can overwrite an
+  # annotation, which is why it is a flag, and the bytes on disk afterwards are
+  # this script's either way, so the record is the truth about them.
+  record_delivered "$dest" "$src" || return 1
   echo "replaced (the source differs): $dest"
   return 3
 }
@@ -1011,6 +1553,7 @@ install_reference_once() {
   if [ ! -e "$dest" ]; then
     mkdir -p -- "$(dirname -- "$dest")" || return 1
     cp -- "$src" "$dest" || return 1
+    record_delivered "$dest" "$src" || return 1
     echo "$label delivered: $dest"
     return 0
   fi
@@ -1056,6 +1599,7 @@ rc=0
 landed=0
 skipped=0
 replaced=0
+differing=0
 
 # The outcome is captured into a variable rather than read off $? after the
 # fi, so which function ran and what it returned are two separate things a
@@ -1072,6 +1616,10 @@ for rel in "${deliver_items[@]}"; do
     0) landed=$((landed + 1)) ;;
     2) skipped=$((skipped + 1)) ;;
     3) replaced=$((replaced + 1)) ;;
+    4)
+      skipped=$((skipped + 1))
+      differing=$((differing + 1))
+      ;;
     *)
       echo "$0: failed to deliver: $DEST_ROOT/$rel/$PROMPT_NAME" >&2
       rc=1
@@ -1130,7 +1678,8 @@ done
 if [ "$REFRESH_PROMPTS" -eq 1 ]; then
   echo "$landed prompt(s) landed, $replaced replaced, $skipped left alone, ${#withheld_paths[@]} path(s) withheld"
 else
-  echo "$landed prompt(s) landed, $skipped skipped, ${#withheld_paths[@]} path(s) withheld"
+  echo "$landed prompt(s) landed, $skipped skipped ($differing differ from the source), ${#withheld_paths[@]} path(s) withheld"
+  report_differing "$differing"
 fi
 
 [ "${#missing_prompt[@]}" -eq 0 ] || rc=1
