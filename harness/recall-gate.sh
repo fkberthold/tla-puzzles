@@ -753,6 +753,33 @@ fi
 # asks a different question per kind branches on KINDS[i] where a reader can
 # see it. Two parallel sets would have put the branch in the file layout,
 # where a check added to one and not the other is invisible.
+# The constructs a REP row must gate with a field-7 pattern, because value
+# equality cannot see them. Read the long comment at REQUIRES-ABSENT in check 4
+# before adding or removing one.
+#
+# KEYED ON THE INVENTORY'S CONSTRUCT NAME, NOT ON ITS ID, and that is not a
+# style choice. A construct id means whatever the inventory passed to
+# --inventory says it means. drill/INVENTORY.md reads `K001 core Operator
+# definition`, and harness/test-recall-gate.sh's own fixture inventory reads
+# `K001 sets Set literal`. An id list would have imposed the live corpus's
+# meaning on every fixture that reuses an id, and the first thing it did was
+# call the suite's own clean control a finding.
+#
+# A name list has its own rot surface: rename a construct in the inventory and
+# the requirement quietly stops applying. So the check emits an UNCHECKED for
+# any name here that resolves to no inventory row, which makes a rename loud
+# rather than silent. One tab-delimited name per line, since the names contain
+# spaces.
+REQUIRES_PATTERN_NAMES='Operator definition
+Booleans and logical operators
+Implication
+RECURSIVE
+Higher-order operator parameter
+LAMBDA
+Custom binary operator
+Bracket function definition
+Recursive function definition'
+
 IDS=()
 KINDS=()
 CONSTRUCTS=()
@@ -797,6 +824,48 @@ if [ ! -f "$INVENTORY" ]; then
     "no inventory at ${INVENTORY}, so no construct id was resolved. Pass --inventory"
 else
   INV_IDS="$(awk -F'\t' '$1 == "ROW" { print $2 }' "$INVENTORY")"
+
+  # id and name, tab-separated, for check 4's REQUIRES-ABSENT. Read here
+  # because this is where the inventory is already open and already known to
+  # exist, and check 4 must not re-decide that.
+  INV_NAMES="$(awk -F'\t' '$1 == "ROW" { print $2 "\t" $4 }' "$INVENTORY")"
+  TAB_CH="$(printf '\t')"
+
+  # THE RENAME TRIPWIRE for REQUIRES_PATTERN_NAMES. A name list stops applying
+  # the moment somebody renames a construct in the inventory, and it stops
+  # applying SILENTLY, which is the one failure a gate must not have. So every
+  # name in the list has to resolve to an inventory row. A name that does not
+  # is UNCHECKED rather than a finding: the corpus is not wrong, this gate's
+  # own list is out of date, and those are different reports.
+  #
+  # A TOTAL MISS IS A DIFFERENT INVENTORY, NOT A RENAME, and the difference
+  # matters because this gate is driven over fixture trees as well as over the
+  # shipped one. harness/test-recall-gate.sh builds its own inventory with four
+  # rows, none of them named here, and an unconditional tripwire called that
+  # fixture nine kinds of out of date on every run. So: if NONE of the names
+  # resolve, this is some other inventory and the list has nothing to say about
+  # it. If SOME resolve and others do not, that is drift in the inventory this
+  # list was written against, and it is loud.
+  req_hit=0
+  req_miss=""
+  while IFS= read -r want_name; do
+    [ -n "$want_name" ] || continue
+    if awk -F'\t' -v N="$want_name" '$1 == "ROW" && $4 == N { found = 1 } END { exit !found }' "$INVENTORY"; then
+      req_hit=$((req_hit + 1))
+    else
+      req_miss="${req_miss}${want_name}
+"
+    fi
+  done <<<"$REQUIRES_PATTERN_NAMES"
+
+  if [ "$req_hit" -gt 0 ] && [ -n "$req_miss" ]; then
+    while IFS= read -r gone_name; do
+      [ -n "$gone_name" ] || continue
+      unchecked "check-4-requires" "$gone_name" \
+        "REQUIRES_PATTERN_NAMES names this construct, ${req_hit} of its siblings resolve in ${INVENTORY} and this one does not, so no row is being held to it. Either the construct was renamed or this gate's list is stale"
+    done <<<"$req_miss"
+  fi
+
   c3_ok=1
   for i in "${!IDS[@]}"; do
     k="${CONSTRUCTS[$i]}"
@@ -936,7 +1005,69 @@ for i in "${!IDS[@]}"; do
     c4_ok=0
   fi
 
+  # ---------------------------------------------------------------------
+  # IS A PATTERN REQUIRED HERE, AND IS IT MISSING (bead tla-2s12)
+  #
+  # Everything below this point validates a pattern that IS there. Measured
+  # by the tla-1sh7.7 author on a mirror: strip R023, R045 and R110 back to
+  # six fields and this gate still reports 0 findings and VERDICT OK. So the
+  # `continue` below made the field-7 adoption invisible in both directions.
+  # Nothing noticed it being undone, and nothing would notice a NEW rep in
+  # one of these families landing ungated, which is the likelier of the two.
+  #
+  # WHY A DECLARED LIST AND NOT A DERIVED SET. The list is this gate's own and
+  # is deliberately not read off the table, because deriving "which rows need a
+  # pattern" from "which rows have one" is exactly what makes an omission
+  # invisible. A new rep in one of these families has to be named in
+  # REQUIRES_PATTERN_NAMES or it is not covered, and that is the point.
+  #
+  # IT IS KEYED ON THE INVENTORY NAME rather than the construct id, because an
+  # id means whatever the inventory in use says it means. See the declaration.
+  #
+  # WHY NOT INVERT THE `continue` INSTEAD, so an empty field 7 is a finding
+  # everywhere: 96 of the 120 rows legitimately carry no pattern, because
+  # value equality is sufficient for them. A gate that fires on all 96 is a
+  # gate somebody switches off.
+  #
+  # WHAT PUTS A CONSTRUCT ON THIS LIST is that value equality cannot see its
+  # construct, so a learner reaching the right value another way scores 0.
+  #   K001, K071 to K076   the definition forms. They grade rc 0 wrapped in a
+  #                        LET, so the value never shows a definition was
+  #                        written. tla-1sh7.2 measured it.
+  #   K009                 implication. P => Q and P /\ Q differ exactly
+  #                        where P is false, so a rep with a true antecedent
+  #                        cannot require the operator.
+  #   K007                 and, or, not. Measured leaking on ALL FIVE of its
+  #                        rows, not just the two-true-operands shape the
+  #                        tla-1sh7.7 bead predicted: <=> agrees with /\
+  #                        wherever the operands differ, and one operand
+  #                        carrying the value needs no operator at all.
+  #
+  # WHY THE REP GUARD, since no SPEC row is in any of the nine today and the
+  # branch is a no-op either way: a SPEC row does not grade by value equality
+  # at all. It grades by whether a scaffold returned the rc field 8 names, so
+  # "a learner reached the right value another way" is not a thing that can
+  # happen to it and the whole rationale above does not apply. The guard says
+  # that rather than leaving a later reader to work out whether the absence is
+  # deliberate.
+  # ---------------------------------------------------------------------
   req="${REQUIRES[$i]}"
+
+  if [ "${KINDS[$i]}" = "REP" ] && [ -z "$req" ] && [ -n "${INV_NAMES:-}" ]; then
+    this_name=""
+    while IFS="$TAB_CH" read -r inv_id inv_name; do
+      if [ "$inv_id" = "${CONSTRUCTS[$i]}" ]; then
+        this_name="$inv_name"
+        break
+      fi
+    done <<<"$INV_NAMES"
+    if [ -n "$this_name" ] && grep -qxF -- "$this_name" <<<"$REQUIRES_PATTERN_NAMES"; then
+      finding "REQUIRES-ABSENT" "$id" \
+        "construct '${CONSTRUCTS[$i]}' is '${this_name}', which value equality cannot see, and field 7 is empty, so an answer that reaches the right value without the construct scores 0"
+      c4_ok=0
+    fi
+  fi
+
   [ -n "$req" ] || continue
 
   # Is it an ERE grep will read? The runner treats a grep rc above 1 as "could

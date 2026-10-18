@@ -305,7 +305,11 @@ ACT
 
 INVENTORY="$TMPROOT/INVENTORY.md"
 {
-  printf '%s\n' '# A fixture construct inventory. The gate reads field 1 and field 2.'
+  printf '%s\n' '# A fixture construct inventory. The gate reads field 1, field 2 and,'
+  printf '%s\n' '# since bead tla-2s12, field 4: check 4 holds a REP row to a field-7'
+  printf '%s\n' '# pattern when its construct NAME is one value equality cannot see.'
+  printf '%s\n' '# None of these four names is on that list, deliberately, so the clean'
+  printf '%s\n' '# run is silent about it and the rows below opt in by renaming a copy.'
   printf 'ROW%sK001%ssets%sSet literal%sfixture:1%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
   printf 'ROW%sK002%score%sCardinality%sfixture:2%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
   printf 'ROW%sK003%sfunctions%sFunction set%sfixture:3%shigh\n' "$TAB" "$TAB" "$TAB" "$TAB" "$TAB"
@@ -430,6 +434,66 @@ run_gate "$M" --static-only -q
 assert_eq "check 3: an empty field 3 is a finding" "1" "$GATE_RC"
 assert_says "and the code says the field is empty" \
   '^FINDING +CONSTRUCT-EMPTY +F001' "$GATE_OUT"
+
+# --- CHECK 4, THE PATTERN THAT IS MISSING (bead tla-2s12) ------------------
+#
+# Everything else check 4 says about field 7 validates a pattern that IS
+# there. Measured by the tla-1sh7.7 author: strip R023, R045 and R110 of the
+# shipped corpus back to six fields and the gate reported 0 findings and
+# VERDICT OK. So nothing noticed 24 reps losing their construct gate, and
+# nothing would notice a new rep in those families landing without one.
+#
+# THESE ROWS DRIVE THE GATE WITH THEIR OWN INVENTORY rather than through
+# run_gate, because the requirement is keyed on the construct NAME and the
+# shared fixture inventory deliberately carries none of the listed names. A
+# row opts in by renaming a copy, which is also what proves the keying is on
+# the name and not on the id: K001 is "Set literal" here and "Operator
+# definition" in drill/INVENTORY.md, and only the second one is held to a
+# pattern.
+REQ_INV="$TMPROOT/INVENTORY-opdef.md"
+sed "s/${TAB}Set literal${TAB}/${TAB}Operator definition${TAB}/" "$INVENTORY" >"$REQ_INV"
+
+REQ_RC=0
+REQ_OUT=$("$GATE" --inventory "$REQ_INV" --static-only -q "$CLEAN/recall" 2>&1) || REQ_RC=$?
+
+# F001 is a K001 row with six fields. Under the live inventory's name for
+# K001 that is a rep whose construct the grader cannot see.
+assert_says "check 4: a rep whose construct needs a pattern and has none is a finding" \
+  '^FINDING +REQUIRES-ABSENT +F001' "$REQ_OUT"
+assert_says "and the detail names the construct by its inventory name" \
+  "REQUIRES-ABSENT.*'Operator definition'" "$REQ_OUT"
+
+# The same run exercises the rename tripwire, since eight of the nine listed
+# names still resolve to nothing in this inventory and one now does. A
+# PARTIAL match is drift in the inventory the list was written against.
+assert_says "check 4: a listed name that stopped resolving is UNCHECKED, not a finding" \
+  '^UNCHECKED +check-4-requires' "$REQ_OUT"
+assert_says "and it says how many siblings did resolve, so a total miss reads differently" \
+  'siblings resolve in' "$REQ_OUT"
+
+# THE ACCEPT CONTROL. Same renamed inventory, and F001 given a field 7 its own
+# canonical satisfies. Without this row the finding above could be firing on
+# the rename rather than on the absent pattern.
+REQ_OK=$(mutant c4-requires-ok)
+sed -i "s|^REP${TAB}F001${TAB}K001${TAB}mini${TAB}the set of every wagon in the yard${TAB}Wagons\$|REP${TAB}F001${TAB}K001${TAB}mini${TAB}the set of every wagon in the yard${TAB}Wagons${TAB}\\\\bWagons\\\\b|" \
+  "$REQ_OK/recall/REPS.tsv"
+REQOK_RC=0
+REQOK_OUT=$("$GATE" --inventory "$REQ_INV" --static-only -q "$REQ_OK/recall" 2>&1) || REQOK_RC=$?
+if grep -qE '^FINDING +REQUIRES-ABSENT' <<<"$REQOK_OUT"; then
+  nope "check 4: the same rep WITH a pattern is not a finding — it still fired"
+else
+  ok "check 4: the same rep WITH a pattern is not a finding"
+fi
+
+# And the shared inventory's own names are not on the list, so the clean run
+# says nothing about any of this. Asserted rather than assumed, because the
+# first version of this check was keyed on the id and called CLEAN a finding.
+run_gate "$CLEAN" --static-only -q
+if grep -qE 'REQUIRES-ABSENT|check-4-requires' <<<"$GATE_OUT"; then
+  nope "check 4: the clean fixture is silent about field-7 requirements, and it was not"
+else
+  ok "check 4: the clean fixture is silent about field-7 requirements"
+fi
 
 NOINV_RC=0
 NOINV_OUT=$("$GATE" --inventory "$TMPROOT/no-such-inventory.md" --static-only -q \
