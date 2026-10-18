@@ -31,6 +31,9 @@ All of the following must be possible in your model.
 Write the specification and the three rules from an empty file, and run
 it. Report the verdict and the number of distinct states.
 
+The table above is a claim about your model, not a description of the
+system. Check every row against it. Say how you checked.
+
 Then say in two sentences what in your model records which step of the
 procedure the technician is on, and whether the count of reds could have
 stood in for it.

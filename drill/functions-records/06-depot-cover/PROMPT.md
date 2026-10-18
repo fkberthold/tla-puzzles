@@ -28,3 +28,6 @@ The rule: no route is ever rostered to a sick driver.
 Write the specification and the rule from an empty file. Check it with
 deadlock checking on. A correct model finds 33 distinct states and reports
 no error.
+
+The table above is a claim about your model, not a description of the
+system. Check every row against it. Say how you checked.

@@ -21,4 +21,7 @@ Write the specification and both rules from an empty file, and run it with
 deadlock checking on. A correct model finds 37 distinct states and reports
 no error.
 
+The table above is a claim about your model, not a description of the
+system. Check every row against it. Say how you checked.
+
 Then say, for each rule, whether your model could have broken it, and why.

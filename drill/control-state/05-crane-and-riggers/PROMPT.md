@@ -24,5 +24,8 @@ All of the following must be possible in your model.
 Write the specification and the rule from an empty file, and run it.
 Report the verdict and the number of distinct states.
 
+The table above is a claim about your model, not a description of the
+system. Check every row against it. Say how you checked.
+
 Then say how many things in your model record where someone is in their
 own procedure, and why that many.

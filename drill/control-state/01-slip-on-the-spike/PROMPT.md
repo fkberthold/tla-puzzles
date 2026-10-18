@@ -25,6 +25,9 @@ not an error.
 Write the specification and the rule from an empty file, and run it. Report
 the verdict.
 
+The table above is a claim about your model, not a description of the
+system. Check every row against it. Say how you checked.
+
 Then: the floor supervisor proposes moving the spike onto the shelf itself,
 next to the stock, so that a picker sees the slip and takes it in the same
 reach. Change the model to match, run it, and report the verdict again. Say
