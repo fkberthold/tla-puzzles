@@ -17,7 +17,9 @@
 #    2  id         L0-<template>-<nn>, stable, never renumbered
 #    3  template   T1-T5, resolving to a TEMPLATES.tsv row
 #    4  ask        the tag shown WITH the question: holds or implies
-#    5  kind       the item's own kind: true, false, vacuous or illformed
+#    5  kind       the item's own kind: true, false, vacuous, illformed
+#                  or unparsed. unparsed is a SANY parse failure and landed
+#                  with bead tla-7xql.10 on 2026-10-18.
 #    6  swipe      right, left or down. Derived from field 5 by the bake
 #    7  rc_claim   the exit code of ASSUME (claim). Written by the bake
 #    8  rc_wf      the exit code of ASSUME ((claim) \/ ~(claim)). Same

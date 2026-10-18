@@ -70,7 +70,27 @@ fi
 # all. Widening the root surfaced exactly one finding, a false SC2016 on a
 # markdown format string in drill/temporal/runs-table.sh, closed with a
 # per-site disable and its reason.
-LINT_ROOTS=(scripts harness drill recall)
+# WIDENED 2026-10-18. swipe/level0/bake.sh carries a bash shebang and had never
+# been shellchecked, found by the tla-7xql.10 author while editing it. That is
+# the same shape as harness/test-spelling.sh never reading swipe/, found three
+# days earlier: a tree accumulates shell for a while before anybody checks that
+# the gate covers it.
+#
+# Rather than add the one root, every tracked file with a shell shebang was
+# checked by hand first. All five uncovered roots came back clean, so widening
+# cost nothing and the narrow fix would have left four more holes:
+#
+# (Note for whoever edits this block: do not start a comment line with the
+# word shellcheck. It parses as a directive and raises SC1072 and SC1073. This
+# comment did exactly that on its first draft, with the hazard already written
+# down in .claude/rules/dispatched-agents.md.)
+#
+#   swipe       1 file    completion  1 file    chapter    2 files
+#   exercises  17 files   sources    24 files
+#
+# .beads/ stays out. Its 5 scripts are the tracker's own, not this project's,
+# and they arrive and change with bd rather than with anything here.
+LINT_ROOTS=(scripts harness drill recall swipe completion chapter exercises sources)
 
 LIST_ONLY=0
 declare -a EXPLICIT=()
