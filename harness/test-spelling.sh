@@ -119,7 +119,13 @@ american_for() {
 # count that day, so it asserts that a root is still being walked rather than
 # how big it has grown.
 # ---------------------------------------------------------------------------
-SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter)
+# swipe/ ADDED 2026-10-18 (bead tla-7xql.7). It had never been scanned: the
+# tree landed the day before and nobody widened this list, so three authoring
+# waves of reader-facing prose, every item's correction line among them, went
+# past a gate that reported green having read none of it. The tla-7xql.7 author
+# staged its work, ran this suite, passed 16 assertions, and then had to check
+# its own prose by hand against this file's own pair list.
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,
@@ -131,6 +137,7 @@ ROOT_FLOORS=(
   "harness:200"
   "exercises:250"
   "module-docs:4"
+  "swipe:3"
   "chapter:30"
 )
 

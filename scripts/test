@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~921 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~957 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -91,7 +91,7 @@
 #   fast   7.5 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
 #   fast   0.5 s  harness/test-deliver-verify.sh          (added, bead tla-mjvx)
-#   fast   6.5 s  harness/test-swipe-stemblind.sh         (added, bead tla-7xql.1)
+#   fast  12.0 s  harness/test-swipe-stemblind.sh         (re-based, bead tla-7xql.7)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
@@ -107,13 +107,13 @@
 #   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
 #   slow 245.0 s  harness/test-recall-gate.sh                (re-based twice, 2026-10-18)
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
-#   slow  31.0 s  harness/test-swipe-level0.sh           (added, bead tla-7xql.2)
+#   slow  62.0 s  harness/test-swipe-level0.sh           (re-based, bead tla-7xql.7)
 #   ----  ------
-#         56.9 s  fast tier, 27 suites   (measured --fast totals: 26.9 s at 18,
+#         62.4 s  fast tier, 27 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        863.9 s  slow tier, 16 suites
-#        920.8 s  whole registry
+#        894.9 s  slow tier, 16 suites
+#        957.3 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -866,7 +866,20 @@ SUITES=(
   # IT CAN GO RED ON A CORPUS NOBODY CHANGED, because the threshold is set by
   # label permutation at a fixed seed. If it reddens with no corpus edit
   # behind it, read the signature it names before touching the seed.
-  "fast|6.5|swipe stem-blind gate|./harness/test-swipe-stemblind.sh"
+  # RE-BASED 6.5 -> 12.0 by bead tla-7xql.7. Two causes and only one is the
+  # corpus: the probe permutes labels over 3x the items, and 6.5 was WRONG
+  # BEFORE THAT BEAD TOUCHED ANYTHING. The author measured 8.2 / 8.7 / 7.8 s
+  # on the 80-item corpus against a budget central had set at 6.5 the same
+  # day, from readings every one of which had something else on the box.
+  # 11.115 / 11.158 / 10.962 s now, quiet, top process 4.2 percent.
+  # STILL FAST, AND NOW BY A LONG WAY THE DEAREST ROW IN THAT TIER, where the
+  # next is spike measurement at 7.5. The tier boundary here is the model
+  # checker rather than the wall clock, and this suite starts no JVM: its
+  # author proved that twice, by a static scan and by sampling pgrep for
+  # tla2tools.jar at 200 ms over a whole run, 0 of 50 samples. See THE
+  # INVERSION HAS SINCE CLOSED in this header, which is about this exact
+  # shape reappearing.
+  "fast|12.0|swipe stem-blind gate|./harness/test-swipe-stemblind.sh"
   # THE FAST HALF OF THE DRILL GATE, added by bead tla-0eis.3. It asks ONE
   # question of the real drill/ tree — is the corpus STRUCTURALLY sound — by
   # running harness/drill-gate.sh --static-only, which runs check 1, check 3
@@ -1445,7 +1458,13 @@ SUITES=(
   # contract rounds down. Three items had to be replaced over it. If this
   # suite reddens on the \div row, TLC was FIXED, and the right move is to
   # read bead tla-7n7e before touching anything.
-  "slow|31.0|level 0 swipe corpus|./harness/test-swipe-level0.sh"
+  # RE-BASED 31.0 -> 62.0 by bead tla-7xql.7, which took the corpus from 80
+  # items to 240. The suite re-bakes every item through verdict.sh, so its
+  # cost is linear in items and a 3x corpus is a 1.9x suite: the batching
+  # means the JVM count grows slower than the item count.
+  # 59.318 / 59.811 / 58.213 s on a quiet box with the top process at 4.2
+  # percent, which corroborates the author's own 59.4 / 59.8 / 59.2.
+  "slow|62.0|level 0 swipe corpus|./harness/test-swipe-level0.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

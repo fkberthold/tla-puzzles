@@ -82,6 +82,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
 ITEMS="$REPO_ROOT/swipe/level0/ITEMS.tsv"
+
+# The THINNEST template's item count, which is the n every power statement in
+# this suite is about. Read off the corpus rather than written as a literal:
+# bead tla-7xql.7 took every template from 16 to 48 and a literal 16 here then
+# compared the power table at one size against a scorer running at another.
+# The thinnest rather than the mean, because the gate runs per template and a
+# thin one is what decides whether an artifact in IT is detectable.
+LIVE_N="$(awk -F'\t' '$1 == "ITEM" { n[$3]++ } END { m = -1; for (t in n) if (m < 0 || n[t] < m) m = n[t]; print m }' "$ITEMS")"
 TEMPLATES="$REPO_ROOT/swipe/level0/TEMPLATES.tsv"
 SB="$REPO_ROOT/harness/swipe/stemblind.sh"
 
@@ -414,20 +422,33 @@ else
   bad "the emitted label sequence is nearly blocked for:$chgbad changes"
 fi
 
-# CONTROL. The broken order, built by sorting on the item id instead of the
-# stem id, must redden both checks above. Without this they are two numbers
+# CONTROL. A bad order must redden both checks above, or they are two numbers
 # that have never been seen to fail.
-BADORDER="$SCRATCH/stems-idorder.tsv"
+#
+# REBUILT BY tla-7xql.7, AND THE OLD ONE HAD GONE VACUOUS. It sorted on the
+# item id, which reddened both checks only because ids happened to run in kind
+# order inside a template. That bead appended ids 17 to 48 rather than
+# renumbering, which is a real improvement, since the id no longer gives the
+# kind away. It also left this control unable to produce a bad order at all:
+# it read adjacent=47 changes=29 and passed both checks it exists to fail.
+#
+# So the control now sorts on the ANSWER KEY'S OWN LABEL, then on the item id
+# within a label. That is the adversarial order directly rather than a proxy
+# that happened to correlate with it: a label sort gives perfect kind blocks by
+# construction, and the id sort inside each block gives runs of consecutive
+# ordinals. Both checks have something to catch no matter how ids are assigned
+# later.
+BADORDER="$SCRATCH/stems-keyorder.tsv"
 awk -F'\t' -v OFS='\t' '
-  FNR == NR { if ($1 == "KEY") itemid[$2] = $3; next }
-  $1 == "STEM" { print itemid[$2], $0 }
-' <(printf '%s\n' "$KEY") "$STEMS" | LC_ALL=C sort > "$SCRATCH/idorder.raw"
-cut -f2- "$SCRATCH/idorder.raw" > "$BADORDER"
+  FNR == NR { if ($1 == "KEY") { itemid[$2] = $3; label[$2] = $6 } next }
+  $1 == "STEM" { print label[$2], itemid[$2], $0 }
+' <(printf '%s\n' "$KEY") "$STEMS" | LC_ALL=C sort > "$SCRATCH/keyorder.raw"
+cut -f3- "$SCRATCH/keyorder.raw" > "$BADORDER"
 CTRL_OUT="$(order_stats "$BADORDER")"
 ctrl_a="$(field "$(grep -E '^ORDER	T1	' <<<"$CTRL_OUT" || true)" adjacent)"
 ctrl_c="$(field "$(grep -E '^ORDER	T1	' <<<"$CTRL_OUT" || true)" changes)"
 if [ "${ctrl_a:-0}" -gt 3 ] && [ "${ctrl_c:-9}" -lt 6 ]; then
-  ok "the control order (sorted by item id) reddens both checks: adjacent=$ctrl_a changes=$ctrl_c"
+  ok "the control order (sorted by the answer key) reddens both checks: adjacent=$ctrl_a changes=$ctrl_c"
 else
   bad "the control order did not redden the order checks: adjacent=$ctrl_a changes=$ctrl_c"
 fi
@@ -696,12 +717,12 @@ if [ -n "$CRIT" ] && [ "$CRIT" -gt 1 ]; then
   u_flag="$(field "$(grep '^SCORE-RESULT	' <<<"$u_out" || true)" flagged)"
   a_flag="$(field "$(grep '^SCORE-RESULT	' <<<"$a_out" || true)" flagged)"
   if [ "$u_rc" -eq 0 ] && [ "${u_flag:-1}" = "0" ]; then
-    ok "$((CRIT - 1)) of 16 correct is under the critical count and reads clear"
+    ok "$((CRIT - 1)) of $LIVE_N correct is under the critical count and reads clear"
   else
     bad "$((CRIT - 1)) correct was flagged: rc=$u_rc flagged=$u_flag"
   fi
   if [ "$a_rc" -eq 1 ] && [ "${a_flag:-0}" = "5" ]; then
-    ok "$CRIT of 16 correct is the critical count and fires on every template"
+    ok "$CRIT of $LIVE_N correct is the critical count and fires on every template"
   else
     bad "$CRIT correct did not fire: rc=$a_rc flagged=$a_flag"
   fi
@@ -756,21 +777,28 @@ check_refusal "an empty prediction set is refused" "$P_EMPTY" "no PRED rows"
 # question answerable instead of rhetorical, and the answer is in this part's
 # output rather than in a comment.
 # ===========================================================================
-printf '\n== part 6: the tolerance, and what 16 items buys ==\n'
+printf '\n== part 6: the tolerance, and what %s items buys ==\n' "$LIVE_N"
 
-POW16="$("$SB" power --n 16 --base 0.375 2>&1)"
-pow_crit="$(field "$POW16" crit)"
+# THE LIVE PER-TEMPLATE n, NOT A LITERAL 16. This read `power --n 16` until
+# bead tla-7xql.7 took every template from 16 items to 48, and then it compared
+# the table at one size against a scorer running at another and went red for
+# saying so. The number that matters is the n the scorer is actually working
+# at, so it is read off the corpus. A literal here is the same defect twice:
+# once as a wrong assertion, and again because a corpus that grows is exactly
+# what this check exists to keep honest.
+POWLIVE="$("$SB" power --n "$LIVE_N" --base 0.375 2>&1)"
+pow_crit="$(field "$POWLIVE" crit)"
 if [ "$pow_crit" = "$CRIT" ]; then
-  ok "the power table and the scorer agree on the critical count ($pow_crit of 16)"
+  ok "the power table and the scorer agree on the critical count ($pow_crit of $LIVE_N)"
 else
-  bad "the power table says crit=$pow_crit and the scorer says $CRIT"
+  bad "the power table says crit=$pow_crit at n=$LIVE_N and the scorer says $CRIT"
 fi
 
-pow_tol="$(field "$POW16" tol)"
-pow_md="$(field "$POW16" mindetect)"
-printf '       at n=16, base 0.3750, alpha 0.05: tolerance %s, detectable at 0.80 power from %s\n' "$pow_tol" "$pow_md"
+pow_tol="$(field "$POWLIVE" tol)"
+pow_md="$(field "$POWLIVE" mindetect)"
+printf '       at n=%s, base 0.3750, alpha 0.05: tolerance %s, detectable at 0.80 power from %s\n' "$LIVE_N" "$pow_tol" "$pow_md"
 if awk -v t="$pow_tol" 'BEGIN { exit !(t > 0) }'; then
-  ok "the tolerance is a positive critical margin, $pow_tol at n=16"
+  ok "the tolerance is a positive critical margin, $pow_tol at n=$LIVE_N"
 else
   bad "the tolerance came out non-positive: $pow_tol"
 fi
