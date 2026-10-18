@@ -329,8 +329,23 @@ fi
 # The first version of this assertion was `grep NOT CHECKED || rc -eq 0`,
 # which passed through the rc arm on every run and could not fail. Noted here
 # because an or-ed fallback is the quiet way a control goes vacuous.
+#
+# AND EVERY CHANNEL THE WRAPPER CALLS HAS TO BE SATISFIED HERE, not only the
+# one a row is about. This row asserts on the wrapper's AGGREGATE exit code,
+# so any channel reporting a finding reddens it. practice-root delivers to the
+# practice root itself rather than to a subdirectory, so a root that exists at
+# all is one it will compare, and an empty root is one file owed. Delivering it
+# leaves the root non-empty, which is what this row needed anyway: a run that
+# compared something. Added 2026-10-18 with bead tla-xbbb.
 EMPTY_ROOT="$WORK/empty-practice"
 mkdir -p "$EMPTY_ROOT"
+# Its own sandbox HOME rather than part 5's. That one is defined per-invocation
+# on purpose, because part 3 wants the real HOME, so hoisting it to the top of
+# the file would quietly change what part 3 tests.
+EMPTY_SANDBOX_HOME="$WORK/empty-sandbox-home"
+mkdir -p "$EMPTY_SANDBOX_HOME"
+HOME="$EMPTY_SANDBOX_HOME" "$REPO_ROOT/scripts/deliver-practice-root.sh" \
+  "$EMPTY_ROOT" >/dev/null 2>&1
 EMPTY_OUT=$("$WRAPPER" "$EMPTY_ROOT" 2>&1)
 EMPTY_RC=$?
 if [ "$EMPTY_RC" -eq 0 ] && grep -qF "NOT CHECKED" <<<"$EMPTY_OUT"; then
@@ -495,6 +510,15 @@ echo "== part 6: the drill channel's stale and drifted findings both land =="
 
 DRILL_ROOT="$WORK/drill-practice"
 mkdir -p "$DRILL_ROOT"
+
+# The rows below read the wrapper's AGGREGATE exit code to say something about
+# drill, so every other channel it calls has to be in sync or the reading is
+# about the wrong thing. Five of the seven skip here, because their trees are
+# absent. practice-root does not: its destination IS this root, so it compares
+# the moment the root exists and reports the README owed. Deliver it once and
+# the rc these rows read is drill's alone. Added 2026-10-18 with bead tla-xbbb.
+HOME="$SANDBOX_HOME" "$REPO_ROOT/scripts/deliver-practice-root.sh" \
+  "$DRILL_ROOT" >/dev/null 2>&1
 
 DRILL_PLANT=$(HOME="$SANDBOX_HOME" "$DELIVER_DRILL" "$DRILL_ROOT/drill" 2>&1)
 DRILL_PLANT_RC=$?

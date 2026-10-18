@@ -90,9 +90,11 @@ delivered copy. That reverses the direction the whole channel runs in.
 **It prints what it did not check, every run.** Three channels had no verify
 mode when this step was written, and a run that said "in sync" while silently
 skipping them would have been the failure this step exists to catch, wearing
-the uniform of its own fix. All five carry one since 2026-10-18, so the line
-now says that no channel is left out. That is a stronger claim and it is still
-a claim about reach, so it stays printed rather than going quiet.
+the uniform of its own fix. Every channel carries one since 2026-10-18, so the
+line now says that no channel is left out. That is a stronger claim and it is
+still a claim about reach, so it stays printed rather than going quiet. The
+count is left out on purpose, because a number here is one new channel away
+from being wrong and nothing would catch it.
 
 **The drill channel is read twice and only one root comes off the argument.**
 Its study configuration lives at `$DRILL_STUDY_ROOT`, or at

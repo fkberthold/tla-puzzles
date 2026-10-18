@@ -83,7 +83,8 @@ KNOWN_CHANNELS='recall
 exercises
 drill
 completion
-problems'
+problems
+practice-root'
 
 # Empty since 2026-10-18, when drill gained --verify. The report below says so
 # in words rather than printing a heading over nothing: a block announcing
@@ -255,6 +256,21 @@ DRILL_STUDY="${DRILL_STUDY_ROOT:-$HOME/Study/tla-drills}"
 echo "drill study root: $DRILL_STUDY"
 verify_overwriting "drill study" \
   "$REPO_ROOT/scripts/deliver-drill.sh" --study --verify "$DRILL_STUDY"
+
+# --- practice-root, the only channel whose destination IS the practice root --
+#
+# Added 2026-10-18 with bead tla-xbbb. Every other channel here delivers into a
+# subdirectory, so every other call passes "$PRACTICE_ROOT/<name>". This one
+# passes the root itself, and a reader comparing the calls should see that it
+# is deliberate rather than a dropped path segment.
+#
+# It carries the practice tree's own README, which until that bead had no
+# source in this repo: nothing generated it, no script wrote it and no gate
+# read it. It goes through the never-overwrite helper because the delivered
+# copy is a page Frank may annotate.
+
+verify_never_overwrite "practice-root" \
+  "$REPO_ROOT/scripts/deliver-practice-root.sh" --verify "$PRACTICE_ROOT"
 
 # --- the report ------------------------------------------------------------
 
