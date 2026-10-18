@@ -130,7 +130,6 @@ SITE	swipe/level0/ITEMS.tsv	4	17 \div 5	items L0-T5-06, -17, -29 and -42. The di
 SITE	swipe/level0/ITEMS.tsv	1	(17 \div 5)	item L0-T5-02, the identity rebuilt from a positive dividend
 SITE	swipe/level0/ITEMS.tsv	1	~(17 \div 5	the guard field of item L0-T5-42, same literal 17
 SITE	swipe/level0/ITEMS.tsv	2	(12 \div 5)	items L0-T5-25 and L0-T5-37. The dividend is the literal 12
-SITE	swipe/level0/ITEMS.tsv	1	17 \div 0	item L0-T5-45, illformed by its divisor. The dividend is 17
 SITE	swipe/level0/ITEMS.tsv	2	5 \div 0	items L0-T5-14 and L0-T5-15, both on the divisor. The dividend is 5
 SITE	swipe/level0/ITEMS.tsv	1	1 \div 0	item L0-T5-44, never evaluated behind a false antecedent. The dividend is 1
 SITE	swipe/level0/ITEMS.tsv	1	ON \div WITH	the heading of the comment block that records this bug
@@ -141,6 +140,8 @@ SITE	swipe/level0/ITEMS.tsv	1	-9 \div 4	the same comment block, second measured 
 SITE	swipe/level0/ITEMS.tsv	1	-7 \div 3	the same comment block, third measured case
 SITE	swipe/level0/ITEMS.tsv	1	12 \div 2	the comment block's parse-failure example. The dividend is 12
 SITE	swipe/level0/ITEMS.tsv	1	12 \div 5.	the second parse-failure example in that block. The dividend is 12
+SITE	swipe/level1/ITEMS.tsv	1	ON \div WITH	the heading of the comment block that carries the level 0 rule forward
+SITE	swipe/level1/ITEMS.tsv	1	uses \div at	the same comment block, stating that no level 1 claim or pin uses it
 SITE	swipe/README.md	1	on `\div` with	the section heading that records this bug
 SITE	swipe/README.md	1	`a \div b`	the quoted Naturals.tla contract
 SITE	swipe/README.md	1	(a \div b)	the quoted identity from the same contract

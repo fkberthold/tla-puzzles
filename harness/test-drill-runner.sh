@@ -2536,8 +2536,13 @@ else
   assert_rc "a source carrying no runner still exits 0" 0
   assert_says_literal "and says no runner was found" \
     "no runner at $NORUNNER_REPO/drill/drill.sh, so none lands" "$RUN_OUT"
+  # The trailing comma used to anchor the end of "0 skipped". Bead tla-mjvx
+  # put the differing count between them on 2026-10-18, because a plain run
+  # that skips a prompt whose source has moved was reporting success and
+  # saying nothing about it. So the anchor moved to the parenthesis, which
+  # also makes this row check the new wording rather than only the count.
   assert_says_literal "while the prompts still land" \
-    "1 prompt(s) landed, 0 skipped," "$RUN_OUT"
+    "1 prompt(s) landed, 0 skipped (0 differ from the source)" "$RUN_OUT"
   assert_absent "and nothing is placed where the runner would have gone" "$D_NORUNNER/drill"
 
   assert_never_names "no delivery run named the real practice tree" \
