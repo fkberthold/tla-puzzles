@@ -82,6 +82,23 @@
 # nothing tells him a delivered chapter has gone stale, which is the same
 # shape as a command reporting success without distinguishing "nothing to do"
 # from "something to do that I cannot see".
+#
+# ---------------------------------------------------------------------------
+# WHY --verify IS AN ALIAS FOR --check HERE AND A SECOND MODE EVERYWHERE ELSE
+#
+# --check means two different things across the five delivery scripts, which is
+# a trap for anybody writing a wrapper over them. On recall, problems,
+# completion and drill it is a dry run that prints what WOULD be delivered. On
+# this one it is the drift report, because this is where the drift report was
+# first written and it had no dry run to collide with.
+#
+# scripts/verify-delivery.sh has to call one spelling on every channel, so
+# --verify is that spelling: it is the drift report on recall, completion and
+# problems, and from 2026-10-18 it is an accepted alias for --check here.
+#
+# --check KEEPS WORKING and is not deprecated. It shipped the same week and the
+# bead notes reference it by name, so breaking it would cost more than the
+# collision does. The two flags are the same mode and both exit 3 on stale only.
 
 set -uo pipefail
 
@@ -96,7 +113,9 @@ Usage: $0 [--check | --adopt] <chapter> [dest-root]
   dest-root  where to deliver into (default: \$HOME/tla-practice/exercises)
 
   --check    report what is absent, stale or conflicted and write nothing.
-             Exits 3 if anything is stale, 0 otherwise.
+             Exits 3 if anything is stale, 0 otherwise. --verify is an
+             accepted alias and is the spelling every other channel uses
+             for its drift report.
   --adopt    record a digest for every delivered file that is byte-identical
              to its source, so later repairs can reach a chapter delivered
              before this script kept records. Copies nothing.
@@ -112,7 +131,8 @@ CHECK_ONLY=0
 ADOPT_ONLY=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --check) CHECK_ONLY=1; shift ;;
+    # One mode, two spellings. See WHY --verify IS AN ALIAS above.
+    --check|--verify) CHECK_ONLY=1; shift ;;
     --adopt) ADOPT_ONLY=1; shift ;;
     --) shift; break ;;
     -*) echo "$0: unknown option: $1" >&2; usage; exit 1 ;;

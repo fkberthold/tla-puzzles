@@ -652,6 +652,47 @@ assert_content "an adopted file takes a later repair" \
 assert_bytes "his edit is still untouched after adoption" \
   "$DEST_CHECK/ch05/EXERCISES.md" "$TMPROOT/keeper-adopt.md"
 
+# --- --verify is the same mode under the spelling every channel shares ------
+#
+# --check means a dry run on recall, problems, completion and drill, and the
+# drift report here. scripts/verify-delivery.sh has to call one spelling on
+# every channel, so --verify is that spelling and it is an alias here. Both
+# directions are pinned, because an alias that agreed on the exit code and not
+# on the output would still break the wrapper, which reads the STALE lines.
+
+VERIFY_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --verify 5 "$DEST_STALE" 2>/dev/null)
+VERIFY_RC=$?
+if [ "$VERIFY_RC" -eq "$STALE_RC" ]; then
+  ok "--verify exits what --check exits on the same stale tree (rc=$VERIFY_RC)"
+else
+  nope "--verify exited $VERIFY_RC where --check exited $STALE_RC on the same tree"
+fi
+
+if [ "$VERIFY_OUT" = "$STALE_OUT" ]; then
+  ok "--verify prints what --check prints, so the wrapper can read either"
+else
+  nope "--verify and --check disagree on output over the same tree"
+fi
+
+# The alias must not have become a THIRD mode that quietly reports nothing.
+# Without this row the two above would pass if --verify had been wired to a
+# branch that exits 3 and prints an empty report.
+assert_says "--verify names the stale file by the same STALE line" \
+  '^STALE, you have not edited it' "$VERIFY_OUT"
+
+VERIFY0_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --verify 5 "$DEST_NOREC" 2>/dev/null)
+VERIFY0_RC=$?
+if [ "$VERIFY0_RC" -eq 0 ]; then
+  ok "--verify exits 0 when the only finding is a conflict, same as --check"
+else
+  nope "--verify exited $VERIFY0_RC on a conflict-only tree, wanted 0"
+fi
+
+# The rc alone would be satisfied by a mode that found nothing at all, which is
+# the shape a broken alias would take: a clean exit over a tree it never read.
+assert_says "--verify still names the conflict it exited 0 over" \
+  'CONFLICT, differs from source and has no record' "$VERIFY0_OUT"
+
 # --- the two write modes are not combinable --------------------------------
 
 BOTH_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC" bash "$SCRIPT" --check --adopt 5 "$DEST_CHECK" 2>&1)
