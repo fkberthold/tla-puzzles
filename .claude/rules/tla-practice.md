@@ -244,6 +244,29 @@ fairness properties for subactions of `Next`." `FiniteMonotonic/CRDT.tla`
 steps outside that and says so in a comment, noting the second conjunct isn't
 a standard fairness condition and the spec is machine closed anyway.
 
+**ADDED 2026-10-18, and this is TLC behavior rather than corpus practice.**
+"Subactions of `Next`" is the whole condition, and breaking it costs more than
+machine closure. A fairness conjunct over an action that `[][Next]_vars`
+forbids leaves no behavior at all, and TLC then exits 0 on every temporal
+property, including one no behavior can satisfy. Measured on TLC
+2026.07.31.184830: `Init /\ [][Next]_vars /\ WF_vars(A)` where `A` is `s' = 99`
+and `Next` never allows it reads rc 0 against `[]<>(s # s)`, where the same
+property on the same system without the conjunct reads 13.
+
+`harness/vacuity.sh` already catches it, as VECTOR 4, and that probe reads the
+same two codes the measurement above does. So this paragraph records a second
+route into a failure the harness was already built for. The first route was an
+`Init` admitting nothing, and fairness outside `Next` gets to the same place
+with a healthy state space and a configured model.
+
+The one check that still fires is the invariant channel, which is the reason
+this is worth writing down. The same empty spec exits 12 on a `[]P` over a
+state predicate, because TLC lifts that to an invariant and the invariant pass
+walks the state graph whatever the temporal conjunct says. So a spec checked
+only through lifted invariants looks healthy while every liveness obligation
+on it is vacuous. `harness/verdict.sh` carries the grid and
+`harness/test-verdict.sh` pins it.
+
 **Thin spot**: 16 box sites in 12 modules, and 6 fairness sites in 5. The four
 groups above classify what exists. They aren't evidence that a fifth reason
 would be wrong.

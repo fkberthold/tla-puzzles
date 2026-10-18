@@ -359,6 +359,148 @@ assert_verdict "rc=13  refinement, implied-action obligation broken" \
   --config "$SHAPES/Refines.cfg" "$SHAPES/BadAction.tla"
 
 echo
+echo "== one claim, six spec formulas (beads tla-lj1n and tla-vzu3) =="
+
+# Two beads each named a discriminator for the 12/13 split, and the two
+# readings can't both be right. tla-lj1n measured a state predicate under
+# PROPERTY coming back 13 when the initial state refuted it. That's the
+# shortest finite prefix there is, so the bead proposed that 12 just means
+# INVARIANT. tla-vzu3 measured one obligation moving from 12 to 13 when the
+# spec gained a fairness conjunct, which says the keyword can't be the whole
+# story.
+#
+# Measured 2026-10-18 over the grid below, 24 cells plus two INVARIANT
+# controls. Neither reading survives it, and there are three channels rather
+# than two.
+#
+#   1. The invariant channel. A box over a state predicate gets lifted
+#      outright. It prints "Invariant Cold is violated" rather than naming
+#      the property, and it exits 12. Nothing below moves it.
+#   2. The safety channel. A temporal formula refutable by a finite prefix,
+#      and not liftable to an invariant, exits 12. Only while the spec
+#      formula carries no liveness conjunct.
+#   3. The liveness channel. Everything else exits 13. That includes the
+#      implied-action channel, and it includes a bare state predicate under
+#      PROPERTY.
+#
+# So 12 and 13 name the channel that reported. A caller reads {0} as holds
+# and {12, 13} as refuted, and never predicts which. Every pinned-behavior
+# item in epic tla-7xql is a fair spec by construction, so that whole family
+# sits in channel 3.
+#
+# I measured the effect in channel 2 and not TLC's reason for it. WF, SF and
+# a bare []<> conjunct all flip the same formula the same way, so my hunch is
+# that any liveness conjunct forces the tableau and the tableau owns the
+# exit code from then on. The grid pins the behavior either way.
+
+cat >"$SHAPES/FairShape.tla" <<'TLA'
+---- MODULE FairShape ----
+(* One system, six spec formulas, four claims. Every run below names one    *)
+(* spec and one claim, and nothing else varies.                            *)
+EXTENDS Naturals
+VARIABLE s
+vars == <<s>>
+
+Init == s = 0
+Move == s' = (s + 1) % 4
+Idle == s' = s
+Next == Move \/ Idle
+
+Cold == s # 2
+Hot  == s = 2
+
+(* Outside is enabled at every state and [][Next]_vars forbids it, so       *)
+(* requiring it to fire leaves no behavior at all.                          *)
+Outside == s' = 99
+
+NoFair    == Init /\ [][Next]_vars
+WithWF    == Init /\ [][Next]_vars /\ WF_vars(Move)
+WithBoxEv == Init /\ [][Next]_vars /\ []<>(s = 1)
+Empty     == Init /\ [][Next]_vars /\ WF_vars(Outside)
+BadConj   == Init /\ [][Next]_vars /\ [](s \in 0..3)
+
+BoxCold   == []Cold
+BareHot   == Hot
+NeverHot  == ~<>Hot
+NeverTrue == []<>(s # s)
+====
+TLA
+
+shape_cfg () {
+  printf 'SPECIFICATION %s\nPROPERTY %s\n' "$1" "$2" >"$SHAPES/$1-$2.cfg"
+}
+for shape_spec in NoFair WithWF WithBoxEv Empty BadConj; do
+  for shape_claim in BoxCold BareHot NeverHot NeverTrue; do
+    shape_cfg "$shape_spec" "$shape_claim"
+  done
+done
+
+# Channel 1. The lifting is total, and the message says so by naming Cold
+# instead of BoxCold.
+assert_verdict "rc=12  []P over a state predicate is lifted to an invariant" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$SHAPES/NoFair-BoxCold.cfg" "$SHAPES/FairShape.tla"
+
+assert_verdict "rc=12  the lifting survives a fairness conjunct" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$SHAPES/WithWF-BoxCold.cfg" "$SHAPES/FairShape.tla"
+
+# Channel 3, and this is tla-lj1n's measured case. The initial state is as
+# finite as a prefix gets and it still reports through the liveness channel,
+# which is what refutes "12 means INVARIANT". Note the claim is a bare state
+# predicate rather than a box over one, so channel 1 never sees it.
+assert_verdict "rc=13  a bare state predicate refuted by the initial state" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/NoFair-BareHot.cfg" "$SHAPES/FairShape.tla"
+
+assert_verdict "rc=13  the same claim, unmoved by a fairness conjunct" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/WithWF-BareHot.cfg" "$SHAPES/FairShape.tla"
+
+# Channel 2, and this pair is tla-vzu3. One obligation, one system, and the
+# code moves because the spec formula gained a conjunct the obligation never
+# mentions.
+assert_verdict "rc=12  ~<>P on a spec with no liveness conjunct" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$SHAPES/NoFair-NeverHot.cfg" "$SHAPES/FairShape.tla"
+
+assert_verdict "rc=13  the same ~<>P once the spec carries WF" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/WithWF-NeverHot.cfg" "$SHAPES/FairShape.tla"
+
+# Fairness is not what does it. A bare []<> conjunct in the spec formula,
+# with no fairness operator anywhere, moves the same claim the same way.
+assert_verdict "rc=13  and again on a []<> conjunct, no fairness anywhere" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/WithBoxEv-NeverHot.cfg" "$SHAPES/FairShape.tla"
+
+# The emptiness hazard, which epic tla-7xql carries as H2 and reached by a
+# different route. WF over an action outside Next leaves no behavior, and a
+# spec with no behaviors satisfies every temporal property. NeverTrue is
+# refuted on any satisfiable spec here, so the pair is the probe.
+assert_verdict "rc=13  a formula no behavior satisfies, on a live spec" \
+  "LIVENESS_VIOLATION" 13 \
+  --config "$SHAPES/NoFair-NeverTrue.cfg" "$SHAPES/FairShape.tla"
+
+assert_verdict "rc=0   the same formula, on a spec with no behaviors" \
+  "OK" 0 \
+  --config "$SHAPES/Empty-NeverTrue.cfg" "$SHAPES/FairShape.tla"
+
+# And the asymmetry that makes the hazard worth gating. The empty spec hides
+# from the liveness channel and not from the invariant channel, so a corpus
+# checked only through lifted invariants would never notice.
+assert_verdict "rc=12  the empty spec still fails a lifted invariant" \
+  "SAFETY_VIOLATION" 12 \
+  --config "$SHAPES/Empty-BoxCold.cfg" "$SHAPES/FairShape.tla"
+
+# A safety-shaped temporal conjunct in SPECIFICATION is refused outright,
+# pointing at the conjunct's own source span. Worth pinning because it reads
+# as a spec-author mistake and it is really TLC declining the shape.
+assert_verdict "rc=255 a []P conjunct inside the spec formula is refused" \
+  "TLC_EXCEPTION" 255 \
+  --config "$SHAPES/BadConj-NeverHot.cfg" "$SHAPES/FairShape.tla"
+
+echo
 echo "== --config means the same file whatever the module path (bead tla-sn0h) =="
 
 # TLC calls ToolIO.setUserDir(<module's directory>) when, and only when, the

@@ -52,11 +52,13 @@
 #      0  OK                     no error found
 #     10  ASSUMPTION_FAILED      ASSUME false, or -postCondition false
 #     11  DEADLOCK               reachable state with no successor
-#     12  SAFETY_VIOLATION       something refutable by a finite prefix -- an
-#                                INVARIANT, or a PROPERTY that is a safety
-#                                property. NOT "an INVARIANT was violated"
-#     13  LIVENESS_VIOLATION     a PROPERTY needing an infinite behaviour, or
-#                                an implied action; incl. refinement, §5.4
+#     12  SAFETY_VIOLATION       the invariant channel or the safety channel
+#                                reported. NOT "an INVARIANT was violated".
+#                                See the AMENDED block below: not "the
+#                                counterexample was finite" either
+#     13  LIVENESS_VIOLATION     the liveness channel or the implied-action
+#                                channel reported. Covers refinement, §5.4,
+#                                and a bare state predicate under PROPERTY
 #     14  ASSERT_VIOLATION       Assert(FALSE, ...) DURING BEHAVIOUR EXPLORATION
 #     75  SPEC_EVAL_FAILURE      the spec could not be evaluated
 #     76  SAFETY_EVAL_FAILURE    the INVARIANT could not be evaluated
@@ -96,7 +98,12 @@
 #   violated" would be a false statement about a check that never ran.
 #
 # 12 AND 13 SPLIT ON THE SHAPE OF THE FORMULA, NOT ON THE .cfg KEYWORD THAT
-# INTRODUCED IT (bead tla-94n). Row 13 used to read "PROPERTY violated", and a
+# INTRODUCED IT (bead tla-94n). AMENDED 2026-10-18 at the end of this section,
+# and the amendment matters: the shape decides nothing on its own, because the
+# SPEC FORMULA moves the same claim between the two codes. Read the whole
+# section before taking a number off the grid below.
+#
+# Row 13 used to read "PROPERTY violated", and a
 # reader takes that as "a violated PROPERTY exits 13". It does not always.
 # Measured on v1.8.0 over one two-state spec, each property declared ALONE with
 # NO INVARIANT in the .cfg:
@@ -136,6 +143,74 @@
 #   exit 12 and 13. TLC's status comes from what process() returns, not from
 #   what it printed, so even -tool mode's structured codes get this one wrong.
 #   The exit code is not just the best channel here. It is the only correct one.
+#
+# AMENDED 2026-10-18, AND THE GRID ABOVE IS NOT WRONG SO MUCH AS UNDERSPECIFIED
+# (beads tla-lj1n and tla-vzu3). Every left-column row above was measured on a
+# spec formula of the form Init /\ [][Next]_vars with nothing conjoined. Add a
+# liveness conjunct and four of those five rows move to 13.
+#
+#   Measured over 24 cells plus two INVARIANT controls, one system, one claim
+#   per run. harness/test-verdict.sh pins eleven of them.
+#
+#                       no conjunct   WF   SF   []<>   empty spec   []P conjunct
+#     INVARIANT P            12       12   12    12        12           255
+#     PROPERTY []P           12       12   12    12        12           255
+#     PROPERTY P             13       13   13    13        13           255
+#     PROPERTY ~<>P          12       13   13    13         0           255
+#     PROPERTY []<>FALSE     13       13   13    13         0           255
+#
+#   THERE ARE THREE CHANNELS, NOT TWO, AND THAT IS WHAT THE TWO BEADS WERE
+#   EACH SEEING HALF OF.
+#
+#   1. THE INVARIANT CHANNEL, EXIT 12, AND NOTHING MOVES IT. A box over a
+#      state predicate is lifted outright. The message names the predicate
+#      rather than the property, printing "Invariant P is violated" for a
+#      .cfg that said PROPERTY []P, which is how you tell the lifting
+#      happened. Immune to fairness and immune to an empty behavior set.
+#
+#   2. THE SAFETY CHANNEL, EXIT 12, AND A LIVENESS CONJUNCT TAKES IT AWAY. A
+#      temporal formula refutable by a finite prefix and not liftable to an
+#      invariant sits here, which is the left column above. It stays here
+#      only while the spec formula carries no liveness conjunct.
+#
+#   3. THE LIVENESS CHANNEL, EXIT 13. Everything else, including the
+#      implied-action channel and including a BARE state predicate under
+#      PROPERTY. That last one is tla-lj1n's case and it is the sharpest
+#      thing here: TLC prints "Property P is violated by the initial state"
+#      and exits 13. An initial state is the shortest finite prefix there is,
+#      so "12 means a finite counterexample" is not the rule.
+#
+#   SO 12 AND 13 NAME THE CHANNEL THAT REPORTED. Nothing about the formula
+#   alone fixes which, and nothing about the keyword does either. A caller
+#   reads {0} as holds and {12, 13} as refuted, and never predicts which.
+#   harness/seeded-bugs.sh and harness/refinement.sh already do that.
+#
+#   WHAT IS NOT ESTABLISHED. I measured the effect in channel 2 and not TLC's
+#   reason for it. WF, SF and a bare []<> conjunct all move the same formula
+#   the same way, so my hunch is that any liveness conjunct forces the tableau
+#   and the tableau owns the code from then on. Nobody has read TLC's source
+#   to check, and the grid holds either way.
+#
+#   TWO THINGS FELL OUT THAT ARE WORTH AS MUCH AS THE SPLIT.
+#
+#   A SPEC WITH NO BEHAVIORS EXITS 0 ON EVERY TEMPORAL PROPERTY, INCLUDING ONE
+#   NO BEHAVIOR CAN SATISFY. WF over an action that [][Next]_vars forbids is
+#   one way in, and []<>FALSE above is the probe that catches it. This is not
+#   news to the harness: vacuity.sh's VECTOR 4 is that probe already, reading
+#   the same two codes, and it got there through an Init admitting nothing.
+#   Fairness outside Next is a second route with a healthy state space and a
+#   configured model. Epic tla-7xql carries it as hazard H2.
+#
+#   What the grid adds is the asymmetry, and it is why the probe has to exist
+#   rather than being a nicety: the same empty spec still exits 12 on a
+#   lifted invariant. So a corpus checked only through lifted invariants looks
+#   healthy while every liveness obligation on it is vacuous.
+#
+#   A SAFETY-SHAPED TEMPORAL CONJUNCT IN THE SPECIFICATION IS REFUSED AT 255,
+#   pointing at the conjunct's own source span with "TLC cannot handle the
+#   temporal formula". It reads as a spec-author mistake and it is TLC
+#   declining the shape, so an author who meets it should move the conjunct to
+#   an INVARIANT rather than hunt for a typo.
 #
 # rc=14 IS A TIMING FACT, NOT A CONSTRUCT FACT. It does not mean "an Assert
 # failed"; it means an Assert failed once TLC was already exploring behaviour.
