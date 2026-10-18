@@ -8,7 +8,8 @@ checker.
 
 Epic `tla-7xql` carries the contract and the seven locked decisions. This file
 covers what the level 0 rung looks like once there are real items in it, which
-is bead `tla-7xql.2`.
+is bead `tla-7xql.2`, grown to a size the stem-blind gate can decide in bead
+`tla-7xql.7`.
 
 ## Why level 0 came first
 
@@ -37,9 +38,11 @@ wrong once, reading `\cup` as a name called `cup` on 20 of 80 claims.
 
 ```
 swipe/level0/TEMPLATES.tsv   five families, each with its generating idea
-swipe/level0/ITEMS.tsv       80 items, 16 per template
+swipe/level0/ITEMS.tsv       240 items, 48 per template
 swipe/level0/bake.sh         the verdict channel: --check, --write, --stats
-harness/test-swipe-level0.sh the gate, 37 assertions
+harness/test-swipe-level0.sh the gate
+harness/swipe/stemblind.sh   the stem-blind instrument
+harness/test-swipe-stemblind.sh  the gate over that instrument
 ```
 
 Both tables carry a literal marker in field 1, so prose in them can never be
@@ -57,6 +60,147 @@ awk -F'\t' '$1 == "ITEM" && $3 == "T2"' swipe/level0/ITEMS.tsv
 grep '^ITEM' swipe/level0/ITEMS.tsv | cut -f3,6 | sort | uniq -c
 swipe/level0/bake.sh --stats
 ```
+
+## 48 items per template, and why that number
+
+Bead `tla-7xql.7` grew the corpus from 80 items to 240 for one reason: at 16
+items per template the stem-blind gate could not decide anything. Run
+`harness/swipe/stemblind.sh power --n 16` and the exact binomial says a judge
+needs 10 of 16, which is 25 points over the 0.3750 floor, and an artifact has
+to make the label 69.0 percent predictable before the gate fires at 80 percent
+power.
+
+Gururangan's published result was 67 percent against a 34.3 percent baseline.
+So the finding the gate was copied from would have sat right at the edge of
+what 16 items can see.
+
+| items | crit | critacc | tolerance | detectable at 0.80 power |
+|---|---|---|---|---|
+| 16 | 10 | 0.6250 | 0.2500 | 0.6900 |
+| 32 | 18 | 0.5625 | 0.1875 | 0.6190 |
+| 48 | 25 | 0.5208 | 0.1458 | 0.5705 |
+| 64 | 31 | 0.4844 | 0.1094 | 0.5295 |
+
+At 48 the tolerance is 14.6 points and detection sits at 0.5705, which clears
+Gururangan's 0.67 with room. 32 would have met the bar as well, at 0.6190, and
+the bead allowed it. I took 48 because each of the five families had that many
+distinct generating ideas in it without repeating one in new clothes, and
+because the margin is where the next author's habit gets caught rather than
+tied.
+
+**The size is a property of the sample, not of the corpus.** That is the whole
+argument for growing rather than for loosening a tolerance. A skew that sits
+under the floor today becomes a real finding the moment somebody adds items,
+and by then it has shipped.
+
+**Pooling the five templates is not the alternative.** It reaches a 10.0 point
+tolerance at once, and it throws away the thing the gate measures, since the
+artifact is template-local and a pooled number hides one bad family behind
+four good ones.
+
+### What the gain buys, measured rather than argued
+
+Plant one token on the first N false items of a template, the way part 4 of
+`harness/test-swipe-stemblind.sh` does, and raise N until the probe fires.
+
+| corpus | fires at | share of the template | best stump | null95 |
+|---|---|---|---|---|
+| 16 per template | 5 of 16 | 31% | 0.6875 | 0.6250 |
+| 48 per template | 8 of 48 | 17% | 0.5417 | 0.5208 |
+
+So a token has to be about half as widespread now before the probe can call
+it. The permutation null fell from 0.6250 to 0.5208 at the same time, which is
+the same gain read off the threshold instead of off the plant.
+
+### Two gate assertions move with the size, and neither is in this bead
+
+`harness/test-swipe-level0.sh` asserts the corpus holds 60 to 100 items, and
+`harness/test-swipe-stemblind.sh` compares the live scorer's critical count
+against `power --n 16`. Both were written when 16 per template was the size,
+and both go red at 48 for that reason alone. They belong to beads
+`tla-7xql.2` and `tla-7xql.1`, so this bead reports them rather than editing
+the instruments that measure it.
+
+## How an item gets authored, now that the gate can see
+
+Bead `tla-7xql.8` found three authoring signatures in the first 80 items, and
+all three were the writer's habit rather than the item's content. That is
+Gururangan's finding reproduced in miniature in our own corpus.
+
+The fix is structural rather than a list of tokens to avoid. **Items are
+authored in matched groups that share their surface and differ in their
+label.** The unit is either a four, one item of each kind built from one idea,
+or a pair, a true and a false item built from one idea. Six fours and twelve
+pairs is 48, and it lands the mix at 18 true, 18 false, 6 vacuous and
+6 ill-formed without anybody counting.
+
+A few groups came apart when the bake contradicted a label or when the probe
+named a token, so the file is not six clean fours and twelve clean pairs
+today. The arithmetic is the reason the mix holds, and the discipline is what
+keeps a token from carrying the answer.
+
+A token that enters the corpus inside a matched group carries the label
+distribution of that group, so a decision stump learns nothing from it. A
+token unique to one member of a group sits on one item, and leave-one-out
+scoring already makes a one-item rule worthless. The length and token-count
+features the probe also fits come out balanced for free, since the members of
+a group are about the same length.
+
+Run the probe while authoring, not once at the end:
+
+```bash
+harness/swipe/stemblind.sh probe
+harness/swipe/stemblind.sh probe --template T5
+```
+
+If a template flags, re-author it. Do not raise the threshold, do not reseed
+for a different permutation draw, and do not drop the item that happens to
+carry the signature. Dropping it picks the features the corpus is clean on,
+which is the failure the gate exists to catch.
+
+### The vacuity sentinel is gone, and reaching for one rebuilds the signature
+
+The first 80 items marked a vacuous claim's body with `99`: `Cardinality(s) =
+99`, `x > 99`, `f[1] = 99`. Five items carried it and every one of them was
+vacuous. Leave-one-out neutralizes a one-per-template rule, except T1 carried
+two of them, which made `has:99` a real two-item rule sitting at the top of
+T1's feature list.
+
+**A reader who learns that a 99 means swipe down never evaluates another
+vacuous item.** That reader scores well and has learned nothing, which is the
+whole hazard.
+
+So the five sentinels were replaced with ordinary bodies: `Cardinality(s) = 2`,
+`x > 0`, `f[1] = 1`, `i > 0`, `Cardinality({}) = 1`. The new vacuous items are
+written the same way, and some of their bodies are false where a non-empty
+range would have evaluated them.
+
+That is a stronger fix than varying the sentinel per template, which is what
+the bead asked for. A varied sentinel is still a sentinel, and five of them
+across five families is five rules rather than one. **If a later author wants
+a distinguished value in a vacuous body, the thing to know is that the body is
+the part the reader must not need.** The lesson of a vacuous universal is the
+empty range, so the body should look like a claim worth evaluating.
+
+### The universal quantifier is not a down-swipe marker either
+
+`\A` sat on five items in the first 80, every one of them vacuous. It now
+appears on true and false items in every template, so the quantifier says
+nothing about the label. `\A s \in SUBSET {1, 2} : s \subseteq {1, 2}` is true,
+`\A s \in SUBSET {1, 2} : Cardinality(s) = 1` is false, and only the range
+being empty makes one vacuous.
+
+### T5 and the running example
+
+T5 scored 0.6250 on the token `17` in the first 80 items, which was 25 points
+over its floor, with four claims carrying `17` and all four true. The named
+cause was that the family's declared trap is a negative operand, so a minus
+sign got reached for when writing false items while 17 was the running example
+the true ones shared. The hand survey found the same shape on `has:-`, `has:%`
+and `has:Cardinality`.
+
+`17` and the minus sign now appear on all four kinds in T5. So does `%`, and
+so does `Cardinality`.
 
 ## The verdict channel
 
@@ -102,16 +246,58 @@ which means a state-dependent one, which means level 1 or above. The
 `{12, 13}` row belongs to the other rungs, and this one reads `{0}` against
 `{10}`.
 
+### There is a fourth outcome, rc 150, and it is a parse failure
+
+The three-row table above covers claims SANY accepts. A claim SANY refuses
+comes back **(150, 150)**, and `bake.sh` reports it as `UNKNOWN_150_150`
+rather than filing it anywhere. Six of the 160 items authored for
+`tla-7xql.7` landed there, and the cause was the same every time: two
+operators from one precedence band that do not associate with each other.
+
+```
+12 \div 2 * 3            \div beside *
+TRUE \/ FALSE /\ FALSE   \/ beside /\
+12 % 5 + 12 \div 5       % beside +
+```
+
+Parentheses fix all three. `2 * 3 % 4` parses and comes out 2, so `*` binds
+tighter than `%` and the two never meet as equals. I read those four refusals
+and that one acceptance rather than the precedence table, so I'd check the
+table before adding a fifth pair to the list.
+
+**Whether a parse failure should be a down-swipe item is an open question and
+this bead did not settle it.** It is ill-formed in the plain sense, and D3 puts
+ill-formed on the down swipe. But the corpus defines `illformed` by the
+(10, 10) pair, and widening that to (150, 150) is a change to the channel
+rather than to the corpus. The six items were replaced with ones that parse.
+I think the question is worth a decision before level 1, because a generator
+that builds expressions will hit this far more often than a human author does.
+
+### TLC does not always return FALSE on a mismatched comparison
+
+Three items authored as false came back ill-formed, and all three asked TLC to
+compare values of different shapes:
+
+```
+SUBSET {1, 2} \subseteq Nat              a set, asked whether it sits in Nat
+[a : {1, 2}] = {1, 2}                    a set of records against numbers
+Append(<<1, 2>>, <<3>>) = <<1, 2, 3>>    a sequence against a number
+```
+
+All three kept their claims and changed kind, since the lesson is worth an
+item. An author who expects a type mismatch to read FALSE should write the
+claim and bake it rather than predict it.
+
 ### Batching is the whole reason level 0 is cheap
 
 One module with N assumes costs one JVM. Worst of three back-to-back runs:
 382 ms at N=1, 535 ms at N=100, 684 ms at N=1000. So `--check` runs three
-batch modules over 80 items rather than 80 processes.
+batch modules over the whole corpus rather than one process per item.
 
 The one class that cannot batch is the items that do not evaluate. The first
 evaluation error aborts the whole batch at rc 10, and only the items before it
-print, so each of those gets its own run. Ten items, ten JVMs, and the batch
-covers the other seventy.
+print, so each of those gets its own run. At 48 items per template that is 30
+ill-formed items, so 30 JVMs, and three batches cover the other 210.
 
 ## The two kind fields, and why they are two
 
@@ -136,7 +322,7 @@ that discrimination went.
 
 `implies` is worth its own tag because the vacuous-antecedent trap lives
 there. A reader who checks the consequent of `P => Q` and ignores a false `P`
-gets it wrong, and five of the ten vacuous items in the corpus are that shape.
+gets it wrong, and 15 of the 30 vacuous items are that shape.
 Measured on this build, `=>` short-circuits: `Len(<<>>) = 1 => Head(<<>>) = 0`
 exits 0, although the consequent does not denote. So an implication can be
 true while half of it is meaningless, which is the lesson and also a thing the
@@ -164,7 +350,13 @@ blank one and a five-character stub.
 
 L7 says the mix must carry true and false substantively, because a true-heavy
 corpus transfers back to recognition and nowhere else. Every template carries
-six right, six left and four down.
+eighteen right, eighteen left and twelve down, which is the 6/6/2/2 ratio of
+the first 80 items scaled by three.
+
+**The ratio is what holds the floor still.** Right is 18 of 48, so the base
+rate stays 0.3750 whatever the size, and the power table above can be read
+against the item count alone. A size that is not a multiple of eight moves the
+floor and every number under it.
 
 The base rate the stem-blind gate needs is the share of the most common swipe
 in that template's own output, not one third. Here it is 37.5% in all five
@@ -173,12 +365,22 @@ bead `tla-7xql.1` is measured against. `bake.sh --stats` prints it, and the
 gate fails a template that goes over 60% or drops below three of either
 polarity.
 
-## One constraint on delivery
+## The ids no longer run in kind order
 
-The ids run in kind order inside each template, so 01 to 06 are true, 07 to 12
-are false, 13 and 14 are vacuous, and 15 and 16 do not evaluate. That order is
-for reviewing the table, and **the delivery order must not be the id order**:
-served as they sit, a reader meets six rights in a row. Nothing in this bead
+In the first 80 items the ids ran 01 to 06 true, 07 to 12 false, 13 and 14
+vacuous, 15 and 16 do not evaluate. **Ids are never renumbered**, so the 160
+items added in `tla-7xql.7` took 17 to 48 and the kind order holds inside the
+appended block rather than across the template.
+
+That is a weakening of a leak rather than a loss. The id was the sharpest
+giveaway in the table, which is why `stemblind.sh emit` hashes it rather than
+emitting it, and why the hash runs a full Lehmer step per character instead of
+an additive accumulator. A reader who learns the id order learns the answer.
+Breaking the ordinal-to-kind map takes one route to that away.
+
+**The delivery order must still not be the id order**, and the file order is
+not it either: items sit in their authoring groups, so a true item and its
+matched false item are next to each other for review. Nothing in this bead
 delivers items, so the constraint lives here for whoever builds that.
 
 ## No item depends on `\div` with a negative dividend
@@ -200,18 +402,34 @@ and were replaced rather than relabeled. The gate carries a tripwire on the
 broken identity, so a TLC that fixes `\div` turns the suite red on purpose and
 whoever reads it can lift the constraint.
 
+**T5's declared trap is a negative operand, so growing it runs straight at
+this.** Every dividend in the corpus is non-negative. The negative operands
+live on `%`, which obeys the contract, on `+` and `-`, on intervals like
+`-3..3`, on `\in Int`, and on one ill-formed `-17 % 0`. No item carries a note
+in field 11 saying it depends on TLC's truncation, because none of them does.
+Bead `tla-7n7e` is open on the divergence itself.
+
 ## Working on the corpus
 
 ```bash
 swipe/level0/bake.sh --stats                 # counts, mix and base rates
 swipe/level0/bake.sh --check                 # confirm every stored verdict
-swipe/level0/bake.sh --check --template T2   # one template, 5 JVMs
+swipe/level0/bake.sh --check --template T2   # one template
 swipe/level0/bake.sh --write                 # measure every item from scratch
-harness/test-swipe-level0.sh                 # the gate
+harness/test-swipe-level0.sh                 # the corpus gate
+harness/swipe/stemblind.sh probe             # the surface-artifact probe
+harness/test-swipe-stemblind.sh              # the gate over the probe
 ```
 
 Fields 6, 7 and 8 belong to `bake.sh`. Author an item with a `-` in all three
 and a `kind` you believe, then run `--write`: it measures both probes, fills
 the three fields, and **reports every item where TLC disagrees with the
 authored kind** rather than writing over it. Field 5 is a prediction and the
-bake is there to contradict it. It contradicted three of the first eighty.
+bake is there to contradict it. It contradicted three of the first eighty and
+nine of the next hundred and sixty.
+
+One trap in the tooling rather than in the corpus. `awk` reads a `-v` value as
+a string literal and processes escape sequences in it, so a claim passed that
+way arrives with `\subseteq` turned into `subseteq`. Pass it through `ENVIRON`
+instead. `harness/test-swipe-level0.sh` carries the same warning beside its
+own controls, and it caught me anyway.
