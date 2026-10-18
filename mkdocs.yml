@@ -64,6 +64,24 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/extra.css
+  # The swipe reader (bead tla-7xql.12). Published by scripts/build-docs.sh
+  # from swipe/reader/swipe.css.
+  - stylesheets/swipe.css
+
+# extra_javascript is injected AFTER the theme bundle
+# (material/templates/base.html loads the bundle, then this list), which is
+# what puts window.document$ in scope for the file below.
+#
+# WHY THE READER IS WIRED HERE RATHER THAN INLINED IN ITS PAGE. The theme runs
+# navigation.instant, which loads pages the way a single-page application
+# does. A script that runs on load runs exactly ONCE, on whichever page the
+# reader opened first, so a reader arriving at the swipe page from the nav
+# would find a dead page. swipe.js subscribes to window.document$, which
+# mkdocs-material publishes for exactly this and which emits again after every
+# instant navigation. It guards on its own root element, so on every other
+# page of this site it does nothing.
+extra_javascript:
+  - javascripts/swipe.js
 
 plugins:
   - search
