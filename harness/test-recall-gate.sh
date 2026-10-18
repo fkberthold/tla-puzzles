@@ -1418,7 +1418,7 @@ P8_SITES=(
   "NOTE|harness/test-recall-gate.sh|a dated claim about what landed with bead tla-1sh7.2, true whatever the table now holds|value reps and 30 of their misses landed with"
   "NOTE|harness/test-recall-gate.sh|a dated claim about what landed with bead tla-03ep.1, true whatever the table now holds|spec reps over 30 scaffolds and 60 of their misses"
   "NOTE|harness/test-recall-gate.sh|the scaffold total, which no miss row moves|check 6 +30 scaffold"
-  "PIN|harness/recall-gate.sh|what a kind-blind check 2 would have mislabelled|call all @SPECMISS@ spec misses"
+  "PIN|harness/recall-gate.sh|what a kind-blind check 2 would have mislabeled|call all @SPECMISS@ spec misses"
   "PIN|harness/recall-gate.sh|the rows rc 10 cannot tell apart|a green run as \"all @REPMISS@"
   "NOTE|harness/recall-gate.sh|a dated claim about what landed on 2026-10-16, true whatever the table now holds|reps and 30 miss rows landed on"
   "NOTE|harness/recall-gate.sh|the runner's budget in seconds|a fixed 60-second budget"
