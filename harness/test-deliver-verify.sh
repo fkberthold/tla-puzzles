@@ -344,7 +344,16 @@ STALE_ROOT="$WORK/stale-practice"
 mkdir -p "$STALE_ROOT"
 DELIVER_COMPLETION="$REPO_ROOT/scripts/deliver-completion.sh"
 
-PLANT_OUT=$("$DELIVER_COMPLETION" all "$STALE_ROOT/completion" 2>&1)
+# This part DELIVERS, where every part above only reads, so it is the one
+# place in this suite that sandboxes HOME. Both runs already pass an explicit
+# root under $WORK; the redirect is what covers a script that dropped its
+# argument, because the default root resolves from HOME and the real one has
+# no git behind it. Part 3 deliberately keeps the real HOME, which is why this
+# is per-invocation rather than at the top of the file.
+SANDBOX_HOME="$WORK/sandbox-home"
+mkdir -p "$SANDBOX_HOME"
+
+PLANT_OUT=$(HOME="$SANDBOX_HOME" "$DELIVER_COMPLETION" all "$STALE_ROOT/completion" 2>&1)
 PLANT_RC=$?
 # sort consumes its whole input, so this pipeline has no early-exiting
 # consumer. The first line comes off the captured string instead of from a
@@ -363,7 +372,7 @@ if [ -n "$PLANTED" ]; then
   printf '%s  %s\n' "$(sha256sum -- "$PLANTED" | cut -d' ' -f1)" "PROMPT.md" \
     >>"$PLANTED_DIR/.delivered.sha256"
 
-  STALE_WRAP=$("$WRAPPER" "$STALE_ROOT" 2>&1)
+  STALE_WRAP=$(HOME="$SANDBOX_HOME" "$WRAPPER" "$STALE_ROOT" 2>&1)
   STALE_WRAP_RC=$?
   if [ "$STALE_WRAP_RC" -eq 3 ]; then
     ok "a stale completion file makes the wrapper exit 3"
