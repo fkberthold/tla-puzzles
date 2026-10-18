@@ -558,3 +558,243 @@ a string literal and processes escape sequences in it, so a claim passed that
 way arrives with `\subseteq` turned into `subseteq`. Pass it through `ENVIRON`
 instead. `harness/test-swipe-level0.sh` carries the same warning beside its
 own controls, and it caught me anyway.
+
+# Level 1: the ENABLED rung
+
+Bead `tla-7xql.4`, and everything above this line is about level 0. A level 1
+item **pins a state** and asks a question about it, so for the first time in
+this rung there is a model on screen. That is what settles the epic's open
+thread T2, which level 0 could not touch at all: a level 0 item has no model
+screen, no pin and nothing to strip, so D2, D7 and the pin were consistent on
+paper only until an item was rendered.
+
+```
+swipe/level1/TEMPLATES.tsv   one template, the pilot
+swipe/level1/ITEMS.tsv       48 items
+swipe/level1/bake.sh         the verdict channel: --check, --write, --stats
+swipe/level1/render.sh       the model screen, and the transitive strip
+harness/test-swipe-enabled.sh  the gate
+```
+
+```bash
+swipe/level1/bake.sh --stats
+swipe/level1/bake.sh --check
+swipe/level1/render.sh --item L1-E1-10
+swipe/level1/render.sh --model reading/sequences/01-brackets/Brackets.tla --list-stripped
+harness/swipe/stemblind.sh probe --items swipe/level1/ITEMS.tsv --surface 9,13
+harness/test-swipe-enabled.sh
+```
+
+## What a rendered item looks like
+
+This is `L1-E1-10`, and the question is the two-conjunct guard trap: `open` is
+above zero, which is Pop's first conjunct, and the text is already at `Limit`,
+which fails its second one.
+
+```
+   CONSTANT Limit = 6
+   VARIABLES text, open
+
+   Push ==
+     /\ Len(text) < Limit
+     /\ text' = Append(text, "(")
+     /\ open' = open + 1
+
+   Pop ==
+     /\ open > 0
+     /\ Len(text) < Limit
+     /\ text' = Append(text, ")")
+     /\ open' = open - 1
+
+   ------------------------------ pinned at
+   text = <<"(", "(", "(", "(", "(", "(">>
+   open = 6
+   ------------------------------
+
+   does this fire here
+
+      ENABLED Pop
+```
+
+Hidden: `Init`, `Next` and `Spec` by D7, `TypeOK`, `Surplus` and `PrefixSound`
+by D2, and `Opens`, `Closes` and `vars` by the transitive rule below.
+
+**Model screens measured over the seven models the pilot uses**: 4 nonblank
+lines at the shortest, which is Fences, and 21 at the longest, which is Break.
+Brackets reads 11 and Contention 18. Over all 33 `reading/` models the range is
+0 to 22. The phone bound is the epic's constraint and these are the first
+numbers anybody has for it.
+
+**The pilot uses no PlusCal model, and the reason is not length.** I assumed
+it was and the measurement says otherwise: the three longest screens are
+Shelves at 22, Collatz at 22 and Break at 21, and only Collatz is PlusCal. The
+real reason is that `render.sh` gets two things wrong on a translated module.
+Ring is the 0 in the range above, because every one of its actions lives in
+the translation block under a name the shown-roots rule does not reach, so the
+screen comes out empty. And Collatz's screen shows `vars` and the
+`\* BEGIN TRANSLATION` comment line, because a translated action references
+`vars` directly and a column-0 comment attaches to the construct below it.
+Both are honest consequences of the rule rather than bugs in it, and both make
+a PlusCal screen a separate piece of work rather than one more model.
+
+## The strip is transitive, and that is a rule nobody had written down
+
+D2 says to strip the model's INVARIANT and PROPERTY declarations. Obligations
+have helpers. `Brackets` defines `Opens` and `Closes`, which are free
+definitions rather than obligations, so `harness/levels/levels.sh` field 8
+keeps them. `Surplus` and `PrefixSound` are the only things that use them, and
+both are stripped, so leaving the helpers puts two definitions on a phone
+screen that no question can ever be about. `Contention` is the same shape one
+definition over: `Holder` is free and only `TypeOK` uses it.
+
+`render.sh` computes the kept set forward rather than backward:
+
+| set | what is in it |
+|---|---|
+| shown roots | every level 2 definition the module declares, except `Next` and the SPECIFICATION formula |
+| kept | the shown roots plus every definition they transitively use |
+| stripped | everything else |
+
+Forward is better than backward for two reasons beyond the helpers. It strips
+a definition nothing uses at all, which the backward reading leaves on the
+screen. And it needs no special case for `Init` or `Spec`: `Init` is level 1
+and `Spec` is level 3, so neither is a shown root to begin with. Only `Next` is
+excluded by name, because it really is level 2 and D7 really does name it.
+
+**Show every action, always, and not only the ones the claim names.** A shown
+set that tracked the claim would itself carry the answer, because a terminal
+item needs all of them and an `ENABLED Pop` item needs one. It would also be a
+signature the stem-blind gate should catch.
+
+**A claim may only name a definition the screen shows.** A terminal item asks
+`~ENABLED (Push \/ Pop)` and never `~ENABLED Next`, because a reader cannot
+evaluate a name they have not been given. Section 9 of the gate asserts it
+over every row, with `render.sh --list-stripped` as the authority.
+
+## The verdict channel at level 1
+
+One INVARIANT run per item, and no pair. Level 0 runs two `ASSUME`s because
+rc 10 covers both "false" and "did not evaluate", so one number cannot split
+them. This channel is already five-valued.
+
+<!-- KIND TABLE L1: harness/test-swipe-enabled.sh section 13 reads the rows below. Column 3 is a dash when the kind ships and a reason when it does not. -->
+
+| kind | swipe | deliberately unshipped, and why |
+|---|---|---|
+| `true` | right | - |
+| `false` | left | - |
+| `vacuous` | down | - |
+| `illformed` | down | - |
+| `wronglevel` | down | - |
+| `unparsed` | down | - |
+
+| rc | kind | what TLC says |
+|---|---|---|
+| 0 | `true`, or `vacuous` with its witness | nothing, the invariant held |
+| 12 | `false` | `Invariant Claim is violated` |
+| 75 | `illformed` | the evaluation error, `While working on the initial state` |
+| 76 | `wronglevel` | `The invariant Claim is not a state predicate (one with no primes or temporal operators)` |
+| 150 | `unparsed` | `Precedence conflict between ops ENABLED ... and =` |
+
+**Row 75 is not row 76, and the difference is the whole bead.** 75 is
+`SPEC_EVAL_FAILURE`, because the invariant is evaluated while the initial
+states are computed, so an evaluation error lands on the spec rather than on
+the invariant. I expected 76 there and measured 75. 76 is the row that arrives
+when the claim is an action or a temporal formula, and TLC names the mistake
+exactly: a reader who writes `Pop` where they mean `ENABLED Pop` has asked
+whether a step holds at a state. The bead's own words are that people conflate
+"the guard is true" with "the action can fire", and this is that conflation one
+layer further out.
+
+**Row 150 is this template's own parse trap.** `ENABLED Pop = TRUE` and
+`ENABLED Pop'` both come back with a precedence conflict naming `ENABLED`.
+Level 0's rule is that a template's unparsed item is a trap in its own subject
+matter, and `ENABLED` binds tighter than a reader expects.
+
+**Row 151 does not appear here and that is the level 0 difference.** A level 0
+expression declared as an INVARIANT and found false folds to
+`CONFIG_ERROR 151`. A level 1 claim is state-dependent, so TLC cannot fold it
+and the refuted class reads 12. That is why the `{12, 13}` row the epic's
+contract talks about belongs to this rung and not to level 0.
+
+## The pin, and the two things measured about it
+
+**A pinned state must satisfy the model's own type invariant, and it need not
+be reachable. This is central's rule and Frank has not ruled on it.** Nothing
+in the mechanization constrains a pin: a pin of `open = 5` violates Brackets'
+own `Surplus` invariant and `ENABLED Pop` still reads rc 0, because the
+generated `.cfg` names `Claim` and nothing else. That is D2 satisfied
+mechanically rather than visually. `TypeOK` is the model's own statement of
+what a well-formed state is and it costs one TLC run. Reachability costs a
+model check, would cut the item space hard, and asks a different question:
+`ENABLED` is about a state rather than about a history.
+
+Cost measured: 31 of the 33 `reading/` models name a type invariant, both
+exceptions are PlusCal, and no model the pilot uses lacks one. The check rides
+the same JVM as the state count below, so the rule costs **one extra run per
+item** and the bake is 100 runs over 48 items rather than 52.
+
+**`Ini` is a predicate rather than an assignment, so a pin may admit several
+states.** Then `INVARIANT Claim` asks whether the claim holds at *every* state
+it admits. Measured: `text = <<>> /\ open \in 0..1` with `ENABLED Pop` reads
+12, because the claim splits across the two states. The item is still well
+posed, and four shipped items pin three states on purpose, because
+`Handover`'s `CONSTANT Site = {s1, s2, s3}` is a set of **model values** and a
+model value is not an identifier the pin module can name. Measured:
+`Ini == holder = s1` comes back rc 150 with a semantic error on `s1`, so
+`holder \in Site` is the only pin Handover has.
+
+So field 8 is the declared count and a `POSTCONDITION TLCGet("distinct") = n`
+confirms it. The auxiliary run reads 0 when the pin is type-correct and admits
+the declared count, 12 when it fails the type invariant, and 10 when the count
+is wrong, and the bake's report names which.
+
+## The mix, and what carries from level 0
+
+The **swipe** mix is level 0's: 18 right, 18 left, 12 down, so the base rate is
+0.3750 and the power table above transfers unchanged. That argument is about
+the swipe mix, which is why it carries.
+
+The **kind** mix under `down` does not carry, because the channel has six kinds
+rather than five:
+
+| kind | level 0 | level 1 |
+|---|---|---|
+| `vacuous` | 6 | 4 |
+| `illformed` | 6, then 5 | 3 |
+| `wronglevel` | not a kind | 3 |
+| `unparsed` | 1 | 2 |
+
+Six fours and twelve pairs is 48 and it lands 18/18/12 without anybody
+counting, which is level 0's arithmetic. A four here is one true, one false
+and **two** down items of different kinds, where level 0's four was one of each
+of its four kinds.
+
+## Where the down kinds come from at this rung
+
+`vacuous` arrives two ways and both are about the pin. A false antecedent, as
+in `Len(text) = 6 => ENABLED Pop` at a text of length 3, and an empty
+quantifier range the pin creates, as in
+`\A p \in {q \in Player : playing[q]} : ENABLED Stop(p)` where nobody is
+playing. The witness is a level 1 state predicate evaluated at the same pin.
+
+`illformed` is a guard that does not denote. `ENABLED Stop("q")` where `Player`
+is `{p1, p2}`, so `playing["q"]` has no value, and `ENABLED` does not rescue
+it. The lesson is that `ENABLED` evaluates the guard, so an undefined guard is
+not a false one.
+
+`wronglevel` is the bead's own lesson and it has no level 0 counterpart.
+
+`unparsed` is the `ENABLED` precedence trap.
+
+## What one template of 48 cost, so the next author can size the rest
+
+The bake is 100 JVMs and runs in 37 s. The gate adds the strip sections, which
+are one `levels.sh` parse per model, plus seven TLC controls scoped to one item
+each and five one-line fixtures that re-measure the channel's five rows.
+
+**A level 1 item cannot batch.** Every item carries its own pin, so it costs
+one run for the claim and one for the auxiliary check, and a vacuous item
+costs a third for its witness. Level 0 batches 210 of its 240 claims into three
+modules. That is the one place this rung is dearer than level 0 and it is
+linear in items, so a second template of 48 doubles it.

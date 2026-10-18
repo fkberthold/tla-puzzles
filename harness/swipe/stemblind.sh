@@ -25,11 +25,26 @@
 # Writes one STEM row per item. Tab-delimited, literal marker in field 1, the
 # house style of every other table in this tree:
 #
-#   STEM <tab> <stem-id> <tab> <ask> <tab> <claim>
+#   STEM <tab> <stem-id> <tab> <ask> <tab> <surface field>...
 #
 #   field 2  stem-id   S plus six hex digits. Opaque and stable.
-#   field 3  ask       holds or implies. The tag the reader sees.
-#   field 4  claim     the single line the reader answers.
+#   field 3  ask       the tag the reader sees.
+#   field 4+ surface   the per-item text --surface names. One column each.
+#
+# --surface IS WHAT CARRIES THIS INSTRUMENT PAST LEVEL 0, and the reason it is
+# a list rather than a fixed field is that the two rungs put the per-item text
+# in different places. At level 0 the claim IS the whole item, so the surface
+# is field 9 and that is the default. At level 1 the reader sees a model
+# screen, a pin and a claim, and the claim alone repeats across many items:
+# ENABLED Pop says nothing without the pin under it. The premise-blind analog
+# of Gururangan's hypothesis-only classifier withholds the MODEL, which is
+# shared by every item on it, and keeps what varies per item, which is the pin
+# and the claim. So swipe/level1 drives this with --surface 9,13.
+#
+# A SURFACE THAT NAMED THE MODEL WOULD MEASURE THE WRONG THING. The model is
+# the premise. Handing it to the judge is handing over the thing the item is
+# supposed to make them read, and the score would then say whether the judge
+# can do TLA+ rather than whether the corpus leaks.
 #
 # NOTHING ELSE IS EMITTED, and three of the omissions are load-bearing.
 #
@@ -87,8 +102,10 @@
 # the rest
 # ---------------------------------------------------------------------------
 #
-#   base   [--template TN]        the per-template label counts and base rate
-#   power  [--items N] [--base B] what sample size the tolerance assumes
+#   base    [--template TN]        the per-template label counts and base rate
+#   power   [--items N] [--base B] what sample size the tolerance assumes
+#   --surface LIST                 the item fields the stem is made of,
+#                                  comma separated. Default 9, the claim
 #   reveal [--template TN]        stem id to item id. THIS IS THE ANSWER KEY.
 #   tokens [--template TN]        the tokenizer's bag, one row per token
 #
@@ -120,6 +137,7 @@ OPT_SEED="20261018"
 OPT_ITEMS_N="16"
 OPT_BASE="0.375"
 OPT_POWER="0.80"
+OPT_SURFACE="9"
 
 # Prints the leading comment block, stopping at the first line of code. It read
 # `sed -n '2,100p'` until bead tla-7xql.9 added a subcommand and its paragraph,
@@ -193,6 +211,37 @@ function stem_id(s,   h, i, c) {
   h = (16807 * h) % 2147483647
   return sprintf("S%06x", h % 16777216)
 }
+# THE TWO FUNCTIONS BELOW TAKE THE FIELD ARRAY RATHER THAN READING FIELDS,
+# and that is a linter constraint rather than a design one. This whole prelude
+# sits inside a single-quoted shell assignment, and shellcheck raises SC2016
+# on every dollar sign in one, whatever the sign means to awk. It does NOT
+# raise it on an awk PROGRAM ARGUMENT, which it knows carries a field operator
+# of its own, which is why every rule body below still reads fields freely.
+# Measured on shellcheck here: a positional, a named variable, a zero and a
+# command-substitution shape all raise it in an assignment and none of them
+# does in an argument. So the caller splits the record into FLD, where the
+# operator is allowed, and hands the array over. The prelude then stays clean
+# rather than carrying a suppression over a whole block, and a suppression
+# that wide would hide the next real finding in it.
+#
+# The comment you are reading obeys the same rule: it cannot write the sign
+# either, because shellcheck reads the string and not the awk.
+function surface(A,   i, n, p, s) {
+  # The per-item text, joined for the tokenizer. A space between fields and
+  # nothing else, so no separator of its own enters the token bag.
+  n = split(SURF, p, ",")
+  s = ""
+  for (i = 1; i <= n; i++) s = s (i > 1 ? " " : "") A[p[i]]
+  return s
+}
+function surface_cols(A,   i, n, p, s) {
+  # The same fields as columns, for a human judge, who needs the pin and the
+  # claim kept apart in a way the tokenizer does not.
+  n = split(SURF, p, ",")
+  s = ""
+  for (i = 1; i <= n; i++) s = s "\t" A[p[i]]
+  return s
+}
 function tokenize(claim, out,   s, t, m, i, sy) {
   s = claim
   gsub(/"[^"]*"/, " QUOTEDSTRING ", s)
@@ -210,7 +259,7 @@ function tokenize(claim, out,   s, t, m, i, sy) {
 # ---------------------------------------------------------------------------
 cmd_emit() {
   local body
-  body="$(awk -F'\t' -v tpl="$OPT_TEMPLATE" "$AWK_PRELUDE"'
+  body="$(awk -F'\t' -v tpl="$OPT_TEMPLATE" -v SURF="$OPT_SURFACE" "$AWK_PRELUDE"'
     BEGIN { init_ord() }
     $1 == "ITEM" {
       if (tpl != "" && $3 != tpl) next
@@ -220,7 +269,8 @@ cmd_emit() {
         bad = 1
       }
       seen[sid] = $2
-      printf("STEM\t%s\t%s\t%s\n", sid, $4, $9)
+      split($0, FLD, "\t")
+      printf("STEM\t%s\t%s%s\n", sid, $4, surface_cols(FLD))
     }
     END { if (bad) exit 2 }
   ' "$ITEMS")" || die "emit failed"
@@ -229,14 +279,14 @@ cmd_emit() {
   sorted="$(LC_ALL=C sort <<<"$body")"
 
   {
-    printf '# Stem-blind stems for the level 0 swipe corpus (bead tla-7xql.1).\n'
+    printf '# Stem-blind stems for a swipe corpus (bead tla-7xql.1).\n'
     printf '#\n'
     printf '# One row per item. Tab-delimited, literal marker STEM in field 1:\n'
     printf '#\n'
-    printf '#   1  marker   the literal STEM\n'
-    printf '#   2  stem-id  S plus six hex digits, opaque and stable\n'
-    printf '#   3  ask      holds or implies, the tag shown with the question\n'
-    printf '#   4  claim    the single line to answer\n'
+    printf '#   1   marker   the literal STEM\n'
+    printf '#   2   stem-id  S plus six hex digits, opaque and stable\n'
+    printf '#   3   ask      the tag shown with the question\n'
+    printf '#   4+  surface  item fields %s, one column each\n' "$OPT_SURFACE"
     printf '#\n'
     printf '# Read rows with awk -F\\t or cut, never with IFS=$\\t read: tab is IFS\n'
     printf '# whitespace, so a run of tabs collapses and an empty field vanishes.\n'
@@ -300,11 +350,13 @@ cmd_reveal() {
 # keeps it on the same side of the line as emit.
 # ---------------------------------------------------------------------------
 cmd_tokens() {
-  awk -F'\t' -v tpl="$OPT_TEMPLATE" -v SYMS="$SYMBOL_TOKENS" "$AWK_PRELUDE"'
+  awk -F'\t' -v tpl="$OPT_TEMPLATE" -v SYMS="$SYMBOL_TOKENS" -v SURF="$OPT_SURFACE" \
+      "$AWK_PRELUDE"'
     $1 == "ITEM" {
       if (tpl != "" && $3 != tpl) next
       delete toks
-      tokenize($9, toks)
+      split($0, FLD, "\t")
+      tokenize(surface(FLD), toks)
       for (k in toks) printf("TOKEN\t%s\t%s\t%s\n", $2, $3, k)
     }
   ' "$ITEMS" | LC_ALL=C sort
@@ -492,6 +544,7 @@ cmd_probe() {
   local out rc
   set +e
   out="$(awk -F'\t' -v tpl="$OPT_TEMPLATE" -v labels="$LABELS" -v SYMS="$SYMBOL_TOKENS" \
+            -v SURF="$OPT_SURFACE" \
             -v perms="$OPT_PERMS" -v seed="$OPT_SEED" -v alpha="$OPT_ALPHA" "$AWK_PRELUDE"'
     # --- a self-contained Lehmer generator -------------------------------
     # srand/rand differ between gawk and mawk for the same seed, so the
@@ -560,13 +613,15 @@ cmd_probe() {
       i = ++n[t]
       lab[t, i] = $6
       delete toks
-      tokenize($9, toks)
+      split($0, FLD, "\t")
+      surf = surface(FLD)
+      tokenize(surf, toks)
       toks["ask=" $4] = 1
       # Length and token-count buckets. Cut points are fixed rather than
       # per-template quantiles, so no label information reaches the bucketing.
       nt_tok = 0
       for (k in toks) if (k ~ /^has:/) nt_tok++
-      for (c = 20; c <= 80; c += 20) if (length($9) >= c) toks["len>=" c] = 1
+      for (c = 20; c <= 80; c += 20) if (length(surf) >= c) toks["len>=" c] = 1
       for (c = 8; c <= 32; c += 8)   if (nt_tok >= c)     toks["tok>=" c] = 1
       for (k in toks) {
         cnt[t, k]++
@@ -677,6 +732,7 @@ while [ $# -gt 0 ]; do
     --alpha)       OPT_ALPHA="${2:-}"; shift 2 ;;
     --perms)       OPT_PERMS="${2:-}"; shift 2 ;;
     --seed)        OPT_SEED="${2:-}"; shift 2 ;;
+    --surface)     OPT_SURFACE="${2:-}"; shift 2 ;;
     --n|--items-n) OPT_ITEMS_N="${2:-}"; shift 2 ;;
     --base)        OPT_BASE="${2:-}"; shift 2 ;;
     --at-power)    OPT_POWER="${2:-}"; shift 2 ;;

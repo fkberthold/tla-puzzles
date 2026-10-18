@@ -109,6 +109,7 @@
 #   slow 245.0 s  harness/test-recall-gate.sh                (re-based twice, 2026-10-18)
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
 #   slow  62.0 s  harness/test-swipe-level0.sh           (re-based, bead tla-7xql.7)
+#   slow  74.0 s  harness/test-swipe-enabled.sh          (added, bead tla-7xql.4)
 #   ----  ------
 #         62.4 s  fast tier, 27 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
@@ -1571,6 +1572,25 @@ SUITES=(
   # against 67.1 s in sequence in the full registry, which is the number that
   # matters since that is where the row is read. 70.5 clears it by 5%.
   "slow|70.5|level 0 swipe corpus|./harness/test-swipe-level0.sh"
+  # ADDED by bead tla-7xql.4, the level 1 ENABLED rung.
+  #
+  # THE DEAREST ROW PER ITEM IN THE REGISTRY, AND THE REASON IS STRUCTURAL
+  # RATHER THAN SLOPPY. A level 1 claim cannot batch. Every item carries its
+  # own pin, so each one costs a TLC run for its claim and a second for the
+  # auxiliary run that checks the pin against the model's type invariant and
+  # counts the states the pin admits, and each of the four vacuous items costs
+  # a third for its witness. That is 100 JVMs over 48 items, against the level
+  # 0 row's 33 over 240, where 210 claims batch into three modules.
+  #
+  # The rest is the strip sections at one levels.sh parse per model, seven of
+  # them, plus seven TLC controls scoped to one item each and five one-line
+  # fixtures re-measuring the channel's five exit codes.
+  #
+  # The first draft of the gate asked render.sh the same three questions in
+  # four places and paid 56 JVMs where 21 do. Caching them took the row from
+  # 83 s to 70. Quiet box, three back-to-back serial runs:
+  # 69.055 / 69.189 / 70.223 s. 74.0 clears the slowest by 5%.
+  "slow|74.0|level 1 ENABLED swipe corpus|./harness/test-swipe-enabled.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

@@ -1,0 +1,157 @@
+# The level 1 swipe corpus (bead tla-7xql.4, epic tla-7xql).
+#
+# 48 items in one template, the pilot described in swipe/level1/TEMPLATES.tsv.
+# Every item pins a STATE and asks a question about it, so unlike level 0 it
+# shows a model screen. swipe/level1/render.sh builds that screen and
+# swipe/level1/bake.sh measures the verdict.
+#
+# Rows are tab-delimited and carry the literal marker ITEM in field 1, so
+# prose in this file can never be read as data. Read rows with awk -F'\t' or
+# cut, never with IFS=$'\t' read: tab is IFS whitespace, so a run of tabs
+# collapses and an empty field vanishes.
+#
+# AN ITEM ROW. Thirteen fields, in order. Fields 1 to 11 keep their level 0
+# meanings so harness/swipe/stemblind.sh reads this table with --items and no
+# code change, and 12 and 13 are what a pinned rung adds:
+#
+#    1  marker      the literal ITEM
+#    2  id          L1-<template>-<nn>, stable, never renumbered
+#    3  template    E1, resolving to a TEMPLATES.tsv row
+#    4  ask         the tag shown WITH the question: enabled, terminal or
+#                   implies. It names which of the epic's question kinds the
+#                   line is and it does NOT determine the answer
+#    5  kind        the item's own kind: true, false, vacuous, illformed,
+#                   wronglevel or unparsed. The reader never sees it
+#    6  swipe       right, left or down. Derived from field 5 by the bake
+#    7  rc          the exit code of the INVARIANT run. Written by the bake
+#    8  pin_states  how many states the pin admits. AUTHORED and then
+#                   confirmed by the bake's postcondition. A - means 1
+#    9  claim       the single line the reader answers
+#   10  vacuity     a level 1 witness that the claim is vacuous, or -
+#   11  flash       the one line shown after the swipe, always present. On a
+#                   false, vacuous, illformed, wronglevel or unparsed item it
+#                   is the correction. On a true item it is the reason the
+#                   claim holds, because there is nothing to correct about a
+#                   true statement. Frank ruled on 2026-10-18
+#   12  model       the reading/ module the item is about
+#   13  pin         the pinned state, written as a TLA+ conjunction. The bake
+#                   uses it verbatim as Ini and render.sh splits it on /\
+#
+#   awk -F'\t' '$1 == "ITEM" && $12 == "Brackets"' swipe/level1/ITEMS.tsv
+#   grep '^ITEM' swipe/level1/ITEMS.tsv | cut -f5,12 | sort | uniq -c
+#
+# FIELDS 6 AND 7 ARE OWNED BY swipe/level1/bake.sh. Do not hand-edit them.
+# Field 5 is the author's PREDICTION and the bake is there to contradict it.
+# Over this corpus it contradicted six of the forty-eight.
+#
+# THERE IS NO SECOND EXIT CODE HERE, and that is the first thing a level 0
+# reader will look for. Level 0 stores a PAIR because ASSUME exits 10 both
+# when the claim is false and when it fails to evaluate, so one number cannot
+# split them. The level 1 INVARIANT channel is already five-valued: 0 holds,
+# 12 false, 75 does not evaluate, 76 is not a state predicate at all, 150 does
+# not parse. One number says which.
+#
+# ROW 76 IS THE ONE THIS TEMPLATE EXISTS FOR. TLC's message is "The invariant
+# Claim is not a state predicate (one with no primes or temporal operators)",
+# and a reader who writes Pop where they mean ENABLED Pop has asked whether a
+# STEP holds at a STATE. The bead's own words are that people conflate "the
+# guard is true" with "the action can fire"; this is that conflation one layer
+# further out, and TLC names it exactly. The kind is called wronglevel.
+#
+# THE PIN MUST SATISFY THE MODEL'S OWN TYPE INVARIANT AND NEED NOT BE
+# REACHABLE. Nothing in the mechanization constrains a pin: a pin of open = 5
+# violates Brackets' own Surplus invariant and ENABLED Pop still reads rc 0,
+# because the generated .cfg names Claim and nothing else. TypeOK is the
+# model's own statement of what a well-formed state is and it costs one TLC
+# run. Reachability costs a model check and would cut the item space hard, and
+# ENABLED is a question about a state rather than about a history. CENTRAL
+# TOOK THIS RULE AND FRANK HAS NOT RULED ON IT.
+#
+# FIELD 8 IS A HAZARD AND NOT BOOKKEEPING. Ini is a predicate rather than an
+# assignment, so it may admit more than one state, and then INVARIANT Claim
+# asks whether the claim holds at EVERY state it admits. Measured:
+# text = <<>> /\ open \in 0..1 with ENABLED Pop reads 12, because the claim
+# splits across the two states. Four items here pin three states on purpose,
+# because Handover's CONSTANT Site = {s1, s2, s3} is a set of MODEL VALUES and
+# a model value is not an identifier the pin module can name. Measured:
+# Ini == holder = s1 comes back rc 150 with a semantic error on s1, so
+# holder \in Site is the only pin Handover has. The bake confirms the count
+# with a POSTCONDITION, so a pin that admits more states than its author
+# thought reddens rather than shipping a different question.
+#
+# ITEMS ARE AUTHORED IN MATCHED GROUPS, which is what keeps the stem-blind
+# gate green. The unit is either a four, one item of each of four kinds built
+# from one idea, or a pair, a true and a false built from one idea. Six fours
+# and twelve pairs is 48, and it lands the mix at 18 true, 18 false and 12
+# down without anybody counting. Rows sit in their authoring groups so a
+# reviewer sees a matched pair side by side, and ids are never renumbered.
+#
+# THE SWIPE MIX IS LEVEL 0'S AND THE KIND MIX IS NOT. Right is 18 of 48, so
+# the base rate is 0.3750 and the power table in swipe/README.md transfers
+# unchanged. That argument is about the SWIPE mix, which is why it carries.
+# The kind mix under down does not: level 0 splits 12 into 6 vacuous, 5
+# illformed and 1 unparsed over five kinds, and this rung splits it 4 vacuous,
+# 3 illformed, 3 wronglevel and 2 unparsed over six.
+#
+# A CLAIM MAY ONLY NAME A DEFINITION THE SCREEN SHOWS. Decision D7 withholds
+# Init, Next and Spec, so a terminal item asks ~ENABLED (Push \/ Pop) and
+# never ~ENABLED Next: a reader cannot evaluate a name they have not been
+# given. swipe/level1/render.sh --list-shown is the authority and
+# harness/test-swipe-enabled.sh asserts it over every row.
+#
+# NO ITEM MAY DEPEND ON \div WITH A NEGATIVE DIVIDEND. TLC 2026.07.31.184830
+# breaks the contract its own Naturals.tla states. The note in
+# swipe/level0/ITEMS.tsv carries the measurement and bead tla-7n7e is open on
+# it. No claim or pin here uses \div at all.
+#
+# FIELD 11 IS NOT OPTIONAL. L2 on the epic: a falsehood is reproduced later at
+# .19 with no feedback, .15 with a bare verdict and .04 with the verdict plus
+# the correction. The gate rejects a blank one and a stub.
+ITEM	L1-E1-01	E1	implies	true	right	0	1	open > 0 => ENABLED Pop	-	The open count is 1, so Pop's first conjunct holds, and the text is shorter than Limit, so its second one does too.	Brackets	text = <<"(", "(", ")">> /\ open = 1
+ITEM	L1-E1-02	E1	implies	false	left	12	1	Len(text) < 6 => ENABLED Pop	-	The antecedent holds at a text of length 1, and Pop still cannot fire, because open is 0 and Pop needs it above 0.	Brackets	text = <<")">> /\ open = 0
+ITEM	L1-E1-03	E1	implies	vacuous	down	0	1	Len(text) = 6 => ENABLED Pop	Len(text) # 6	The text has length 3, so the antecedent is false and the line says nothing about Pop at all.	Brackets	text = <<"(", "(", ")">> /\ open = 1
+ITEM	L1-E1-04	E1	implies	wronglevel	down	76	1	open > 0 => Pop	-	Pop is an action and the line asks whether it holds at one state. Write ENABLED Pop to ask whether it can fire.	Brackets	text = <<"(", "(", ")">> /\ open = 1
+ITEM	L1-E1-05	E1	enabled	true	right	0	1	ENABLED Push	-	Push asks only that the text be shorter than Limit, and an empty text is.	Brackets	text = <<>> /\ open = 0
+ITEM	L1-E1-06	E1	enabled	false	left	12	1	ENABLED Pop	-	Pop needs open above 0 and nothing has been pushed yet, so there is no open bracket to close.	Brackets	text = <<>> /\ open = 0
+ITEM	L1-E1-07	E1	enabled	illformed	down	75	1	ENABLED Pop \/ Head(text) = "("	-	Pop is disabled, so the second arm is evaluated, and Head has no value on an empty sequence. The line does not denote.	Brackets	text = <<>> /\ open = 0
+ITEM	L1-E1-08	E1	enabled	unparsed	down	150	1	ENABLED Pop = TRUE	-	ENABLED binds looser than = here, so SANY refuses the line. Write (ENABLED Pop) = TRUE, or drop the comparison.	Brackets	text = <<>> /\ open = 0
+ITEM	L1-E1-09	E1	enabled	true	right	0	1	ENABLED Pop	-	Both of Pop's conjuncts hold: open is 5 and the text has room for one more bracket.	Brackets	text = <<"(", "(", "(", "(", "(">> /\ open = 5
+ITEM	L1-E1-10	E1	enabled	false	left	12	1	ENABLED Pop	-	The open count is 6 and that is only Pop's first conjunct. The text is already at Limit, so the second one fails and Pop cannot fire.	Brackets	text = <<"(", "(", "(", "(", "(", "(">> /\ open = 6
+ITEM	L1-E1-11	E1	terminal	true	right	0	1	~ENABLED (Push \/ Pop)	-	Both actions need the text shorter than Limit and it is exactly Limit, so neither can fire and the run stops here.	Brackets	text = <<"(", "(", "(", ")", ")", ")">> /\ open = 0
+ITEM	L1-E1-12	E1	terminal	false	left	12	1	~ENABLED (Push \/ Pop)	-	A state is terminal only when every action is disabled. Push is enabled here, because the text has room.	Brackets	text = <<"(", "(", ")">> /\ open = 1
+ITEM	L1-E1-13	E1	implies	true	right	0	1	owner = "none" => ENABLED PollTake	-	PollTake asks only that nobody holds the lock, which is what the antecedent says, so the consequent follows.	Contention	owner = "none" /\ served = TRUE
+ITEM	L1-E1-14	E1	implies	false	left	12	1	owner = "none" => ENABLED TaskTake	-	Nobody holds the lock, so the antecedent holds, and TaskTake also asks that the task not have been served yet. It has.	Contention	owner = "none" /\ served = TRUE
+ITEM	L1-E1-15	E1	implies	vacuous	down	0	1	owner = "poller" => ENABLED TaskDrop	owner # "poller"	The task holds the lock here rather than the poller, so the antecedent is false and the line says nothing about TaskDrop.	Contention	owner = "task" /\ served = TRUE
+ITEM	L1-E1-16	E1	implies	wronglevel	down	76	1	owner = "none" => PollTake	-	PollTake is an action, so the line asks whether a step holds at a state. Write ENABLED PollTake.	Contention	owner = "none" /\ served = TRUE
+ITEM	L1-E1-17	E1	enabled	true	right	0	1	ENABLED TaskTake	-	Nobody holds the lock and the task has not been served, which is both of TaskTake's guard conjuncts.	Contention	owner = "none" /\ served = FALSE
+ITEM	L1-E1-18	E1	enabled	false	left	12	1	ENABLED TaskTake	-	Nobody holds the lock, which is the conjunct that is easy to stop at. The task has already been served, so the second conjunct fails.	Contention	owner = "none" /\ served = TRUE
+ITEM	L1-E1-19	E1	enabled	true	right	0	1	ENABLED PollDrop	-	PollDrop asks that the poller hold the lock, and it does.	Contention	owner = "poller" /\ served = FALSE
+ITEM	L1-E1-20	E1	enabled	false	left	12	1	ENABLED PollTake	-	PollTake asks that nobody hold the lock. The poller holds it, so taking it again is not a step this model has.	Contention	owner = "poller" /\ served = FALSE
+ITEM	L1-E1-21	E1	enabled	true	right	0	1	\E p \in Player : ENABLED Start(p)	-	Nobody has asked for a break and neither player is playing, so Start holds for either one of them.	Break	playing = [p \in Player |-> FALSE] /\ asked = FALSE
+ITEM	L1-E1-22	E1	enabled	false	left	12	1	\E p \in Player : ENABLED Start(p)	-	A break has been asked for, and Start's first conjunct rules it out for every player at once, so no witness exists.	Break	playing = [p \in Player |-> FALSE] /\ asked = TRUE
+ITEM	L1-E1-23	E1	enabled	vacuous	down	0	1	\A p \in {q \in Player : playing[q]} : ENABLED Stop(p)	{q \in Player : playing[q]} = {}	Nobody is playing, so the set the quantifier ranges over is empty and the line holds without Stop being looked at.	Break	playing = [p \in Player |-> FALSE] /\ asked = FALSE
+ITEM	L1-E1-24	E1	enabled	illformed	down	75	1	ENABLED Stop("q")	-	Player is {p1, p2}, so playing has no value at "q" and Stop's guard does not denote. ENABLED does not rescue it.	Break	playing = [p \in Player |-> FALSE] /\ asked = FALSE
+ITEM	L1-E1-25	E1	enabled	true	right	0	1	ENABLED Resume	-	A break has been asked for and nobody is playing, which is both of Resume's conjuncts.	Break	playing = [p \in Player |-> FALSE] /\ asked = TRUE
+ITEM	L1-E1-26	E1	enabled	false	left	12	1	ENABLED Resume	-	A break has been asked for, so the first conjunct holds, and both players are still playing, so AllIdle is false.	Break	playing = [p \in Player |-> TRUE] /\ asked = TRUE
+ITEM	L1-E1-27	E1	implies	true	right	0	1	AllIdle => ENABLED Ask	-	Nobody is playing, so the antecedent holds, and Ask needs only that no break has been asked for yet.	Break	playing = [p \in Player |-> FALSE] /\ asked = FALSE
+ITEM	L1-E1-28	E1	implies	false	left	12	1	AllIdle => ENABLED Ask	-	Nobody is playing, so the antecedent holds. Ask cannot fire, because a break has already been asked for and Ask needs the opposite.	Break	playing = [p \in Player |-> FALSE] /\ asked = TRUE
+ITEM	L1-E1-29	E1	enabled	true	right	0	1	\A p \in Player : ENABLED Stop(p)	-	Stop asks only that the player be playing, and both of them are.	Break	playing = [p \in Player |-> TRUE] /\ asked = FALSE
+ITEM	L1-E1-30	E1	enabled	false	left	12	1	\A p \in Player : ENABLED Stop(p)	-	Neither player is playing, so Stop's guard fails for both and the universal has a counterexample.	Break	playing = [p \in Player |-> FALSE] /\ asked = FALSE
+ITEM	L1-E1-31	E1	enabled	true	right	0	3	ENABLED Grant	-	The holder wants to hand over, and Site has three members, so there is always another site to hand to.	Handover	holder \in Site /\ want = TRUE
+ITEM	L1-E1-32	E1	enabled	false	left	12	3	ENABLED Grant	-	Grant's first conjunct is want, and nobody wants to hand over here, so the existential below it is never reached.	Handover	holder \in Site /\ want = FALSE
+ITEM	L1-E1-33	E1	implies	true	right	0	3	~want => ENABLED Request	-	Nobody wants to hand over, so the antecedent holds, and that is exactly Request's own guard.	Handover	holder \in Site /\ want = FALSE
+ITEM	L1-E1-34	E1	implies	false	left	12	3	want => ENABLED Request	-	Somebody wants to hand over, so the antecedent holds, and Request asks for the opposite, so it cannot fire.	Handover	holder \in Site /\ want = TRUE
+ITEM	L1-E1-35	E1	enabled	true	right	0	1	ENABLED Eliminate	-	Eliminate asks that the ring hold more than one place, and this one holds two.	Josephus	ring = <<3, 1>> /\ size = 4
+ITEM	L1-E1-36	E1	enabled	false	left	12	1	ENABLED Eliminate	-	One place is left in the ring and Eliminate needs more than one, so nobody can be counted out.	Josephus	ring = <<5>> /\ size = 7
+ITEM	L1-E1-37	E1	enabled	illformed	down	75	1	ENABLED Eliminate /\ ring[3] = 1	-	Eliminate is enabled, so the second conjunct is evaluated, and the ring holds two places rather than three. The line does not denote.	Josephus	ring = <<3, 1>> /\ size = 4
+ITEM	L1-E1-38	E1	enabled	unparsed	down	150	1	ENABLED Eliminate'	-	A prime cannot sit on the operand of ENABLED, and SANY refuses the line rather than picking a reading. ENABLED is already about the next step.	Josephus	ring = <<3, 1>> /\ size = 4
+ITEM	L1-E1-39	E1	terminal	true	right	0	1	~ENABLED Eliminate	-	Eliminate is the only action, and one place left in the ring disables it, so the counting is over.	Josephus	ring = <<2>> /\ size = 3
+ITEM	L1-E1-40	E1	terminal	false	left	12	1	~ENABLED Eliminate	-	Three places are left, so Eliminate can still fire and the state is not where the counting stops.	Josephus	ring = <<1, 2, 3>> /\ size = 3
+ITEM	L1-E1-41	E1	terminal	true	right	0	1	~ENABLED Take	-	Every heap is empty, so each of Take's three arms quantifies over 1..0, which is empty, and no arm has a witness.	Nim	a = 0 /\ b = 0 /\ c = 0
+ITEM	L1-E1-42	E1	terminal	false	left	12	1	~ENABLED Take	-	Two heaps are empty and the third holds 2, so Take's third arm has a witness and the game is not over.	Nim	a = 0 /\ b = 0 /\ c = 2
+ITEM	L1-E1-43	E1	enabled	wronglevel	down	76	1	Take	-	Take is an action and a state cannot satisfy one. Write ENABLED Take to ask whether a move is left.	Nim	a = 0 /\ b = 0 /\ c = 2
+ITEM	L1-E1-44	E1	implies	vacuous	down	0	1	a > 0 => ENABLED Take	a = 0	The first heap is empty, so the antecedent is false and the line holds whatever Take can do.	Nim	a = 0 /\ b = 0 /\ c = 2
+ITEM	L1-E1-45	E1	enabled	true	right	0	1	ENABLED MoveA	-	MoveA carries no guard at all, and it is still enabled only when 1..b has a member to move a to. Here b is 5.	Fences	a = 3 /\ b = 5
+ITEM	L1-E1-46	E1	enabled	false	left	12	1	~ENABLED MoveA	-	MoveA is enabled here, so its negation is false. An action with no guard is not an action that never fires.	Fences	a = 3 /\ b = 5
+ITEM	L1-E1-47	E1	enabled	true	right	0	1	ENABLED (MoveA /\ MoveB)	-	Each action leaves the other's variable alone, so together they ask that a sit in 1..b and b sit in a..N, and both do.	Fences	a = 3 /\ b = 5
+ITEM	L1-E1-48	E1	terminal	false	left	12	1	~ENABLED (MoveA \/ MoveB)	-	Neither action has a guard and both can fire from here, so this is as far from terminal as the model gets.	Fences	a = 3 /\ b = 5
