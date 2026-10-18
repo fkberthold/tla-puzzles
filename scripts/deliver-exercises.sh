@@ -37,6 +37,51 @@
 # half-solved set must not clobber it. Every file this script places is
 # checked for existence first; an existing file is left untouched and
 # reported on stdout as "skipped (exists): <path>", never touched again.
+#
+# ---------------------------------------------------------------------------
+# AND THE THIRD STATE (bead tla-oa0m)
+#
+# Never-overwrite froze every delivered chapter at its delivery date. Frank's
+# ch02 to ch11 landed on 2026-08-12 and every repair since has reached the
+# repo and not him. tla-e8ps alone fixes wording in eight of those ten, and he
+# was working two of them.
+#
+# The tension is real rather than a bug: protecting his half-solved set and
+# propagating a fix want opposite things from the same file. A --force flag
+# does not resolve it, because the file most worth fixing is the file most
+# likely to hold his answers.
+#
+# So delivery records what it wrote. With that record there are three states
+# instead of two, and only one of them is ambiguous:
+#
+#   absent                      deliver, as before
+#   present, matches record     he has not edited it, so a moved source is
+#                               safe to land and this script lands it
+#   present, differs from       his work. Never touched, whatever the source
+#     record                    says. A moved source is reported as a
+#                               conflict for him to merge by hand
+#   present, no record          provenance unknown. Treated as his work,
+#                               which is the safe reading
+#
+# THE RECORD IS .delivered.sha256 IN THE CHAPTER DIRECTORY, one "<digest>
+# <relative path>" line per file, and ONLY A DELIVERY WRITES AN ENTRY. That
+# last clause is the whole safety argument: an entry means this script put
+# those exact bytes there, so a file matching its entry is provably unedited.
+# Infer an entry from anything else and the inference is what overwrites his
+# work.
+#
+# WHAT THIS CANNOT DO RETROACTIVELY. Frank's existing chapters have no
+# record, so they stay in the ambiguous state and nothing gets auto-updated.
+# --adopt is the safe bootstrap: it records an entry for every delivered file
+# that is BYTE-IDENTICAL to its source, which is provably unedited, and
+# records nothing for the rest. Run it once per chapter and later repairs
+# reach him.
+#
+# --check writes nothing and exits 3 if anything is stale, so the reporting
+# half can be gated. The bead asks for that half on its own merits: right now
+# nothing tells him a delivered chapter has gone stale, which is the same
+# shape as a command reporting success without distinguishing "nothing to do"
+# from "something to do that I cannot see".
 
 set -uo pipefail
 
@@ -45,10 +90,16 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<USAGE >&2
-Usage: $0 <chapter> [dest-root]
+Usage: $0 [--check | --adopt] <chapter> [dest-root]
 
   chapter    integer 2-13, the chapter to deliver exercises for
   dest-root  where to deliver into (default: \$HOME/tla-practice/exercises)
+
+  --check    report what is absent, stale or conflicted and write nothing.
+             Exits 3 if anything is stale, 0 otherwise.
+  --adopt    record a digest for every delivered file that is byte-identical
+             to its source, so later repairs can reach a chapter delivered
+             before this script kept records. Copies nothing.
 
 Env:
   DELIVER_SRC_ROOT   override the source root (default: $REPO_ROOT/exercises)
@@ -56,6 +107,24 @@ USAGE
 }
 
 SRC_ROOT="${DELIVER_SRC_ROOT:-$REPO_ROOT/exercises}"
+
+CHECK_ONLY=0
+ADOPT_ONLY=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check) CHECK_ONLY=1; shift ;;
+    --adopt) ADOPT_ONLY=1; shift ;;
+    --) shift; break ;;
+    -*) echo "$0: unknown option: $1" >&2; usage; exit 1 ;;
+    *) break ;;
+  esac
+done
+
+if [ "$CHECK_ONLY" -eq 1 ] && [ "$ADOPT_ONLY" -eq 1 ]; then
+  echo "$0: --check writes nothing and --adopt writes the record, so pick one." >&2
+  usage
+  exit 1
+fi
 
 CHAPTER="${1:-}"
 if [ -z "$CHAPTER" ] || ! [[ "$CHAPTER" =~ ^[0-9]+$ ]]; then
@@ -89,7 +158,44 @@ if [ ! -f "$SRC_CHAPTER_DIR/EXERCISES.md" ]; then
   exit 1
 fi
 
-mkdir -p "$DEST_CHAPTER_DIR"
+if [ "$CHECK_ONLY" -eq 0 ]; then
+  mkdir -p "$DEST_CHAPTER_DIR"
+fi
+
+RECORD="$DEST_CHAPTER_DIR/.delivered.sha256"
+
+STALE_COUNT=0
+CONFLICT_COUNT=0
+ADOPTED_COUNT=0
+
+digest_of() {
+  [ -f "$1" ] || return 1
+  sha256sum -- "$1" | cut -d' ' -f1
+}
+
+# recorded_digest <dest>
+#
+# Keyed on the path relative to the chapter directory, so a record stays valid
+# if the whole tree moves. Prints nothing and returns 1 when there is no entry,
+# which is the ambiguous state and the one that must never be guessed at.
+recorded_digest() {
+  local rel="${1#"$DEST_CHAPTER_DIR/"}"
+  [ -f "$RECORD" ] || return 1
+  local line
+  line=$(grep -F -- "  $rel" "$RECORD" 2>/dev/null | tail -1)
+  [ -n "$line" ] || return 1
+  printf '%s' "${line%%  *}"
+}
+
+# record_digest <dest> <digest>
+#
+# Append-and-dedupe rather than rewrite in place. A later entry wins, which
+# recorded_digest reads with tail -1, so a re-delivery does not have to find
+# and edit its own old line.
+record_digest() {
+  local rel="${1#"$DEST_CHAPTER_DIR/"}" digest="$2"
+  printf '%s  %s\n' "$digest" "$rel" >>"$RECORD"
+}
 
 # deliver_file <src> <dest>
 #
@@ -97,14 +203,88 @@ mkdir -p "$DEST_CHAPTER_DIR"
 # goes through here, one file at a time, so a hand-edited file inside a
 # recursively-delivered directory (e.g. one starter out of several) is left
 # alone without holding back its untouched siblings.
+#
+# THE MESSAGES FOR EVERY CASE THAT EXISTED BEFORE tla-oa0m ARE UNCHANGED, on
+# purpose. "skipped (exists): <path>" still means what it meant, and
+# harness/test-deliver-exercises.sh pins that string. The record adds one new
+# outcome, a file the learner has not touched being brought up to a moved
+# source, and one new line on the conflict, which prints AFTER the skip line
+# rather than instead of it.
 deliver_file() {
-  local src="$1" dest="$2"
-  if [ -e "$dest" ]; then
+  local src="$1" dest="$2" src_d dest_d rec_d
+
+  if [ ! -e "$dest" ]; then
+    if [ "$CHECK_ONLY" -eq 1 ]; then
+      echo "would deliver: $dest"
+      return
+    fi
+    if [ "$ADOPT_ONLY" -eq 1 ]; then
+      echo "not delivered, so nothing to adopt: $dest"
+      return
+    fi
+    mkdir -p "$(dirname -- "$dest")"
+    cp "$src" "$dest" || return 1
+    src_d=$(digest_of "$src") && record_digest "$dest" "$src_d"
+    return
+  fi
+
+  src_d=$(digest_of "$src")  || src_d=""
+  dest_d=$(digest_of "$dest") || dest_d=""
+  rec_d=$(recorded_digest "$dest") || rec_d=""
+
+  if [ "$ADOPT_ONLY" -eq 1 ]; then
+    if [ -n "$rec_d" ]; then
+      echo "already recorded: $dest"
+    elif [ -n "$src_d" ] && [ "$src_d" = "$dest_d" ]; then
+      record_digest "$dest" "$dest_d"
+      ADOPTED_COUNT=$((ADOPTED_COUNT + 1))
+      echo "adopted, byte-identical to its source: $dest"
+    else
+      echo "not adopted, it differs from its source so it may be your work: $dest"
+    fi
+    return
+  fi
+
+  # Nothing to propagate. This is the common case and it keeps the old message
+  # whatever the provenance turns out to be, because there is no difference to
+  # report and the learner does not need to hear about the record.
+  if [ -n "$src_d" ] && [ "$src_d" = "$dest_d" ]; then
     echo "skipped (exists): $dest"
     return
   fi
-  mkdir -p "$(dirname -- "$dest")"
-  cp "$src" "$dest"
+
+  # Provably unedited: the bytes on disk are the bytes this script wrote. The
+  # source has moved, so land it. This is the one case the bead exists for.
+  if [ -n "$rec_d" ] && [ "$rec_d" = "$dest_d" ]; then
+    STALE_COUNT=$((STALE_COUNT + 1))
+    if [ "$CHECK_ONLY" -eq 1 ]; then
+      echo "STALE, you have not edited it so a run would update it: $dest"
+      return
+    fi
+    cp "$src" "$dest" || return 1
+    record_digest "$dest" "$src_d"
+    echo "updated, you had not edited it: $dest"
+    return
+  fi
+
+  # Either the record says he edited it, or there is no record and the safe
+  # reading is that he did. Never touched either way. The skip line comes
+  # first so the string the suite pins is still on its own line.
+  CONFLICT_COUNT=$((CONFLICT_COUNT + 1))
+  if [ "$CHECK_ONLY" -eq 1 ]; then
+    if [ -n "$rec_d" ]; then
+      echo "CONFLICT, your edit and a moved source: $dest"
+    else
+      echo "CONFLICT, differs from source and has no record, so it may be your work: $dest"
+    fi
+    return
+  fi
+  echo "skipped (exists): $dest"
+  if [ -n "$rec_d" ]; then
+    echo "  and the source has moved since you edited it, so merge $src by hand" >&2
+  else
+    echo "  and it differs from $src with no record of delivery, so merge by hand if it is not yours" >&2
+  fi
 }
 
 deliver_file "$SRC_CHAPTER_DIR/EXERCISES.md" "$DEST_CHAPTER_DIR/EXERCISES.md"
@@ -128,5 +308,21 @@ while [ "$m" -lt "$CHAPTER_NUM" ]; do
   fi
   m=$((m + 1))
 done
+
+if [ "$ADOPT_ONLY" -eq 1 ]; then
+  echo "$ADOPTED_COUNT file(s) adopted, $CONFLICT_COUNT left unrecorded"
+  exit 0
+fi
+
+if [ "$CHECK_ONLY" -eq 1 ]; then
+  echo "$STALE_COUNT stale, $CONFLICT_COUNT conflicted"
+  # Exit 3 only under --check. A delivery that left an edit alone and said so
+  # did its job, so it stays at 0 and every caller that reads 0 as success
+  # keeps reading it that way.
+  if [ "$STALE_COUNT" -gt 0 ] || [ "$CONFLICT_COUNT" -gt 0 ]; then
+    exit 3
+  fi
+  exit 0
+fi
 
 exit 0

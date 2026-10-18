@@ -427,6 +427,204 @@ assert_not_delivered "chapter 13's own sheet never lands" \
 
 # ---------------------------------------------------------------------------
 echo
+echo "== the third state: a repair reaches a chapter the learner has not edited =="
+# ---------------------------------------------------------------------------
+#
+# Never-overwrite froze every delivered chapter at its delivery date, so every
+# repair reached the repo and not Frank. Bead tla-oa0m. The resolution is a
+# record of what delivery wrote, which splits "present" into a file he has
+# edited and a file he has not.
+#
+# EVERY ROW ABOVE STILL PASSES UNCHANGED, which is the first thing to check if
+# one of these goes red. The record adds one outcome and keeps every message
+# the old contract printed.
+#
+# A source root of its own, because these rows MOVE the source and the rows
+# above assert its content.
+
+SRC_MOVE="$TMPROOT/src-move"
+DEST_FRESH="$TMPROOT/dest-fresh"   # delivered by this script, never edited
+DEST_EDITED="$TMPROOT/dest-edited" # delivered, then edited, then source moved
+DEST_NOREC="$TMPROOT/dest-norec"   # delivered before records existed
+DEST_CHECK="$TMPROOT/dest-check"   # for --check on a clean tree
+
+cp -r "$SRC" "$SRC_MOVE"
+
+RECORD_REL=".delivered.sha256"
+
+# --- the record exists at all ----------------------------------------------
+
+run_deliver "$SRC_MOVE" 5 "$DEST_FRESH"
+assert_rc0 "a first delivery exits 0"
+
+if [ -f "$DEST_FRESH/ch05/$RECORD_REL" ]; then
+  ok "a first delivery writes the record"
+else
+  nope "a first delivery writes no record at $DEST_FRESH/ch05/$RECORD_REL"
+fi
+
+assert_says "the record carries an entry for EXERCISES.md" \
+  '^[0-9a-f]{64}  EXERCISES\.md$' "$(cat "$DEST_FRESH/ch05/$RECORD_REL")"
+
+assert_says "the record carries an entry for a nested starter" \
+  '^[0-9a-f]{64}  starters/Nested/Deep\.tla$' \
+  "$(cat "$DEST_FRESH/ch05/$RECORD_REL")"
+
+# The record is written into the destination and is not source material, so it
+# must never appear in the source tree the next delivery reads.
+if [ -e "$SRC_MOVE/ch05/$RECORD_REL" ]; then
+  nope "the record leaked into the source tree: $SRC_MOVE/ch05/$RECORD_REL"
+else
+  ok "the record stays in the destination and never reaches the source"
+fi
+
+# --- the case the bead exists for ------------------------------------------
+#
+# Repair the source the way tla-e8ps repairs eight chapters, then deliver
+# again over a copy the learner has not touched.
+
+printf 'EXERCISES for chapter 05, repaired\n' >"$SRC_MOVE/ch05/EXERCISES.md"
+printf 'Ex1 starter, repaired\n' >"$SRC_MOVE/ch05/starters/Ex1.tla"
+
+run_deliver "$SRC_MOVE" 5 "$DEST_FRESH"
+assert_rc0 "a delivery over an unedited copy exits 0"
+
+assert_content "the repaired EXERCISES.md reaches an unedited copy" \
+  "$DEST_FRESH/ch05/EXERCISES.md" "EXERCISES for chapter 05, repaired"
+
+assert_content "the repaired starter reaches an unedited copy" \
+  "$DEST_FRESH/ch05/starters/Ex1.tla" "Ex1 starter, repaired"
+
+assert_says "the update says the learner had not edited it" \
+  '^updated, you had not edited it: .*ch05/EXERCISES\.md$' "$RUN_OUT"
+
+# And the record moved with it, or the next repair would be reported as a
+# conflict against bytes this script wrote itself.
+run_deliver "$SRC_MOVE" 5 "$DEST_FRESH"
+assert_says "the third run has nothing to do and says so the old way" \
+  '^[[:space:]]*skipped \(exists\): .*ch05/EXERCISES\.md$' "$RUN_OUT"
+
+assert_says "the third run reports no conflict" '^0 stale, 0 conflicted$' \
+  "$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --check 5 "$DEST_FRESH" 2>/dev/null)"
+
+# --- his work is still untouchable -----------------------------------------
+#
+# The whole rule this bead must not relax. Deliver, let him edit, move the
+# source, deliver again.
+
+run_deliver "$SRC" 5 "$DEST_EDITED"
+assert_rc0 "a first delivery into the edited-copy tree exits 0"
+
+printf 'my own answers, half done\n' >"$DEST_EDITED/ch05/EXERCISES.md"
+cp "$DEST_EDITED/ch05/EXERCISES.md" "$TMPROOT/keeper-third.md"
+
+run_deliver "$SRC_MOVE" 5 "$DEST_EDITED"
+assert_rc0 "a delivery over an edited copy still exits 0"
+
+assert_bytes "an edited EXERCISES.md survives a MOVED source" \
+  "$DEST_EDITED/ch05/EXERCISES.md" "$TMPROOT/keeper-third.md"
+
+assert_says "the conflict is reported on stderr with a path to merge" \
+  'source has moved since you edited it' "$RUN_ERR"
+
+assert_says "the conflict still prints the old skip line on stdout" \
+  '^[[:space:]]*skipped \(exists\): .*ch05/EXERCISES\.md$' "$RUN_OUT"
+
+# --- no record means treat it as his ---------------------------------------
+#
+# Frank's ch02 to ch11 are in exactly this state: delivered 2026-08-12, before
+# anything kept a record. The safe reading is that every file is his.
+
+run_deliver "$SRC" 5 "$DEST_NOREC"
+assert_rc0 "a first delivery into the no-record tree exits 0"
+rm -f "$DEST_NOREC/ch05/$RECORD_REL"
+printf 'a copy of unknown provenance\n' >"$DEST_NOREC/ch05/EXERCISES.md"
+cp "$DEST_NOREC/ch05/EXERCISES.md" "$TMPROOT/keeper-norec.md"
+
+run_deliver "$SRC_MOVE" 5 "$DEST_NOREC"
+assert_bytes "a file with no record is never overwritten" \
+  "$DEST_NOREC/ch05/EXERCISES.md" "$TMPROOT/keeper-norec.md"
+
+assert_says "the missing record is named as the reason" \
+  'no record of delivery' "$RUN_ERR"
+
+# --- --check reports and writes nothing ------------------------------------
+
+CHECK_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --check 5 "$DEST_NOREC" 2>/dev/null)
+CHECK_RC=$?
+if [ "$CHECK_RC" -eq 3 ]; then
+  ok "--check exits 3 when something is stale or conflicted"
+else
+  nope "--check exited $CHECK_RC on a stale tree, wanted 3"
+fi
+
+assert_says "--check names the conflict" 'CONFLICT, differs from source and has no record' "$CHECK_OUT"
+
+assert_bytes "--check wrote nothing over the file it reported" \
+  "$DEST_NOREC/ch05/EXERCISES.md" "$TMPROOT/keeper-norec.md"
+
+CHECK_FRESH_DIR="$TMPROOT/dest-check-absent"
+CHECK2_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --check 5 "$CHECK_FRESH_DIR" 2>/dev/null)
+CHECK2_RC=$?
+if [ "$CHECK2_RC" -eq 0 ] && [ ! -d "$CHECK_FRESH_DIR/ch05" ]; then
+  ok "--check on an undelivered chapter exits 0 and creates nothing"
+else
+  nope "--check on an undelivered chapter gave rc=$CHECK2_RC and may have created $CHECK_FRESH_DIR/ch05"
+fi
+
+assert_says "--check on an undelivered chapter says what would land" \
+  '^would deliver: .*ch05/EXERCISES\.md$' "$CHECK2_OUT"
+
+# --- --adopt bootstraps a tree delivered before records --------------------
+
+run_deliver "$SRC" 5 "$DEST_CHECK"
+rm -f "$DEST_CHECK/ch05/$RECORD_REL"
+printf 'my own answers here too\n' >"$DEST_CHECK/ch05/EXERCISES.md"
+cp "$DEST_CHECK/ch05/EXERCISES.md" "$TMPROOT/keeper-adopt.md"
+
+ADOPT_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC" bash "$SCRIPT" --adopt 5 "$DEST_CHECK" 2>/dev/null)
+ADOPT_RC=$?
+if [ "$ADOPT_RC" -eq 0 ]; then
+  ok "--adopt exits 0"
+else
+  nope "--adopt exited $ADOPT_RC"
+fi
+
+assert_says "--adopt takes a file byte-identical to its source" \
+  '^adopted, byte-identical to its source: .*ch05/starters/Ex1\.tla$' "$ADOPT_OUT"
+
+assert_says "--adopt refuses a file that differs, because it may be his work" \
+  '^not adopted, it differs from its source so it may be your work: .*ch05/EXERCISES\.md$' \
+  "$ADOPT_OUT"
+
+if cmp -s "$DEST_CHECK/ch05/EXERCISES.md" "$TMPROOT/keeper-adopt.md"; then
+  ok "--adopt copies nothing over his edit"
+else
+  nope "--adopt changed $DEST_CHECK/ch05/EXERCISES.md"
+fi
+
+# The payoff: an adopted file now takes a repair, and the edited one still
+# does not.
+printf 'Ex1 starter, repaired after adoption\n' >"$SRC/ch05/starters/Ex1.tla"
+run_deliver "$SRC" 5 "$DEST_CHECK"
+assert_content "an adopted file takes a later repair" \
+  "$DEST_CHECK/ch05/starters/Ex1.tla" "Ex1 starter, repaired after adoption"
+
+assert_bytes "his edit is still untouched after adoption" \
+  "$DEST_CHECK/ch05/EXERCISES.md" "$TMPROOT/keeper-adopt.md"
+
+# --- the two write modes are not combinable --------------------------------
+
+BOTH_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC" bash "$SCRIPT" --check --adopt 5 "$DEST_CHECK" 2>&1)
+BOTH_RC=$?
+if [ "$BOTH_RC" -eq 1 ] && grep -qF "pick one" <<<"$BOTH_OUT"; then
+  ok "--check and --adopt together are refused"
+else
+  nope "--check --adopt gave rc=$BOTH_RC without saying to pick one"
+fi
+
+# ---------------------------------------------------------------------------
+echo
 echo "== a bad chapter argument is refused with usage =="
 # ---------------------------------------------------------------------------
 

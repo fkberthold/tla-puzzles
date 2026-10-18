@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~834 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~835 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -65,7 +65,7 @@
 #
 #   tier    wall  suite
 #   ----  ------  ------------------------------------------------------
-#   fast   0.2 s  harness/test-deliver-exercises.sh
+#   fast   1.4 s  harness/test-deliver-exercises.sh      (re-based, bead tla-oa0m)
 #   fast   0.3 s  harness/test-toolchain-pin.sh
 #   fast   0.3 s  harness/test-spelling.sh                (added, bead tla-nv5q)
 #   fast   0.7 s  harness/test-build-docs-chapter.sh
@@ -107,11 +107,11 @@
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
 #   ----  ------
-#         49.2 s  fast tier, 26 suites   (measured --fast totals: 26.9 s at 18,
+#         50.4 s  fast tier, 26 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
 #        784.9 s  slow tier, 15 suites
-#        834.1 s  whole registry
+#        835.3 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -585,7 +585,14 @@ SUITES=(
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 0.2 / 0.2 / 0.2 s. Unchanged, and the only row in the
   # registry that was already exact.
-  "fast|0.2|exercise delivery|./harness/test-deliver-exercises.sh"
+  # Re-based 2026-10-18 (bead tla-oa0m) from 0.2 s, which this suite held
+  # while it was 43 assertions. It is 74 now, and the 31 new ones drive the
+  # script eleven more times over four more destination trees to exercise the
+  # digest record. 0.996 / 1.017 / 1.032 s at load 7.8, so 1.2. The spread is
+  # 3.6%, which is tight for a row this small, and it starts no JVM.
+  # 1.4 rather than 1.2: the in-suite pass read 1.2 exactly, so a 1.2 budget
+  # would flap on the next warm run.
+  "fast|1.4|exercise delivery|./harness/test-deliver-exercises.sh"
   # Re-measured 2026-09-18 on the green tree, after tla-rgpe took the suite
   # from 64 assertions to 84: 0.47 / 0.48 / 0.48 s over three serial runs, so
   # 0.5 is the slowest rounded up. The first reading was 0.3, taken on the red
