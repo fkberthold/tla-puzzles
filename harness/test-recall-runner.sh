@@ -1153,6 +1153,79 @@ else
   nope "and it says nothing was graded, rather than letting the answer through"
 fi
 
+# THE THREE ERE SHAPES THE LIVE TABLE LEANS ON, measured here because bead
+# tla-1sh7.7 put field 7 on 24 rows of recall/REPS.tsv and this fixture only
+# ever covered a word boundary. R003 gates on `\bLET\b` and R004 on
+# `\bEXCEPT\b`. Three of the adopted patterns reach past that, and each one
+# can fail in a way that reads as a learner's mistake rather than a broken
+# gate.
+#
+# The first is the one I'd worry about. `(^|[^<])=>` is the anchored
+# alternation .claude/rules/dispatched-agents.md measured at 0 matches under
+# the Bash tool's ugrep where GNU grep found 6. recall.sh carries a bash
+# shebang, so it gets GNU grep today. If that ever stops holding, every
+# correct implication answer is refused as a construct nobody wrote, and the
+# two accept rows below are what notices.
+#
+# The second pattern carries a literal space, so it also says a field 7 with
+# a space in it survives the tab split. The third carries backslashes of its
+# own, and that is the layer between `cut -f7` and `grep -qE` where an escape
+# could go missing.
+GATEREPS="$TMPROOT/gate-shapes.tsv"
+# The pattern and the canonical go through %s rather than the format string.
+# printf reads escapes in the format and leaves an argument alone, so a
+# backslash here is the byte that reaches grep.
+{
+  printf 'REP\t%s\tK009\tshunting\t%s\t%s\t%s\n' \
+    R901 'whether one track being a track would mean two is one as well' \
+    '1 \in Tracks => 2 \in Tracks' '(^|[^<])=>'
+  printf 'REP\t%s\tK075\tshunting\t%s\t%s\t%s\n' \
+    R902 'for each track, that track doubled, the lookup named as it is built' \
+    'LET Doubled[t \in Tracks] == t * 2 IN Doubled' '\][ ]*=='
+  printf 'REP\t%s\tK007\tshunting\t%s\t%s\t%s\n' \
+    R903 'whether one is a track and two is a track too' \
+    '1 \in Tracks /\ 2 \in Tracks' '(/\\|\\land)'
+} >"$GATEREPS"
+
+gate_rc_in() {
+  local rc=0
+  "$1" --reps "$GATEREPS" --env-dir "$ENV_DIR" -q "$2" "$3" >/dev/null 2>&1 || rc=$?
+  printf '%s\n' "$rc"
+}
+
+assert_eq "R901: an anchored alternation takes the implication it is there for" \
+  "0" "$(gate_rc_in "$RUNNER" R901 '1 \in Tracks => 2 \in Tracks')"
+assert_eq "R901: and takes it with both sides parenthesised" \
+  "0" "$(gate_rc_in "$RUNNER" R901 '(1 \in Tracks) => (2 \in Tracks)')"
+assert_eq "R901: an equivalence reaches the same value and is refused" \
+  "4" "$(gate_rc_in "$RUNNER" R901 '1 \in Tracks <=> 2 \in Tracks')"
+assert_eq "R901: so does the conjunction, and the guard on < is why" \
+  "4" "$(gate_rc_in "$RUNNER" R901 '1 \in Tracks /\ 2 \in Tracks')"
+
+assert_eq "R902: a pattern carrying a space survives the tab split" \
+  "0" "$(gate_rc_in "$RUNNER" R902 'LET Doubled[t \in Tracks] == t * 2 IN Doubled')"
+assert_eq "R902: and still matches when the answer has no space to spare" \
+  "0" "$(gate_rc_in "$RUNNER" R902 'LET Doubled[t \in Tracks]==t * 2 IN Doubled')"
+assert_eq "R902: the same function built as a constructor is refused" \
+  "4" "$(gate_rc_in "$RUNNER" R902 '[t \in Tracks |-> t * 2]')"
+
+assert_eq "R903: a pattern's own backslashes reach grep intact" \
+  "0" "$(gate_rc_in "$RUNNER" R903 '1 \in Tracks /\ 2 \in Tracks')"
+assert_eq "R903: and the LaTeX spelling SANY also accepts is taken" \
+  "0" "$(gate_rc_in "$RUNNER" R903 '1 \in Tracks \land 2 \in Tracks')"
+assert_eq "R903: an implication over two true operands is refused" \
+  "4" "$(gate_rc_in "$RUNNER" R903 '1 \in Tracks => 2 \in Tracks')"
+
+# The control for all ten rows above. A gate that never refuses would leave
+# every accept row green and say nothing, so the refusals need a mutant that
+# turns them into passes.
+if mutate gate-falls-open 's|^\([[:space:]]*\)1) REQUIRES_MET=0 ;;$|\11) REQUIRES_MET=1 ;;|'; then
+  assert_ne "control: a gate that never refuses is DETECTED by R901's equivalence row" \
+    "4" "$(gate_rc_in "$MUTANT" R901 '1 \in Tracks <=> 2 \in Tracks')"
+  assert_eq "and it fails the way the mutation says, an equivalence passing at 0" \
+    "0" "$(gate_rc_in "$MUTANT" R901 '1 \in Tracks <=> 2 \in Tracks')"
+fi
+
 # 4 is the runner's own code and must not be a code verdict.sh documents,
 # because a caller branching on the number has to be able to tell a statement
 # about the submission from a verdict about the run.
