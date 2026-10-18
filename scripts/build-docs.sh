@@ -874,7 +874,7 @@ if [ "${#CHAPTER_PAGES[@]}" -gt 0 ]; then
     link_prog=$(mktemp)
     build_chapter_link_program "$page" "$link_prog"
     # An empty program is a no-op and sed copies the file, which is the right
-    # behaviour for a chapter that carries no relative links at all.
+    # behavior for a chapter that carries no relative links at all.
     sed -E -f "$link_prog" "chapter/$page.md" > "$DOCS/chapter/$page.md"
     rm -f "$link_prog"
   done

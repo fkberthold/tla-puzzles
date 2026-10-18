@@ -205,6 +205,96 @@ case "$REAL_RC" in
     ;;
 esac
 
+# --- part 4: the wrapper's channel table covers every delivery script -------
+#
+# scripts/verify-delivery.sh is the one command the wrap-up ritual names, and
+# it refuses to run when a scripts/deliver-*.sh exists that its table does not
+# know about. That refusal only fires when somebody runs it, which at wrap-up
+# is hours after the new channel landed. Assert the same thing here so a new
+# delivery channel cannot merge outside the ritual's reach in the first place.
+#
+# Frank ruled on 2026-10-18 (bead tla-mjvx) that the ritual, not cibuild, is
+# where the delivery check lives. This row is the part of that ruling a gate
+# can carry.
+
+echo
+echo "== part 4: every delivery channel is in the wrapper's table =="
+
+WRAPPER="$REPO_ROOT/scripts/verify-delivery.sh"
+if [ -x "$WRAPPER" ]; then
+  ok "scripts/verify-delivery.sh exists and is executable"
+else
+  nope "scripts/verify-delivery.sh is missing or not executable"
+fi
+
+# Strip the assignment prefix off the first line and the closing quote off the
+# last, or the first and last channel never match. Caught by this assertion on
+# its first run, which is the only reason it is right now.
+TABLE=$(sed -n "/^KNOWN_CHANNELS='/,/'\$/p" "$WRAPPER" \
+        | sed -e "s/^KNOWN_CHANNELS='//" -e "s/'\$//")
+missing=''
+for path in "$REPO_ROOT"/scripts/deliver-*.sh; do
+  [ -e "$path" ] || continue
+  base=${path##*/deliver-}
+  base=${base%.sh}
+  if ! grep -qx -- "$base" <<<"$TABLE"; then
+    missing="$missing $base"
+  fi
+done
+if [ -z "$missing" ]; then
+  ok "every scripts/deliver-*.sh appears in KNOWN_CHANNELS"
+else
+  nope "delivery channel(s) absent from the wrapper's table:$missing"
+fi
+
+# The other direction. A table entry naming a script that no longer exists is
+# how a channel gets silently dropped from the ritual after a rename.
+stale_entry=''
+while read -r ch; do
+  [ -n "$ch" ] || continue
+  if [ ! -f "$REPO_ROOT/scripts/deliver-$ch.sh" ]; then
+    stale_entry="$stale_entry $ch"
+  fi
+done <<<"$TABLE"
+if [ -z "$stale_entry" ]; then
+  ok "every KNOWN_CHANNELS entry names a script that exists"
+else
+  nope "table entr(ies) naming a script that is gone:$stale_entry"
+fi
+
+# And it degrades on a box with no delivered tree, which is every box but
+# Frank's and all of CI. Absence is a skip and never a failure.
+ABSENT_OUT=$("$WRAPPER" "$WORK/no-such-practice-root" 2>&1)
+ABSENT_RC=$?
+if [ "$ABSENT_RC" -eq 0 ] && grep -qF "Skipping." <<<"$ABSENT_OUT"; then
+  ok "the wrapper skips and exits 0 when there is no delivered tree"
+else
+  nope "the wrapper gave rc=$ABSENT_RC on an absent practice root, wanted 0 with a skip"
+fi
+
+# It must name the unchecked channels on any run that actually compared
+# something, or a green run claims more than it looked at. The absent-root
+# path above exits before the report, so this needs a present-but-empty tree.
+#
+# The first version of this assertion was `grep NOT CHECKED || rc -eq 0`,
+# which passed through the rc arm on every run and could not fail. Noted here
+# because an or-ed fallback is the quiet way a control goes vacuous.
+EMPTY_ROOT="$WORK/empty-practice"
+mkdir -p "$EMPTY_ROOT"
+EMPTY_OUT=$("$WRAPPER" "$EMPTY_ROOT" 2>&1)
+EMPTY_RC=$?
+if [ "$EMPTY_RC" -eq 0 ] && grep -qF "NOT CHECKED" <<<"$EMPTY_OUT"; then
+  ok "a run that compared something still names the channels it did not check"
+else
+  nope "the wrapper gave rc=$EMPTY_RC on an empty tree and may not have named the unchecked channels"
+fi
+
+if grep -qE '^  (drill|completion|problems)$' <<<"$EMPTY_OUT"; then
+  ok "the unchecked channels are named individually, not summarized"
+else
+  nope "the wrapper did not name drill, completion and problems by name"
+fi
+
 echo
 printf 'OK: %s assertions passed\n' "$pass_count"
 if [ "$fail_count" -gt 0 ]; then

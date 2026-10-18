@@ -550,15 +550,45 @@ assert_says "the missing record is named as the reason" \
 
 # --- --check reports and writes nothing ------------------------------------
 
+# STALE AND CONFLICTED ARE NOT THE SAME FINDING AND THE EXIT CODE MUST NOT
+# MERGE THEM. Conflicted is the learner's own work and the only correct action
+# is to leave it alone forever, so it can never be a failure. Stale is a
+# delivery somebody owes tonight, so it must be. The usage line has said
+# exactly this since the script was written and the code disagreed with it
+# until 2026-10-18, which put a permanent red on 10 of Frank's 12 chapters,
+# every one of them red because he had done the exercises.
+
 CHECK_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --check 5 "$DEST_NOREC" 2>/dev/null)
 CHECK_RC=$?
-if [ "$CHECK_RC" -eq 3 ]; then
-  ok "--check exits 3 when something is stale or conflicted"
+if [ "$CHECK_RC" -eq 0 ]; then
+  ok "--check exits 0 when the only finding is a conflict, since that is his work"
 else
-  nope "--check exited $CHECK_RC on a stale tree, wanted 3"
+  nope "--check exited $CHECK_RC on a conflict-only tree, wanted 0"
 fi
 
 assert_says "--check names the conflict" 'CONFLICT, differs from source and has no record' "$CHECK_OUT"
+
+assert_says "--check counts the conflict in its summary line even at rc 0" \
+  '^0 stale, [1-9][0-9]* conflicted$' "$CHECK_OUT"
+
+# The other direction, and it is the one the wrap-up ritual is wired to. A
+# file whose record matches its delivered bytes is provably unedited, so a
+# moved source makes it STALE rather than conflicted, and that is a failure.
+
+DEST_STALE="$TMPROOT/dest-stale-only"
+run_deliver "$SRC" 5 "$DEST_STALE"
+assert_rc0 "a first delivery into the stale-only tree exits 0"
+
+STALE_OUT=$(HOME="$SANDBOX_HOME" DELIVER_SRC_ROOT="$SRC_MOVE" bash "$SCRIPT" --check 5 "$DEST_STALE" 2>/dev/null)
+STALE_RC=$?
+if [ "$STALE_RC" -eq 3 ]; then
+  ok "--check exits 3 when a recorded, unedited file has gone stale"
+else
+  nope "--check exited $STALE_RC on a stale tree, wanted 3"
+fi
+
+assert_says "--check counts the stale file in its summary line" \
+  '^[1-9][0-9]* stale, ' "$STALE_OUT"
 
 assert_bytes "--check wrote nothing over the file it reported" \
   "$DEST_NOREC/ch05/EXERCISES.md" "$TMPROOT/keeper-norec.md"
@@ -602,6 +632,15 @@ if cmp -s "$DEST_CHECK/ch05/EXERCISES.md" "$TMPROOT/keeper-adopt.md"; then
 else
   nope "--adopt changed $DEST_CHECK/ch05/EXERCISES.md"
 fi
+
+# AND THE SUMMARY LINE COUNTS WHAT IT LEFT BEHIND. The bootstrap's whole job
+# is to say which files it could not vouch for, since those are the learner's
+# and no later repair will reach them. A line reading "0 left unrecorded" on a
+# run that left one unrecorded is the only number somebody would act on, and
+# it is the number that was wrong until 2026-10-18.
+
+assert_says "--adopt counts the file it left unrecorded" \
+  '^[0-9]+ file\(s\) adopted, [1-9][0-9]* left unrecorded$' "$ADOPT_OUT"
 
 # The payoff: an adopted file now takes a repair, and the edited one still
 # does not.

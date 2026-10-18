@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+#
+# Usage:  scripts/verify-delivery.sh [practice-root]
+#
+# Report every delivered artifact under ~/tla-practice that has drifted from
+# its source in this repo, across every delivery channel at once. Writes
+# nothing anywhere. Exits 3 if any channel reports drift, 1 if a channel
+# errors, 0 otherwise.
+#
+# WHY THIS EXISTS AS ONE COMMAND. Bead tla-mjvx: the repo carried drill
+# --style for several hours and Frank's copy did not, because three waves
+# merged without anybody re-delivering. ~/tla-practice is not a git repo and
+# no repo-level search reaches it, so the gate cannot see this by
+# construction. Frank ruled on 2026-10-18 that the check belongs in the
+# wrap-up ritual rather than in cibuild, for the reason the bead gives:
+# cibuild runs where no delivered tree exists, so the check would skip there
+# every time and buy nothing.
+#
+# A ritual step has to be one command. Before this script the operator would
+# have had to remember that deliver-recall.sh spells it --verify, that
+# deliver-exercises.sh spells it --check and needs a chapter argument, and
+# that three more channels cannot be checked at all. That is not a step
+# somebody runs correctly at the end of a long session.
+#
+# IT NAMES WHAT IT DID NOT CHECK, every run, whether or not anything drifted.
+# Three channels have no verify mode yet and a wrapper that reported "all
+# clean" while silently skipping them would be the exact failure tla-mjvx is
+# about, wearing the uniform of its own fix. CLAUDE.md states the rule this
+# obeys: a claim of absence or completeness names its search.
+#
+# THE TABLE BELOW IS A TRIPWIRE, not a convenience. A delivery channel that
+# is not in it fails this script rather than being quietly left out, so a new
+# scripts/deliver-*.sh cannot ship outside the ritual's reach.
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+  cat <<USAGE >&2
+Usage: $0 [practice-root]
+
+  practice-root  the delivered tree to compare (default: \$HOME/tla-practice)
+
+Exits 3 if any channel reports drift, 1 on a channel error or an unknown
+delivery script, 0 when everything that can be checked is in sync.
+USAGE
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  -*) echo "$0: unknown option: $1" >&2; usage; exit 1 ;;
+esac
+
+PRACTICE_ROOT="${1:-$HOME/tla-practice}"
+
+# Every delivery channel this repo has, and how to verify it. The third field
+# is the reason a channel cannot be verified yet, empty when it can.
+#
+# recall     --verify, landed in tla-mjvx at 693ee8f
+# exercises  --check per chapter, landed in tla-oa0m at 86faa11. Exits 3 only
+#            on stale. A conflict is the learner's own work and is reported
+#            without failing, which is what the usage line has always said.
+# drill      two file classes and a learner owns one. REFERENCE_POLICIES has
+#            a 'once' entry, COLD-LIST.md, so a difference there is his.
+# completion, problems  never overwrite, so they need the digest record that
+#            deliver-exercises.sh now carries. Same pattern, not yet applied.
+KNOWN_CHANNELS='recall
+exercises
+drill
+completion
+problems'
+
+NO_VERIFY_YET='drill
+completion
+problems'
+
+CLEAN_LIST=''
+DRIFT_LIST=''
+ERROR_LIST=''
+DRIFT_DETAIL=''
+RC=0
+
+note_clean()  { CLEAN_LIST="${CLEAN_LIST}  $1
+"; }
+note_drift()  { DRIFT_LIST="${DRIFT_LIST}  $1
+"; RC=3; }
+note_error()  { ERROR_LIST="${ERROR_LIST}  $1: $2
+"; [ "$RC" -lt 1 ] && RC=1; }
+
+# A delivery script that is not in the table is a channel nobody is checking.
+# Fail rather than ignore it: that is the whole point of the table.
+for path in "$REPO_ROOT"/scripts/deliver-*.sh; do
+  [ -e "$path" ] || continue
+  base=${path##*/deliver-}
+  base=${base%.sh}
+  if ! grep -qx -- "$base" <<<"$KNOWN_CHANNELS"; then
+    echo "$0: scripts/deliver-$base.sh is a delivery channel this script does not know about." >&2
+    echo "$0: add it to KNOWN_CHANNELS, with a verify call or a recorded reason it has none." >&2
+    exit 1
+  fi
+done
+
+echo "comparing $PRACTICE_ROOT against $REPO_ROOT"
+
+if [ ! -d "$PRACTICE_ROOT" ]; then
+  echo "no delivered tree at $PRACTICE_ROOT, so there is nothing to compare. Skipping."
+  exit 0
+fi
+
+# --- recall ----------------------------------------------------------------
+
+out=$("$REPO_ROOT/scripts/deliver-recall.sh" --verify "$PRACTICE_ROOT/recall" 2>&1); rc=$?
+case "$rc" in
+  0) note_clean "recall" ;;
+  3) note_drift "recall"
+     DRIFT_DETAIL="${DRIFT_DETAIL}
+--- recall
+$(grep -E '^DRIFT' <<<"$out")
+" ;;
+  *) note_error "recall" "exit $rc" ;;
+esac
+
+# --- exercises, one call per chapter ---------------------------------------
+#
+# The chapter list comes off the source tree rather than a literal range,
+# because scripts/deliver-exercises.sh hardcodes an upper bound of 13 and bead
+# tla-wzj1 is open about it. Reading the tree means this script does not
+# acquire the same bug.
+
+ex_stale=0
+ex_conflict=0
+ex_err=''
+for chdir in "$REPO_ROOT"/exercises/ch*/; do
+  [ -d "$chdir" ] || continue
+  ch=${chdir%/}
+  ch=${ch##*/ch}
+  ch=$((10#$ch))
+  out=$("$REPO_ROOT/scripts/deliver-exercises.sh" --check "$ch" "$PRACTICE_ROOT/exercises" 2>&1); rc=$?
+  case "$rc" in
+    0) : ;;
+    3) ex_stale=1
+       DRIFT_DETAIL="${DRIFT_DETAIL}
+--- exercises ch$ch
+$(grep -E '^[[:space:]]*STALE' <<<"$out")
+" ;;
+    *) ex_err="exit $rc on chapter $ch" ;;
+  esac
+  n=$(grep -cE '^[[:space:]]*CONFLICT' <<<"$out")
+  ex_conflict=$((ex_conflict + n))
+done
+
+if [ -n "$ex_err" ]; then
+  note_error "exercises" "$ex_err"
+elif [ "$ex_stale" -eq 1 ]; then
+  note_drift "exercises"
+else
+  note_clean "exercises ($ex_conflict file(s) are your own work and were left alone)"
+fi
+
+# --- the report ------------------------------------------------------------
+
+echo
+if [ -n "$CLEAN_LIST" ]; then
+  echo "in sync:"
+  printf '%s' "$CLEAN_LIST"
+fi
+
+if [ -n "$DRIFT_LIST" ]; then
+  echo
+  echo "DRIFTED, a delivery is owed:"
+  printf '%s' "$DRIFT_LIST"
+  printf '%s\n' "$DRIFT_DETAIL"
+fi
+
+if [ -n "$ERROR_LIST" ]; then
+  echo
+  echo "ERRORED, so these channels were not compared:"
+  printf '%s' "$ERROR_LIST"
+fi
+
+# Always, whatever happened above. A run that printed only "in sync" would be
+# claiming more than it checked.
+echo
+echo "NOT CHECKED, because these channels have no verify mode yet (bead tla-mjvx):"
+while read -r ch; do
+  [ -n "$ch" ] || continue
+  echo "  $ch"
+done <<<"$NO_VERIFY_YET"
+
+if [ "$RC" -eq 3 ]; then
+  echo
+  echo "Back up ~/tla-practice first, then run the delivery for each channel named above."
+  echo "Never fix this by editing the source to match the delivered copy."
+fi
+
+exit "$RC"

@@ -125,7 +125,7 @@ american_for() {
 # past a gate that reported green having read none of it. The tla-7xql.7 author
 # staged its work, ran this suite, passed 16 assertions, and then had to check
 # its own prose by hand against this file's own pair list.
-SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe)
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,
@@ -138,6 +138,7 @@ ROOT_FLOORS=(
   "exercises:250"
   "module-docs:4"
   "swipe:3"
+  "scripts:20"
   "chapter:30"
 )
 
@@ -168,10 +169,15 @@ ROOT_FLOORS=(
 #   pilot/              12
 #   top-level files      7     was 24; central cleared 17 on 2026-10-14
 #   corpus/              7
-#   scripts/             1     build-docs.sh, in a comment
 #   .github/             1     verify-puzzles.yml, in a comment
 #
-# That is 288 sites. Clear a root and move it up into SCAN_ROOTS with a floor,
+# That is 288 sites. `scripts/` was on this list with 1 site until
+# 2026-10-18, when its one hit in build-docs.sh was fixed and the root moved
+# up into SCAN_ROOTS with a floor of 20. It came up because the wrap-up
+# verifier landed with several hundred words of comment prose in
+# scripts/verify-delivery.sh, and this gate read none of it. That is the same
+# shape as swipe/ three days earlier: a surface accumulates prose for a while
+# before anybody notices the gate never covered it. Clear a root and move it up into SCAN_ROOTS with a floor,
 # which is a two-line change and the point of the layout.
 #
 # THE TOP LEVEL IS THE EXCEPTION, and it needs a third kind of exemption this

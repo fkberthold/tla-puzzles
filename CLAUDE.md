@@ -63,6 +63,55 @@ bd close <id>         # Complete work
 <!-- END BEADS INTEGRATION -->
 
 
+## Session completion, the tla-puzzles addition
+
+The checklist above is generated and carries a content hash, so anything
+written inside it is lost on the next beads sync. This section extends it and
+is ours to keep.
+
+### Between "PUSH TO REMOTE" and "Clean up", verify the delivery
+
+```bash
+scripts/verify-delivery.sh
+```
+
+One command, every channel, writes nothing. It exits 0 when everything that
+can be checked is in sync, 3 when a delivery is owed, and 1 when a channel
+errors or when a `scripts/deliver-*.sh` exists that it does not know about.
+
+Run it after the push rather than before. The repo is the source of truth and
+the push is what settles it, so comparing against an unpushed tree compares
+against something nobody else can see.
+
+**When it exits 3**, back up `~/tla-practice` first, then run the delivery for
+each channel it named. Never close the gap by editing the source to match the
+delivered copy. That reverses the direction the whole channel runs in.
+
+**It prints what it did not check, every run.** Three channels have no verify
+mode yet and the bead for them is `tla-mjvx`. A run that said "in sync" while
+silently skipping three channels would be the failure this step exists to
+catch, wearing the uniform of its own fix.
+
+**Conflicts are not failures.** A delivered file that differs from its
+recorded digest is Frank's own work, and the only correct action is to leave
+it alone. The script counts those and stays at 0. Measured on 2026-10-18: 93
+files across the exercise chapters are his, and a check that failed on them
+would have been red every night for a reason nobody can act on.
+
+### Why this is not in cibuild
+
+Frank ruled on 2026-10-18, on bead `tla-mjvx`. CI runs where no delivered tree
+exists, so the check would skip there every single run and buy nothing. The
+failure this catches is forgetting a step at the end of a session, which makes
+the session-close ritual the only place it fires.
+
+The underlying problem, for whoever reads this later: the repo had
+`drill --style` for several hours and Frank's copy did not, because three
+waves merged without anybody re-delivering. `~/tla-practice` is not a git repo
+and no repo-level search reaches it, which is one of the two surfaces named
+under Conventions and Patterns below.
+
+
 ## Build & Test
 
 _Add your build and test commands here_

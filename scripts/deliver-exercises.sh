@@ -240,6 +240,12 @@ deliver_file() {
       ADOPTED_COUNT=$((ADOPTED_COUNT + 1))
       echo "adopted, byte-identical to its source: $dest"
     else
+      # Count it. Until 2026-10-18 this branch returned without touching
+      # CONFLICT_COUNT, so the summary line below said "0 left unrecorded"
+      # on a chapter that left five files unrecorded. A bootstrap reporting
+      # that it recorded everything, when the files it skipped are exactly
+      # the learner's own work, is the one number somebody would act on.
+      CONFLICT_COUNT=$((CONFLICT_COUNT + 1))
       echo "not adopted, it differs from its source so it may be your work: $dest"
     fi
     return
@@ -316,10 +322,20 @@ fi
 
 if [ "$CHECK_ONLY" -eq 1 ]; then
   echo "$STALE_COUNT stale, $CONFLICT_COUNT conflicted"
-  # Exit 3 only under --check. A delivery that left an edit alone and said so
-  # did its job, so it stays at 0 and every caller that reads 0 as success
-  # keeps reading it that way.
-  if [ "$STALE_COUNT" -gt 0 ] || [ "$CONFLICT_COUNT" -gt 0 ]; then
+  # STALE IS THE FAILURE AND CONFLICTED IS NOT, which is what the usage line
+  # above has always said and what this code did not do until 2026-10-18.
+  #
+  # The two findings are not the same kind of thing. Stale means a delivery is
+  # owed and somebody can act on it tonight. Conflicted means the file differs
+  # from its record, so it is the learner's own work, and the only correct
+  # action is to leave it alone forever. Returning 3 for both put a permanent
+  # red on every chapter he had actually worked: measured the same day at
+  # 10 of 12 chapters red, every one of them red because he had done the
+  # exercises. A wrap-up gate wired to that goes red every night for a reason
+  # that is never actionable, and a gate nobody reads is worse than no gate.
+  #
+  # So conflicts are reported in the line above and never in the exit code.
+  if [ "$STALE_COUNT" -gt 0 ]; then
     exit 3
   fi
   exit 0
