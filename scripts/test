@@ -511,6 +511,50 @@ SUITES=(
   # itself. No TLC, so it belongs in fast by the rule in this header: the
   # boundary is the model checker.
   "fast|0.3|spelling pair-list gate|./harness/test-spelling.sh"
+  # THE DIV CONTRACT GATE, bead tla-7n7e, 2026-10-18. The third sibling of the
+  # two rows above, in shape rather than in cost: it scans the tracked tree
+  # for one pattern, asserts a floor per root so a root that stops being
+  # walked cannot pass as clean, and plants its own positive and negative
+  # controls.
+  #
+  # WHAT IT GUARDS. TLC 2026.07.31.184830 breaks the contract its own bundled
+  # Naturals.tla states. `-17 \div 5` comes back -3, so `5 * -3 + 3` is -12
+  # rather than -17: the quotient truncates toward zero where the contract
+  # forces it to round down, while the remainder half holds. This corpus
+  # takes its verdicts from exit codes, so an item written over a negative
+  # dividend bakes TLC's bug as the answer. It caught three of the first 80
+  # level 0 swipe items, and those three were replaced.
+  #
+  # IT IS NOT THE TRIPWIRE. The \div assertion in the level 0 swipe row below
+  # says the identity is STILL broken and reddens when TLC is FIXED. That one
+  # watches the jar. This one watches what authors write, by holding the tree
+  # to harness/div-sites.tsv: 76 reviewed sites over 83 occurrences, each row
+  # carrying the reason its dividend is safe. "The dividend can never be
+  # negative" is not decidable by scanning, so the gate does not try. "A \div
+  # nobody has read" is, and that is enough to stop an author.
+  #
+  # WHEN IT GOES RED, GO AND READ THE DIVIDEND. The gate names the file and
+  # the expression. Work out whether that dividend can go negative, then
+  # either fix the item or add a row to harness/div-sites.tsv saying why it is
+  # safe. NEVER add a row to quiet the gate. A row nobody read is worth
+  # nothing, and somebody having looked is the whole content of this check.
+  #
+  # The other three reds and what each one means. An inventory row matching
+  # nothing is a deleted site or a RENAMED one, so look for the rename before
+  # deleting the row. A count out of step means a second occurrence landed
+  # under a window somebody already reviewed, and it still wants reading. A
+  # root floor failing is the one red that is about this gate rather than
+  # about the corpus: the scan stopped walking that root.
+  #
+  # 191 / 201 / 186 ms, so 0.3 is the slowest rounded up. An earlier set read
+  # 176 / 167 / 170 ms before the rebase that brought three more sites in, and
+  # both sets came off a CONTENDED box, load 2.1 to 2.8 with three dispatched
+  # workers on it. A quiet box should read the same or lower, so this row
+  # wants re-basing downward if anything. Its cost tracks the size of the tree
+  # it scans rather than anything about itself: one grep narrows 2222 tracked
+  # files to the 31 carrying the operator, and only those pay for the detailed
+  # pass. No TLC, so it belongs in fast by the rule in this header.
+  "fast|0.3|div contract reviewed set|./harness/test-div-contract.sh"
   # Re-measured 2026-10-13: 1.4 / 1.4 / 1.5 s, up from 1.0. tla-kqry recorded
   # 1.5 on 2026-10-08, so this row has been over for at least five days.
   "fast|1.5|puzzle screen|./harness/screen.sh --selftest"
