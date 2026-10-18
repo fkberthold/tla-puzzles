@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~824 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~834 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -90,6 +90,7 @@
 #   fast   2.6 s  harness/test-corpus-manifest.sh
 #   fast   7.5 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
+#   fast   0.5 s  harness/test-deliver-verify.sh          (added, bead tla-mjvx)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
@@ -104,12 +105,13 @@
 #   slow  99.0 s  harness/grade.sh --selftest
 #   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
+#   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
 #   ----  ------
-#         48.7 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
+#         49.2 s  fast tier, 26 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        774.9 s  slow tier, 14 suites
-#        823.6 s  whole registry
+#        784.9 s  slow tier, 15 suites
+#        834.1 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -817,6 +819,21 @@ SUITES=(
   # it. So this row tracks this file rather than the item count, and the slow
   # row below is the one that grows as authors land items.
   "fast|4.8|completion corpus static sweep|./harness/test-completion-gate.sh --static"
+
+  # THE STALE-DELIVERY GATE, bead tla-mjvx, 2026-10-18. The only row in this
+  # registry that reads outside the repo. ~/tla-practice is not a git repo and
+  # no repo-level search reaches it, so three waves of merged work once sat
+  # invisible to the only person who uses the tree until he ran a command and
+  # got "unknown option".
+  # IT CAN GO RED FOR A REASON NO CODE CHANGE EXPLAINS, and that is the point
+  # rather than a defect: merging a recall change makes this row red until
+  # somebody delivers. Read the DRIFT lines, back up ~/tla-practice, and run
+  # scripts/deliver-recall.sh. Never fix it by editing the suite.
+  # On any box without a delivered tree, which is every box but Frank's and
+  # every CI runner, part 3 skips and the row still passes on its 19 fixture
+  # assertions. 0.381 / 0.459 / 0.452 s at load 4.2, so 0.5. The cost is five
+  # 66-file copies into a scratch tree and no JVM, hence fast.
+  "fast|0.5|stale delivery|./harness/test-deliver-verify.sh"
   # THE FAST HALF OF THE DRILL GATE, added by bead tla-0eis.3. It asks ONE
   # question of the real drill/ tree — is the corpus STRUCTURALLY sound — by
   # running harness/drill-gate.sh --static-only, which runs check 1, check 3
@@ -1300,6 +1317,23 @@ SUITES=(
   # Frank's call about CI shape, so the number is recorded and the row is still
   # left whole.
   "slow|197.0|recall corpus gate|./harness/test-recall-gate.sh"
+
+  # TLA+ DEFINITION LEVELS, bead tla-7xql.3, 2026-10-18. Reads the level of
+  # every definition in every reading/ model off SANY's semantic tree, one
+  # parse per module and no TLC. The suite pins all 424 definitions by level
+  # and arity, the 01-nim table definition by definition, and the obligation
+  # cross-tab.
+  # SLOW because it starts a JVM, which is the tier boundary here and not the
+  # wall clock. At 10.0 s it is the second cheapest row in the tier and it
+  # would be the dearest in the fast one, which the header already says is the
+  # rule working rather than breaking.
+  # Nine readings over two boxes and two load conditions: the author read
+  # 6.1 / 6.7 / 7.5 s quiet and 9.1 / 8.6 / 8.4 s at load 6, and central read
+  # 7.4 / 8.4 / 8.7 s at load 4.2 with three dispatched workers on the box.
+  # So 10.0, which clears the dearest of the nine by 10%. I'd rather watch
+  # this one flap than pad it: the spread is JVM startup, and 11.0 was the
+  # author's own suggestion if it turns out 10.0 is tight.
+  "slow|10.0|TLA+ definition levels|./harness/test-levels.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

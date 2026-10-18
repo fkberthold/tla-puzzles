@@ -182,10 +182,13 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<USAGE >&2
-Usage: $0 [--check] [dest-root]
+Usage: $0 [--check | --verify] [dest-root]
 
   --check    print what would be delivered and what it would overwrite,
              and write nothing (--dry-run is an accepted alias)
+  --verify   compare every delivered file against its source, name every
+             path that drifted, and exit 3 if any did. Writes nothing.
+             An absent destination root is a skip at exit 0.
   dest-root  where to deliver into (default: \$HOME/tla-practice/recall)
 
 Env:
@@ -204,6 +207,7 @@ README_NAME="README.md"
 ENV_DIR_NAME="env"
 
 CHECK_ONLY=0
+VERIFY_ONLY=0
 DEST_ROOT=""
 POSITIONAL=0
 
@@ -222,6 +226,7 @@ take_positional() {
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --check|--dry-run) CHECK_ONLY=1; shift ;;
+    --verify) VERIFY_ONLY=1; shift ;;
     --) shift; break ;;
     -*)
       echo "$0: unknown option: $1" >&2
@@ -237,6 +242,12 @@ while [ "$#" -gt 0 ]; do
   take_positional "$1"
   shift
 done
+
+if [ "$CHECK_ONLY" -eq 1 ] && [ "$VERIFY_ONLY" -eq 1 ]; then
+  echo "$0: --check and --verify ask different questions, so pick one." >&2
+  usage
+  exit 1
+fi
 
 if [ -z "$DEST_ROOT" ]; then
   DEST_ROOT="$HOME/tla-practice/recall"
@@ -376,6 +387,64 @@ if command -v tlc >/dev/null 2>&1; then
   echo "tlc: $(command -v tlc) is on the path, which is the whole of what the delivered runner needs to grade."
 else
   echo "note: tlc is not on the path here, so the delivered runner exits 3 on every rep until it is. It needs nothing else."
+fi
+
+# ---------------------------------------------------------------------------
+# --verify: has this channel actually been delivered since the repo moved?
+#
+# --check answers a different question and the two read alike, which is worth
+# saying because the difference is the whole bead. --check reports what a
+# delivery WOULD do, so it says "66 to overwrite" on a tree that is already
+# byte-identical. It cannot tell a stale tree from a current one. --verify
+# compares content and reports only what drifted.
+#
+# WHY THIS IS SOUND HERE AND NEEDS MORE THOUGHT ELSEWHERE. Every entry in this
+# manifest is repo-owned and this script overwrites all of them, so a
+# difference is drift and nothing else. scripts/deliver-drill.sh has two file
+# classes and a learner owns one of them, so a verify there has to read the
+# policy before it calls a difference drift. Bead tla-mjvx carries that.
+#
+# AN ABSENT DESTINATION IS A SKIP, NEVER A FAILURE. No box but Frank's has a
+# delivered tree and a CI runner never will, so a gate that failed on absence
+# would be red everywhere it does not apply. Exit 0 and say which case it was.
+#
+# Exit 3 on drift, matching install_file()'s "there was already a copy there
+# and it is not this one". Exit 1 stays what it already is here, a failure.
+# ---------------------------------------------------------------------------
+if [ "$VERIFY_ONLY" -eq 1 ]; then
+  if [ ! -d "$DEST_ROOT" ]; then
+    echo "no delivered tree at $DEST_ROOT, so there is nothing to compare. Skipping."
+    exit 0
+  fi
+
+  drifted=()
+  in_sync=0
+  for rel in "${deliver_rel[@]}"; do
+    if [ ! -e "$DEST_ROOT/$rel" ]; then
+      echo "DRIFT, never delivered: $DEST_ROOT/$rel"
+      drifted+=("$rel")
+    elif ! cmp -s -- "$SRC_RECALL/$rel" "$DEST_ROOT/$rel"; then
+      echo "DRIFT, differs from $SRC_RECALL/$rel: $DEST_ROOT/$rel"
+      drifted+=("$rel")
+    else
+      in_sync=$((in_sync + 1))
+    fi
+  done
+
+  # The runner's mode is set explicitly by the delivery for a stated reason, so
+  # the verify checks it. A runner delivered 0644 is a channel that reports
+  # success and cannot be run, and its content compares equal either way.
+  if [ -f "$DEST_ROOT/$RUNNER_NAME" ] && [ ! -x "$DEST_ROOT/$RUNNER_NAME" ]; then
+    echo "DRIFT, not executable: $DEST_ROOT/$RUNNER_NAME"
+    drifted+=("$RUNNER_NAME mode")
+  fi
+
+  echo "$in_sync file(s) in sync, ${#drifted[@]} drifted"
+  if [ "${#drifted[@]}" -gt 0 ]; then
+    echo "run $0 to bring the delivered tree up to the repo." >&2
+    exit 3
+  fi
+  exit 0
 fi
 
 if [ "$CHECK_ONLY" -eq 1 ]; then
