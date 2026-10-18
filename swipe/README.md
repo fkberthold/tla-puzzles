@@ -622,9 +622,20 @@ by D2, and `Opens`, `Closes` and `vars` by the transitive rule below.
 **Model screens measured over the seven models the pilot uses**: 4 nonblank
 lines at the shortest, which is Fences, and 21 at the longest, which is Break.
 Brackets reads 11 and Contention 18. Over all 33 `reading/` models the range is
-4 to 22, and four of the five longest are PlusCal, which is one reason the
-pilot uses none of them. The phone bound is the epic's constraint and these are
-the first numbers anybody has for it.
+0 to 22. The phone bound is the epic's constraint and these are the first
+numbers anybody has for it.
+
+**The pilot uses no PlusCal model, and the reason is not length.** I assumed
+it was and the measurement says otherwise: the three longest screens are
+Shelves at 22, Collatz at 22 and Break at 21, and only Collatz is PlusCal. The
+real reason is that `render.sh` gets two things wrong on a translated module.
+Ring is the 0 in the range above, because every one of its actions lives in
+the translation block under a name the shown-roots rule does not reach, so the
+screen comes out empty. And Collatz's screen shows `vars` and the
+`\* BEGIN TRANSLATION` comment line, because a translated action references
+`vars` directly and a column-0 comment attaches to the construct below it.
+Both are honest consequences of the rule rather than bugs in it, and both make
+a PlusCal screen a separate piece of work rather than one more model.
 
 ## The strip is transitive, and that is a rule nobody had written down
 
