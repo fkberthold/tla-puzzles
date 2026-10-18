@@ -66,6 +66,7 @@
 #   tier    wall  suite
 #   ----  ------  ------------------------------------------------------
 #   fast   1.4 s  harness/test-deliver-exercises.sh      (re-based, bead tla-oa0m)
+#   fast   0.7 s  harness/test-deliver-practice-root.sh   (added, bead tla-xbbb)
 #   fast   0.3 s  harness/test-toolchain-pin.sh
 #   fast   0.3 s  harness/test-spelling.sh                (added, bead tla-nv5q)
 #   fast   0.7 s  harness/test-build-docs-chapter.sh
@@ -640,6 +641,23 @@ SUITES=(
   # 1.4 rather than 1.2: the in-suite pass read 1.2 exactly, so a 1.2 budget
   # would flap on the next warm run.
   "fast|1.4|exercise delivery|./harness/test-deliver-exercises.sh"
+  # Added 2026-10-18 by bead tla-xbbb, which built scripts/deliver-practice-root.sh
+  # and gave the practice tree's own README a source in this repo for the first
+  # time. Placed next to the exercise row because the two are the same shape:
+  # both are never-overwrite channels with a .delivered.sha256 record, so both
+  # have to tell a stale file from the learner's own work.
+  #
+  # Measured standalone over three back-to-back serial runs: 0.405 / 0.405 /
+  # 0.426 s, and 0.5 s through this registry. The box was NOT quiet, load 3.2
+  # to 3.6 with sibling workers running, so the direction of that error is
+  # safe for a budget and a quiet re-measure should read lower rather than
+  # higher. 0.7 clears the registry reading by 40% and the slowest standalone
+  # by 64%, which is wider than a sibling row usually carries: these are
+  # sub-second numbers taken under load, and 0.6 left only 0.1 s of slack.
+  # It starts no JVM, builds eight fixture roots out of mkdir and cp, and runs
+  # the delivery script seventeen times. Two of its rows read the real
+  # ~/tla-practice, both read-only: nothing in it may ever write there.
+  "fast|0.7|practice root delivery|./harness/test-deliver-practice-root.sh"
   # Re-measured 2026-09-18 on the green tree, after tla-rgpe took the suite
   # from 64 assertions to 84: 0.47 / 0.48 / 0.48 s over three serial runs, so
   # 0.5 is the slowest rounded up. The first reading was 0.3, taken on the red

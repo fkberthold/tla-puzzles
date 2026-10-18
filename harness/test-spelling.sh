@@ -125,7 +125,14 @@ american_for() {
 # past a gate that reported green having read none of it. The tla-7xql.7 author
 # staged its work, ran this suite, passed 16 assertions, and then had to check
 # its own prose by hand against this file's own pair list.
-SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts .claude)
+# practice/ ADDED 2026-10-18 (bead tla-xbbb), and it is the first root that was
+# enrolled the day it was created rather than years after. It holds the source
+# for the practice tree's own README, which until this bead had no source in
+# this repo at all: it was hand-maintained in a tree that is not under version
+# control, and one read found three stale claims in it, an em dash among them.
+# Giving it a source is only half the fix. The other half is this line, because
+# a source no gate reads is a source with the same problem in a new place.
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts practice .claude)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,
@@ -139,6 +146,10 @@ ROOT_FLOORS=(
   "module-docs:4"
   "swipe:3"
   "scripts:20"
+  # practice/ carries exactly 1 tracked file on 2026-10-18, so the floor is 1.
+  # It asserts the root is still being walked rather than how big it has grown,
+  # and a root with no floor is a root a typo can switch off.
+  "practice:1"
   ".claude:5"
   "chapter:30"
 )
