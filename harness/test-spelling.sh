@@ -125,7 +125,7 @@ american_for() {
 # past a gate that reported green having read none of it. The tla-7xql.7 author
 # staged its work, ran this suite, passed 16 assertions, and then had to check
 # its own prose by hand against this file's own pair list.
-SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts)
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts .claude)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,
@@ -139,6 +139,7 @@ ROOT_FLOORS=(
   "module-docs:4"
   "swipe:3"
   "scripts:20"
+  ".claude:5"
   "chapter:30"
 )
 
@@ -314,16 +315,28 @@ TOKEN_WHY=(
   "a module name, hence a file name; its cross-reference at V2-PLAN.md:977 is outside bead tla-nv5q phase 2's footprint"
 )
 
-# Both entries are a deferral and neither is a judgment that the spelling is
-# right. Each says who owns the file and what has to happen before the entry
-# can go.
+# AN ENTRY EXISTS FOR ONE OF TWO REASONS, and this comment used to claim there
+# was only the first.
+#
+# A DEFERRAL. The spelling is wrong and fixing it is somebody else's footprint.
+# The entry says who owns the file and what has to happen before it can go.
+#
+# A QUOTATION. The spelling is correct as it stands because the text is
+# quoting something, and rewording it would make the quotation inexact. The
+# file-level comment above EXEMPT_FILES used to say every entry was a deferral,
+# and the gate's own root comment recorded that a third exemption kind would be
+# needed for this case. It turns out this mechanism already carries it: the
+# count is exact, so a quotation entry is pinned the same way a deferral is and
+# a third site in the same file is still a finding.
 EXEMPT_FILES=(
   "harness/fixtures/vacuity/ModelledFloor.tla|2"
   "harness/fixtures/vacuity/ModelledFloor.cfg|1"
+  ".claude/rules/dispatched-agents.md|2"
 )
 FILE_WHY=(
   "renaming the module means renaming the file and the V2-PLAN.md:977 reference with it. The 2 counted here are the bare operator Modelled at line 28 and the word modelled in the line 7 comment"
   "the .cfg half of the same module, where INVARIANT Modelled names that operator"
+  "a quotation rather than a deferral. Both sites are this file QUOTING the British spelling a hazard section is about: mislabelled, the word the tla-z4f3 author wrote into a manifest reason, and neighbouring, the word the tla-7xql.1 author's own comment carried. Americanizing either would misquote the measurement it records"
 )
 
 TOKEN_HITS=()

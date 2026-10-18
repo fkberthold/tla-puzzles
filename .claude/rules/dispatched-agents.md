@@ -454,6 +454,30 @@ comment prose.
 So a green spelling run on unstaged work means nothing at all. That is worse than a red one,
 because it is a pass you will believe.
 
+**AMENDED 2026-10-18, and it generalizes past spelling.** `scripts/lint` had the same hole.
+Its `LINT_ROOTS` read `scripts harness drill recall`, and `swipe/level0/bake.sh` carries a
+bash shebang and had never been shellchecked. Found by the `tla-7xql.10` author while editing
+that file, three days after the spelling gate was found never to have read the same tree.
+
+**That is three for three now**, counting spelling missing `swipe/`, spelling missing
+`scripts/`, and lint missing `swipe/`. The shape is always the same: a tree collects prose or
+shell for a while, the gate reports green having read none of it, and nobody notices because
+green is what a gate is supposed to say.
+
+The question that catches it is CLAUDE.md's completeness rule turned on the gate rather than
+on the claim: **which surface would I expect this gate to read that it does not?** Ask it of
+any gate whose scope is a list of roots.
+
+Two things make the fix hold. **Do not add the one root.** Scan every candidate by hand
+first, then widen to all the clean ones at once: on 2026-10-18 the narrow fix would have left
+four more holes, because `swipe`, `completion`, `chapter`, `exercises` and `sources` were all
+uncovered and all already clean (89 files to 134). And **name what stays out, with its count,
+in a comment beside the root list**. `harness/test-spelling.sh` already does that, which is
+the only reason its `scripts/` hole was a two-line fix rather than a rediscovery.
+
+Both gates carry a per-root floor, so a root that silently selects nothing reddens instead of
+passing. A root list without one is a gate that can be switched off by a typo.
+
 ---
 
 ## Hazard — the isolation harness refuses `/\` and brace groups, which is most of TLA+
@@ -555,6 +579,25 @@ Two further things measured the same day, and neither is a licence:
 Scratch work has the same answer: probes, logs and throwaway modules go in a
 worktree-local directory you delete before the footprint check. Confirm with
 `git status --short` that nothing survived.
+
+**AMENDED 2026-10-18, and it moves the advice rather than adding a case.** A
+four-worker wave was briefed to write a report into a worktree file AND into
+the return value. **Three of the four were refused the file** with the same
+message, *"Subagents should return findings as text, not write report files."*
+One wrote the file without complaint. So the file route is not a fallback that
+usually works, it is a coin flip, and a brief that asks for it spends a worker
+round on a refusal it can do nothing about.
+
+So: **ask for the return value and stop there.** Say in the brief that the
+return value is the only channel you can count on. A worker that happens to
+get a file out loses nothing by also having returned the text, and a worker
+that is refused has not wasted a turn discovering it.
+
+The thing the bd memory `a-report-only-dispatch-loses-everything-if-the`
+actually wants, which is that the report survive the dispatching session
+dying, is served by central writing the substance into the merge commit body
+and the bead close reason as it integrates. That is durable, it is in git, and
+it does not depend on which side of the coin the worker landed on.
 
 Filed as bead `tla-syws`.
 
