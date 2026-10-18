@@ -458,7 +458,9 @@ REQ_OUT=$("$GATE" --inventory "$REQ_INV" --static-only -q "$CLEAN/recall" 2>&1) 
 
 # F001 is a K001 row with six fields. Under the live inventory's name for
 # K001 that is a rep whose construct the grader cannot see.
-assert_says "check 4: a rep whose construct needs a pattern and has none is a finding" \
+assert_eq "check 4: a rep whose construct needs a pattern and has none is a finding" \
+  "1" "$REQ_RC"
+assert_says "and the finding names the row" \
   '^FINDING +REQUIRES-ABSENT +F001' "$REQ_OUT"
 assert_says "and the detail names the construct by its inventory name" \
   "REQUIRES-ABSENT.*'Operator definition'" "$REQ_OUT"
@@ -480,10 +482,18 @@ sed -i "s|^REP${TAB}F001${TAB}K001${TAB}mini${TAB}the set of every wagon in the 
 REQOK_RC=0
 REQOK_OUT=$("$GATE" --inventory "$REQ_INV" --static-only -q "$REQ_OK/recall" 2>&1) || REQOK_RC=$?
 if grep -qE '^FINDING +REQUIRES-ABSENT' <<<"$REQOK_OUT"; then
-  nope "check 4: the same rep WITH a pattern is not a finding — it still fired"
+  nope "check 4: the same rep WITH a pattern is not a finding, and it still fired"
 else
   ok "check 4: the same rep WITH a pattern is not a finding"
 fi
+# 99 rather than 0, and the reason is the point. This run uses the RENAMED
+# fixture inventory, where one listed name resolves and eight do not, so the
+# rename tripwire fires an UNCHECKED and the verdict is CHECK_DID_NOT_RUN. The
+# checks themselves still ran and found nothing, which is what the row above
+# asserts. 99 here distinguishes "the gate looked and found no finding" from
+# "the gate exited 1 on a finding", and that is the whole claim.
+assert_eq "and that run exits 99 for the tripwire, not 1 for a finding" \
+  "99" "$REQOK_RC"
 
 # And the shared inventory's own names are not on the list, so the clean run
 # says nothing about any of this. Asserted rather than assumed, because the

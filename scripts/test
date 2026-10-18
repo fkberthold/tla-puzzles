@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~939 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~921 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -91,6 +91,7 @@
 #   fast   7.5 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
 #   fast   0.5 s  harness/test-deliver-verify.sh          (added, bead tla-mjvx)
+#   fast   6.5 s  harness/test-swipe-stemblind.sh         (added, bead tla-7xql.1)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
@@ -104,15 +105,15 @@
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
 #   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
-#   slow 270.0 s  harness/test-recall-gate.sh                (re-based, 2026-10-18)
+#   slow 245.0 s  harness/test-recall-gate.sh                (re-based twice, 2026-10-18)
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
 #   slow  31.0 s  harness/test-swipe-level0.sh           (added, bead tla-7xql.2)
 #   ----  ------
-#         50.4 s  fast tier, 26 suites   (measured --fast totals: 26.9 s at 18,
+#         56.9 s  fast tier, 27 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        888.9 s  slow tier, 16 suites
-#        939.3 s  whole registry
+#        863.9 s  slow tier, 16 suites
+#        920.8 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -842,6 +843,30 @@ SUITES=(
   # assertions. 0.381 / 0.459 / 0.452 s at load 4.2, so 0.5. The cost is five
   # 66-file copies into a scratch tree and no JVM, hence fast.
   "fast|0.5|stale delivery|./harness/test-deliver-verify.sh"
+
+  # THE SWIPE STEM-BLIND GATE, bead tla-7xql.1, 2026-10-18. Asks whether a
+  # swipe item's label can be predicted from the claim's SURFACE without
+  # evaluating it, per template, and fails when it can. Gururangan 2018: a
+  # classifier that never saw the premise scored 67% on SNLI against a 34.3%
+  # baseline, on the item writers' habits alone.
+  # FAST, and the tier is right for this registry's stated reason rather than
+  # the wall clock: it starts no JVM. The author proved that two ways, a static
+  # scan finding tlc and java only inside comments, and sampling pgrep -c java
+  # every 200 ms during a run, which peaked at 1 and turned out to be another
+  # session's TLC.
+  # 5989 / 5675 / 5815 ms, so 5.8 is the slowest rounded up, and it is an
+  # UPPER BOUND rather than a band: another session's TLC was live throughout
+  # and load ran 2.35 to 3.35. Five probe calls account for 5.28 s of the 5.8,
+  # and --perms is the knob if this row ever needs to be cheaper.
+  # BUMPED 5.8 -> 6.5 the same day, before it ever shipped at 5.8. The
+  # in-suite pass read 5.9, over, and every reading available was taken
+  # with something else on the box. A budget that flaps on its first run is
+  # noise rather than a signal, so 6.5 clears the dearest of four readings
+  # by 8% and the row wants re-measuring on a genuinely quiet box.
+  # IT CAN GO RED ON A CORPUS NOBODY CHANGED, because the threshold is set by
+  # label permutation at a fixed seed. If it reddens with no corpus edit
+  # behind it, read the signature it names before touching the seed.
+  "fast|6.5|swipe stem-blind gate|./harness/test-swipe-stemblind.sh"
   # THE FAST HALF OF THE DRILL GATE, added by bead tla-0eis.3. It asks ONE
   # question of the real drill/ tree — is the corpus STRUCTURALLY sound — by
   # running harness/drill-gate.sh --static-only, which runs check 1, check 3
@@ -1337,27 +1362,55 @@ SUITES=(
   # --static-only here, the full corpus in scripts/cibuild phase 3b. That is
   # Frank's call about CI shape, so the number is recorded and the row is still
   # left whole.
-  # RE-BASED 197.0 -> 270.0 on 2026-10-18, and MOST OF THE MOVE IS NOT
-  # ATTRIBUTED. Bead tla-evqq carries the attribution.
-  # Three back-to-back standalone runs read 258.166 / 275.156 / 302.086 s, all
-  # 245 assertions passing. That looks like a 17% band and it is not a band at
-  # all: whisper-cli came up on the box at 395% CPU and 2.3 GB RSS partway
-  # through, and the three readings rise with it. Run 1 finished before it
-  # started, so 258.2 is the only clean one and 270.0 clears it by 4.6%.
-  # BUDGETING TO 302 WOULD HIDE A REAL REGRESSION BEHIND A TRANSCRIPTION JOB,
-  # which is the same argument the recall runner row makes about its own hole.
-  # WHAT IS ATTRIBUTED, and it is 8 of the 61 seconds. tla-1sh7.7 put a
-  # field-7 pattern on 24 reps, so check 4 validates 24 patterns it did not
-  # before, which that author measured as a paired 246.4 -> 254.3 s on its own
-  # box. tla-z4f3's part 8 adds 0.32 s and starts no JVM. The other ~53 s
-  # predates both and nobody has named it: the row was set at 196.6 on
-  # 2026-10-17 over three readings with a 1.3% spread, and the same tree now
-  # reads 258 clean. Read it as unexplained rather than as these two beads.
-  # The check that found the contention, and the one the stray-JVM scan misses:
+  # RE-BASED 197.0 -> 270.0 -> 245.0 on 2026-10-18, twice in one day, and the
+  # second move is the one to read. Bead tla-evqq carries the attribution.
+  #
+  # THE 270.0 WAS SET FROM A CONTAMINATED NUMBER. Three runs read 258.166 /
+  # 275.156 / 302.086 s and I called 258.2 "the only clean one" because
+  # whisper-cli came up partway through the sequence. It had already started
+  # during run 1. 258.2 was the LEAST contended reading, not a clean one, and
+  # the difference is 25 s.
+  #
+  # 245.0 RESTS ON TWO INSTRUMENTED READINGS, each with a 15-second load
+  # sample running alongside for its whole duration, on a freshly booted box:
+  #
+  #   233.205 s   no outside consumer at any sample
+  #   229.925 s   none until the last 15 s
+  #   274.014 s   whisper-cli at 74% throughout, DISCARDED
+  #
+  # The two clean readings are 1.4% apart and 245.0 clears the slower by 5%.
+  # The third is kept in this note rather than averaged in, because it is the
+  # measurement of what whisper costs this row: +18%.
+  #
+  # SO THIS ROW WILL READ OVER BUDGET WHENEVER FRANK IS DICTATING, and that is
+  # the intended behavior rather than a flaw. A budget here is informational:
+  # an over-budget row still prints PASS, and only the 3x drift nudge warns.
+  # See WHY A WARNING AND NOT A FAILURE in this header. So a tight budget
+  # costs one honest line of output and a loose one hides a regression.
+  #
+  # WHAT IS ATTRIBUTED, now 8 of 37 seconds rather than 8 of 61. Against the
+  # 196.6 s this row was set at on 2026-10-17 over a 1.3% band: tla-1sh7.7 put
+  # a field-7 pattern on 24 reps, so check 4 validates 24 patterns it did not
+  # before, which that author measured as a paired 246.4 -> 254.3 s, so +7.9.
+  # tla-z4f3's part 8 adds 0.32 s and starts no JVM, and tla-2s12's six rows
+  # are static mutants that start none either. Expected 204.8, actual 233.2,
+  # so about 28 s is unexplained and predates all three beads.
+  #
+  # AND ONE ARGUMENT FOR THE 270.0 WAS CIRCULAR, which is worth recording
+  # because it is an easy one to make again. I defended it by noting this row
+  # sat at 1.05x over budget on a contended full pass while its siblings ran
+  # 1.2x to 2.2x, and read that as the budget being right rather than padded.
+  # A generously set budget is exactly what looks least-over on a contended
+  # pass. The sibling ratios were evidence about the box and none at all about
+  # this number.
+  #
+  # The check that finds the contention, and the one a stray-JVM scan misses:
   #   ps -eo pid,etime,pcpu,rss,args --sort=-pcpu | head -6
   # Load average will not tell you. It read 1.69 eleven minutes before the
-  # same box read 6.8.
-  "slow|270.0|recall corpus gate|./harness/test-recall-gate.sh"
+  # same box read 6.8. Sample it DURING the run, not after: the unexplained
+  # 152-to-203 s window on the recall runner has no cause named because the
+  # sampling went in once the window had closed.
+  "slow|245.0|recall corpus gate|./harness/test-recall-gate.sh"
 
   # TLA+ DEFINITION LEVELS, bead tla-7xql.3, 2026-10-18. Reads the level of
   # every definition in every reading/ model off SANY's semantic tree, one

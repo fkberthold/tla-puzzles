@@ -445,6 +445,15 @@ reach for a British form in new work.
 A dispatcher writing a brief should name it alongside `scripts/lint` whenever the bead touches a
 file a human reads.
 
+**AND IT READS GIT, NOT THE FILESYSTEM, so run it AFTER you `git add`.** Measured 2026-10-18 by
+the `tla-7xql.1` author: the gate selects its scan set from tracked files, so an untracked file
+contributes nothing and the run comes back green having looked at none of your work. That author
+had to stage first before the gate covered it, and then it caught `neighbouring` in its own
+comment prose.
+
+So a green spelling run on unstaged work means nothing at all. That is worse than a red one,
+because it is a pass you will believe.
+
 ---
 
 ## Hazard — the isolation harness refuses `/\` and brace groups, which is most of TLA+
