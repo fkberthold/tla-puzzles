@@ -14,12 +14,18 @@
 # half and TLC is the sound half, and the controls below redden each one.
 #
 # WHAT RUNS TLC AND WHAT DOES NOT. The structural half is text and costs no
-# JVM. swipe/level0/bake.sh --check costs 13 JVMs over 80 items, because the
-# claims batch: 3 batch modules plus one run for each of the 10 items that do
-# not evaluate. The four TLC controls are scoped to one template, which is 5
-# JVMs each, so the whole suite starts 33 JVMs rather than 160.
+# JVM. swipe/level0/bake.sh --check costs 33 JVMs over the 240 items, because
+# the claims batch: 3 batch modules plus one run for each of the 30 items that
+# do not evaluate. The four TLC controls are scoped to one template, 9 JVMs
+# each. Section 10 adds 11 over a three-row fixture. So the suite starts about
+# 90 JVMs rather than one per item.
 #
-# Lineage: bead tla-7xql.2.
+# That count tracks the ill-formed total and not the item total, so it moves
+# whenever the corpus grows and a run is the only authority on it. This
+# paragraph read 13 and 33 until 2026-10-18, both measured at 80 items, and it
+# outlived the corpus by two beads.
+#
+# Lineage: beads tla-7xql.2 and tla-7xql.10.
 
 set -euo pipefail
 
@@ -215,12 +221,16 @@ structural_defects() {
          defects=$((defects+1)) ;;
     esac
     local want_swipe want_rc want_wf
+    # Unparsed is the row bead tla-7xql.10 added, and it is the only kind whose
+    # pair the other three cannot reach. SANY refuses the module at 150 before
+    # either probe is evaluated, so both members move together.
     case "$kind" in
-      true)      want_swipe=right; want_rc=0;  want_wf=0 ;;
-      false)     want_swipe=left;  want_rc=10; want_wf=0 ;;
-      vacuous)   want_swipe=down;  want_rc=0;  want_wf=0 ;;
-      illformed) want_swipe=down;  want_rc=10; want_wf=10 ;;
-      *) printf '%s: kind reads %s and must be true, false, vacuous or illformed\n' \
+      true)      want_swipe=right; want_rc=0;   want_wf=0 ;;
+      false)     want_swipe=left;  want_rc=10;  want_wf=0 ;;
+      vacuous)   want_swipe=down;  want_rc=0;   want_wf=0 ;;
+      illformed) want_swipe=down;  want_rc=10;  want_wf=10 ;;
+      unparsed)  want_swipe=down;  want_rc=150; want_wf=150 ;;
+      *) printf '%s: kind reads %s and must be true, false, vacuous, illformed or unparsed\n' \
            "$id" "$kind" >&2
          defects=$((defects+1))
          continue ;;
@@ -628,6 +638,153 @@ if [ -f "$EMIT/SwipeHolds.tla" ]; then
   fi
 else
   bad "bake.sh --emit wrote no SwipeHolds.tla"
+fi
+
+# ---------------------------------------------------------------------------
+# 10. rc 150 is a row in the channel and not an authoring error.
+#
+#     THE INVARIANT, in bead tla-7xql.10's words: every exit code the bake can
+#     observe maps to a declared verdict and a declared swipe, and rc 150 is
+#     among them. Frank ruled on 2026-10-18 that a parse failure is a
+#     down-swipe item under its own kind, so the gesture stays a three-way
+#     partition while field 5 keeps the distinction.
+#
+#     THE COST OF THAT RULING IS THAT A TYPO NOW HAS A HOME, and the controls
+#     below are what stop it moving in. Before the ruling, a claim that did not
+#     parse failed loudly wherever it sat. After it, 150 is a legitimate
+#     outcome, and the only thing between a real item and a slip of the keyboard
+#     is that a kind has to earn the pair it predicts. Both directions are
+#     controlled: a typo inside an item declared true, and an item declared
+#     unparsed whose claim parses fine.
+#
+#     NOTHING HERE TOUCHES ITEMS.tsv. The corpus ships 18 true, 18 false, 6
+#     vacuous and 6 ill-formed per template, and that mix is what holds the
+#     base rate at 0.3750. The power table in swipe/README.md is computed from
+#     it, so an added item moves the mix, the base rate and the detection
+#     floor together. These assertions run over a three-row fixture instead.
+# ---------------------------------------------------------------------------
+FX="$SCRATCH/fx"
+mkdir -p "$FX"
+
+# Two operators from one precedence band that SANY will not associate. That is
+# the shape all six of the tla-7xql.7 refusals had.
+BAD_CLAIM='12 \div 2 * 3 = 18'
+BAD_FIX='Parenthesize it. SANY refuses this line rather than picking an order for the two operators.'
+
+# The claim goes in as a printf argument and never into the format string,
+# because bash printf reads a backslash in a format and \div would arrive as
+# something else.
+{
+  printf 'ITEM\tL0-FX-01\tT1\tholds\ttrue\tright\t0\t0\t%s\t-\t%s\n' \
+    '1 = 1' 'One is one, so the line holds and the swipe is right.'
+  printf 'ITEM\tL0-FX-02\tT1\tholds\tfalse\tleft\t10\t0\t%s\t-\t%s\n' \
+    '1 = 2' 'One is not two, so the line is false and the swipe is left.'
+  printf 'ITEM\tL0-FX-03\tT1\tholds\tunparsed\tdown\t150\t150\t%s\t-\t%s\n' \
+    "$BAD_CLAIM" "$BAD_FIX"
+} > "$FX/accept.tsv"
+
+# The constant itself, measured without going through bake.sh at all. If a
+# later SANY accepts this line, the fixture quietly stops testing a parse
+# failure, and this assertion is what says so.
+cat > "$SCRATCH/NoParse.tla" <<'TLA'
+---- MODULE NoParse ----
+EXTENDS Integers
+
+ASSUME 12 \div 2 * 3 = 18
+====
+TLA
+printf '\\* no keywords needed\n' > "$SCRATCH/NoParse.cfg"
+rc=0
+"$VERDICT" -q -c "$SCRATCH/NoParse.cfg" "$SCRATCH/NoParse.tla" >/dev/null 2>&1 || rc=$?
+if [ "$rc" = "150" ]; then
+  ok "SANY still refuses 12 \\div 2 * 3 at rc 150, so the fixture tests a parse failure"
+else
+  bad "the claim came back rc $rc rather than 150, so the fixture no longer tests one"
+fi
+
+FX_DEFECTS="$(structural_defects "$FX/accept.tsv" 2>"$FX/accept.err")"
+if [ "$FX_DEFECTS" = "0" ]; then
+  ok "kind unparsed carries a declared swipe and a declared pair"
+else
+  bad "the structural half rejected a well-formed unparsed item"
+  sed -n '1,5p' "$FX/accept.err" | sed 's/^/       /'
+fi
+
+# The mapping itself, both halves of it. Neither control costs a JVM.
+awk -F'\t' -v OFS='\t' '$5 == "unparsed" { $6 = "right" } { print }' \
+  "$FX/accept.tsv" > "$FX/swipe-not-down.tsv"
+awk -F'\t' -v OFS='\t' '$5 == "unparsed" { $7 = "10"; $8 = "10" } { print }' \
+  "$FX/accept.tsv" > "$FX/pair-not-150.tsv"
+
+for c in swipe-not-down pair-not-150; do
+  d="$(structural_defects "$FX/$c.tsv" 2>"$FX/$c.err")"
+  if [ "$d" != "0" ]; then
+    ok "control $c: rejected ($(sed -n '1p' "$FX/$c.err"))"
+  else
+    bad "control $c: accepted, so the unparsed mapping is not enforced"
+  fi
+done
+
+if out="$("$BAKE" --check --items "$FX/accept.tsv" 2>&1)"; then
+  ok "bake.sh --check confirms an unparsed item against TLC"
+else
+  bad "bake.sh --check rejected the unparsed fixture"
+  sed -n '1,10p' <<<"$out" | sed 's/^/       /'
+fi
+
+# THE SAFETY CONTROL. A typo inside an item declared true still has to fail,
+# or the ruling above bought a down swipe at the price of silent corruption.
+# Fields 5 to 8 stay self-consistent, so the structural half passes and only
+# TLC can catch it.
+awk -F'\t' -v OFS='\t' \
+  '$5 == "unparsed" { $5 = "true"; $6 = "right"; $7 = "0"; $8 = "0" } { print }' \
+  "$FX/accept.tsv" > "$FX/typo-as-true.tsv"
+pre="$(structural_defects "$FX/typo-as-true.tsv" 2>/dev/null)"
+if [ "$pre" != "0" ]; then
+  bad "control typo-as-true: the structural half rejected it first, so it proves nothing about TLC"
+elif out="$("$BAKE" --check --items "$FX/typo-as-true.tsv" 2>&1)"; then
+  bad "control typo-as-true: a claim that does not parse baked as true, so a typo now ships"
+else
+  ok "control typo-as-true: rejected by TLC ($(sed -n '1p' <<<"$out"))"
+  # The report has to say WHICH failure it is. A batch that comes back 150 and
+  # reads as "at least one does not hold" invites a relabel where the fix is a
+  # pair of parentheses. Read from a here-string: a pipe into an early-exiting
+  # consumer returns 141 under pipefail and reads as a pass.
+  if grep -q 'does not parse' <<<"$out"; then
+    ok "control typo-as-true: the report names the parse failure rather than a wrong kind"
+  else
+    bad "control typo-as-true: the report blames the kind, so a typo reads as a mislabeled item"
+  fi
+fi
+
+# The other direction. Parking a claim under unparsed does not make it so.
+awk -F'\t' -v OFS='\t' '$5 == "unparsed" { $9 = "1 = 1" } { print }' \
+  "$FX/accept.tsv" > "$FX/unparsed-parses.tsv"
+pre="$(structural_defects "$FX/unparsed-parses.tsv" 2>/dev/null)"
+if [ "$pre" != "0" ]; then
+  bad "control unparsed-parses: the structural half rejected it first, so it proves nothing about TLC"
+elif out="$("$BAKE" --check --items "$FX/unparsed-parses.tsv" 2>&1)"; then
+  bad "control unparsed-parses: a claim that parses baked as unparsed"
+else
+  ok "control unparsed-parses: rejected by TLC ($(sed -n '1p' <<<"$out"))"
+fi
+
+# --write is the half that reads a verdict OFF the exit codes rather than
+# confirming a stored one, so it is where the mapping either exists or does
+# not. The pair goes in unbaked and the bake has to fill it.
+awk -F'\t' -v OFS='\t' \
+  '$5 == "unparsed" { $6 = "-"; $7 = "-"; $8 = "-"; print }' \
+  "$FX/accept.tsv" > "$FX/write.tsv"
+if "$BAKE" --write --items "$FX/write.tsv" >"$FX/write.out" 2>&1; then
+  baked="$(awk -F'\t' '$1 == "ITEM" { print $6, $7, $8 }' "$FX/write.tsv")"
+  if [ "$baked" = "down 150 150" ]; then
+    ok "bake.sh --write reads (150, 150) off TLC and files it as down"
+  else
+    bad "bake.sh --write filed the unparsed item as [$baked] and not down 150 150"
+  fi
+else
+  bad "bake.sh --write rejected an item whose authored kind is unparsed"
+  sed -n '1,10p' "$FX/write.out" | sed 's/^/       /'
 fi
 
 printf '\n%s passed, %s failed, %s skipped\n' "$PASS" "$FAIL" "$SKIP"
