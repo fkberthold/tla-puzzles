@@ -16,17 +16,19 @@
 # cibuild runs where no delivered tree exists, so the check would skip there
 # every time and buy nothing.
 #
-# A ritual step has to be one command. Before this script the operator would
-# have had to remember that deliver-recall.sh spells it --verify, that
-# deliver-exercises.sh spells it --check and needs a chapter argument, and
-# that three more channels cannot be checked at all. That is not a step
+# A ritual step has to be one command. Doing it by hand means remembering that
+# deliver-recall.sh spells it --verify, that deliver-exercises.sh spells it
+# --check and needs a chapter argument, that completion and problems take a
+# selector, and that drill takes two calls over two roots. That is not a step
 # somebody runs correctly at the end of a long session.
 #
 # IT NAMES WHAT IT DID NOT CHECK, every run, whether or not anything drifted.
-# Three channels have no verify mode yet and a wrapper that reported "all
-# clean" while silently skipping them would be the exact failure tla-mjvx is
-# about, wearing the uniform of its own fix. CLAUDE.md states the rule this
-# obeys: a claim of absence or completeness names its search.
+# Three channels had no verify mode when this script was written, and a wrapper
+# reporting "all clean" while silently skipping them would have been the exact
+# failure tla-mjvx is about, wearing the uniform of its own fix. All five carry
+# one now, so the line says that instead, which is a stronger claim about the
+# same reach. CLAUDE.md states the rule both forms obey: a claim of absence or
+# completeness names its search.
 #
 # THE TABLE BELOW IS A TRIPWIRE, not a convenience. A delivery channel that
 # is not in it fails this script rather than being quietly left out, so a new
@@ -63,23 +65,31 @@ PRACTICE_ROOT="${1:-$HOME/tla-practice}"
 #             an accepted alias for the same mode.
 # completion  --verify over the `all` selector, landed in tla-mjvx.
 # problems    --verify over the reserved name `all`, landed in tla-mjvx.
-# drill       two file classes and a learner owns one. REFERENCE_POLICIES has
-#             a 'once' entry, COLD-LIST.md, so a difference there is his. That
-#             is design work rather than another loop, and it is the one
-#             channel still outside this wrapper's reach.
+# drill       --verify, landed in tla-mjvx and the last of the five. It is the
+#             only channel with two file classes: the runner, the readme and
+#             the construct sheet are the repo's and any difference there is
+#             DRIFT, while every PROMPT.md and COLD-LIST.md is the learner's
+#             page and is judged against a recorded digest, so a difference is
+#             STALE only when the delivery can prove it wrote those bytes. It
+#             is also read TWICE here, because its study configuration lives
+#             under a root no argument of this script reaches.
 #
-# THE THREE NEVER-OVERWRITE CHANNELS ALL EXIT 3 ON STALE ONLY. A conflict is
-# the learner's own work and no delivery will ever touch it, so it is counted
-# and reported and never failed on. Wiring a gate to an exit code that merged
-# the two put a permanent red on 10 of 12 exercise chapters on 2026-10-18,
-# every one of them red because Frank had done the exercises.
+# THE NEVER-OVERWRITE CHANNELS ALL EXIT 3 ON STALE ONLY. A conflict is the
+# learner's own work and no delivery will ever touch it, so it is counted and
+# reported and never failed on. Wiring a gate to an exit code that merged the
+# two put a permanent red on 10 of 12 exercise chapters on 2026-10-18, every
+# one of them red because Frank had done the exercises.
 KNOWN_CHANNELS='recall
 exercises
 drill
 completion
 problems'
 
-NO_VERIFY_YET='drill'
+# Empty since 2026-10-18, when drill gained --verify. The report below says so
+# in words rather than printing a heading over nothing: a block announcing
+# unchecked channels with none listed under it reads as truncated output, which
+# is the opposite of what naming the gap is for.
+NO_VERIFY_YET=''
 
 CLEAN_LIST=''
 DRIFT_LIST=''
@@ -114,18 +124,53 @@ if [ ! -d "$PRACTICE_ROOT" ]; then
   exit 0
 fi
 
+# --- the two channel shapes -------------------------------------------------
+#
+# verify_overwriting is for a channel whose every delivered file is repo-owned,
+# so a difference is drift and there is no third state to count.
+#
+# verify_never_overwrite is for a channel that protects the learner's work, so
+# its report has a conflict column that is never a failure.
+#
+# BOTH DETAIL BLOCKS READ STALE AND DRIFT. The drill channel prints both words
+# in one run, because it has both file classes, so a block grepping for one of
+# them would come back empty on a real finding in the other.
+
+verify_overwriting() {
+  local channel="$1" out rc
+  shift
+  out=$("$@" 2>&1); rc=$?
+  case "$rc" in
+    0) note_clean "$channel" ;;
+    3) note_drift "$channel"
+       DRIFT_DETAIL="${DRIFT_DETAIL}
+--- $channel
+$(grep -E '^[[:space:]]*(STALE|DRIFT)' <<<"$out")
+" ;;
+    *) note_error "$channel" "exit $rc" ;;
+  esac
+}
+
+verify_never_overwrite() {
+  local channel="$1" out rc n
+  shift
+  out=$("$@" 2>&1); rc=$?
+  n=$(grep -cE '^[[:space:]]*CONFLICT' <<<"$out")
+  case "$rc" in
+    0) note_clean "$channel ($n file(s) are your own work and were left alone)" ;;
+    3) note_drift "$channel"
+       DRIFT_DETAIL="${DRIFT_DETAIL}
+--- $channel
+$(grep -E '^[[:space:]]*(STALE|DRIFT)' <<<"$out")
+" ;;
+    *) note_error "$channel" "exit $rc" ;;
+  esac
+}
+
 # --- recall ----------------------------------------------------------------
 
-out=$("$REPO_ROOT/scripts/deliver-recall.sh" --verify "$PRACTICE_ROOT/recall" 2>&1); rc=$?
-case "$rc" in
-  0) note_clean "recall" ;;
-  3) note_drift "recall"
-     DRIFT_DETAIL="${DRIFT_DETAIL}
---- recall
-$(grep -E '^DRIFT' <<<"$out")
-" ;;
-  *) note_error "recall" "exit $rc" ;;
-esac
+verify_overwriting "recall" \
+  "$REPO_ROOT/scripts/deliver-recall.sh" --verify "$PRACTICE_ROOT/recall"
 
 # --- exercises, one call per chapter ---------------------------------------
 #
@@ -175,27 +220,41 @@ fi
 # Both print the same STALE and CONFLICT lines as exercises, so the detail and
 # the conflict count are read the same way.
 
-verify_never_overwrite() {
-  local channel="$1" out rc n
-  shift
-  out=$("$@" 2>&1); rc=$?
-  n=$(grep -cE '^[[:space:]]*CONFLICT' <<<"$out")
-  case "$rc" in
-    0) note_clean "$channel ($n file(s) are your own work and were left alone)" ;;
-    3) note_drift "$channel"
-       DRIFT_DETAIL="${DRIFT_DETAIL}
---- $channel
-$(grep -E '^[[:space:]]*STALE' <<<"$out")
-" ;;
-    *) note_error "$channel" "exit $rc" ;;
-  esac
-}
-
 verify_never_overwrite "completion" \
   "$REPO_ROOT/scripts/deliver-completion.sh" --verify all "$PRACTICE_ROOT/completion"
 
 verify_never_overwrite "problems" \
   "$REPO_ROOT/scripts/deliver-problems.sh" --verify all "$PRACTICE_ROOT/problems"
+
+# --- drill, which takes two calls over two roots ----------------------------
+#
+# The prompt tree sits at <practice-root>/drill like every other channel, and
+# it goes through the never-overwrite helper because its prompts and its cold
+# list are the learner's page. The conflict count it reports is his own
+# annotations, and it is never a failure.
+#
+# THE STUDY ROOT IS THE ONE PATH NO ARGUMENT OF THIS SCRIPT SELECTS.
+# drill/drill.sh creates it where he practices, which is $HOME/Study/tla-drills
+# by default and DRILL_STUDY_ROOT when that is set, so this row resolves it the
+# same way scripts/deliver-drill.sh does and PRINTS the root it read. A
+# comparison against a path the reader cannot derive from the command line is a
+# comparison nobody can check.
+#
+# It is also where `./drill --style` lives, which is the command that failed on
+# 2026-10-15 and the reason this bead exists. A drill check that read only the
+# prompt tree would have missed it.
+#
+# Every file under that root is always overwritten, so it takes the other
+# helper. An absent study root is a skip inside the script, not a failure: no
+# root means no drill has ever been served on this box.
+
+verify_never_overwrite "drill" \
+  "$REPO_ROOT/scripts/deliver-drill.sh" --verify "$PRACTICE_ROOT/drill"
+
+DRILL_STUDY="${DRILL_STUDY_ROOT:-$HOME/Study/tla-drills}"
+echo "drill study root: $DRILL_STUDY"
+verify_overwriting "drill study" \
+  "$REPO_ROOT/scripts/deliver-drill.sh" --study --verify "$DRILL_STUDY"
 
 # --- the report ------------------------------------------------------------
 
@@ -220,12 +279,23 @@ fi
 
 # Always, whatever happened above. A run that printed only "in sync" would be
 # claiming more than it checked.
+#
+# Since 2026-10-18 the list is empty, and the empty case gets a sentence rather
+# than a heading with nothing under it. The claim it makes is the stronger one
+# and it is still a claim about this script's own reach: every
+# scripts/deliver-*.sh has a --verify mode and every one was called above. The
+# loop at the top of this file is what keeps that true, by refusing to run at
+# all when a delivery script appears that this table does not name.
 echo
-echo "NOT CHECKED, because these channels have no verify mode yet (bead tla-mjvx):"
-while read -r ch; do
-  [ -n "$ch" ] || continue
-  echo "  $ch"
-done <<<"$NO_VERIFY_YET"
+if [ -n "$NO_VERIFY_YET" ]; then
+  echo "NOT CHECKED, because these channels have no verify mode yet (bead tla-mjvx):"
+  while read -r ch; do
+    [ -n "$ch" ] || continue
+    echo "  $ch"
+  done <<<"$NO_VERIFY_YET"
+else
+  echo "NOT CHECKED: no channel is left out. Every scripts/deliver-*.sh carries a verify mode and every one was called above."
+fi
 
 if [ "$RC" -eq 3 ]; then
   echo
