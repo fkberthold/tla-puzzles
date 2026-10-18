@@ -1,0 +1,33 @@
+# The level 0 template table (bead tla-7xql.2, epic tla-7xql).
+#
+# A template is a named family of items with one generating idea. The grouping
+# matters because bead tla-7xql.1, the stem-blind gate, runs PER TEMPLATE: the
+# artifact it hunts is template-local, and a pooled number hides a bad template
+# behind good ones. So the template is a column in swipe/level0/ITEMS.tsv and
+# not a comment.
+#
+# Rows are tab-delimited and carry the literal marker TPL in field 1, so prose
+# in this file can never be read as data. Read rows with awk -F'\t' or cut,
+# never with IFS=$'\t' read: tab is IFS whitespace, so a run of tabs collapses
+# and an empty field vanishes.
+#
+# A TPL ROW. Five fields, in order:
+#
+#   1  marker     the literal TPL
+#   2  id         T1-T5, stable, never renumbered
+#   3  name        three or four words
+#   4  idea       the generating idea, one sentence
+#   5  calibration the reading/ definitions the family was shaped against
+#
+#   awk -F'\t' '$1 == "TPL" && $2 == "T2"' swipe/level0/TEMPLATES.tsv
+#   grep '^TPL' swipe/level0/TEMPLATES.tsv | cut -f2,3
+#
+# FIELD 5 IS PROVENANCE, NOT A DEPENDENCY. The 49 level 0 definitions already
+# in reading/ are a starting point and the corpus is authored, so field 5 names
+# what a family was shaped against rather than what it was extracted from. The
+# bake never reads it.
+TPL	T1	sets and power sets	Count the members of a set built by a set-former, a power set or a set operation, where the trap is double counting or forgetting that a set holds each value once.	reading/sets/02-antichain/Antichain.tla Family and Middle, reading/sets/03-gossip/Gossip.tla Edge
+TPL	T2	operator precedence	State the value the reader would get from the parse they expect, where the real parse binds differently, so the claim comes out false or stops denoting altogether.	the generator bug in bead tla-7xql.2 itself, where Cardinality({1, 2} \X 1..7) parses as ({1, 2} \X 1) .. 7
+TPL	T3	functions and records	Claim a DOMAIN, an application or an EXCEPT over a function or record built inline, where the trap is that a domain is a set and a record is a function on strings.	reading/pluscal/06-bubble/Bubble.tla Pairs, reading/functions-records/03-overlay/Overlay.tla Blank
+TPL	T4	sequence operators	Claim a Len, a Tail, a SubSeq, a SelectSeq or a concatenation over a literal tuple, where the trap is one-based indexing and inclusive SubSeq bounds.	reading/sequences/01-brackets/Brackets.tla Opens and Closes
+TPL	T5	integer arithmetic	Claim a quotient, a remainder or an interval, where the trap is a negative operand, an empty interval, or the line between Nat and Int.	reading/temporal/02-converge/Converge.tla Left, reading/sets/01-clockface/ClockFace.tla Orbit, reading/sequences/02-josephus/Josephus.tla Closed
