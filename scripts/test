@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~821 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~824 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -88,7 +88,7 @@
 #   fast   2.2 s  harness/comment-gate.sh --self-test
 #   fast   2.2 s  harness/test-build-docs-reading.sh     (added, bead tla-n7dv)
 #   fast   2.6 s  harness/test-corpus-manifest.sh
-#   fast   4.8 s  harness/test-spike-measure.sh
+#   fast   7.5 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
@@ -105,11 +105,11 @@
 #   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
 #   ----  ------
-#         46.0 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
+#         48.7 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
 #        774.9 s  slow tier, 14 suites
-#        820.9 s  whole registry
+#        823.6 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -337,6 +337,8 @@
 #                                        at 48.1 then 50.8 on the way here
 #     spike measurement  1.9 ->  4.8 s   tla-83lg's nine comment-shape
 #                                        fixtures
+#     spike measurement  4.8 ->  7.5 s   tla-ng7r's two channel fixtures,
+#                                        two more real TLC runs
 #     drill corpus gate 10.3 -> 54.4 s   32 items landed against a budget
 #                                        measured over an EMPTY tree; see
 #                                        that row and bead tla-0eis
@@ -770,7 +772,19 @@ SUITES=(
   # gap from 4.2x to 1.5x. See THE TIER GAP HAS COLLAPSED in this header. Its
   # tier is unchanged and correct: the boundary is the model checker, and its
   # two fixtures are 3-by-3 grids that must stay that way.
-  "fast|4.8|spike measurement|./harness/test-spike-measure.sh"
+  # Re-measured 2026-10-18 (bead tla-ng7r), three back-to-back standalone
+  # runs: 6.256 / 6.689 / 7.168 s, so 7.5 is the slowest rounded up. Spread
+  # 15%, which is wide for a row this small and I'd watch it rather than
+  # trust it. The move is attributed: tla-ng7r added two fixtures, each a
+  # four-state cycle, to pin the rc 12 and rc 13 channels against the grid in
+  # harness/verdict.sh. That is five real TLC runs where the note above says
+  # three, and the suite went from 41 assertions to 47.
+  # STILL THE SLOWEST FAST-TIER ROW, now at 7.5 against the completion static
+  # sweep's 4.8, so the gap it opens is wider than the one it collapsed. The
+  # tier is still right for the stated reason: the new fixtures are a
+  # four-state cycle each, so this suite still checks parsers rather than a
+  # model checker.
+  "fast|7.5|spike measurement|./harness/test-spike-measure.sh"
   # THE FAST HALF OF THE COMPLETION GATE, added by bead tla-4yit. It asks ONE
   # question of the real completion/ tree — is the corpus STRUCTURALLY sound —
   # through harness/completion-gate.sh --static-only, which runs checks 3, 4

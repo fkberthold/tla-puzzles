@@ -305,12 +305,10 @@ TOKEN_WHY=(
 # right. Each says who owns the file and what has to happen before the entry
 # can go.
 EXEMPT_FILES=(
-  "harness/verdict.sh|6"
   "harness/fixtures/vacuity/ModelledFloor.tla|2"
   "harness/fixtures/vacuity/ModelledFloor.cfg|1"
 )
 FILE_WHY=(
-  "centrally owned by bead tla-kl5.4 and read-only to dispatched workers, even for a comment. All 6 sites are comments, and central's own pass clears them"
   "renaming the module means renaming the file and the V2-PLAN.md:977 reference with it. The 2 counted here are the bare operator Modelled at line 28 and the word modelled in the line 7 comment"
   "the .cfg half of the same module, where INVARIANT Modelled names that operator"
 )
@@ -514,10 +512,17 @@ else
   nope "control: a near-miss word tripped the gate — PAT has a stem in it:$FINDINGS"
 fi
 
-# Case is preserved by the report rather than flattened, and ALL-UPPER and
-# Capitalized both appear in the real tree (`BEHAVIOUR` in a verdict table,
-# `Colours` in a constant). A scan that only matched lowercase would pass
-# part 1 and miss them.
+# Case is preserved by the report rather than flattened. A scan that only
+# matched lowercase would pass part 1 and miss an ALL-UPPER or a Capitalized
+# hit.
+#
+# This comment used to cite two live sites, `BEHAVIOUR` in verdict.sh's table
+# and `Colours` in a constant, and neither is in the tree now. The second went
+# before 2026-10-18 and I can't say when. The first went that day, when
+# central cleared verdict.sh and dropped its exemption. So the control keeps
+# its fixture and loses its examples, which I think is the right trade: both
+# forms are ordinary in a table heading or an operator name, and nothing stops
+# the next one landing.
 CASE_FILE="$CONTROL_DIR/cases.md"
 {
   printf 'BEHAVIOUR in caps, Behaviour capitalized, behaviour plain.\n'

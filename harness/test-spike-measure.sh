@@ -359,5 +359,83 @@ expect "ProseOnly vars"          "$(field "$PROSE" vars)"     "2"
 expect "ProseOnly fairness"      "$(field "$PROSE" fairness)" "no"
 expect "ProseOnly temporal"      "$(field "$PROSE" temporal)" "no"
 
+# The verdict label can't name a .cfg keyword the exit code does not establish
+# was there (bead tla-ng7r). The two fixtures below are the cases where the old
+# labels lied, and both come off the grid in harness/verdict.sh.
+#
+# rc 12 used to print "invariant violated". A safety-shaped PROPERTY on a spec
+# with no liveness conjunct exits 12 with no INVARIANT anywhere in the .cfg, so
+# a reader who took that label at face value went looking for an invariant that
+# was never declared.
+#
+# rc 13 used to print "property violated", which is the only half of the pair
+# that was already true. It's pinned here so the fix to the other half can't
+# drift it.
+
+lacks() {
+  local label="$1" got="$2" forbidden="$3"
+  if grep -qiF -- "$forbidden" <<<"$got"; then
+    bad "$label says '$got', which names $forbidden"
+  else
+    ok "$label does not name $forbidden"
+  fi
+}
+
+cat >"$SHAPES/NoInvariant.tla" <<'TLA'
+-------------------------- MODULE NoInvariant --------------------------------
+(* A safety-shaped PROPERTY and no fairness, so TLC refutes it through the
+   safety channel and exits 12.  The .cfg declares no INVARIANT at all. *)
+EXTENDS Naturals
+
+VARIABLE s
+
+vars == << s >>
+
+Init == s = 0
+Next == s' = (s + 1) % 4
+Spec == Init /\ [][Next]_vars
+NeverTwo == ~<>(s = 2)
+
+==============================================================================
+TLA
+printf 'SPECIFICATION Spec\nPROPERTY NeverTwo\nCHECK_DEADLOCK FALSE\n' \
+  >"$SHAPES/NoInvariant.cfg"
+
+NOINV="$(row_in "$SHAPES" NoInvariant)"
+expect "NoInvariant hits the safety channel" "$(field "$NOINV" rc)" "12"
+lacks  "NoInvariant verdict" "$(field "$NOINV" verdict)" "invariant"
+
+cat >"$SHAPES/BareAtInit.tla" <<'TLA'
+-------------------------- MODULE BareAtInit ---------------------------------
+(* A BARE state predicate under PROPERTY, false at the initial state.  That is
+   the shortest finite prefix there is and TLC still reports it through the
+   liveness channel, exiting 13. *)
+EXTENDS Naturals
+
+VARIABLE s
+
+vars == << s >>
+
+Init == s = 0
+Next == s' = (s + 1) % 4
+Spec == Init /\ [][Next]_vars
+IsTwo == s = 2
+
+==============================================================================
+TLA
+printf 'SPECIFICATION Spec\nPROPERTY IsTwo\nCHECK_DEADLOCK FALSE\n' \
+  >"$SHAPES/BareAtInit.cfg"
+
+BARE="$(row_in "$SHAPES" BareAtInit)"
+expect "BareAtInit hits the liveness channel" "$(field "$BARE" rc)" "13"
+lacks  "BareAtInit verdict" "$(field "$BARE" verdict)" "invariant"
+
+# And the control, so the two rows above are not passing because the verdict
+# column went blank. Both must say they were refuted.
+expect "NoInvariant verdict names a refutation" \
+  "$(grep -ciF refuted <<<"$(field "$NOINV" verdict)")" "1"
+expect "BareAtInit verdict names a refutation" \
+  "$(grep -ciF refuted <<<"$(field "$BARE" verdict)")" "1"
+
 printf '\n%s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

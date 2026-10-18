@@ -23,6 +23,25 @@
 # is deliberate: the `rc` column is authoritative and every other column is
 # descriptive.
 #
+# WHAT THE `verdict` COLUMN SAYS ON 12 AND 13
+#
+# It names the side that reported and not the keyword the .cfg used, because
+# the code does not establish the keyword. These two rows read "invariant
+# violated" and "property violated" until 2026-10-18, and the first one was
+# wrong: a safety-shaped PROPERTY on a spec with no liveness conjunct exits 12
+# with no INVARIANT anywhere in the .cfg, so a reader went looking for an
+# invariant nobody declared. The label travels into VECTOR.md, which is why
+# this is worth more than a wording fix.
+#
+# "safety side" covers two channels rather than one. A box over a state
+# predicate gets lifted to an invariant and exits 12, and a safety-shaped
+# temporal formula that will not lift exits 12 too, but only while the spec
+# formula carries no liveness conjunct. harness/verdict.sh carries the 24-cell
+# grid and harness/test-verdict.sh pins eleven of its cells. Read the grid
+# before you treat either number as a fact about the formula.
+#
+# Lineage: bead tla-ng7r, off the measurement in tla-lj1n and tla-vzu3.
+#
 # WHAT `fairness` AND `temporal` ACTUALLY SAY
 #
 # They report what the module TEXT declares, not what the configuration checks.
@@ -244,8 +263,8 @@ lines="$(printf '%s\n' "$SRC" | wc -l | tr -d ' ')"
 case "$RC" in
   0)              verdict="checked, no violation" ;;
   11)             verdict="deadlock reported" ;;
-  12)             verdict="invariant violated" ;;
-  13)             verdict="property violated" ;;
+  12)             verdict="refuted, safety side" ;;
+  13)             verdict="refuted, liveness side" ;;
   75|76|77)       verdict="evaluation failed, the check never happened" ;;
   124)            verdict="hit the ${BUDGET}s budget" ;;
   150)            verdict="parse or semantic failure" ;;

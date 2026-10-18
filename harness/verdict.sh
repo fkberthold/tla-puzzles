@@ -47,7 +47,7 @@
 # table is a fact about TLC rather than about one jar. Do not edit a row
 # without re-running harness/test-verdict.sh; the test asserts the raw
 # numbers, not just the tokens, precisely so that a renumbered TLC breaks the
-# build instead of quietly relabelling itself.
+# build instead of quietly relabeling itself.
 #
 #      0  OK                     no error found
 #     10  ASSUMPTION_FAILED      ASSUME false, or -postCondition false
@@ -59,7 +59,7 @@
 #     13  LIVENESS_VIOLATION     the liveness channel or the implied-action
 #                                channel reported. Covers refinement, §5.4,
 #                                and a bare state predicate under PROPERTY
-#     14  ASSERT_VIOLATION       Assert(FALSE, ...) DURING BEHAVIOUR EXPLORATION
+#     14  ASSERT_VIOLATION       Assert(FALSE, ...) DURING BEHAVIOR EXPLORATION
 #     75  SPEC_EVAL_FAILURE      the spec could not be evaluated
 #     76  SAFETY_EVAL_FAILURE    the INVARIANT could not be evaluated
 #     77  LIVENESS_EVAL_FAILURE  the PROPERTY could not be checked
@@ -116,7 +116,7 @@
 #
 #   The left column is what TLC can refute with a finite prefix. Those are
 #   safety properties written with a temporal operator, so TLC reports a safety
-#   violation and exits 12. The right column needs an infinite behaviour, and
+#   violation and exits 12. The right column needs an infinite behavior, and
 #   on this spec every counterexample ended in a Stuttering step. []P over a
 #   state predicate is a separate case in the same column: TLC lifts it into an
 #   invariant outright and prints "Invariant P is violated".
@@ -213,7 +213,7 @@
 #   an INVARIANT rather than hunt for a typo.
 #
 # rc=14 IS A TIMING FACT, NOT A CONSTRUCT FACT. It does not mean "an Assert
-# failed"; it means an Assert failed once TLC was already exploring behaviour.
+# failed"; it means an Assert failed once TLC was already exploring behavior.
 # The identical Assert(FALSE, ...) in Init exits 75, because the initial-state
 # computation wraps the EvalException as EC.TLC_NESTED_EXPRESSION instead of
 # letting the assertion's own error code through. AssertViolation.tla and
@@ -416,7 +416,7 @@ fi
 # tla2tools v1.8.0 with one .cfg and one module: rel/rel, rel/abs and abs/abs
 # all exit 0, while abs module + rel --config exits 255 TLC_EXCEPTION on a file
 # the caller can see from where they stand. A missing-file verdict for a file
-# that is present is exactly the mislabelling §5.1 exists to stop.
+# that is present is exactly the mislabeling §5.1 exists to stop.
 #
 # So a relative --config means what it means everywhere else in a shell:
 # relative to the caller's cwd, whatever the module argument looks like. A
