@@ -1305,6 +1305,99 @@ else
   nope "the widened scan read $CP_WIDE_LINES lines against $CP_HALF_LINES in the two halves, so it is not reading both trees"
 fi
 
+# ---------------------------------------------------------------------------
+# The real delivered trees, which is the only part of this suite that can tell
+# Frank his practice directory has gone out of step.
+#
+# Frank ruled on 2026-10-18 (bead tla-bxcd) that attempts/ and released/ carry
+# the same numbered names problems/ does, over the alternative of naming an
+# attempt for the bare problem name, because a matching name is easier to
+# track than a positional one you have to resolve first.
+#
+# EACH TREE ANSWERS TO THE ORDER SITTING BESIDE IT, and that is central's call
+# rather than Frank's, recorded on the bead. An attempt batch keeps its own
+# copy of ORDER, which is what makes the batch a record of what was worked and
+# in what order. Checking it against problems/ORDER instead would turn every
+# later reorder of the ramp into a demand to rename finished work, and the
+# rename would falsify the record it is stored in.
+#
+# scripts/number-problems.sh already takes a root as an argument and reads the
+# ORDER beside it, so no script change was needed. What was missing was anybody
+# running it on the trees that are not problems/.
+#
+# ~/tla-practice is not a git repo and no repo-level search reaches it, so an
+# absent tree is the ordinary case on every box but Frank's and in all of CI.
+# Absence is a skip here and never a failure.
+# ---------------------------------------------------------------------------
+
+echo
+echo "== the delivered practice trees agree with the ORDER beside each one =="
+
+PRACTICE_ROOT="${TLA_PRACTICE_ROOT:-$HOME/tla-practice}"
+
+if [ ! -d "$PRACTICE_ROOT" ]; then
+  skip "the delivered practice trees" "no tree at $PRACTICE_ROOT, which is every box but Frank's"
+else
+  if [ -f "$PRACTICE_ROOT/problems/ORDER" ]; then
+    PROB_OUT=$("$REPO_ROOT/$SCRIPT" --check "$PRACTICE_ROOT/problems" 2>&1)
+    PROB_RC=$?
+    if [ "$PROB_RC" -eq 0 ]; then
+      ok "problems/ agrees with problems/ORDER"
+    else
+      nope "problems/ disagrees with its ORDER (rc=$PROB_RC): $PROB_OUT"
+    fi
+  else
+    skip "problems/" "no ORDER file beside it"
+  fi
+
+  # Every attempt batch carrying an ORDER. A batch without one is not a
+  # finding: withdrawn-2026-09-04 is a v1 archive and predates the convention.
+  batches_checked=0
+  for batch in "$PRACTICE_ROOT"/attempts/*/; do
+    [ -d "$batch" ] || continue
+    [ -f "$batch/ORDER" ] || continue
+    batches_checked=$((batches_checked + 1))
+    B_OUT=$("$REPO_ROOT/$SCRIPT" --check "${batch%/}" 2>&1)
+    B_RC=$?
+    bname=${batch%/}; bname=${bname##*/}
+    if [ "$B_RC" -eq 0 ]; then
+      ok "attempt batch $bname agrees with its own ORDER"
+    else
+      nope "attempt batch $bname disagrees with its own ORDER (rc=$B_RC): $B_OUT"
+    fi
+  done
+
+  if [ "$batches_checked" -gt 0 ]; then
+    ok "$batches_checked attempt batch(es) carried an ORDER and were checked"
+  else
+    skip "the attempt batches" "no batch under $PRACTICE_ROOT/attempts carries an ORDER"
+  fi
+
+  # released/ is empty today, so this costs nothing to settle now and a lot to
+  # settle after it fills. A tree with entries and no ORDER has no way to say
+  # which numbering its names answer to.
+  rel_entries=0
+  if [ -d "$PRACTICE_ROOT/released" ]; then
+    for entry in "$PRACTICE_ROOT"/released/*/; do
+      [ -d "$entry" ] || continue
+      rel_entries=$((rel_entries + 1))
+    done
+  fi
+  if [ "$rel_entries" -eq 0 ]; then
+    ok "released/ is empty, so there is nothing yet to keep in step"
+  elif [ -f "$PRACTICE_ROOT/released/ORDER" ]; then
+    REL_OUT=$("$REPO_ROOT/$SCRIPT" --check "$PRACTICE_ROOT/released" 2>&1)
+    REL_RC=$?
+    if [ "$REL_RC" -eq 0 ]; then
+      ok "released/ agrees with released/ORDER"
+    else
+      nope "released/ disagrees with its ORDER (rc=$REL_RC): $REL_OUT"
+    fi
+  else
+    nope "released/ holds $rel_entries director(ies) and no ORDER, so nothing says which numbering they answer to"
+  fi
+fi
+
 echo
 if [ "$skip_count" -ne 0 ]; then
   printf "SKIPPED: %d assertions this box cannot run\n" "$skip_count"
