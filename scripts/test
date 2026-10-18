@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 719.2 s wall, measured 2026-10-17, against the ~807 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~821 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -102,14 +102,14 @@
 #   slow  60.0 s  harness/test-vacuity.sh
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
-#   slow  91.0 s  harness/test-recall-runner.sh              (re-based, ea9de77)
+#   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
 #   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
 #   ----  ------
 #         46.0 s  fast tier, 25 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        760.9 s  slow tier, 14 suites
-#        806.9 s  whole registry
+#        774.9 s  slow tier, 14 suites
+#        820.9 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -1200,7 +1200,33 @@ SUITES=(
   # THE MOVE IS THE SUITE AGAIN AND NOT THE BOX. The whole registry read
   # 719.2 s against 719.4, 722.3 and 719.1 earlier the same night, and the
   # grader came in at 85.0 against 99.0 on the same pass.
-  "slow|91.0|recall runner|./harness/test-recall-runner.sh"
+  # RE-BASED A FIFTH TIME 91.0 -> 105.0 on 2026-10-17, after bead tla-1sh7.8
+  # merged at ff86f3b. The suite went from 402 assertions to 420 and from 19
+  # mutants to 21, and it gained about twenty TLC runs, so this is the model
+  # checker again rather than the box.
+  #
+  # EIGHT STANDALONE READINGS, all on the merged tree, all 420 passed:
+  # 97.3 / 97.8 / 98.3 / 100.05 / 100.09 / 100.1 / 101.2 / 104.6 s. 105.0
+  # clears the slowest of them by 0.4 s.
+  #
+  # THE IN-SUITE PREMIUM DID REPRODUCE HERE, which is the opposite of what
+  # this row said one re-base ago. Paired back to back on a quiet box, the two
+  # scripts/test readings were 101.4 and 121.1 s against 100.1 and 100.1
+  # standalone. So the premium really is a thing to measure per row, and this
+  # row has now gone both ways on it.
+  #
+  # FOUR READINGS BETWEEN 152 AND 203 s HAVE NO EXPLANATION AND THE BUDGET IS
+  # NOT SET FROM THEM. Every one landed in a fifteen minute window, and nothing
+  # before or since has gone over 105 standalone. The box was not the cause:
+  # 16 cores at load 1.65 to 2.44, no stray JVM, no stray suite, and the
+  # harness was ruled out by running scripts/test and the bare suite back to
+  # back. Load sampling was added after the window closed, so the evidence is
+  # gone and the cause is unnamed. Budgeting to 203 would hide a real doubling
+  # behind one reading nobody measured, so the band is what this number comes
+  # from. The drift nudge sits at 315 s and stays quiet either way.
+  #
+  # The whole registry read 730.6 s on the pass that set this, 39 suites green.
+  "slow|105.0|recall runner|./harness/test-recall-runner.sh"
   # Added 2026-10-16, bead tla-1sh7.4, and with the row above it this is the
   # largest addition this registry has taken.
   #
