@@ -1,0 +1,36 @@
+# The level 1 template table (bead tla-7xql.4, epic tla-7xql).
+#
+# A template is a named family of items with one generating idea. The grouping
+# matters because bead tla-7xql.1, the stem-blind gate, runs PER TEMPLATE: the
+# artifact it hunts is template-local, and a pooled number hides a bad template
+# behind good ones. So the template is a column in swipe/level1/ITEMS.tsv and
+# not a comment.
+#
+# Rows are tab-delimited and carry the literal marker TPL in field 1, so prose
+# in this file can never be read as data. Read rows with awk -F'\t' or cut,
+# never with IFS=$'\t' read: tab is IFS whitespace, so a run of tabs collapses
+# and an empty field vanishes.
+#
+# A TPL ROW. Five fields, in order, and they are the level 0 five:
+#
+#   1  marker      the literal TPL
+#   2  id          E1 and up, stable, never renumbered
+#   3  name        three or four words
+#   4  idea        the generating idea, one sentence
+#   5  calibration the reading/ models the family was shaped against
+#
+#   awk -F'\t' '$1 == "TPL" && $2 == "E1"' swipe/level1/TEMPLATES.tsv
+#   grep '^TPL' swipe/level1/TEMPLATES.tsv | cut -f2,3
+#
+# THE IDS ARE E-PREFIXED AND NOT T-PREFIXED. Level 0's five are T1 to T5, and
+# a level 1 template sharing one of those ids would make a pooled reading of
+# the two corpora silently merge two families that have nothing to do with
+# each other. The stem-blind instrument takes --items, so pointing it at the
+# wrong table is one flag away and the id is what catches it.
+#
+# ONE TEMPLATE SHIPS HERE, ON PURPOSE. Bead tla-7xql.4 scopes this rung to
+# machinery, a gate and one complete template as a pilot. Level 0 ships five
+# at 48 each and that 48 was chosen for the stem-blind gate's power, not for
+# the corpus. How many templates level 1 wants, and what its mix should be, is
+# a decision the pilot is here to inform rather than to take.
+TPL	E1	does this action fire here	Ask whether a named action can take a step from the pinned state, where the trap is reading one conjunct of a guard as the whole enabling condition, reading a parameter as if it had to be in range, or asking whether an action HOLDS at a state when an action is not a claim about one state at all.	reading/sequences/01-brackets/Brackets.tla Push and Pop, reading/temporal/04-contention/Contention.tla the four owner actions, reading/temporal/05-break/Break.tla Start Stop Ask Resume, reading/temporal/01-handover/Handover.tla Request and Grant, reading/sequences/02-josephus/Josephus.tla Eliminate, reading/core/01-nim/Nim.tla Take, reading/modules/03-fences/Fences.tla MoveA and MoveB
