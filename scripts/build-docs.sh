@@ -1257,6 +1257,142 @@ CFGFENCE
   } > "$DOCS/reading/.pages"
 fi
 
+# ===========================================================================
+# THE SWIPE READER: swipe/ AS ITS OWN SECTION
+#
+# Bead tla-7xql.12, epic tla-7xql. The level 0 swipe corpus shipped 240 items
+# and nothing a person could touch, which is bead tla-rrwl's shape a second
+# time: the problems shipped without the interface somebody uses to work
+# them. This section is that interface.
+#
+# PUBLISHED, NOT DELIVERED. Frank ruled on 2026-10-18: "I would go with
+# Published myself." Every other channel in this project delivers files into
+# ~/tla-practice. This one is a page on the site, because a swipe is an
+# interaction rather than a file.
+#
+# NO MODEL CHECKER RUNS ON THE PHONE. TLC ran once, at bake time, on a dev
+# box: swipe/level0/bake.sh measured every verdict into field 6 of ITEMS.tsv
+# and never runs again. The page reads a baked table. No server, no JVM, no
+# round trip.
+#
+# THE PRECEDENT IS THE READING SECTION ABOVE, which bead tla-fwkz.1 titled
+# "publish it phone-first". Frank's ruling here is narrower than that one:
+# this will ONLY ever be used on a phone browser, so the phone is the target
+# rather than the first target.
+#
+# WHAT IS NEW AND HAS NO PRECEDENT HERE. Every page this site has published
+# has been markdown. This one needs JavaScript, and that brings two hazards.
+#
+# ONE, navigation.instant. mkdocs.yml turns on the theme's SPA-style page
+# loading, so a script that runs on load runs once, on whichever page the
+# reader opened first. mkdocs-material publishes window.document$ for exactly
+# this, and swipe/reader/swipe.js subscribes to it. That is also why the
+# script is wired through mkdocs.yml's extra_javascript rather than inlined
+# in the page: extra_javascript is injected after the theme bundle, so the
+# observable is in scope, and an inline script in a replaced container has no
+# such guarantee.
+#
+# TWO, bead tla-9t76 is open: nothing in this repo runs `mkdocs build
+# --strict`, so a broken link ships green. This section therefore emits no
+# internal cross-links at all beyond the two GitHub source links, which are
+# absolute.
+#
+# THE SIX FIELDS THAT SHIP AND THE FOUR THAT DO NOT are decided and gated in
+# swipe/reader/emit-items.sh, which this section calls rather than reimplements.
+# harness/test-swipe-reader.sh drives the same script.
+#
+# SCOPE IS LEVEL 0. A level 0 item is a single constant expression and needs
+# no model screen at all, which is the whole reason the epic built level 0
+# first. Level 1 items need a model screen and a pin and do not exist yet.
+# The page is built so a model screen can be added above the claim without
+# the rest moving, and bead tla-7xql.4 is measuring what one costs in lines.
+# ===========================================================================
+
+if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
+  mkdir -p "$DOCS/swipe" "$DOCS/javascripts"
+
+  # The payload. Emitted by the corpus's own script so there is one
+  # implementation of "which fields may be published" and the gate reads it.
+  if ! swipe/reader/emit-items.sh > "$DOCS/swipe/items.json"; then
+    echo "build-docs.sh: swipe/reader/emit-items.sh failed; refusing to publish a" >&2
+    echo "  swipe page with no items behind it." >&2
+    exit 1
+  fi
+
+  cp swipe/reader/swipe.js "$DOCS/javascripts/swipe.js"
+  cp swipe/reader/swipe.css "$DOCS/stylesheets/swipe.css"
+
+  # Derived from the corpus, never written here. Same rule the reading
+  # section above follows, for the reason bead tla-i3zu measured: a hand-kept
+  # number is right until somebody adds an item, and then it is silently
+  # wrong with every gate still green.
+  SWIPE_COUNT=$(grep -c '^ITEM' swipe/level0/ITEMS.tsv)
+
+  {
+    echo "# Swipe"
+    echo ""
+    # ONE LINE OF LEAD-IN, AND THE LENGTH IS A MEASUREMENT RATHER THAN A
+    # PREFERENCE. The first draft ran two paragraphs here and a phone
+    # screenshot at 390x844 put the answer buttons at 812 CSS pixels, which
+    # is 32 pixels inside the fold. The card's own hint already says what a
+    # swipe means, so the paragraph above it was saying it twice and costing
+    # the reader a scroll on every cold start.
+    echo "$SWIPE_COUNT single lines of TLA+, one at a time. The buttons do what"
+    echo "the gestures do."
+    echo ""
+    # THE ROOT ELEMENT. swipe.js keys everything off this id: on any other
+    # page of the site it finds nothing and does nothing. data-items is
+    # resolved against the page URL, so the same file works under mkdocs
+    # serve at / and under GitHub Pages at /tla-puzzles/.
+    echo '<div id="swipe-app" data-items="items.json">'
+    echo '<p>This page needs JavaScript. Without it there is no stream, and'
+    echo 'the items themselves are in the repository link at the bottom.</p>'
+    echo '</div>'
+    echo ""
+    echo "## Where the answer comes from"
+    echo ""
+    echo "Nothing here runs a model checker. TLC ran once when the corpus was"
+    echo "built: it measured every item and wrote the verdict into the table,"
+    echo "and this page reads that table. So the grading needs no server and"
+    echo "works offline once the page has loaded."
+    echo ""
+    echo "A down swipe covers three different things, and the corpus keeps"
+    echo "them apart even though the gesture does not. An item can fail to"
+    echo "mean anything, it can be vacuously true in a way that makes the"
+    echo "claim empty, or it can fail to parse at all. Merging them is forced"
+    echo "rather than chosen: without the merge a vacuous item has no correct"
+    echo "swipe."
+    echo ""
+    echo "## Your record lives in a file, not in this browser"
+    echo ""
+    echo "The browser keeps a cache so the page resumes where you left off."
+    echo "The record is the file you export. Put it at"
+    echo "\`~/tla-practice/swipe/SWIPE.tsv\`, beside the other channels'"
+    echo "tables, and import it again on any browser or after clearing site"
+    echo "data."
+    echo ""
+    echo "An empty cache is an ordinary state rather than a first run, so the"
+    echo "page says so and the import control is reachable from it. The"
+    echo "export carries a version marker, and an import that cannot read a"
+    echo "file refuses and says why rather than quietly starting over."
+    echo ""
+    echo "## Working on the corpus"
+    echo ""
+    echo "[\`swipe/README.md\`]($GH_BLOB/swipe/README.md) carries the contract:"
+    echo "how an item is authored, why the mix is what it is, and what the"
+    echo "verdict channel measures."
+    echo ""
+    echo "[\`swipe/level0/ITEMS.tsv\`]($GH_BLOB/swipe/level0/ITEMS.tsv)"
+    echo ""
+  } > "$DOCS/swipe/index.md"
+
+  {
+    echo "title: Swipe"
+    echo "nav:"
+    echo "  - index.md"
+  } > "$DOCS/swipe/.pages"
+fi
+
 # ---- getting-started ----
 cat > "$DOCS/getting-started.md" <<'EOF'
 # Getting Started
@@ -1468,6 +1604,13 @@ EOF
   # entries above it, and moving this line is the whole change.
   if [ -d "$DOCS/reading" ]; then
     echo "  - reading"
+  fi
+  # swipe sits after reading because it is the recognition channel's other
+  # half: reading makes the shape familiar and swipe asks whether you can
+  # call it. Same as the three entries above it, where it belongs in the nav
+  # is Frank's call and moving this line is the whole change.
+  if [ -d "$DOCS/swipe" ]; then
+    echo "  - swipe"
   fi
   echo "  - reference"
   echo "  - about"
