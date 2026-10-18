@@ -20,7 +20,7 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~866 s
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~939 s
 # the budgets below sum to, and the fast tier is 25 of the 39 suites but only
 # about 6% of the wall clock. Those are two different numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
@@ -104,15 +104,15 @@
 #   slow  78.0 s  harness/test-completion-gate.sh         (added, bead tla-4yit)
 #   slow  99.0 s  harness/grade.sh --selftest
 #   slow 105.0 s  harness/test-recall-runner.sh              (re-based, ff86f3b)
-#   slow 197.0 s  harness/test-recall-gate.sh                (re-based, 3d05932)
+#   slow 270.0 s  harness/test-recall-gate.sh                (re-based, 2026-10-18)
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
 #   slow  31.0 s  harness/test-swipe-level0.sh           (added, bead tla-7xql.2)
 #   ----  ------
 #         50.4 s  fast tier, 26 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        815.9 s  slow tier, 16 suites
-#        866.3 s  whole registry
+#        888.9 s  slow tier, 16 suites
+#        939.3 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -1265,6 +1265,19 @@ SUITES=(
   # from. The drift nudge sits at 315 s and stays quiet either way.
   #
   # The whole registry read 730.6 s on the pass that set this, 39 suites green.
+  # NOT RE-MEASURED AFTER 2026-10-18, and the budget is left alone rather than
+  # guessed at. tla-1sh7.7 took this suite from 420 assertions to 432 and
+  # added about 18 TLC runs, so 105.0 is probably tight and may be wrong. Two
+  # reasons it was not re-based: whisper-cli held four cores for the whole
+  # window central had (see the recall corpus gate row below), and a budget
+  # moved on a contended reading is the thing that row's own note argues
+  # against.
+  # THE CHEAP CONTROL WHEN SOMEBODY HAS A QUIET BOX is to run both recall rows
+  # in one pass, `bash scripts/test recall`, and read them against each other.
+  # The corpus gate is 61 s over its 2026-10-17 reading with only 8 s of that
+  # attributed (bead tla-evqq). If this row moved by a similar proportion the
+  # box is the cause and both numbers are measurement; if it did not, the gate
+  # grew on its own and tla-evqq is a real regression.
   "slow|105.0|recall runner|./harness/test-recall-runner.sh"
   # Added 2026-10-16, bead tla-1sh7.4, and with the row above it this is the
   # largest addition this registry has taken.
@@ -1324,7 +1337,27 @@ SUITES=(
   # --static-only here, the full corpus in scripts/cibuild phase 3b. That is
   # Frank's call about CI shape, so the number is recorded and the row is still
   # left whole.
-  "slow|197.0|recall corpus gate|./harness/test-recall-gate.sh"
+  # RE-BASED 197.0 -> 270.0 on 2026-10-18, and MOST OF THE MOVE IS NOT
+  # ATTRIBUTED. Bead tla-evqq carries the attribution.
+  # Three back-to-back standalone runs read 258.166 / 275.156 / 302.086 s, all
+  # 245 assertions passing. That looks like a 17% band and it is not a band at
+  # all: whisper-cli came up on the box at 395% CPU and 2.3 GB RSS partway
+  # through, and the three readings rise with it. Run 1 finished before it
+  # started, so 258.2 is the only clean one and 270.0 clears it by 4.6%.
+  # BUDGETING TO 302 WOULD HIDE A REAL REGRESSION BEHIND A TRANSCRIPTION JOB,
+  # which is the same argument the recall runner row makes about its own hole.
+  # WHAT IS ATTRIBUTED, and it is 8 of the 61 seconds. tla-1sh7.7 put a
+  # field-7 pattern on 24 reps, so check 4 validates 24 patterns it did not
+  # before, which that author measured as a paired 246.4 -> 254.3 s on its own
+  # box. tla-z4f3's part 8 adds 0.32 s and starts no JVM. The other ~53 s
+  # predates both and nobody has named it: the row was set at 196.6 on
+  # 2026-10-17 over three readings with a 1.3% spread, and the same tree now
+  # reads 258 clean. Read it as unexplained rather than as these two beads.
+  # The check that found the contention, and the one the stray-JVM scan misses:
+  #   ps -eo pid,etime,pcpu,rss,args --sort=-pcpu | head -6
+  # Load average will not tell you. It read 1.69 eleven minutes before the
+  # same box read 6.8.
+  "slow|270.0|recall corpus gate|./harness/test-recall-gate.sh"
 
   # TLA+ DEFINITION LEVELS, bead tla-7xql.3, 2026-10-18. Reads the level of
   # every definition in every reading/ model off SANY's semantic tree, one
