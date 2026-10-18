@@ -136,7 +136,8 @@
 # THREE OF THOSE ROWS MOVED AGAIN ON 2026-10-17 and the header above carries
 # the new numbers.
 #
-#   recall corpus gate   86.7 -> 197.0   the corpus doubled under it at 3d05932
+#   recall corpus gate   86.7 -> 197.0 -> 245.0 -> 215.0   corpus doubled at 3d05932, then
+#                        245.0 was set on a whisper-contaminated reading (tla-evqq)
 #   recall runner        43.7 ->  88.6   part 16 landed at 169d53a
 #   indeterminate gate   10.7 ->  50.2   two rows driving recall-gate.sh
 #
@@ -1445,13 +1446,32 @@ SUITES=(
   # See WHY A WARNING AND NOT A FAILURE in this header. So a tight budget
   # costs one honest line of output and a loose one hides a regression.
   #
-  # WHAT IS ATTRIBUTED, now 8 of 37 seconds rather than 8 of 61. Against the
-  # 196.6 s this row was set at on 2026-10-17 over a 1.3% band: tla-1sh7.7 put
-  # a field-7 pattern on 24 reps, so check 4 validates 24 patterns it did not
-  # before, which that author measured as a paired 246.4 -> 254.3 s, so +7.9.
-  # tla-z4f3's part 8 adds 0.32 s and starts no JVM, and tla-2s12's six rows
-  # are static mutants that start none either. Expected 204.8, actual 233.2,
-  # so about 28 s is unexplained and predates all three beads.
+  # RE-BASED 245.0 -> 215.0 ON 2026-10-18, and the unattributed time was never
+  # real. Bead tla-evqq existed because this row read 258.2 s against a 196.6
+  # budget and only 8 of the 61 seconds had a cause. Five structural reads
+  # against 3d05932 came back negative: the corpus is 120 reps and 90 misses
+  # then and now, the gate carries 12 TLC invocation sites then and now, field
+  # 6 holds 156 scaffold entries then and now, harness/verdict.sh took 86
+  # insertions that were ALL comment with its code line count unchanged at
+  # 203, and the 43 code lines added here hoist both their forks out of the
+  # loop. Nothing grew.
+  #
+  # Then the measurement, on a box with no JVM and load 0.68. Three readings:
+  # 205.4 s in a filtered pass behind the runner, then 199.5 and 198.0 s
+  # standalone, a 0.8% band standalone against the 1.3% band the 196.6 was set
+  # over. So the growth since 2026-10-17 is about 3 seconds, which is LESS
+  # than the 8.2 s already attributed to tla-1sh7.7 and tla-z4f3.
+  #
+  # THE 258.2 WAS NOT A CLEAN READING, although it was recorded as the only
+  # clean one of three. whisper-cli was already on the box and the run that
+  # looked uncontaminated was the one where it was still ramping. Every
+  # conclusion drawn from the 61 seconds was a conclusion about a transcription
+  # job. 215.0 clears the slowest clean reading by 4.7%, which is the same
+  # margin the 270.0 claimed and did not have.
+  #
+  # The sibling control the bead asked for, run the same night: the recall
+  # runner read 102.1 s against its 105.0 budget in the same filtered pass, so
+  # both rows were in band together and neither was the box.
   #
   # AND ONE ARGUMENT FOR THE 270.0 WAS CIRCULAR, which is worth recording
   # because it is an easy one to make again. I defended it by noting this row
@@ -1467,7 +1487,7 @@ SUITES=(
   # same box read 6.8. Sample it DURING the run, not after: the unexplained
   # 152-to-203 s window on the recall runner has no cause named because the
   # sampling went in once the window had closed.
-  "slow|245.0|recall corpus gate|./harness/test-recall-gate.sh"
+  "slow|215.0|recall corpus gate|./harness/test-recall-gate.sh"
 
   # TLA+ DEFINITION LEVELS, bead tla-7xql.3, 2026-10-18. Reads the level of
   # every definition in every reading/ model off SANY's semantic tree, one
