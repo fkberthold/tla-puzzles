@@ -1,9 +1,10 @@
-# The level 0 swipe corpus (bead tla-7xql.2, epic tla-7xql).
+# The level 0 swipe corpus (beads tla-7xql.2, tla-7xql.7 and tla-7xql.8,
+# epic tla-7xql).
 #
-# 80 items over the five templates in swipe/level0/TEMPLATES.tsv. Every claim
-# is a CONSTANT-level TLA+ expression: no variable, no prime, no temporal
-# operator. That is what lets this rung run with no model screen at all, which
-# is the whole reason the epic picks level 0 first.
+# 240 items over the five templates in swipe/level0/TEMPLATES.tsv, 48 per
+# template. Every claim is a CONSTANT-level TLA+ expression: no variable, no
+# prime, no temporal operator. That is what lets this rung run with no model
+# screen at all, which is the whole reason the epic picks level 0 first.
 #
 # Rows are tab-delimited and carry the literal marker ITEM in field 1, so prose
 # in this file can never be read as data. Read rows with awk -F'\t' or cut,
@@ -31,7 +32,8 @@
 # `bake.sh --write` measures them with TLC and writes them back, `bake.sh
 # --check` confirms them, and harness/test-swipe-level0.sh gates the result.
 # Fields 4, 5, 9, 10 and 11 are authored, and field 5 is the author's
-# PREDICTION, which the bake is there to contradict.
+# PREDICTION, which the bake is there to contradict. It contradicted three of
+# the first eighty items and nine of the next hundred and sixty.
 #
 # WHY FIELD 4 AND FIELD 5 ARE SEPARATE, which is a finding rather than a
 # preference. Decision D5 on the epic says the item's kind is tagged in the
@@ -46,6 +48,30 @@
 # witness is a second level 0 expression that holds exactly when the item is
 # vacuous, and the bake runs it in the same batch, so the vacuous label has a
 # TLC run behind it too.
+#
+# ITEMS ARE AUTHORED IN MATCHED GROUPS, AND THAT IS WHAT KEEPS THE STEM-BLIND
+# GATE GREEN. The unit is either a four, one item of each kind built from one
+# idea, or a pair, a true and a false item built from one idea. Six fours and
+# twelve pairs is 48, and it lands the mix at 18 true, 18 false, 6 vacuous and
+# 6 illformed without anybody counting. A few groups came apart when the bake
+# contradicted a label or the probe named a token, so the file is not six
+# clean fours and twelve clean pairs today.
+#
+# A token that enters inside a matched group carries that group's label
+# distribution, so a decision stump over the claim surface learns nothing from
+# it. A token unique to one member sits on one item, and the probe's
+# leave-one-out scoring already makes a one-item rule worthless. The ids no
+# longer run in kind order because of this: ids are never renumbered, so the
+# items added in tla-7xql.7 took 17 to 48, and rows sit in their authoring
+# groups so a reviewer sees a matched pair side by side.
+#
+# THERE IS NO VACUITY SENTINEL AND THERE MUST NOT BE ONE. The first eighty
+# items marked a vacuous body with 99, on five items, every one of them
+# vacuous, and two of those sat in T1. A reader who learns that a 99 means
+# swipe down never evaluates another vacuous item. The bodies are ordinary
+# claims now, and the lesson of a vacuous universal is the empty range rather
+# than anything in the body. Varying the sentinel per template would be five
+# rules in place of one, not a fix.
 #
 # NO ITEM MAY DEPEND ON \div WITH A NEGATIVE DIVIDEND, and that is a finding
 # rather than a taste. The jar's own Naturals.tla states the contract:
@@ -67,6 +93,20 @@
 # carries a tripwire on the broken identity, so a TLC that fixes it turns the
 # suite red and whoever reads this can lift the constraint.
 #
+# T5's declared trap IS a negative operand, so growing it runs at this. Every
+# dividend here is non-negative. The negative operands sit on %, which obeys
+# the contract, on + and -, on intervals like -3..3, on \in Int, and on one
+# illformed -17 % 0. No item depends on the truncation, so no field 11 says it
+# does. Bead tla-7n7e is open on the divergence.
+#
+# A CLAIM SANY REFUSES COMES BACK (150, 150), WHICH IS NOT A ROW IN THE
+# CHANNEL. Six of the items authored for tla-7xql.7 landed there, and the
+# cause was the same every time: two operators from one precedence band that
+# do not associate with each other, as in 12 \div 2 * 3, TRUE \/ FALSE /\
+# FALSE, and 12 % 5 + 12 \div 5. Parentheses fix all three. Whether a parse
+# failure should be a down-swipe item is open, and those six were replaced
+# with claims that parse rather than settled here.
+#
 # FIELD 11 IS NOT OPTIONAL AND IT IS NOT DECORATION. Measured on this task
 # shape and recorded as L2 on the epic: a falsehood is reproduced later at .19
 # with no feedback, .15 with a bare verdict, and .04 with the verdict plus the
@@ -86,10 +126,42 @@ ITEM	L0-T1-09	T1	holds	false	left	10	0	Cardinality((1..5) \X (1..3)) = 8	-	A cro
 ITEM	L0-T1-10	T1	holds	false	left	10	0	Cardinality(UNION {{1, 2}, {2, 3}, {3, 4}}) = 6	-	UNION flattens the family into one set, and that set has four members.
 ITEM	L0-T1-11	T1	implies	false	left	10	0	Cardinality({1, 2}) = 2 => Cardinality(SUBSET {1, 2}) = 3	-	The left side holds and the right side does not, because that power set has four members.
 ITEM	L0-T1-12	T1	implies	false	left	10	0	{1} \subseteq {1, 2} => {1, 2} \subseteq {1}	-	Containment runs one way here, so the left side holds and the right side does not.
-ITEM	L0-T1-13	T1	holds	vacuous	down	0	0	\A s \in {t \in SUBSET (1..3) : Cardinality(t) = 4} : Cardinality(s) = 99	{t \in SUBSET (1..3) : Cardinality(t) = 4} = {}	No subset of three things has four members, so the claim ranges over nothing.
-ITEM	L0-T1-14	T1	implies	vacuous	down	0	0	Cardinality({1, 2, 3}) = 4 => Cardinality({}) = 99	~(Cardinality({1, 2, 3}) = 4)	The left side is false, so the implication holds whatever the right side says.
+ITEM	L0-T1-13	T1	holds	vacuous	down	0	0	\A s \in {t \in SUBSET (1..3) : Cardinality(t) = 4} : Cardinality(s) = 2	{t \in SUBSET (1..3) : Cardinality(t) = 4} = {}	No subset of three things has four members, so the claim ranges over nothing.
+ITEM	L0-T1-14	T1	implies	vacuous	down	0	0	Cardinality({1, 2, 3}) = 4 => Cardinality({}) = 1	~(Cardinality({1, 2, 3}) = 4)	The left side is false, so the implication holds whatever the right side says.
 ITEM	L0-T1-15	T1	holds	illformed	down	10	10	Cardinality(Nat) = 0	-	Cardinality is for finite sets, and Nat is not one, so the line has no value.
 ITEM	L0-T1-16	T1	holds	illformed	down	10	10	{1, 2} \subseteq SUBSET {1, 2}	-	Asking whether 1 belongs to a power set asks what the members of 1 are, and a number has none.
+ITEM	L0-T1-17	T1	holds	true	right	0	0	Cardinality({1, 2, 3} \cup {3, 4, 5}) = 5	-	The union holds 1 through 5 once each, so the count is five.
+ITEM	L0-T1-18	T1	holds	false	left	10	0	Cardinality({1, 2, 3} \cup {3, 4, 5}) = 6	-	The shared 3 is one member of the union and not two, so the count is five.
+ITEM	L0-T1-19	T1	holds	vacuous	down	0	0	\A x \in {y \in {1, 2, 3} \cup {3, 4, 5} : y > 5} : x = 6	{y \in {1, 2, 3} \cup {3, 4, 5} : y > 5} = {}	Nothing in that union is above 5, so the claim ranges over nothing.
+ITEM	L0-T1-20	T1	implies	false	left	10	0	{1, 2} \subseteq Nat => {1, 2} \subseteq {1}	-	The left side holds, since both are natural numbers, and the right side leaves the 2 out.
+ITEM	L0-T1-21	T1	holds	illformed	down	10	10	Cardinality({1, 2} \cap 3) = 0	-	An intersection needs a set on both sides, and 3 is a number, so the line has no value.
+ITEM	L0-T1-22	T1	holds	true	right	0	0	Cardinality(SUBSET {1, 2, 3, 4}) = 16	-	A power set doubles for every member of the original, so four gives sixteen.
+ITEM	L0-T1-23	T1	holds	false	left	10	0	Cardinality(SUBSET {1, 2, 3, 4}) = 8	-	Eight is what three members would give, and four of them double it again.
+ITEM	L0-T1-24	T1	implies	vacuous	down	0	0	Cardinality(SUBSET {1, 2, 3, 4}) = 8 => Cardinality(SUBSET {1, 2}) = 16	~(Cardinality(SUBSET {1, 2, 3, 4}) = 8)	The left side is false, so the implication holds whatever the right side says.
+ITEM	L0-T1-25	T1	implies	vacuous	down	0	0	{1, 2, 3} \subseteq {1, 2} => Cardinality({1, 2, 3}) = 2	~({1, 2, 3} \subseteq {1, 2})	The 3 keeps the left side false, so the implication holds and the count is never reached.
+ITEM	L0-T1-26	T1	holds	illformed	down	10	10	{1, 2} \subseteq 3	-	Containment compares two sets, and 3 is a number, so the line has no value.
+ITEM	L0-T1-27	T1	holds	true	right	0	0	{{1}, {2}} \subseteq SUBSET {1, 2}	-	Both members are sets built from 1 and 2, and the power set holds every one of those.
+ITEM	L0-T1-28	T1	holds	false	left	10	0	{{1, 2}} \subseteq SUBSET {1}	-	The power set of a one-member set holds the empty set and that set, and nothing else.
+ITEM	L0-T1-29	T1	holds	false	left	10	0	Cardinality(UNION {{1, 2}, {2, 3}}) = 4	-	UNION flattens the family to 1, 2 and 3, so the count is three.
+ITEM	L0-T1-30	T1	holds	vacuous	down	0	0	\A s \in UNION {{}, {}} : Cardinality(s) = 2	UNION {{}, {}} = {}	Flattening a family of empty sets leaves nothing, so the claim ranges over nothing.
+ITEM	L0-T1-31	T1	holds	illformed	down	10	10	Cardinality(UNION {1, 2}) = 2	-	UNION takes a set of sets, and this one holds numbers, so the line has no value.
+ITEM	L0-T1-32	T1	holds	true	right	0	0	UNION {{1, 2}, {2, 3}} = {1, 2, 3}	-	Flattening the family keeps each value once, so the result is 1, 2 and 3.
+ITEM	L0-T1-33	T1	holds	true	right	0	0	Cardinality({1, 2} \X {3, 4, 5}) = 6	-	A cross product multiplies the two sizes, so two by three is six.
+ITEM	L0-T1-34	T1	holds	false	left	10	0	Cardinality({1, 2} \X {3, 4, 5}) = 5	-	A cross product multiplies rather than adds, so there are six pairs.
+ITEM	L0-T1-35	T1	holds	true	right	0	0	Cardinality({x \in 1..9 : x % 3 = 0}) = 3	-	Three, six and nine are the multiples of 3 below ten.
+ITEM	L0-T1-36	T1	holds	false	left	10	0	Cardinality({x \in 1..9 : x % 3 = 0}) = 4	-	Only 3, 6 and 9 leave no remainder, so the count is three.
+ITEM	L0-T1-37	T1	holds	true	right	0	0	{1, 2, 3} \ {2} = {1, 3}	-	Set difference drops the members the right side names and keeps the rest.
+ITEM	L0-T1-38	T1	holds	false	left	10	0	{1, 2, 3} \ {2} = {1, 2, 3}	-	The 2 sits in both sets, so the difference drops it.
+ITEM	L0-T1-39	T1	holds	true	right	0	0	Cardinality({1, 2, 3} \cap {2, 3, 4}) = 2	-	Only 2 and 3 sit in both sets, so the intersection holds two members.
+ITEM	L0-T1-40	T1	holds	false	left	10	0	Cardinality({1, 2, 3} \cap {2, 3, 4}) = 3	-	The 1 and the 4 each sit in one set only, so two members are shared.
+ITEM	L0-T1-41	T1	holds	true	right	0	0	Cardinality(SUBSET SUBSET {1}) = 4	-	The inner power set has two members, so the outer one has four.
+ITEM	L0-T1-42	T1	holds	false	left	10	0	Cardinality(SUBSET SUBSET {1}) = 2	-	Two is the size of the inner power set, and the outer one doubles it again.
+ITEM	L0-T1-43	T1	implies	true	right	0	0	Cardinality({1, 2, 3}) = 3 => {2} \subseteq {1, 2, 3}	-	Both sides hold, since the count is three and 2 is a member.
+ITEM	L0-T1-44	T1	implies	false	left	10	0	Cardinality({1, 2, 3}) = 3 => {4} \subseteq {1, 2, 3}	-	The left side holds and the right side does not, because 4 is not a member.
+ITEM	L0-T1-45	T1	holds	true	right	0	0	{1, 2, 3} \subseteq Nat	-	Every one of those is a natural number, so the set sits inside Nat.
+ITEM	L0-T1-46	T1	holds	illformed	down	10	10	SUBSET {1, 2} \subseteq Nat	-	A power set holds sets rather than numbers, and asking whether a set sits in Nat has no value.
+ITEM	L0-T1-47	T1	holds	true	right	0	0	\A s \in SUBSET {1, 2} : s \subseteq {1, 2}	-	Every member of a power set is a subset of the original, which is what SUBSET means.
+ITEM	L0-T1-48	T1	holds	false	left	10	0	\A s \in SUBSET {1, 2} : Cardinality(s) = 1	-	The empty set and the whole set are both in there, and neither has one member.
 # T2  operator precedence
 ITEM	L0-T2-01	T2	holds	true	right	0	0	~1 = 2	-	Equality binds tighter than negation, so this reads as the negation of 1 = 2.
 ITEM	L0-T2-02	T2	holds	true	right	0	0	2 * 3 ^ 2 = 18	-	The exponent binds tighter than the product, so it is two times nine.
@@ -103,10 +175,42 @@ ITEM	L0-T2-09	T2	holds	false	left	10	0	1 - 2 - 3 = 2	-	Subtraction groups to the
 ITEM	L0-T2-10	T2	holds	false	left	10	0	6 \div 2 + 1 = 2	-	The quotient binds tighter than the sum, so this is three plus one.
 ITEM	L0-T2-11	T2	holds	false	left	10	0	Cardinality(1..2 \cup 3..4) = 2	-	The interval binds tighter, so the union holds four members.
 ITEM	L0-T2-12	T2	implies	false	left	10	0	2 + 2 = 4 => 1 = 2	-	The implication is the loosest operator here, so a true left side carries a false right one.
-ITEM	L0-T2-13	T2	holds	vacuous	down	0	0	\A x \in 1..2 - 2 : x > 99	1..2 - 2 = {}	Subtraction binds tighter than the interval, so the range is 1 to 0 and holds nothing.
+ITEM	L0-T2-13	T2	holds	vacuous	down	0	0	\A x \in 1..2 - 2 : x > 0	1..2 - 2 = {}	Subtraction binds tighter than the interval, so the range is 1 to 0 and holds nothing.
 ITEM	L0-T2-14	T2	implies	vacuous	down	0	0	2 + 3 * 4 = 20 => 1 = 2	~(2 + 3 * 4 = 20)	The product binds tighter, so the left side is false and the implication holds.
 ITEM	L0-T2-15	T2	holds	illformed	down	10	10	Cardinality({1, 2} \X 1..7) = 14	-	The cross product binds tighter than the interval, so this reads as ({1, 2} \X 1) .. 7.
 ITEM	L0-T2-16	T2	holds	illformed	down	10	10	UNION {1, 2} \cup {3} = {1, 2, 3}	-	UNION binds no tighter than the union, so it is asked to flatten the numbers 1 and 2.
+ITEM	L0-T2-17	T2	holds	true	right	0	0	3 * 2 ^ 3 = 24	-	The exponent binds tighter than the product, so it is three times eight.
+ITEM	L0-T2-18	T2	holds	true	right	0	0	1 + 2 * 3 - 4 = 3	-	The product binds tighter than the sum, so it is one plus six minus four.
+ITEM	L0-T2-19	T2	holds	true	right	0	0	6 \div 2 + 1 = 4	-	The quotient binds tighter than the sum, so this is three plus one.
+ITEM	L0-T2-20	T2	holds	true	right	0	0	2 + 3 .. 4 + 5 = 5..9	-	Addition binds tighter than the interval, so the bounds are five and nine.
+ITEM	L0-T2-21	T2	holds	true	right	0	0	\A x \in 1 .. 2 + 3 : x < 6	-	Addition binds tighter than the interval, so the range runs 1 to 5 and every member is under six.
+ITEM	L0-T2-22	T2	holds	true	right	0	0	~TRUE = FALSE	-	Equality binds tighter than negation, so this is the negation of a false claim.
+ITEM	L0-T2-23	T2	holds	true	right	0	0	1 = 2 \/ 2 = 2	-	Equality binds tighter than the disjunction, so the second equation carries it.
+ITEM	L0-T2-24	T2	implies	true	right	0	0	1 \in {1, 2} => 2 \in {1, 2}	-	Membership binds tighter than the implication, so both sides are claims about the set.
+ITEM	L0-T2-25	T2	holds	true	right	0	0	\A x \in {1} \cup {2} : x \in 1..2	-	The union binds tighter than the membership test, so the range is the joined set.
+ITEM	L0-T2-26	T2	holds	true	right	0	0	-3 ^ 2 = -9	-	The exponent binds tighter than the sign, so this is the negative of nine.
+ITEM	L0-T2-27	T2	holds	true	right	0	0	2 * 3 % 4 = 2	-	The product and the remainder bind equally and group to the left, so it is six modulo four.
+ITEM	L0-T2-28	T2	holds	true	right	0	0	1 .. 3 \cup 5 .. 7 \subseteq 1 .. 7	-	The intervals bind tightest, then the union, and that set sits inside 1 to 7.
+ITEM	L0-T2-29	T2	holds	false	left	10	0	3 * 2 ^ 3 = 216	-	The exponent binds tighter than the product, so the three is not cubed with the two.
+ITEM	L0-T2-30	T2	holds	false	left	10	0	1 + 2 * 3 - 4 = 5	-	The product binds tighter than the sum, so the one is not added first.
+ITEM	L0-T2-31	T2	holds	false	left	10	0	2 ^ 2 * 2 = 16	-	The exponent binds tighter than the product, so this is four times two.
+ITEM	L0-T2-32	T2	holds	false	left	10	0	\A x \in 1 .. 2 + 3 : x < 3	-	Addition binds tighter than the interval, so the range reaches 5 and the last three members break it.
+ITEM	L0-T2-33	T2	holds	false	left	10	0	~TRUE = TRUE	-	Equality binds tighter, so this is the negation of a true claim.
+ITEM	L0-T2-34	T2	holds	false	left	10	0	1 = 2 \/ 2 = 3	-	Equality binds tighter, and neither equation holds.
+ITEM	L0-T2-35	T2	implies	false	left	10	0	1 \in {1, 2} => 3 \in {1, 2}	-	Membership binds tighter than the implication, so the left side holds and the right side does not.
+ITEM	L0-T2-36	T2	holds	false	left	10	0	\A x \in {1} \cup {2} : x \in {1}	-	The union binds tighter, so the range carries a 2 that the body turns away.
+ITEM	L0-T2-37	T2	holds	false	left	10	0	-3 ^ 2 = 9	-	The exponent binds tighter than the sign, so the square is taken before the negation.
+ITEM	L0-T2-38	T2	holds	false	left	10	0	2 * 3 % 4 = 6	-	Equal operators group to the left, so the product is taken before the remainder.
+ITEM	L0-T2-39	T2	holds	false	left	10	0	1 .. 3 \cup 5 .. 7 \subseteq 1 .. 5	-	The union reaches 7, and the right side stops at 5.
+ITEM	L0-T2-40	T2	holds	false	left	10	0	2 ^ 3 + 1 = 16	-	The exponent binds tighter than the sum, so it is eight plus one.
+ITEM	L0-T2-41	T2	implies	vacuous	down	0	0	3 * 2 ^ 3 = 216 => 2 ^ 3 = 6	~(3 * 2 ^ 3 = 216)	The exponent binds tighter, so the left side is false and the implication holds.
+ITEM	L0-T2-42	T2	holds	vacuous	down	0	0	\A x \in 1 .. 3 - 3 : x * x = 4	1 .. 3 - 3 = {}	Subtraction binds tighter than the interval, so the range is 1 to 0 and holds nothing.
+ITEM	L0-T2-43	T2	implies	vacuous	down	0	0	~TRUE = TRUE => 1 = 1	~(~TRUE = TRUE)	Equality binds tighter, so the left side is false and the implication holds.
+ITEM	L0-T2-44	T2	holds	vacuous	down	0	0	\A n \in {x \in 1 .. 9 : x % 2 = 3} : n + 1 = 5	{x \in 1 .. 9 : x % 2 = 3} = {}	A remainder modulo two is 0 or 1, so the set is empty and the claim ranges over nothing.
+ITEM	L0-T2-45	T2	holds	illformed	down	10	10	UNION 1 .. 3 = {1, 2, 3}	-	The interval binds tighter than UNION, which is then handed a set of numbers and has no value.
+ITEM	L0-T2-46	T2	holds	illformed	down	10	10	DOMAIN 1 :> 2 = {1}	-	DOMAIN binds tighter than the function maker, so it is applied to 1 and has no value.
+ITEM	L0-T2-47	T2	holds	illformed	down	10	10	1 .. 2 \o <<3>> = <<1, 2, 3>>	-	Concatenation binds tighter than the interval, so it is handed the number 2 and has no value.
+ITEM	L0-T2-48	T2	holds	illformed	down	10	10	2 .. 3 \cup 4 \subseteq 1 .. 4	-	The interval binds tighter than the union, which is then handed the number 4 and has no value.
 # T3  functions and records
 ITEM	L0-T3-01	T3	holds	true	right	0	0	DOMAIN [x \in 1..3 |-> x * x] = {1, 2, 3}	-	The domain is what the function is defined over, which is 1 to 3.
 ITEM	L0-T3-02	T3	holds	true	right	0	0	[x \in 1..3 |-> x * x][2] = 4	-	Applying the function to 2 gives two squared.
@@ -120,10 +224,42 @@ ITEM	L0-T3-09	T3	holds	false	left	10	0	[[x \in 1..3 |-> x] EXCEPT ![2] = @ + 10]
 ITEM	L0-T3-10	T3	holds	false	left	10	0	Cardinality([{"a", "b"} -> 1..3]) = 6	-	Each of the two fields picks one of three values, so there are nine functions.
 ITEM	L0-T3-11	T3	holds	false	left	10	0	DOMAIN <<7, 8, 9>> = {0, 1, 2}	-	A tuple is a function on 1 to its length, so the domain starts at 1.
 ITEM	L0-T3-12	T3	implies	false	left	10	0	Len(<<1, 2>>) = 2 => DOMAIN <<1, 2>> = {0, 1}	-	The left side holds, and the domain of a two-element tuple is 1 and 2.
-ITEM	L0-T3-13	T3	holds	vacuous	down	0	0	\A f \in [(1..3) -> {}] : f[1] = 99	[(1..3) -> {}] = {}	No function reaches an empty set of results, so the claim ranges over nothing.
+ITEM	L0-T3-13	T3	holds	vacuous	down	0	0	\A f \in [(1..3) -> {}] : f[1] = 1	[(1..3) -> {}] = {}	No function reaches an empty set of results, so the claim ranges over nothing.
 ITEM	L0-T3-14	T3	implies	vacuous	down	0	0	DOMAIN [a |-> 1] = {"b"} => [a |-> 1].b = 2	~(DOMAIN [a |-> 1] = {"b"})	The left side is false, so the implication holds and the right side is never reached.
 ITEM	L0-T3-15	T3	holds	illformed	down	10	10	[x \in 1..3 |-> x * x][0] = 0	-	0 is outside the domain, so the application has no value.
 ITEM	L0-T3-16	T3	holds	illformed	down	10	10	[a |-> 1, b |-> 2].c = 3	-	The record has no c field, so the line has no value.
+ITEM	L0-T3-17	T3	holds	true	right	0	0	[x \in 1..3 |-> x * x][3] = 9	-	Applying the function to 3 gives three squared.
+ITEM	L0-T3-18	T3	holds	true	right	0	0	DOMAIN [a |-> 1, b |-> 2, c |-> 3] = {"a", "b", "c"}	-	A record is a function on strings, so its domain holds the three field names.
+ITEM	L0-T3-19	T3	holds	true	right	0	0	[[a |-> 1, b |-> 2] EXCEPT !.b = 5].b = 5	-	EXCEPT replaces the b field, and the dot reads it back.
+ITEM	L0-T3-20	T3	holds	true	right	0	0	[[x \in 1..3 |-> 0] EXCEPT ![1] = 1, ![3] = 3][3] = 3	-	EXCEPT takes a list of changes, and the second one sets position 3.
+ITEM	L0-T3-21	T3	holds	true	right	0	0	Cardinality([(1..3) -> {"a", "b"}]) = 8	-	Each of the three arguments picks one of two results, so there are eight functions.
+ITEM	L0-T3-22	T3	holds	true	right	0	0	Cardinality(DOMAIN [a |-> 1, b |-> 2]) = 2	-	The domain holds the two field names, so its count is two.
+ITEM	L0-T3-23	T3	holds	true	right	0	0	[a |-> 1, b |-> 2] = [b |-> 2, a |-> 1]	-	A record is a function on its field names, and a function has no writing order.
+ITEM	L0-T3-24	T3	holds	true	right	0	0	(1 :> 7) @@ (2 :> 8) = [x \in 1..2 |-> x + 6]	-	Both sides send 1 to 7 and 2 to 8, and that is all a function is.
+ITEM	L0-T3-25	T3	holds	true	right	0	0	[a : {}, b : 1..2] = {}	-	No value is left for the a field, so there is no such record whatever b holds.
+ITEM	L0-T3-26	T3	holds	true	right	0	0	DOMAIN <<7, 8, 9>> = 1..3	-	A tuple is a function on 1 to its length, so the domain is 1 to 3.
+ITEM	L0-T3-27	T3	implies	true	right	0	0	DOMAIN [a |-> 1] = {"a"} => Cardinality(DOMAIN [a |-> 1]) = 1	-	Both sides hold, since the only field name is the string a.
+ITEM	L0-T3-28	T3	holds	true	right	0	0	\A f \in [(1..2) -> {0, 1}] : DOMAIN f = 1..2	-	Every function in that set is defined over 1 to 2, which is what the arrow says.
+ITEM	L0-T3-29	T3	holds	false	left	10	0	[x \in 1..3 |-> x * x][3] = 6	-	Three squared is nine, and six is three doubled.
+ITEM	L0-T3-30	T3	holds	false	left	10	0	DOMAIN [a |-> 1, b |-> 2, c |-> 3] = {"a", "b"}	-	The record carries three fields, so the domain holds three strings.
+ITEM	L0-T3-31	T3	holds	false	left	10	0	[[a |-> 1, b |-> 2] EXCEPT !.b = 5].a = 5	-	EXCEPT changed the b field, and the a field still holds 1.
+ITEM	L0-T3-32	T3	holds	false	left	10	0	[[x \in 1..3 |-> 0] EXCEPT ![1] = 1, ![3] = 3][2] = 1	-	Neither change names position 2, so it still holds 0.
+ITEM	L0-T3-33	T3	holds	false	left	10	0	Cardinality([(1..3) -> {"a", "b"}]) = 6	-	Two choices made three times gives eight functions, not three times two.
+ITEM	L0-T3-34	T3	holds	false	left	10	0	Cardinality(DOMAIN [a |-> 1, b |-> 2]) = 1	-	The domain holds both field names, so its count is two.
+ITEM	L0-T3-35	T3	holds	false	left	10	0	[a |-> 1, b |-> 2] = [a |-> 2, b |-> 1]	-	The two records send the same field names to different values.
+ITEM	L0-T3-36	T3	holds	false	left	10	0	(1 :> 7) @@ (2 :> 8) = [x \in 1..2 |-> x + 7]	-	The right side sends 1 to 8, and the left side sends it to 7.
+ITEM	L0-T3-37	T3	holds	illformed	down	10	10	[a : {1, 2}] = {1, 2}	-	The record maker builds records, and comparing one with a number has no value.
+ITEM	L0-T3-38	T3	holds	false	left	10	0	DOMAIN <<7, 8, 9>> = 7..9	-	Those are the values, and the domain holds the positions.
+ITEM	L0-T3-39	T3	implies	false	left	10	0	DOMAIN [a |-> 1] = {"a"} => [a |-> 1].a = 2	-	The left side holds, and the a field holds 1.
+ITEM	L0-T3-40	T3	holds	false	left	10	0	\A f \in [(1..2) -> {0, 1}] : f[1] = 0	-	Half of those functions send 1 to 1, so the claim fails on them.
+ITEM	L0-T3-41	T3	holds	vacuous	down	0	0	\A r \in [a : {}] : r.a = 1	[a : {}] = {}	No value is left for the a field, so there is no such record and the claim ranges over nothing.
+ITEM	L0-T3-42	T3	implies	vacuous	down	0	0	Cardinality(DOMAIN [a |-> 1, b |-> 2]) = 3 => [a |-> 1, b |-> 2].c = 3	~(Cardinality(DOMAIN [a |-> 1, b |-> 2]) = 3)	The record carries two fields, so the left side is false and the missing c field is never reached.
+ITEM	L0-T3-43	T3	holds	vacuous	down	0	0	\A x \in DOMAIN [y \in {} |-> y] : x = 1	DOMAIN [y \in {} |-> y] = {}	A function over the empty set has an empty domain, so the claim ranges over nothing.
+ITEM	L0-T3-44	T3	implies	vacuous	down	0	0	[a |-> 1].a = 2 => [a |-> 1].b = 1	~([a |-> 1].a = 2)	The a field holds 1, so the left side is false and the missing b field is never reached.
+ITEM	L0-T3-45	T3	holds	illformed	down	10	10	[x \in 1..3 |-> x * x][4] = 16	-	The function is defined over 1 to 3, so 4 falls outside it and the line has no value.
+ITEM	L0-T3-46	T3	holds	illformed	down	10	10	[a |-> 1, b |-> 2]["c"] = 2	-	The record has no c field, so the bracket form reaches nothing and the line has no value.
+ITEM	L0-T3-47	T3	holds	false	left	10	0	DOMAIN (1 :> 7) = {}	-	That function is defined at 1, so its domain holds the 1 rather than nothing.
+ITEM	L0-T3-48	T3	holds	illformed	down	10	10	DOMAIN 7 = {1}	-	DOMAIN takes a function, and 7 is a number, so the line has no value.
 # T4  sequence operators
 ITEM	L0-T4-01	T4	holds	true	right	0	0	Len(<<3, 1, 4, 1, 5>>) = 5	-	A sequence keeps repeats, so both copies of 1 are counted.
 ITEM	L0-T4-02	T4	holds	true	right	0	0	Tail(<<3, 1, 4>>) = <<1, 4>>	-	Tail drops the first element and keeps the rest in order.
@@ -137,10 +273,42 @@ ITEM	L0-T4-09	T4	holds	false	left	10	0	Len(<<>>) = 1	-	The empty sequence has le
 ITEM	L0-T4-10	T4	holds	false	left	10	0	Len(<<1, 2>> \o <<1, 2>>) = 2	-	Joining sequences keeps the repeats, so the length is four.
 ITEM	L0-T4-11	T4	holds	false	left	10	0	Append(<<1, 2>>, 3) = <<3, 1, 2>>	-	Append puts the new element at the end.
 ITEM	L0-T4-12	T4	implies	false	left	10	0	Len(<<1, 2>> \o <<3>>) = 3 => Head(<<1, 2>> \o <<3>>) = 3	-	The left side holds, and the head of the joined sequence is still 1.
-ITEM	L0-T4-13	T4	holds	vacuous	down	0	0	\A i \in DOMAIN <<>> : i > 99	DOMAIN <<>> = {}	The empty sequence has an empty domain, so the claim ranges over nothing.
+ITEM	L0-T4-13	T4	holds	vacuous	down	0	0	\A i \in DOMAIN <<>> : i > 0	DOMAIN <<>> = {}	The empty sequence has an empty domain, so the claim ranges over nothing.
 ITEM	L0-T4-14	T4	implies	vacuous	down	0	0	Len(<<>>) = 1 => Head(<<>>) = 0	~(Len(<<>>) = 1)	The left side is false, so the implication holds and the head is never taken.
 ITEM	L0-T4-15	T4	holds	illformed	down	10	10	<<1, 2, 3>>[0] = 1	-	A tuple is indexed from 1, so 0 is outside its domain.
 ITEM	L0-T4-16	T4	holds	illformed	down	10	10	Head(<<>>) = 0	-	The empty sequence has no first element, so the line has no value.
+ITEM	L0-T4-17	T4	holds	true	right	0	0	Head(<<3, 1, 4>>) = 3	-	Head returns the element at the front, which is 3.
+ITEM	L0-T4-18	T4	holds	true	right	0	0	SubSeq(<<1, 2, 3, 4, 5>>, 3, 3) = <<3>>	-	Equal bounds return the one element sitting at that position.
+ITEM	L0-T4-19	T4	holds	true	right	0	0	Len(SubSeq(<<1, 2, 3>>, 2, 1)) = 0	-	An upper bound below the lower one returns the empty sequence, whose length is 0.
+ITEM	L0-T4-20	T4	holds	true	right	0	0	Len(<<1, 2>> \o <<3, 4, 5>>) = 5	-	Joining keeps every element of both sides, so two and three make five.
+ITEM	L0-T4-21	T4	holds	true	right	0	0	Tail(Tail(<<1, 2, 3>>)) = <<3>>	-	Each Tail drops one element from the front, so two of them leave the last.
+ITEM	L0-T4-22	T4	holds	true	right	0	0	Append(Append(<<>>, 1), 2) = <<1, 2>>	-	Each Append adds one element at the end, in the order they were applied.
+ITEM	L0-T4-23	T4	holds	true	right	0	0	SelectSeq(<<1, 2, 3, 4, 5>>, LAMBDA n : n > 3) = <<4, 5>>	-	SelectSeq keeps the elements the test accepts and holds their order.
+ITEM	L0-T4-24	T4	holds	true	right	0	0	<<1, 2, 3>>[2] = 2	-	A tuple is indexed from 1, so position 2 holds the second element.
+ITEM	L0-T4-25	T4	holds	true	right	0	0	DOMAIN Tail(<<1, 2, 3>>) = 1..2	-	Tail returns a two-element sequence, whose domain starts again at 1.
+ITEM	L0-T4-26	T4	holds	true	right	0	0	Len(SubSeq(<<1, 2, 3, 4>>, 2, 4)) = 3	-	Both bounds are inclusive, so positions 2, 3 and 4 come back.
+ITEM	L0-T4-27	T4	implies	true	right	0	0	Len(<<1, 2>>) = 2 => Tail(<<1, 2>>) = <<2>>	-	Both sides hold, and the tail of a two-element sequence is its last element.
+ITEM	L0-T4-28	T4	holds	true	right	0	0	\A i \in DOMAIN <<4, 5, 6>> : <<4, 5, 6>>[i] = i + 3	-	The domain runs 1 to 3, and each element is its position plus three.
+ITEM	L0-T4-29	T4	holds	false	left	10	0	Head(<<3, 1, 4>>) = 4	-	Head returns the element at the front, and 4 sits at the end.
+ITEM	L0-T4-30	T4	holds	false	left	10	0	SubSeq(<<1, 2, 3, 4, 5>>, 3, 3) = <<3, 4>>	-	Both bounds are 3, so one element comes back.
+ITEM	L0-T4-31	T4	holds	false	left	10	0	SubSeq(<<1, 2, 3>>, 2, 1) = <<2>>	-	The upper bound sits below the lower one, so nothing comes back.
+ITEM	L0-T4-32	T4	holds	false	left	10	0	Len(<<1, 2>> \o <<3, 4, 5>>) = 3	-	Joining adds the lengths, so the result holds five elements.
+ITEM	L0-T4-33	T4	holds	false	left	10	0	Tail(Tail(<<1, 2, 3>>)) = <<2, 3>>	-	That is one Tail, and the second one drops the 2 as well.
+ITEM	L0-T4-34	T4	holds	false	left	10	0	Append(Append(<<>>, 1), 2) = <<2, 1>>	-	Append puts each new element at the end, so the 1 stays in front.
+ITEM	L0-T4-35	T4	holds	false	left	10	0	SelectSeq(<<1, 2, 3, 4, 5>>, LAMBDA n : n > 3) = <<3, 4, 5>>	-	The test is strict, so the 3 is dropped along with the 1 and the 2.
+ITEM	L0-T4-36	T4	holds	false	left	10	0	<<1, 2, 3>>[2] = 1	-	Indexing starts at 1, so position 2 holds the second element.
+ITEM	L0-T4-37	T4	holds	false	left	10	0	DOMAIN Tail(<<1, 2, 3>>) = 0..1	-	Tail returns a fresh sequence, whose domain starts at 1 rather than at 0.
+ITEM	L0-T4-38	T4	holds	illformed	down	10	10	Append(<<1, 2>>, <<3>>) = <<1, 2, 3>>	-	Append adds one element, so the last position holds a sequence, and comparing that with a number has no value.
+ITEM	L0-T4-39	T4	implies	false	left	10	0	Len(<<1, 2>>) = 2 => Head(<<1, 2>>) = 2	-	The left side holds, and the head is the first element, which is 1.
+ITEM	L0-T4-40	T4	holds	false	left	10	0	\A i \in DOMAIN <<4, 5, 6>> : <<4, 5, 6>>[i] = i	-	Position 1 holds 4, so an element and its position are not the same thing.
+ITEM	L0-T4-41	T4	holds	vacuous	down	0	0	\A i \in DOMAIN SubSeq(<<1, 2, 3>>, 3, 1) : i = 1	DOMAIN SubSeq(<<1, 2, 3>>, 3, 1) = {}	Those bounds return the empty sequence, so the domain is empty and the claim ranges over nothing.
+ITEM	L0-T4-42	T4	implies	vacuous	down	0	0	Len(<<1, 2>>) = 3 => <<1, 2>>[3] = 3	~(Len(<<1, 2>>) = 3)	The length is 2, so the left side is false and position 3 is never reached.
+ITEM	L0-T4-43	T4	holds	vacuous	down	0	0	\A s \in {t \in {<<1>>, <<2>>} : Len(t) = 2} : Head(s) = 1	{t \in {<<1>>, <<2>>} : Len(t) = 2} = {}	Both of those sequences have length 1, so the set is empty and the claim ranges over nothing.
+ITEM	L0-T4-44	T4	implies	vacuous	down	0	0	Tail(<<1>>) = <<1>> => Head(<<>>) = 1	~(Tail(<<1>>) = <<1>>)	Tail of a one-element sequence is empty, so the left side is false and the head is never taken.
+ITEM	L0-T4-45	T4	holds	illformed	down	10	10	Tail(<<>>) = <<>>	-	The empty sequence has no front element to drop, so the line has no value.
+ITEM	L0-T4-46	T4	holds	false	left	10	0	Len(SubSeq(<<1, 2, 3>>, 1, 2)) = 0	-	Both bounds are inclusive, so two positions come back rather than none.
+ITEM	L0-T4-47	T4	holds	illformed	down	10	10	<<1, 2, 3>>[4] = 3	-	The tuple is defined over 1 to 3, so 4 falls outside its domain and the line has no value.
+ITEM	L0-T4-48	T4	holds	illformed	down	10	10	Head(1 .. 3) = 1	-	An interval is a set rather than a sequence, so it has no head and the line has no value.
 # T5  integer arithmetic
 ITEM	L0-T5-01	T5	holds	true	right	0	0	17 % 5 = 2	-	Five goes into seventeen three times with two left over.
 ITEM	L0-T5-02	T5	holds	true	right	0	0	(17 \div 5) * 5 + (17 % 5) = 17	-	The quotient times the divisor plus the remainder rebuilds the original.
@@ -158,3 +326,35 @@ ITEM	L0-T5-13	T5	holds	vacuous	down	0	0	\A n \in 5..1 : n * n = 0	5..1 = {}	That
 ITEM	L0-T5-14	T5	implies	vacuous	down	0	0	5 \in 1..0 => 5 \div 0 = 1	~(5 \in 1..0)	The left side is false, so the implication holds and the division is never done.
 ITEM	L0-T5-15	T5	holds	illformed	down	10	10	5 \div 0 = 0	-	Dividing by zero has no value in TLA+.
 ITEM	L0-T5-16	T5	holds	illformed	down	10	10	"3" + 1 = 4	-	A string is not a number, so the sum has no value.
+ITEM	L0-T5-17	T5	holds	true	right	0	0	17 \div 5 = 3	-	Five goes into seventeen three whole times.
+ITEM	L0-T5-18	T5	holds	true	right	0	0	-17 + 17 = 0	-	A number and its negative add to zero.
+ITEM	L0-T5-19	T5	holds	true	right	0	0	Cardinality(1..12) = 12	-	An interval holds both of its bounds, so 1 to 12 has twelve members.
+ITEM	L0-T5-20	T5	holds	true	right	0	0	3 ^ 3 = 27	-	Three to the third is three times three times three.
+ITEM	L0-T5-21	T5	holds	true	right	0	0	-5 % 3 = 1	-	The remainder is never negative, so it sits between 0 and 2.
+ITEM	L0-T5-22	T5	holds	true	right	0	0	Cardinality(-3..3) = 7	-	The interval holds both bounds and the zero between them, so there are seven.
+ITEM	L0-T5-23	T5	holds	true	right	0	0	0 .. 0 = {0}	-	Equal bounds give an interval with one member in it.
+ITEM	L0-T5-24	T5	holds	true	right	0	0	-1 \in Int	-	Int holds the negative numbers, which is what separates it from Nat.
+ITEM	L0-T5-25	T5	holds	true	right	0	0	(12 % 5) + (12 \div 5) = 4	-	The remainder is 2 and the quotient is 2, so the sum is four.
+ITEM	L0-T5-26	T5	holds	true	right	0	0	2 ^ 0 = 1	-	Anything raised to the zeroth power is one.
+ITEM	L0-T5-27	T5	implies	true	right	0	0	17 % 5 = 2 => 17 - 2 = 15	-	Both sides hold, and taking the remainder off seventeen leaves a multiple of five.
+ITEM	L0-T5-28	T5	holds	true	right	0	0	\A n \in 1..4 : n % 5 = n	-	Five goes into none of those, so each one is its own remainder.
+ITEM	L0-T5-29	T5	holds	false	left	10	0	17 \div 5 = 4	-	Five goes into seventeen three whole times, with two left over.
+ITEM	L0-T5-30	T5	holds	false	left	10	0	-17 + 17 = 17	-	The two sides cancel each other, so the sum is zero.
+ITEM	L0-T5-31	T5	holds	false	left	10	0	Cardinality(1..12) = 11	-	An interval holds both of its bounds, so the count is twelve.
+ITEM	L0-T5-32	T5	holds	false	left	10	0	3 ^ 3 = 9	-	Nine is three squared, and the third power is twenty seven.
+ITEM	L0-T5-33	T5	holds	false	left	10	0	-5 % 3 = -2	-	The remainder is never negative, so it is 1.
+ITEM	L0-T5-34	T5	holds	false	left	10	0	Cardinality(-3..3) = 6	-	The zero counts too, so the interval holds seven members.
+ITEM	L0-T5-35	T5	holds	false	left	10	0	0 .. 0 = {}	-	The bounds are equal rather than crossed, so the interval holds the one value.
+ITEM	L0-T5-36	T5	holds	false	left	10	0	17 \in 1..16	-	The interval stops at 16, so seventeen falls outside it.
+ITEM	L0-T5-37	T5	holds	false	left	10	0	(12 % 5) + (12 \div 5) = 5	-	The remainder is 2 and the quotient is 2, so the sum is four.
+ITEM	L0-T5-38	T5	holds	false	left	10	0	17 ^ 0 = 17	-	The zeroth power is one, whatever the base is.
+ITEM	L0-T5-39	T5	implies	false	left	10	0	17 % 5 = 2 => 17 - 2 = 16	-	The left side holds, and seventeen less two is fifteen.
+ITEM	L0-T5-40	T5	holds	false	left	10	0	\A n \in 1..5 : n % 5 = n	-	Five divides itself, so the last one leaves a remainder of 0.
+ITEM	L0-T5-41	T5	holds	vacuous	down	0	0	\A n \in 17..5 : n % 5 = 2	17..5 = {}	The upper bound sits below the lower one, so the interval holds nothing.
+ITEM	L0-T5-42	T5	implies	vacuous	down	0	0	17 \div 5 = 4 => 17 % 5 = 4	~(17 \div 5 = 4)	The quotient is 3, so the left side is false and the implication holds.
+ITEM	L0-T5-43	T5	holds	vacuous	down	0	0	\A n \in {x \in -3..3 : x * x = 2} : n = -1	{x \in -3..3 : x * x = 2} = {}	No whole number squares to two, so the set is empty and the claim ranges over nothing.
+ITEM	L0-T5-44	T5	implies	vacuous	down	0	0	-5 % 3 = -2 => 1 \div 0 = 1	~(-5 % 3 = -2)	The remainder is 1 rather than minus two, so the division by zero is never done.
+ITEM	L0-T5-45	T5	holds	illformed	down	10	10	17 \div 0 = 17	-	A quotient needs a divisor above zero, so this line has no value.
+ITEM	L0-T5-46	T5	holds	illformed	down	10	10	-17 % 0 = 3	-	A remainder needs a divisor above zero, so this line has no value.
+ITEM	L0-T5-47	T5	holds	illformed	down	10	10	Cardinality(Int) = 0	-	Int runs without end in both directions, so it cannot be counted.
+ITEM	L0-T5-48	T5	holds	illformed	down	10	10	2 ^ (-1) = 1	-	The exponent has to be a natural number, so a negative one has no value.
