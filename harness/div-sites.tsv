@@ -1,0 +1,157 @@
+# div-sites.tsv — the reviewed set of `\div` sites in the authored corpus.
+#
+# Read harness/test-div-contract.sh before you edit this file. It is the gate
+# that holds the tree to this inventory, and its header carries the bug.
+#
+# THE SHORT VERSION. TLC 2026.07.31.184830 breaks the contract its own bundled
+# Naturals.tla states. `-17 \div 5` comes back -3, so `5 * -3 + 3` is -12 and
+# not -17. The quotient truncates toward zero where the contract forces it to
+# round down. A corpus that takes its answers from TLC's exit codes will
+# therefore bake TLC's bug as the answer, and an item over a negative dividend
+# ships a falsehood. Bead tla-7n7e.
+#
+# "The dividend can never be negative" is not something a scan can decide, so
+# this file does not try. It records the sites somebody has read, and the gate
+# fails on a site that is not here and on an entry whose site has gone. That
+# is enough to make a new `\div` stop an author and ask about its dividend.
+#
+# WHEN THE GATE GOES RED, GO AND READ THE DIVIDEND. Never add a row here to
+# quiet the gate. The row is worth nothing unless somebody looked first.
+#
+# FORMAT. Tab-delimited. `SITE`, then:
+#
+#   2  path      repo-relative, as `git ls-files` prints it
+#   3  count     how many times that window occurs in that file, exact
+#   4  window    the `\div` token plus one whitespace-separated token each side
+#   5  reason    why the dividend is safe, or why the site is prose
+#
+# THE KEY IS THE WINDOW AND NOT THE LINE, which is the one design choice worth
+# knowing about. A line number goes stale on the next edit above it, and a
+# whole line carries the prose around the operator, so rewording an item's
+# explanation would redden a gate that has nothing to say about prose. The
+# window holds the operands and drops the sentence. `17 \div 5` is the same
+# site whether it moves down the file or the line around it is rewritten.
+#
+# The price is the count column. Four items state `17 \div 5`, so they share
+# one row, and a fifth reddens the gate until somebody reads it and bumps the
+# count to 5. That is the friction working rather than failing.
+#
+# A RENAMED FILE READS AS A VANISHED SITE, on purpose. The old path stops
+# resolving and the gate says so, which is louder than a key that follows the
+# file around and quietly stops asserting anything.
+#
+# PROSE SITES ARE IN, and some of their dividends are negative. The comment
+# block in swipe/level0/ITEMS.tsv and the section in swipe/README.md both
+# document this bug and both quote `-17 \div 5`. They are here with that as
+# their reason. A gate that stripped comments would be a gate over executed
+# code, and a wrong quotient stated in an ANSWER.md is read by a learner just
+# the same.
+#
+# `%` IS NOT IN THIS FILE, and that is a decision rather than an oversight.
+# The remainder half of the contract holds: `-17 % 5` is 3, inside `0..4` as
+# Naturals.tla requires, and swipe item L0-T5-44 depends on `-5 % 3` being 1.
+# So a `%` site carries no wrong answer, while the character itself cannot be
+# told from a percentage or a printf format without a TLA+ parser. 506 tracked
+# lines under these roots carry a `%` against 83 `\div` occurrences, so an
+# inventory over it would be mostly noise and would rot into a waiver.
+#
+# WHAT WAS SEARCHED, per the CLAUDE.md rule that a claim of completeness names
+# its search. Every tracked file under drill/ reading/ recall/ completion/
+# exercises/ chapter/ swipe/ and harness/fixtures/, selected through
+# `git ls-files` and matched with GNU grep from a script. chapter/ carries no
+# site today and is in the roots so that the first one is caught.
+#
+# 76 rows, 83 occurrences over 70 lines, 2222 tracked files, measured
+# 2026-10-18. Three of those rows are the last three in the file, and the gate
+# found them rather than the author: they landed on main while this bead was
+# in flight, and the first run after the rebase named all three.
+
+# --- completion/ -----------------------------------------------------------
+SITE	completion/core/01-shutters/ANSWER.md	1	`(pulls \div 2)	pulls starts at 0 and only rises. work/Claims.tla:16 pins pulls \in 0..Limit
+SITE	completion/core/01-shutters/ANSWER.md	1	`pulls \div 2	the unparenthesized variant of the same claim, same dividend
+SITE	completion/core/01-shutters/ANSWER.md	1	because `\div` and	prose on precedence. It names the operator and has no dividend
+SITE	completion/core/01-shutters/ANSWER.md	1	`\div` form.	prose on precedence. It names the operator and has no dividend
+SITE	completion/verify-item.sh	1	`pulls \div 2	comment quoting the claim. pulls \in 0..Limit, as above
+SITE	completion/verify-item.sh	1	because \div and	comment on precedence. It names the operator and has no dividend
+SITE	completion/verify-item.sh	1	ops \div in	a quoted SANY message. It names the operator and has no dividend
+
+# --- drill/ ----------------------------------------------------------------
+SITE	drill/core/06-can-pyramid/ANSWER.md	1	1)) \div 2`	the closed form (rows * (rows + 1)), and RemoveRow guards rows > 0
+SITE	drill/core/06-can-pyramid/verify/ClosedForms.tla	1	1)) \div 2	the same closed form. verify/ClosedForms.tla:32 guards rows > 0
+
+# --- exercises/ (frozen since 2026-08-12) ----------------------------------
+SITE	exercises/ch10/EXERCISES.md	1	`0 \div 2`	prose on the runaway recursion. The dividend is the literal 0
+SITE	exercises/ch10/references/Ex2GaugePanel.tla	1	a \div 2,	Chained applies it to 28 alone. Gauges is {12, 28, 41, 55} and only 28 is passed
+SITE	exercises/ch10/references/Ex2GaugePanelBroken.tla	1	a \div 2,	the same Chained call, same single argument of 28
+SITE	exercises/ch10/references/Ex2GaugePanelRecursive.tla	1	a \div 2,	the same Chained call, same single argument of 28
+SITE	exercises/ch10/references/Ex3SettlingTank.tla	1	1] \div 5)	Level[n - 1], and the module's own \ominus saturates at 0, so Level never falls below it
+SITE	exercises/ch10/references/Ex3SettlingTankBroken.tla	1	1] \div 5)	the same recurrence under the same saturating \ominus
+SITE	exercises/ch10/references/Ex5TapeFolds.tla	1	Folds(len \div 2)	len starts at a tape length and halves toward the len < 3 base case
+SITE	exercises/ch10/references/Ex5TapeFoldsRunaway.tla	1	Folds(len \div 2)	the seeded bug moves the base case to len < 0, and halving a positive len still never reaches a negative one. It loops at 0 rather than going below it
+SITE	exercises/ch10/references/Ex5TapeFoldsRunaway.tla	1	0 \div 2	the comment explaining that loop. The dividend is the literal 0
+SITE	exercises/ch10/starters/Ex5TapeFolds.tla	1	Folds(len \div 2)	the starter form of the same recurrence
+SITE	exercises/ch10/reports/authoring.md	1	settling `\div 5`	a mutation description. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/authoring.md	1	to `\div 4`	a mutation description. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/authoring.md	1	thirds, `\div 2`	a mutation description. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/authoring.md	1	to `\div 3`	a mutation description. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/mutants.sh	1	fraction `\div 5`	a mutation label. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/mutants.sh	1	to `\div 4`'	a mutation label. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/mutants.sh	1	's/\\div 5/\\div	the sed script that rewrites the divisor in Ex3SettlingTank. The dividend is untouched
+SITE	exercises/ch10/reports/mutants.sh	1	's/\\div 5/\\div 4/'	the second half of that same sed script
+SITE	exercises/ch10/reports/mutants.sh	1	thirds, `\div 2`	a mutation label. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/mutants.sh	1	to `\div 3`'	a mutation label. It names the divisor and has no dividend
+SITE	exercises/ch10/reports/mutants.sh	1	's/len \\div 2/len	the sed script that rewrites the divisor in Ex5TapeFolds. len is the dividend and stays
+SITE	exercises/ch10/reports/mutants.sh	1	2/len \\div 3/'	the second half of that same sed script
+
+# --- harness/fixtures/ -----------------------------------------------------
+SITE	harness/fixtures/refinement/broken/Concrete.tla	1	(ticks \div 3)	ticks \in 0..6 by that module's TypeOK, with Init at 0 and Tick guarded by ticks < 6
+SITE	harness/fixtures/refinement/correct/Concrete.tla	1	(ticks \div 3)	the same refinement mapping over the same bounded ticks
+SITE	harness/fixtures/refinement/gate-shadow/Concrete.tla	1	(ticks \div 3)	the same refinement mapping over the same bounded ticks
+SITE	harness/fixtures/refinement/safety-conjunct/Concrete.tla	1	(ticks \div 3)	the same refinement mapping over the same bounded ticks
+SITE	harness/fixtures/refinement/theorem-only/Concrete.tla	1	(ticks \div 3)	the same refinement mapping over the same bounded ticks
+SITE	harness/fixtures/refinement/wrapped-with/Concrete.tla	1	(ticks \div 3)	the same refinement mapping over the same bounded ticks
+SITE	harness/fixtures/refinement/selftest.sh	1	(ticks \div 3)'	the --with argument driving those fixtures, same expression
+
+# --- reading/ --------------------------------------------------------------
+SITE	reading/core/01-nim/Nim.tla	1	((m \div 2)	(+) is called on a, b and c, each \in 0..Heap with Heap \in 1..15, and halving holds that
+SITE	reading/core/01-nim/Nim.tla	1	(n \div 2)))	the other operand of the same recursive call, bounded the same way
+SITE	reading/pluscal/05-collatz/Collatz.tla	1	n \div 2	the PlusCal source. h0 asserts n > 1 before the branch runs
+SITE	reading/pluscal/05-collatz/Collatz.tla	1	(n \div 2)	the translation of that line, under the same assertion
+SITE	reading/sequences/02-josephus/Josephus.tla	1	Pow2Below(k \div 2)	the ELSE branch, so k >= 2
+SITE	reading/sequences/02-josephus/USES.md	1	1) \div 2)`	prose describing a mutation rather than shipped code, and k - 1 >= 1 in that branch
+
+# --- recall/ ---------------------------------------------------------------
+SITE	recall/recall.sh	1	1 \div 0,	a comment listing what ASSUME refuses. The dividend is the literal 1
+SITE	recall/REPS.tsv	1	Capacity \div 2	recall/env/shunting.tla:16 reads Capacity == 4
+
+# --- swipe/ ----------------------------------------------------------------
+SITE	swipe/level0/ITEMS.tsv	2	6 \div 2	items L0-T2-10 and L0-T2-19. The dividend is the literal 6
+SITE	swipe/level0/ITEMS.tsv	4	17 \div 5	items L0-T5-06, -17, -29 and -42. The dividend is the literal 17
+SITE	swipe/level0/ITEMS.tsv	1	(17 \div 5)	item L0-T5-02, the identity rebuilt from a positive dividend
+SITE	swipe/level0/ITEMS.tsv	1	~(17 \div 5	the guard field of item L0-T5-42, same literal 17
+SITE	swipe/level0/ITEMS.tsv	2	(12 \div 5)	items L0-T5-25 and L0-T5-37. The dividend is the literal 12
+SITE	swipe/level0/ITEMS.tsv	1	17 \div 0	item L0-T5-45, illformed by its divisor. The dividend is 17
+SITE	swipe/level0/ITEMS.tsv	2	5 \div 0	items L0-T5-14 and L0-T5-15, both on the divisor. The dividend is 5
+SITE	swipe/level0/ITEMS.tsv	1	1 \div 0	item L0-T5-44, never evaluated behind a false antecedent. The dividend is 1
+SITE	swipe/level0/ITEMS.tsv	1	ON \div WITH	the heading of the comment block that records this bug
+SITE	swipe/level0/ITEMS.tsv	1	a \div b	the quoted Naturals.tla contract, in that comment block
+SITE	swipe/level0/ITEMS.tsv	1	(a \div b)	the quoted identity from the same contract
+SITE	swipe/level0/ITEMS.tsv	2	-17 \div 5	the comment block documenting this bug. No item depends on it
+SITE	swipe/level0/ITEMS.tsv	1	-9 \div 4	the same comment block, second measured case
+SITE	swipe/level0/ITEMS.tsv	1	-7 \div 3	the same comment block, third measured case
+SITE	swipe/level0/ITEMS.tsv	1	12 \div 2	the comment block's parse-failure example. The dividend is 12
+SITE	swipe/level0/ITEMS.tsv	1	12 \div 5.	the second parse-failure example in that block. The dividend is 12
+SITE	swipe/README.md	1	on `\div` with	the section heading that records this bug
+SITE	swipe/README.md	1	`a \div b`	the quoted Naturals.tla contract
+SITE	swipe/README.md	1	(a \div b)	the quoted identity from the same contract
+SITE	swipe/README.md	1	`-17 \div 5	the measured case in that section. No item depends on it
+SITE	swipe/README.md	1	`-9 \div 4	the same section, second measured case
+SITE	swipe/README.md	1	`-7 \div 3	the same section, third measured case
+SITE	swipe/README.md	1	`-17 \div 5`	the sentence saying such an item would ship a falsehood
+SITE	swipe/README.md	1	fixes `\div` turns	the sentence pointing at the tripwire in test-swipe-level0.sh
+SITE	swipe/README.md	1	12 \div 2	a parse-failure example in a code block. The dividend is 12
+SITE	swipe/README.md	1	3 \div beside	the annotation on that same line, naming the operator
+SITE	swipe/README.md	1	12 \div 5	the second parse-failure example. The dividend is 12
+SITE	swipe/README.md	1	`12 \div 2	the parse-failure case the bake re-measures on every run. The dividend is 12
+SITE	swipe/README.md	1	`(12 \div 2)	the parenthesized form of that same case, same literal 12
+SITE	swipe/level0/bake.sh	1	12 \div 2	a comment recording that measurement beside the probe. The dividend is 12
