@@ -195,7 +195,7 @@ structural_defects() {
     local id="${F[1]}"    tpl="${F[2]}"   ask="${F[3]}"
     local kind="${F[4]}"  swipe="${F[5]}" rc_claim="${F[6]}"
     local rc_wf="${F[7]}" claim="${F[8]}" vacuity="${F[9]}"
-    local correction="${F[10]}"
+    local flash="${F[10]}"
 
     if [ -z "$id" ]; then
       printf 'a row has no id\n' >&2
@@ -293,15 +293,20 @@ structural_defects() {
       fi
     done
 
-    # The correction is L2 on the epic and it is not optional. A bare verdict
-    # sits on the measured floor of feedback effectiveness, so an item without
-    # a correction is a defect and not a shortcut.
-    if [ -z "$correction" ] || [ "$correction" = "-" ]; then
-      printf '%s: no correction, and a bare verdict sits on the measured floor\n' "$id" >&2
+    # The flash is L2 on the epic and it is not optional. A bare verdict sits
+    # on the measured floor of feedback effectiveness, so an item without a
+    # flash is a defect and not a shortcut.
+    #
+    # It is the CORRECTION on a false, vacuous or illformed item and the REASON
+    # IT HOLDS on a true one, because there is nothing to correct about a true
+    # statement. Frank ruled on 2026-10-18. The check below is the same either
+    # way, since both shapes are one line a reader has to be able to use.
+    if [ -z "$flash" ] || [ "$flash" = "-" ]; then
+      printf '%s: no flash, and a bare verdict sits on the measured floor\n' "$id" >&2
       defects=$((defects+1))
-    elif [ "${#correction}" -lt 20 ]; then
-      printf '%s: the correction is %s characters, which is too short to correct anything\n' \
-        "$id" "${#correction}" >&2
+    elif [ "${#flash}" -lt 20 ]; then
+      printf '%s: the flash is %s characters, which is too short to say anything\n' \
+        "$id" "${#flash}" >&2
       defects=$((defects+1))
     fi
 
@@ -508,9 +513,9 @@ awk -F'\t' -v OFS='\t' '$1 == "ITEM" && !d { $5 = "maybe"; d = 1 } { print }' \
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && !d { $4 = "reachable"; d = 1 } { print }' \
   "$ITEMS" > "$CTRL/ask-unknown.tsv"
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && !d { $11 = "-"; d = 1 } { print }' \
-  "$ITEMS" > "$CTRL/correction-blank.tsv"
+  "$ITEMS" > "$CTRL/flash-blank.tsv"
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && !d { $11 = "wrong"; d = 1 } { print }' \
-  "$ITEMS" > "$CTRL/correction-stub.tsv"
+  "$ITEMS" > "$CTRL/flash-stub.tsv"
 # Targets the fifth row and not the first. Rewriting the first row's id to its
 # own value is a no-op, and it read as a pass until the control was watched.
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && $2 == "L0-T1-05" { $2 = "L0-T1-01" } { print }' \
@@ -536,8 +541,8 @@ awk -F'\t' -v OFS='\t' '$1 == "ITEM" && $5 == "vacuous" && !d { $10 = "seen = {}
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && !d { $9 = "Cardinality(seen, 1) = 3"; d = 1 } { print }' \
   "$ITEMS" > "$CTRL/comma-launder.tsv"
 
-for c in swipe-flip rc-flip rc-unbaked kind-unknown ask-unknown correction-blank \
-         correction-stub duplicate-id template-unknown field-dropped \
+for c in swipe-flip rc-flip rc-unbaked kind-unknown ask-unknown flash-blank \
+         flash-stub duplicate-id template-unknown field-dropped \
          witness-dropped witness-spurious claim-primed claim-variable \
          claim-temporal claim-enabled witness-variable comma-launder; do
   d="$(structural_defects "$CTRL/$c.tsv" 2>"$CTRL/$c.err")"

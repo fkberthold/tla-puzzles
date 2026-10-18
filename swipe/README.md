@@ -343,6 +343,11 @@ the same column.** D3's kind is the answer, so showing it with the question
 gives the item away. With real items in hand the two decisions are reading one
 word two ways.
 
+**Frank ruled on 2026-10-18 that the split stands.** D5 wants rewording rather
+than reversing: the kind it names is the reader-visible tag, and D3's kind is
+the data field. The corpus was already built that way, so the ruling changes
+the contract's wording and no row.
+
 So there are two fields:
 
 - **`ask`**: the tag the reader sees. `holds` or `implies`, naming which of
@@ -375,13 +380,20 @@ antecedent it is the negation of the antecedent. The witnesses run in their
 own batch, so the vacuous label has a TLC run behind it like every other
 label.
 
-## Every item carries a correction
+## Every item carries a flash
 
 L2 on the epic, and it is not optional. Measured on this task shape: a
 falsehood is reproduced later at .19 with no feedback, .15 with a bare
 verdict, and .04 with the verdict plus the corrected claim. A bare verdict
 sits on the measured floor, so field 11 is required and the gate rejects a
 blank one and a five-character stub.
+
+**The .04 covers 150 of the 240 items.** L2 tracked whether a falsehood comes
+back, so it speaks to the 90 false, 30 vacuous and 30 illformed items. Those
+have something to correct. The 90 true items carry the reason the claim holds
+instead, because there is nothing to correct about a true statement, and no
+measurement says .04 carries to them. Frank ruled on 2026-10-18 that the field
+is required on every row and the number is not claimed over the true ones.
 
 ## The mix, and the chance floor
 

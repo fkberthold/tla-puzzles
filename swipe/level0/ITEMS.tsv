@@ -25,7 +25,11 @@
 #    8  rc_wf      the exit code of ASSUME ((claim) \/ ~(claim)). Same
 #    9  claim      the single line the reader sees
 #   10  vacuity    a level 0 witness that the claim is vacuous, or -
-#   11  correction the one line that gets it right, always present
+#   11  flash      the one line shown after the swipe, always present. On a
+#                  false, vacuous or illformed item it is the correction. On a
+#                  true item it is the reason the claim holds, because there is
+#                  nothing to correct about a true statement. Frank ruled on
+#                  2026-10-18. See FIELD 11 below
 #
 #   awk -F'\t' '$1 == "ITEM" && $3 == "T2"' swipe/level0/ITEMS.tsv
 #   grep '^ITEM' swipe/level0/ITEMS.tsv | cut -f3,5 | sort | uniq -c
@@ -44,6 +48,10 @@
 # showing it with the question gives the item away. So field 4 is the tag the
 # reader sees, naming which of the epic's question kinds this line is, and
 # field 5 is the kind the data keeps. See swipe/README.md.
+#
+# Frank ruled on 2026-10-18 that the split stands and D5 wants rewording rather
+# than reversing. The corpus was already built this way, so the ruling changes
+# the contract's wording and no row.
 #
 # FIELD 10 MAKES VACUITY A MEASUREMENT RATHER THAN A CLAIM. A vacuous item and
 # a plainly true one both exit 0, so TLC alone cannot tell them apart. The
@@ -113,7 +121,14 @@
 # shape and recorded as L2 on the epic: a falsehood is reproduced later at .19
 # with no feedback, .15 with a bare verdict, and .04 with the verdict plus the
 # corrected claim. A bare verdict sits on the measured floor, so every row
-# carries its correction.
+# carries a flash.
+#
+# AND THE .04 COVERS 150 OF THE 240 ROWS, NOT ALL OF THEM. L2 measured whether
+# a FALSEHOOD comes back, so it speaks to the 90 false, 30 vacuous and 30
+# illformed items, which have something to correct. The 90 true items have no
+# corrected claim, only a reason they hold, and nothing measured says .04
+# carries to them. So field 11 stays required on every row and the number
+# attached to it does not. Frank ruled on 2026-10-18.
 #
 # T1  sets and power sets
 ITEM	L0-T1-01	T1	holds	true	right	0	0	Cardinality(SUBSET {1, 2, 3}) = 8	-	A power set has two members for every member of the original, so three gives eight.

@@ -323,24 +323,24 @@ else
   bad "template ids leaked: $tleak"
 fi
 
-# Field 10 is the vacuity witness and field 11 the correction. Either one in a
-# stem row hands over the answer in prose. Checked by exact text rather than by
+# Field 10 is the vacuity witness and field 11 the flash. Either one in a stem
+# row hands over the answer in prose. Checked by exact text rather than by
 # column position, since a leak would arrive as an extra column.
 KEY="$("$SB" reveal 2>/dev/null)"
 leaks=""
 while IFS= read -r l; do
   [ -n "$l" ] || continue
   wit="$(cut -f10 <<<"$l")"
-  cor="$(cut -f11 <<<"$l")"
+  fla="$(cut -f11 <<<"$l")"
   if [ "$wit" != "-" ] && [ -n "$wit" ]; then
     grep -Fq -- "$wit" "$STEMS" && leaks="$leaks witness"
   fi
-  if [ -n "$cor" ]; then
-    grep -Fq -- "$cor" "$STEMS" && leaks="$leaks correction"
+  if [ -n "$fla" ]; then
+    grep -Fq -- "$fla" "$STEMS" && leaks="$leaks flash"
   fi
 done < <(grep '^ITEM	' "$ITEMS")
 if [ -z "$leaks" ]; then
-  ok "no vacuity witness and no correction text reaches the stem file"
+  ok "no vacuity witness and no flash text reaches the stem file"
 else
   bad "the stem file carries:$leaks"
 fi
