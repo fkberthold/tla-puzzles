@@ -690,7 +690,7 @@ That is the whole of the sheet lookup: no matching, just the entry.
 
 `MISSES.tsv`, beside this file, same tab-delimited convention with the literal
 first field `MISS`. 90 rows: 30 over 30 of the 120 value reps, reaching 25 of
-their 37 constructs, and 60 over 38 of the 40 spec reps, reaching 18 of their
+their 37 constructs, and 60 over 38 of the 40 spec reps, reaching 19 of their
 20. Its own header says what each field is, where the rows came from, and
 which constructs have none and why. Field 4 says what the wrong answer *is*,
 never what to write instead, which is what lets it be printed under two values

@@ -3,7 +3,7 @@
 #
 # A wrong answer somebody actually writes, and what that answer says. 90 rows:
 # 30 over 30 of the 120 REP rows in recall/REPS.tsv, reaching 25 of their 37
-# constructs, and 60 over 38 of the 40 SPEC rows, reaching 18 of their 20.
+# constructs, and 60 over 38 of the 40 SPEC rows, reaching 19 of their 20.
 #
 # Rows are tab-delimited and carry the literal first field MISS, so prose in
 # this file can never be read as data. Four fields, in order:

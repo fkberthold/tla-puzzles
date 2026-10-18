@@ -696,7 +696,7 @@ echo "== part 4: the shipped corpus, which the fixture stands in for =="
 # ---------------------------------------------------------------------------
 # Everything above runs against four fixture rows, so a real corpus that broke
 # would pass every one of them. This part is the gate doing its actual job:
-# 120 canonical answers and 30 wrong ones through the real model checker,
+# 160 canonical answers and 90 wrong ones through the real model checker,
 # against the real drill/INVENTORY.md.
 #
 # IT IS THE EXPENSIVE PART AND IT IS THE POINT. harness/test-coverage-map.sh
@@ -1208,6 +1208,372 @@ REP_MISS_RC=0
   --env-dir "$CLEAN/recall/env" -- F003 '[w \in Wagons |-> Tracks]' >/dev/null 2>&1 || REP_MISS_RC=$?
 assert_eq "and a value rep's scores 10 and not 5, which is why the kind is looked up" \
   "10" "$REP_MISS_RC"
+
+echo
+echo "== part 8: the counts the prose writes, against what the tables hold =="
+# ---------------------------------------------------------------------------
+# WHY THIS PART EXISTS. One miss row for R024 on 2026-10-17 moved four numbers
+# that about twenty sentences under recall/, harness/ and scripts/ write out by
+# hand. One of those sentences was an assertion and it went red. The rest are
+# prose and would have gone quietly wrong. The search meant to find them named
+# three phrasings and missed a fourth, which was that assertion, so the only
+# site that caught the change was the site nobody had found. Bead tla-z4f3.
+#
+# Frank's call was to keep the prose and gate it rather than cut the counts.
+# Several of them are the argument rather than decoration: recall/recall.sh and
+# recall/README.md both settle the ORDER of the report block from the ratio of
+# reps with no row to reps with one, so a sentence with the number taken out
+# says nothing.
+#
+# HOW IT WORKS. One awk pass over the two shipped tables derives every count
+# the prose claims. The manifest then names each site as a file plus the exact
+# sentence, with every count replaced by a placeholder. Each entry has to be
+# present once the placeholders are expanded, so a count that moves reddens
+# every site still spelling the old one and the failure list IS the edit list.
+#
+# NO COUNT IS WRITTEN ANYWHERE IN THIS PART, which is a rule rather than a
+# coincidence. A literal here would be one more site to keep, and the scan at
+# the bottom would flag it.
+#
+# TWO DISPOSITIONS, AND THE DIFFERENCE IS ITSELF GATED.
+#
+#   PIN   the number is derived. The entry carries at least one placeholder.
+#   NOTE  the number is not derived. The entry carries none, and its `what`
+#         field says why: a timeout, a line range, a dated claim about what
+#         landed with a named bead, or a count this bead found stale in a file
+#         outside its own footprint.
+#
+# A PIN with no placeholder is a frozen literal wearing a derived entry's
+# name, and a NOTE with one is a derived count hiding in the waiver list, so
+# the loop refuses both.
+#
+# EVERY ENTRY HAS TO MATCH SOMETHING. An entry matching nothing is a standing
+# claim about a line that no longer exists, which is how a waiver list rots
+# into a blanket waiver. harness/test-pipefail.sh makes the same rule about
+# its own allowlist and for the same reason. It also means a NOTE on a stale
+# count goes red the day somebody fixes the site, which is the day it wants
+# promoting to a PIN.
+#
+# THE FILE SET IS FOUND RATHER THAN LISTED, so a file that lands later is
+# covered the moment it does. test-pipefail.sh picks its scan set the same
+# way. scripts/ is in it because scripts/deliver-recall.sh writes a count too,
+# and that is one of the two surfaces the bead's own scan did not name.
+# ---------------------------------------------------------------------------
+
+P8_TMP="$TMPROOT/counts"
+mkdir -p "$P8_TMP"
+
+# --- the derivation -------------------------------------------------------
+# ONE PASS, NO TLC. REPS.tsv comes first so a MISS row can be looked up by the
+# kind of the rep it names, which is what splits the value side from the spec
+# side. Field 4 of a SPEC row is a comma-separated scaffold list, so the
+# scaffold total is a distinct count over it rather than a count of rows.
+P8_LINE=$(awk -F'\t' '
+  FNR == NR {
+    if ($1 == "REP" || $1 == "SPEC") { kind[$2] = $1; con[$2] = $3 }
+    if ($1 == "REP")  { reptot++;  repcon[$3] = 1 }
+    if ($1 == "SPEC") {
+      spectot++; speccon[$3] = 1
+      n = split($4, s, ",")
+      for (i = 1; i <= n; i++) { gsub(/^ +| +$/, "", s[i]); scaffold[s[i]] = 1 }
+    }
+    next
+  }
+  $1 == "MISS" {
+    misstot++
+    if (kind[$2] == "REP")  { repmiss++;  repwith[$2] = 1; repconhit[con[$2]] = 1 }
+    if (kind[$2] == "SPEC") { specmiss++; specwith[$2] = 1; specconhit[con[$2]] = 1 }
+  }
+  END {
+    printf "%d %d %d %d %d", misstot, reptot, spectot, reptot + spectot, length(scaffold)
+    printf " %d %d %d", repmiss, length(repwith), reptot - length(repwith)
+    printf " %d %d %d", specmiss, length(specwith), spectot - length(specwith)
+    printf " %d %d %d", length(repcon), length(repconhit), length(repcon) - length(repconhit)
+    printf " %d %d\n", length(speccon), length(specconhit)
+  }
+' "$LIVE_RECALL/REPS.tsv" "$LIVE_RECALL/MISSES.tsv")
+
+read -r C_MISS C_REPTOT C_SPECTOT C_CANON C_SCAFFOLD \
+        C_REPMISS C_REPWITH C_REPNONE \
+        C_SPECMISS C_SPECWITH C_SPECNONE \
+        C_REPCON C_REPCONHIT C_REPCONNONE \
+        C_SPECCON C_SPECCONHIT <<<"$P8_LINE"
+
+# THE DERIVATION GETS ITS OWN ROW SO A RED ROW BELOW READS RIGHT. Without it a
+# mis-resolved path derives zero everywhere, every site goes red at once, and
+# the run says the prose drifted when what broke was the scan.
+if [ "${C_MISS:-0}" -gt 0 ] && [ "${C_REPTOT:-0}" -gt 0 ] && [ "${C_SPECTOT:-0}" -gt 0 ] \
+   && [ "${C_REPWITH:-0}" -gt 0 ] && [ "${C_SPECWITH:-0}" -gt 0 ] \
+   && [ "${C_SCAFFOLD:-0}" -gt 0 ] && [ "${C_REPCONHIT:-0}" -gt 0 ]; then
+  ok "the derivation read both shipped tables, so a red row below is a stale sentence and not a broken scan"
+else
+  nope "the derivation read both shipped tables (got: $P8_LINE)"
+fi
+
+# A SECOND ROUTE TO THE SAME NUMBER. The gate counts miss rows itself and part
+# 4 captured what it reported, so this row says the awk above and the gate's
+# own counter agree. Two routes to one number is what makes either worth
+# quoting anywhere else.
+assert_says "and the gate's own run agrees with it on the miss-row total" \
+  "${C_MISS} miss row\\(s\\)" "$LIVE_OUT"
+
+# --- English for a count --------------------------------------------------
+# One site opens a paragraph with the number spelled out, and no scan over
+# digits reaches it. Spelling it here is what lets that site be a PIN rather
+# than a waiver.
+P8_ONES=(zero one two three four five six seven eight nine ten eleven twelve
+         thirteen fourteen fifteen sixteen seventeen eighteen nineteen)
+P8_TENS=("" "" twenty thirty forty fifty sixty seventy eighty ninety)
+
+p8_spell() {
+  local n="$1" t u
+  if [ "$n" -lt 20 ]; then printf '%s' "${P8_ONES[n]}"; return 0; fi
+  # Out of range is loud rather than silent. The PIN that wanted the word
+  # fails and prints this, which beats a quiet mismatch nobody can see.
+  if [ "$n" -gt 99 ]; then printf 'SPELL-OUT-OF-RANGE-%s' "$n"; return 0; fi
+  t=$((n / 10)); u=$((n % 10))
+  if [ "$u" -eq 0 ]; then printf '%s' "${P8_TENS[t]}"
+  else printf '%s-%s' "${P8_TENS[t]}" "${P8_ONES[u]}"; fi
+}
+
+C_REPNONE_W=$(p8_spell "$C_REPNONE")
+C_SPECNONE_W=$(p8_spell "$C_SPECNONE")
+C_REPCONNONE_W=$(p8_spell "$C_REPCONNONE")
+
+# --- the substitution table -----------------------------------------------
+# Every name is delimited by @ at both ends, so no name is a prefix of another
+# and the order of this table cannot change what a template expands to.
+P8_SUBST=(
+  "@MISS@=$C_MISS"
+  "@REPTOT@=$C_REPTOT"
+  "@SPECTOT@=$C_SPECTOT"
+  "@CANON@=$C_CANON"
+  "@SCAFFOLD@=$C_SCAFFOLD"
+  "@REPMISS@=$C_REPMISS"
+  "@REPWITH@=$C_REPWITH"
+  "@REPNONE@=$C_REPNONE"
+  "@SPECMISS@=$C_SPECMISS"
+  "@SPECWITH@=$C_SPECWITH"
+  "@SPECNONE@=$C_SPECNONE"
+  "@REPCON@=$C_REPCON"
+  "@REPCONHIT@=$C_REPCONHIT"
+  "@REPCONNONE@=$C_REPCONNONE"
+  "@SPECCON@=$C_SPECCON"
+  "@SPECCONHIT@=$C_SPECCONHIT"
+  "@REPNONE_U@=${C_REPNONE_W^^}"
+  "@SPECNONE_W@=$C_SPECNONE_W"
+  "@REPCONNONE_U@=${C_REPCONNONE_W^^}"
+)
+
+p8_expand() {
+  local t="$1" pair name val
+  for pair in "${P8_SUBST[@]}"; do
+    name=${pair%%=*}; val=${pair#*=}
+    t=${t//"$name"/$val}
+  done
+  printf '%s' "$t"
+}
+
+# --- the manifest ---------------------------------------------------------
+# Four fields, bar separated: disposition, file, what the number is, and the
+# text. No template needs a bar, and the loop refuses an entry that does not
+# split into four, so the separator cannot go wrong in silence.
+P8_SITES=(
+  "PIN|recall/MISSES.tsv|the miss-row total|says. @MISS@ rows:"
+  "PIN|recall/MISSES.tsv|the value side of the header|# @REPMISS@ over @REPWITH@ of the @REPTOT@ REP rows in recall/REPS.tsv, reaching @REPCONHIT@ of their @REPCON@"
+  "PIN|recall/MISSES.tsv|the spec side of the header|# constructs, and @SPECMISS@ over @SPECWITH@ of the @SPECTOT@ SPEC rows, reaching @SPECCONHIT@ of their @SPECCON@."
+  "PIN|recall/MISSES.tsv|no row being the normal case|RUNG. @REPNONE@ of the @REPTOT@ REP"
+  "PIN|recall/MISSES.tsv|why the spec rows are denser|So @SPECWITH@ of the @SPECTOT@ SPEC rows carry a"
+  "PIN|recall/MISSES.tsv|and the value side they are denser than|# row where @REPWITH@ of the @REPTOT@ REP rows do."
+  "PIN|recall/MISSES.tsv|the constructs no row reaches, spelled out|# @REPCONNONE_U@ OF THE @REPCON@ CONSTRUCTS HAVE NO ROW"
+  "PIN|recall/MISSES.tsv|the spec section's own count|@SPECMISS@ wrong answers over @SPECWITH@ of the @SPECTOT@ SPEC"
+  "PIN|recall/MISSES.tsv|the spec rows with no row, spelled out|# written. The @SPECNONE_W@ with no row are S037 and S038"
+  "PIN|recall/README.md|the ratio the block order rests on|the reason is the @REPNONE@ reps"
+  "PIN|recall/README.md|and the other half of that ratio|with no row rather than the @REPWITH@ that have one."
+  "PIN|recall/README.md|where the order the README rejects ends|entry at all @REPTOT@. The other order ends on the sheet at @REPNONE@ and on the"
+  "PIN|recall/README.md|and what that order ends on instead|misconception at @REPWITH@, so the bottom of the block moves under you."
+  "PIN|recall/README.md|why nothing announces an absence|@REPNONE@ of the @REPTOT@ reps carry no miss row,"
+  "PIN|recall/README.md|the miss table's value side|first field \`MISS\`. @MISS@ rows: @REPMISS@ over @REPWITH@ of the @REPTOT@ value reps, reaching @REPCONHIT@ of"
+  "PIN|recall/README.md|the miss table's spec side|their @REPCON@ constructs, and @SPECMISS@ over @SPECWITH@ of the @SPECTOT@ spec reps, reaching @SPECCONHIT@ of their"
+  "NOTE|recall/README.md|the value family's construct total, which no miss row moves|not a survey of the 38 constructs."
+  "NOTE|recall/README.md|STALE in the sentence about matching on tokens: the whole table, written as its value side. The twin is in recall/recall.sh, which this bead could not edit, so the two have to move together|nobody sees. 30 rows is small"
+  "PIN|recall/recall.sh|the ratio the block order rests on|the reason is the @REPNONE@ reps that"
+  "PIN|recall/recall.sh|and the other half of that ratio|# have no row rather than the @REPWITH@ that do."
+  "PIN|recall/recall.sh|where the order it rejects ends|entry last at @REPNONE@ reps and the miss row last at @REPWITH@, so"
+  "PIN|recall/recall.sh|no row being the common case, spelled out|# @REPNONE_U@ OF THE @REPTOT@ REPS CARRY NO MISS ROW"
+  "PIN|recall/recall.sh|the layer that is silent|case at @REPNONE@ of the @REPTOT@ reps,"
+  "NOTE|recall/recall.sh|STALE in the sentence about within-family confusions: the whole table, written as its value side|recall/MISSES.tsv's 30 rows are mostly"
+  "NOTE|recall/recall.sh|STALE in the sentence about matching on tokens: the twin of the recall/README.md entry above, word for word, so the two have to move together|nobody sees. 30"
+  "NOTE|recall/recall.sh|a TLC budget in seconds|TIMEOUT=60"
+  "NOTE|recall/recall.sh|a line range in that file, which usage() reads|# Lines 2 to 30 of this file"
+  "NOTE|recall/recall.sh|the same line range, in the command that reads it|sed -n '2,30p'"
+  "NOTE|recall/REPS.tsv|the value family's construct total, which no miss row moves|of the 38 constructs in the four value-producing"
+  "PIN|harness/fixtures/recall/MISSES.tsv|the live path the fixture stands in for|the path @REPNONE@ of the @REPTOT@ real reps take."
+  "NOTE|harness/fixtures/recall/MISSES.tsv|STALE where the fixture says what the real table carries, and in a file outside this bead's footprint|carries 30 rows, and is reached by one"
+  "PIN|harness/test-recall-gate.sh|what this suite pins over the shipped corpus|reps, @SPECTOT@ spec reps, @SCAFFOLD@ scaffolds and @MISS@ miss rows,"
+  "PIN|harness/test-recall-gate.sh|what part 4 costs|canonical answers and @MISS@ wrong ones;"
+  "PIN|harness/test-recall-gate.sh|what part 4 submits|# @CANON@ canonical answers and @MISS@ wrong ones through the real model checker,"
+  "PIN|harness/test-recall-gate.sh|the live gate's own count line|scaffold\\(s\\), @MISS@ miss row\\(s\\)"
+  "PIN|harness/test-recall-gate.sh|check 2's count of graded wrong answers|check 2 +@MISS@ wrong answer"
+  "NOTE|harness/test-recall-gate.sh|a dated claim about what landed with bead tla-1sh7.2, true whatever the table now holds|value reps and 30 of their misses landed with"
+  "NOTE|harness/test-recall-gate.sh|a dated claim about what landed with bead tla-03ep.1, true whatever the table now holds|spec reps over 30 scaffolds and 60 of their misses"
+  "NOTE|harness/test-recall-gate.sh|the scaffold total, which no miss row moves|check 6 +30 scaffold"
+  "PIN|harness/recall-gate.sh|what a kind-blind check 2 would have mislabelled|call all @SPECMISS@ spec misses"
+  "PIN|harness/recall-gate.sh|the rows rc 10 cannot tell apart|a green run as \"all @REPMISS@"
+  "NOTE|harness/recall-gate.sh|a dated claim about what landed on 2026-10-16, true whatever the table now holds|reps and 30 miss rows landed on"
+  "NOTE|harness/recall-gate.sh|the runner's budget in seconds|a fixed 60-second budget"
+  "NOTE|harness/recall-gate.sh|STALE where check 2 says what a lost miss table costs, and in a file outside this bead's footprint|has lost 30 explanations"
+  "PIN|harness/test-recall-runner.sh|the path the fixture's no-row case reaches|the path @REPNONE@ of the @REPTOT@ real reps take."
+  "PIN|harness/test-recall-runner.sh|why the silent row matters most|SILENT ONE. @REPNONE@ of the @REPTOT@ real reps"
+  "PIN|harness/test-recall-runner.sh|what settles the block order|What settles it is the @REPNONE@ reps with no row:"
+  "PIN|harness/test-recall-runner.sh|how many spec rows carry a miss row|the spec rows carry at @SPECWITH@ of @SPECTOT@"
+  "NOTE|scripts/deliver-recall.sh|STALE in the delivery manifest's line for MISSES.tsv, and in a file outside this bead's footprint|the 30 recorded wrong answers"
+  "NOTE|scripts/gen-misses.sh|a line range in that file, which usage() reads|sed -n '30,50p'"
+)
+
+# --- the file set ---------------------------------------------------------
+P8_FOUND=$(
+  find recall harness/fixtures/recall -type f \
+       \( -name '*.md' -o -name '*.sh' -o -name '*.tsv' \)
+  find harness scripts -maxdepth 1 -type f \
+       \( -name '*recall*' -o -name '*misses*' \)
+)
+readarray -t P8_FILES <<<"$P8_FOUND"
+assert_says "the found file set carries recall/MISSES.tsv, so the scan below reads something" \
+  '^recall/MISSES\.tsv$' "$P8_FOUND"
+
+# --- every entry, expanded and required present ---------------------------
+# grep -F over the file rather than the suite's `has`, because a template is a
+# sentence and not a pattern, and one of them carries a backslash the file
+# holds literally. This reads a file instead of a pipe, so the 141 hazard
+# `has` exists for is not in play.
+P8_BAD=0
+for p8_entry in "${P8_SITES[@]}"; do
+  IFS='|' read -r p8_disp p8_file p8_what p8_text <<<"$p8_entry"
+  if [ -z "$p8_disp" ] || [ -z "$p8_file" ] || [ -z "$p8_what" ] || [ -z "$p8_text" ]; then
+    nope "a manifest entry does not split into four fields: $p8_entry"
+    P8_BAD=$((P8_BAD + 1))
+    continue
+  fi
+  p8_want=$(p8_expand "$p8_text")
+  case "$p8_disp" in
+    PIN)
+      if [ "$p8_want" = "$p8_text" ]; then
+        nope "$p8_file: a PIN with no placeholder is a frozen literal ($p8_what)"
+        P8_BAD=$((P8_BAD + 1)); continue
+      fi
+      ;;
+    NOTE)
+      if [ "$p8_want" != "$p8_text" ]; then
+        nope "$p8_file: a NOTE with a placeholder is a derived count in the waiver list ($p8_what)"
+        P8_BAD=$((P8_BAD + 1)); continue
+      fi
+      ;;
+    *)
+      nope "a manifest entry carries the unknown disposition $p8_disp: $p8_entry"
+      P8_BAD=$((P8_BAD + 1)); continue
+      ;;
+  esac
+  case "$p8_want" in
+    *@*)
+      nope "$p8_file: the entry for $p8_what still holds an unexpanded placeholder: $p8_want"
+      P8_BAD=$((P8_BAD + 1)); continue
+      ;;
+  esac
+  printf '%s\n' "$p8_want" >>"$P8_TMP/${p8_file//\//_}"
+  if grep -Fq -- "$p8_want" "$p8_file"; then
+    ok "$p8_file carries $p8_what"
+  else
+    nope "$p8_file no longer carries $p8_what"
+    printf '          wanted the text: %s\n' "$p8_want"
+  fi
+done
+assert_eq "every manifest entry is well formed and carries the disposition its text earns" \
+  "0" "$P8_BAD"
+
+# --- the completeness scan ------------------------------------------------
+# WHAT THIS CLOSES, and it is the half the manifest alone cannot. A site the
+# manifest never named is a site a red run never names either, which is how
+# the fourth phrasing survived the search that went looking for it. So every
+# line in the found set that writes one of the counts a miss row MOVES has to
+# be covered by an entry above.
+#
+# SIX COUNTS AND NOT ALL SIXTEEN. A miss row moves the miss total, both halves
+# of the value side and both halves of the spec side. It does not move the rep,
+# spec or construct totals. So the scan is over the digit form of the
+# miss-derived counts, and the construct counts and the two spelled-out numbers
+# are reached by their manifest entries alone.
+#
+# A DOT EITHER SIDE OF THE NUMBER DISQUALIFIES IT, and that came out of a
+# mutation rather than out of a hunch. Adding one miss row moved the value side
+# by one, and the scan then flagged three lines whose only crime was quoting
+# the toolchain version `2026.07.31.184830`. A dotted numeric token is a
+# version or a time and never a count of rows, so the boundary has to refuse a
+# dot as well as a digit.
+#
+# That rule caught the sentence above as it was first written, which named the
+# number the value side had moved to. The no-literals rule at the top of this
+# part is gated by this scan and not left to anybody's care.
+#
+# A COUNT UNDER TEN IS NOT SCANNED, and the row below says so rather than
+# letting it drop out quietly. Single figures match most of the arithmetic in
+# these files, and a scan that flags every line of it gets read as broken.
+#
+# WHAT IT STILL CANNOT REACH. A site holding the OLD value of a count it never
+# had an entry for stays invisible, since the scan looks for today's numbers.
+# That hole is empty at the moment this manifest was written, because the scan
+# over the shipped tables classified every line it found.
+#
+# THE MANIFEST BLOCK IS CUT OUT OF THIS FILE BEFORE IT IS SCANNED. A NOTE on a
+# stale count has to carry that count in order to pin it, so the entry's own
+# text would otherwise read as one more uncovered site.
+P8_SCANNED=""
+P8_DROPPED=""
+for p8_n in "$C_MISS" "$C_REPMISS" "$C_REPWITH" "$C_REPNONE" "$C_SPECMISS" "$C_SPECWITH"; do
+  if [ "$p8_n" -lt 10 ]; then
+    P8_DROPPED="$P8_DROPPED $p8_n"
+  elif [[ "|$P8_SCANNED|" != *"|$p8_n|"* ]]; then
+    P8_SCANNED="${P8_SCANNED:+$P8_SCANNED|}$p8_n"
+  fi
+done
+assert_eq "every miss-derived count is big enough for the scan to look for it" \
+  "" "$P8_DROPPED"
+
+# AN EMPTY ALTERNATION MATCHES EVERY LINE, so the scan is skipped rather than
+# run on nothing. It only happens where the derivation already went red above,
+# and a few thousand findings on top of that row would bury it.
+P8_SCAN_RE="(^|[^0-9.])(${P8_SCANNED})([^0-9.]|\$)"
+P8_UNCOVERED=0
+for p8_file in "${P8_FILES[@]}"; do
+  [ -n "$p8_file" ] || continue
+  [ -n "$P8_SCANNED" ] || continue
+  p8_wants="$P8_TMP/${p8_file//\//_}"
+  [ -f "$p8_wants" ] || : >"$p8_wants"
+  awk '/^P8_SITES=\(/ { skip = 1 } skip && /^\)$/ { skip = 0; next } !skip' \
+    "$p8_file" >"$P8_TMP/body"
+  p8_loose=$(awk -v re="$P8_SCAN_RE" '
+    FNR == NR { want[++n] = $0; next }
+    $0 ~ re {
+      for (i = 1; i <= n; i++) if (index($0, want[i])) next
+      printf "    %d: %s\n", FNR, $0
+    }
+  ' "$p8_wants" "$P8_TMP/body")
+  if [ -n "$p8_loose" ]; then
+    nope "$p8_file writes a miss count at a line the manifest does not name"
+    printf '%s\n' "$p8_loose"
+    P8_UNCOVERED=$((P8_UNCOVERED + 1))
+  fi
+done
+assert_eq "every miss count in the found set is named by the manifest" "0" "$P8_UNCOVERED"
+
+# THE CONTROL, because a scan that has never flagged anything is not evidence.
+# A planted sentence has to come back matched, or the loop above is green
+# because its pattern is dead.
+P8_PLANT="$P8_TMP/planted"
+printf '# a planted sentence: %s of the %s reps carry no miss row\n' \
+  "$C_REPNONE" "$C_REPTOT" >"$P8_PLANT"
+assert_eq "CONTROL: the scan's own pattern still matches a planted count" "1" \
+  "$(awk -v re="$P8_SCAN_RE" '$0 ~ re { n++ } END { print n + 0 }' "$P8_PLANT")"
 
 echo
 if [ "$fail_count" -ne 0 ]; then
