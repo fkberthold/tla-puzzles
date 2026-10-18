@@ -25,6 +25,22 @@
 #   0         0       the claim holds      right
 #   10        0       the claim is false   left
 #   10        10      it does not evaluate down
+#   150       150     it does not parse    down
+#
+# THE FOURTH ROW ARRIVES THROUGH DIFFERENT MACHINERY. SANY refuses the module
+# and TLC exits 150 before either channel runs, so a parse failure never
+# reaches the pair the other three rows read. Both members are 150 together or
+# neither is. Frank ruled on 2026-10-18, bead tla-7xql.10, that it earns the
+# down swipe under its own kind, unparsed. That is what D3 and D5 already do
+# for vacuous against illformed: the gesture stays a three-way partition and
+# field 5 keeps the distinction.
+#
+# TAKING 150 AS A LEGITIMATE OUTCOME COSTS SOMETHING, so here is what pays for
+# it. An authoring typo now bakes where it used to fail loudly, and the only
+# thing between the two is the declared kind. Every probe below runs against
+# the kind the author wrote. A typo inside an item declared true reddens the
+# holds batch at 150, and an item declared unparsed whose claim does parse
+# reddens its own probe at 0 or 10. A kind has to earn the pair it predicts.
 #
 # A CONSTANT INVARIANT IS NOT THE CHANNEL, and this corrects the table this
 # bead was briefed with. A level 0 expression declared as an INVARIANT and
@@ -157,28 +173,46 @@ rows() {
   fi
 }
 
-# The swipe a kind earns. Vacuous and ill-formed share the down swipe, which is
-# decision D3 on the epic and is forced rather than chosen: without the merge a
-# vacuous item has no correct swipe at all. The cost is that the swipe stops
-# telling the two apart, which is why field 5 keeps the kind.
+# The swipe a kind earns. Vacuous, ill-formed and unparsed all land on the down
+# swipe. Vacuous is decision D3 on the epic and is forced rather than chosen:
+# without the merge a vacuous item has no correct swipe at all. Unparsed is
+# Frank's ruling of 2026-10-18 on bead tla-7xql.10, taken on the same reading.
+# The cost is that the swipe stops telling the three apart, which is why field 5
+# keeps the kind.
 swipe_for() {
   case "$1" in
     true)      printf 'right\n' ;;
     false)     printf 'left\n' ;;
     vacuous)   printf 'down\n' ;;
     illformed) printf 'down\n' ;;
+    unparsed)  printf 'down\n' ;;
     *)         printf 'UNKNOWN\n' ;;
   esac
 }
 
-# The exit-code pair a kind predicts.
+# The exit-code pair a kind predicts. Unparsed is the one row where the two
+# members cannot disagree, since neither probe is evaluated at all.
 rc_pair_for() {
   case "$1" in
     true|vacuous) printf '0 0\n' ;;
     false)        printf '10 0\n' ;;
     illformed)    printf '10 10\n' ;;
+    unparsed)     printf '150 150\n' ;;
     *)            printf '? ?\n' ;;
   esac
+}
+
+# A batch that comes back 150 says something different from one that comes back
+# 10, and the difference is the whole safety argument for taking 150 as a
+# legitimate outcome. At 10 some claim in the batch carries the wrong kind. At
+# 150 some claim in it does not parse, so it is either a typo or an item that
+# belongs under the unparsed kind. The message has to say which, or a typo
+# reads as a mislabeled item and gets relabeled instead of fixed.
+parse_note() {
+  if [ "$1" = "150" ]; then
+    printf '  rc 150 is SANY refusing the module, so a claim in that batch does not parse.\n' >&2
+    printf '  Fix the typo, or move that one item to kind unparsed.\n' >&2
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -210,8 +244,8 @@ write_batch() {
 # mix is what that bead asks for.
 # ---------------------------------------------------------------------------
 stats() {
-  printf '%-4s %6s %5s %6s %8s %10s %6s %5s %5s %10s\n' \
-    tpl items true false vacuous illformed right left down 'base rate'
+  printf '%-4s %6s %5s %6s %8s %10s %9s %6s %5s %5s %10s\n' \
+    tpl items true false vacuous illformed unparsed right left down 'base rate'
   local t
   for t in T1 T2 T3 T4 T5; do
     if [ -n "$TEMPLATE" ] && [ "$t" != "$TEMPLATE" ]; then
@@ -228,17 +262,18 @@ stats() {
         top = 0
         for (s in swipe) if (swipe[s] > top) top = swipe[s]
         rate = (n > 0) ? 100 * top / n : 0
-        printf "%d %d %d %d %d %d %d %d %.1f", n,
+        printf "%d %d %d %d %d %d %d %d %d %.1f", n,
           kind["true"], kind["false"], kind["vacuous"], kind["illformed"],
+          kind["unparsed"],
           swipe["right"], swipe["left"], swipe["down"], rate
       }' "$ITEMS")"
-    local n n_true n_false n_vac n_ill n_right n_left n_down rate
-    read -r n n_true n_false n_vac n_ill n_right n_left n_down rate <<<"$counts"
+    local n n_true n_false n_vac n_ill n_unp n_right n_left n_down rate
+    read -r n n_true n_false n_vac n_ill n_unp n_right n_left n_down rate <<<"$counts"
     if [ "$n" -eq 0 ]; then
       continue
     fi
-    printf '%-4s %6s %5s %6s %8s %10s %6s %5s %5s %9s%%\n' \
-      "$t" "$n" "$n_true" "$n_false" "$n_vac" "$n_ill" \
+    printf '%-4s %6s %5s %6s %8s %10s %9s %6s %5s %5s %9s%%\n' \
+      "$t" "$n" "$n_true" "$n_false" "$n_vac" "$n_ill" "$n_unp" \
       "$n_right" "$n_left" "$n_down" "$rate"
   done
 }
@@ -249,6 +284,7 @@ stats() {
 check() {
   local row id kind claim vacuity
   local -a holds=() refuted=() vacwit=() illid=() illclaim=()
+  local -a unpid=() unpclaim=()
   local -a F
 
   while IFS= read -r row; do
@@ -293,8 +329,11 @@ check() {
       illformed)
         illid+=("$id")
         illclaim+=("$claim") ;;
+      unparsed)
+        unpid+=("$id")
+        unpclaim+=("$claim") ;;
       *)
-        printf '  %s: kind %s is not one of true, false, vacuous, illformed\n' \
+        printf '  %s: kind %s is not one of true, false, vacuous, illformed, unparsed\n' \
           "$id" "$kind" >&2
         DEFECTS=$((DEFECTS+1)) ;;
     esac
@@ -316,6 +355,7 @@ check() {
   if [ "$rc" != "0" ]; then
     printf '  the %s claims that should hold came back rc %s, so at least one does not\n' \
       "${#holds[@]}" "$rc" >&2
+    parse_note "$rc"
     DEFECTS=$((DEFECTS+1))
   fi
 
@@ -324,6 +364,7 @@ check() {
   if [ "$rc" != "0" ]; then
     printf '  the %s claims that should be false came back rc %s, so at least one is not\n' \
       "${#refuted[@]}" "$rc" >&2
+    parse_note "$rc"
     DEFECTS=$((DEFECTS+1))
   fi
 
@@ -333,6 +374,7 @@ check() {
     if [ "$rc" != "0" ]; then
       printf '  the %s vacuity witnesses came back rc %s, so at least one item is not vacuous\n' \
         "${#vacwit[@]}" "$rc" >&2
+      parse_note "$rc"
       DEFECTS=$((DEFECTS+1))
     fi
   fi
@@ -348,6 +390,27 @@ check() {
     if [ "$rc" != "10" ]; then
       printf '  %s: the well-formedness probe came back rc %s and it needs rc 10\n' \
         "${illid[$i]}" "$rc" >&2
+      DEFECTS=$((DEFECTS+1))
+    fi
+  done
+
+  # A parse failure cannot batch either, and for a harder reason than an
+  # evaluation error. SANY refuses the whole module, so one bad claim hides
+  # every other row sitting in it.
+  #
+  # The probe is the plain claim rather than the well-formedness form. Both
+  # read 150 on an unparseable claim, measured 2026-10-18 on
+  # 12 \div 2 * 3 = 18, and the plain one is what field 7 stores. This is also
+  # the check that stops the unparsed kind becoming a place to park a claim
+  # nobody wants to think about: a claim that does parse reddens here at 0
+  # or 10.
+  for i in "${!unpid[@]}"; do
+    safe="${unpid[$i]//-/_}"
+    mod="$(printf 'ASSUME (%s)\n' "${unpclaim[$i]}" | write_batch "SwipeUnp_$safe")"
+    rc="$(tlc_rc "$mod")"
+    if [ "$rc" != "150" ]; then
+      printf '  %s: the parse probe came back rc %s and it needs rc 150, so the claim parses\n' \
+        "${unpid[$i]}" "$rc" >&2
       DEFECTS=$((DEFECTS+1))
     fi
   done
@@ -382,10 +445,11 @@ write_table() {
     rc_wf="$(tlc_rc "$mod")"
 
     case "$rc_claim/$rc_wf" in
-      0/0)   got_kind="true" ;;
-      10/0)  got_kind="false" ;;
-      10/10) got_kind="illformed" ;;
-      *)     got_kind="UNKNOWN_${rc_claim}_${rc_wf}" ;;
+      0/0)     got_kind="true" ;;
+      10/0)    got_kind="false" ;;
+      10/10)   got_kind="illformed" ;;
+      150/150) got_kind="unparsed" ;;
+      *)       got_kind="UNKNOWN_${rc_claim}_${rc_wf}" ;;
     esac
 
     # A vacuous item is true, so TLC cannot tell it from a plainly true one.

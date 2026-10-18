@@ -216,11 +216,16 @@ when `e` fails to evaluate. The pair of runs splits them:
 | 0 | 0 | the claim holds | right |
 | 10 | 0 | the claim is false | left |
 | 10 | 10 | it does not evaluate | down |
+| 150 | 150 | it does not parse | down |
 
 A well-formed boolean satisfies `e \/ ~e` whatever its value, so only a claim
 that fails to evaluate can redden the second column. Read the pair as a pair.
 Never predict one member from the other, which is hazard H1 on the epic
 written one level down.
+
+The last row sits outside that reading. A claim SANY refuses never reaches the
+pair at all, so both members read 150 together or neither does. It has its own
+section below.
 
 ### A constant INVARIANT is not the channel
 
@@ -246,13 +251,12 @@ which means a state-dependent one, which means level 1 or above. The
 `{12, 13}` row belongs to the other rungs, and this one reads `{0}` against
 `{10}`.
 
-### There is a fourth outcome, rc 150, and it is a parse failure
+### The fourth outcome is rc 150, and it is a parse failure
 
-The three-row table above covers claims SANY accepts. A claim SANY refuses
-comes back **(150, 150)**, and `bake.sh` reports it as `UNKNOWN_150_150`
-rather than filing it anywhere. Six of the 160 items authored for
-`tla-7xql.7` landed there, and the cause was the same every time: two
-operators from one precedence band that do not associate with each other.
+The first three rows cover claims SANY accepts. A claim SANY refuses comes
+back **(150, 150)**, and six of the 160 items authored for `tla-7xql.7` landed
+there. The cause was the same every time: two operators from one precedence
+band that do not associate with each other.
 
 ```
 12 \div 2 * 3            \div beside *
@@ -263,15 +267,42 @@ TRUE \/ FALSE /\ FALSE   \/ beside /\
 Parentheses fix all three. `2 * 3 % 4` parses and comes out 2, so `*` binds
 tighter than `%` and the two never meet as equals. I read those four refusals
 and that one acceptance rather than the precedence table, so I'd check the
-table before adding a fifth pair to the list.
+table before adding a fifth pair to the list. The gate re-measures the first
+line on every run: `12 \div 2 * 3 = 18` comes back 150 and
+`(12 \div 2) * 3 = 18` comes back 0.
 
-**Whether a parse failure should be a down-swipe item is an open question and
-this bead did not settle it.** It is ill-formed in the plain sense, and D3 puts
-ill-formed on the down swipe. But the corpus defines `illformed` by the
-(10, 10) pair, and widening that to (150, 150) is a change to the channel
-rather than to the corpus. The six items were replaced with ones that parse.
-I think the question is worth a decision before level 1, because a generator
-that builds expressions will hit this far more often than a human author does.
+**Frank ruled on 2026-10-18 that a parse failure is a down-swipe item carrying
+its own kind, `unparsed`.** Bead `tla-7xql.10` holds the question and the
+answer. The reasoning is the one D3 and D5 already use for `vacuous` against
+`illformed`. The swipe stays a three-way partition, so a reader always has a
+correct gesture, and field 5 keeps the distinction the gesture threw away.
+
+The two kinds share a gesture and arrive through different machinery, and that
+is worth keeping straight. `illformed` is a measured fact about a well-formed
+boolean that fails to denote, and the (10, 10) pair is what measures it.
+`unparsed` never reaches the pair. SANY refuses the module and TLC exits
+before either probe runs, so (150, 150) is one fact reported twice rather than
+two readings that agree.
+
+**The cost of the ruling is that a typo now has a home, and the declared kind
+is what keeps it out.** Before the ruling, a claim that failed to parse
+reddened whatever batch it sat in. After it, 150 is a legitimate outcome, so
+the protection has to be that a kind earns the pair it predicts. A claim
+declared `true` that fails to parse still reddens the holds batch, and
+`bake.sh` names the parse failure rather than blaming the kind. A claim
+declared `unparsed` that parses fine reddens its own probe at 0 or 10. Section
+10 of `harness/test-swipe-level0.sh` controls both directions over a fixture.
+
+**No item in `ITEMS.tsv` carries this kind today**, and adding one is a
+separate decision rather than a loose end. The shipped mix is 18 true,
+18 false, 6 vacuous and 6 ill-formed per template, and that arithmetic is what
+holds the base rate at 0.3750. The power table above is computed from it, so
+an added item moves the mix, the base rate and the detection floor together.
+
+I expect T2 is the family that will produce these, since a precedence trap
+that goes one step further than a surprising parse stops parsing altogether. A
+generator working that family will hit it far more often than a human author
+does.
 
 ### TLC does not always return FALSE on a mismatched comparison
 
@@ -299,6 +330,11 @@ evaluation error aborts the whole batch at rc 10, and only the items before it
 print, so each of those gets its own run. At 48 items per template that is 30
 ill-formed items, so 30 JVMs, and three batches cover the other 210.
 
+An `unparsed` item cannot batch either, and for a harder reason. SANY refuses
+the whole module, so one bad claim hides every other row sitting in it rather
+than only the rows after it. The corpus carries none today, so the count above
+stands.
+
 ## The two kind fields, and why they are two
 
 Decision D5 says the item's kind is tagged in the question. Decision D3 says
@@ -311,14 +347,15 @@ So there are two fields:
 
 - **`ask`**: the tag the reader sees. `holds` or `implies`, naming which of
   the epic's question kinds the line is. It does not determine the answer.
-- **`kind`**: what the data keeps. `true`, `false`, `vacuous` or `illformed`.
-  The reader never sees it before answering.
+- **`kind`**: what the data keeps. `true`, `false`, `vacuous`, `illformed` or
+  `unparsed`. The reader never sees it before answering.
 
-The swipe falls out of `kind`: true goes right, false goes left, and both
-`vacuous` and `illformed` go down. That merge is D3, and it is forced rather
-than chosen, since without it a vacuous item has no correct swipe at all. The
-cost is that a down swipe stops telling the two apart, and `kind` is where
-that discrimination went.
+The swipe falls out of `kind`: true goes right, false goes left, and
+`vacuous`, `illformed` and `unparsed` all go down. The first merge is D3, and
+it is forced rather than chosen, since without it a vacuous item has no
+correct swipe at all. `unparsed` is Frank's ruling of 2026-10-18, taken on the
+same reading. The cost is that a down swipe stops telling the three apart, and
+`kind` is where that discrimination went.
 
 `implies` is worth its own tag because the vacuous-antecedent trap lives
 there. A reader who checks the consequent of `P => Q` and ignores a false `P`
