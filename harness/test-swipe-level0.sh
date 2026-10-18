@@ -16,16 +16,19 @@
 # WHAT RUNS TLC AND WHAT DOES NOT. The structural half is text and costs no
 # JVM. swipe/level0/bake.sh --check costs 33 JVMs over the 240 items, because
 # the claims batch: 3 batch modules plus one run for each of the 30 items that
-# do not evaluate. The four TLC controls are scoped to one template, 9 JVMs
-# each. Section 10 adds 11 over a three-row fixture. So the suite starts about
-# 90 JVMs rather than one per item.
+# cannot sit in a batch. That class is 25 ill-formed items, where the first
+# evaluation error aborts the whole batch, plus 5 unparsed ones, where SANY
+# refuses the module and hides every row in it. The four TLC controls are
+# scoped to one template, 9 JVMs each. Section 10 adds 11 over a three-row
+# fixture, and section 11 adds none. So the suite starts about 90 JVMs rather
+# than one per item.
 #
-# That count tracks the ill-formed total and not the item total, so it moves
+# That count tracks the unbatchable total and not the item total, so it moves
 # whenever the corpus grows and a run is the only authority on it. This
 # paragraph read 13 and 33 until 2026-10-18, both measured at 80 items, and it
 # outlived the corpus by two beads.
 #
-# Lineage: beads tla-7xql.2 and tla-7xql.10.
+# Lineage: beads tla-7xql.2, tla-7xql.10 and tla-7xql.11.
 
 set -euo pipefail
 
@@ -662,11 +665,19 @@ fi
 #     controlled: a typo inside an item declared true, and an item declared
 #     unparsed whose claim parses fine.
 #
-#     NOTHING HERE TOUCHES ITEMS.tsv. The corpus ships 18 true, 18 false, 6
-#     vacuous and 6 ill-formed per template, and that mix is what holds the
-#     base rate at 0.3750. The power table in swipe/README.md is computed from
-#     it, so an added item moves the mix, the base rate and the detection
-#     floor together. These assertions run over a three-row fixture instead.
+#     NOTHING HERE TOUCHES ITEMS.tsv, and section 11 below is where the real
+#     corpus is read. The split is deliberate. These assertions prove the
+#     machinery over a three-row fixture, so they keep working whatever the
+#     corpus holds, and section 11 asks the separate question of whether a
+#     reader ever meets the kind.
+#
+#     The corpus ships 18 true, 18 false, 6 vacuous, 5 ill-formed and 1
+#     unparsed per template since bead tla-7xql.11. The base rate is held by
+#     the SWIPE mix rather than by that one: ill-formed and unparsed both bake
+#     to down, so right is still 18 of 48 and the rate is still 0.3750. The
+#     power table in swipe/README.md is computed from the swipe mix, which is
+#     why the bead converted five rows instead of adding five. An ADDED item
+#     would move the mix, the base rate and the detection floor together.
 # ---------------------------------------------------------------------------
 FX="$SCRATCH/fx"
 mkdir -p "$FX"
@@ -790,6 +801,125 @@ if "$BAKE" --write --items "$FX/write.tsv" >"$FX/write.out" 2>&1; then
 else
   bad "bake.sh --write rejected an item whose authored kind is unparsed"
   sed -n '1,10p' "$FX/write.out" | sed 's/^/       /'
+fi
+
+# ---------------------------------------------------------------------------
+# 11. Every kind the channel names is shipped, or recorded as unshipped.
+#
+#     THE INVARIANT, in bead tla-7xql.11's words: every kind named in the
+#     channel table has at least one shipped item, or is recorded in the table
+#     as deliberately unshipped with its reason.
+#
+#     THIS SECTION READS THE REAL ITEMS.tsv, which is the one thing section 10
+#     above refuses to do. That split is deliberate and both halves are needed.
+#     Section 10 proves the MACHINERY over a fixture, so it keeps working while
+#     the corpus is empty of a kind. A fixture cannot say whether a reader ever
+#     meets the kind, and a channel row no reader has met has never had its
+#     explanation column read by anybody. The first person to meet one would
+#     meet it in generated output, which is the failure bead tla-7xql.11 was
+#     opened on.
+#
+#     THE VOCABULARY COMES FROM swipe_for() IN bake.sh and not from a list
+#     written here. A list written here would allowlist whatever it already
+#     knows, which is the same reason the identifier allowlist at the top of
+#     this file is the standard-module export set rather than a scan of the
+#     corpus. A sixth kind added to the bake reddens this until the table and
+#     the corpus both catch up.
+#
+#     Nothing here starts a JVM.
+# ---------------------------------------------------------------------------
+README="$REPO_ROOT/swipe/README.md"
+KIND_DEFECTS=0
+
+# The kinds bake.sh can map. One case arm per kind, and the catch-all dropped.
+BAKE_KINDS="$(awk '
+  /^swipe_for\(\) \{/ { inb = 1; next }
+  inb && /^\}/        { inb = 0 }
+  inb && $1 ~ /\)$/   { k = $1; sub(/\)$/, "", k); if (k != "*") print k }
+' "$BAKE" | sort)"
+
+# The kinds the channel table names. The anchor comment is what makes this a
+# table lookup rather than a guess about which markdown table was meant, and
+# the scan tolerates the blank line between the anchor and the header because
+# a row is any line with four or more pipe-separated fields.
+table_rows() {
+  awk -F'|' -v OFS='\t' -v anchor='<!-- KIND TABLE' '
+    index($0, anchor) == 1 { seen = 1; next }
+    seen == 0 { next }
+    NF >= 4 {
+      inb = 1
+      k = $2; s = $3; r = $4
+      gsub(/^[ \t]+/, "", k); gsub(/[ \t]+$/, "", k); gsub(/`/, "", k)
+      gsub(/^[ \t]+/, "", s); gsub(/[ \t]+$/, "", s); gsub(/`/, "", s)
+      gsub(/^[ \t]+/, "", r); gsub(/[ \t]+$/, "", r)
+      if (k == "kind") next
+      if (k ~ /^-+$/) next
+      print k, s, r
+      next
+    }
+    inb == 1 { exit }
+  ' "$README"
+}
+
+mapfile -t KIND_ROWS < <(table_rows)
+TABLE_KINDS="$(printf '%s\n' "${KIND_ROWS[@]}" | cut -f1 | sort)"
+
+if [ "$TABLE_KINDS" = "$BAKE_KINDS" ]; then
+  ok "the channel table names every kind bake.sh can map, and no others"
+else
+  bad "the channel table and bake.sh disagree about the kind vocabulary"
+  printf '       bake.sh:   %s\n' "$(tr '\n' ' ' <<<"$BAKE_KINDS")"
+  printf '       the table: %s\n' "$(tr '\n' ' ' <<<"$TABLE_KINDS")"
+fi
+
+for row in "${KIND_ROWS[@]}"; do
+  # Parameter expansion rather than `IFS=$'\t' read`, for the reason both TSV
+  # headers in swipe/level0/ give: tab is IFS whitespace, so a run of tabs
+  # collapses and an empty field vanishes. The separator is written as $'\t'
+  # rather than as a literal tab so a later editor cannot retype it as spaces.
+  kind="${row%%$'\t'*}"
+  rest="${row#*$'\t'}"
+  swipe="${rest%%$'\t'*}"
+  reason="${rest#*$'\t'}"
+
+  n_kind="$(awk -F'\t' -v k="$kind" '$1 == "ITEM" && $5 == k' "$ITEMS" | grep -c . || true)"
+
+  # The per-template spread is printed rather than asserted. The invariant is
+  # a kind-level one, and a count written into an assertion here is the thing
+  # this project keeps finding stale in its own prose.
+  spread=""
+  while IFS= read -r t; do
+    [ -z "$t" ] && continue
+    c="$(awk -F'\t' -v k="$kind" -v t="$t" '$1 == "ITEM" && $3 == t && $5 == k' "$ITEMS" | grep -c . || true)"
+    spread="$spread  $t $c"
+  done < <(awk -F'\t' '$1 == "TPL" {print $2}' "$TEMPLATES")
+  printf '       %-10s %s swipe, %3s shipped %s\n' "$kind" "$swipe" "$n_kind" "$spread"
+
+  if [ "$n_kind" -eq 0 ] && [ "$reason" = "-" ]; then
+    printf '       kind %s ships no item and the table records no reason, so the row is unexercised\n' "$kind"
+    KIND_DEFECTS=$((KIND_DEFECTS+1))
+  elif [ "$n_kind" -eq 0 ] && [ "${#reason}" -lt 24 ]; then
+    printf '       kind %s ships no item and its reason is %s characters, which is a stub\n' \
+      "$kind" "${#reason}"
+    KIND_DEFECTS=$((KIND_DEFECTS+1))
+  elif [ "$n_kind" -gt 0 ] && [ "$reason" != "-" ]; then
+    printf '       kind %s ships %s items and the table still records it as unshipped\n' \
+      "$kind" "$n_kind"
+    KIND_DEFECTS=$((KIND_DEFECTS+1))
+  fi
+
+  wrong="$(awk -F'\t' -v k="$kind" -v s="$swipe" '$1 == "ITEM" && $5 == k && $6 != s' "$ITEMS" | grep -c . || true)"
+  if [ "$wrong" -ne 0 ]; then
+    printf '       kind %s earns the %s swipe in the table and %s shipped items read otherwise\n' \
+      "$kind" "$swipe" "$wrong"
+    KIND_DEFECTS=$((KIND_DEFECTS+1))
+  fi
+done
+
+if [ "$KIND_DEFECTS" -eq 0 ]; then
+  ok "every kind in the channel table ships an item, or is recorded as unshipped with its reason"
+else
+  bad "$KIND_DEFECTS kinds are neither shipped nor recorded"
 fi
 
 printf '\n%s passed, %s failed, %s skipped\n' "$PASS" "$FAIL" "$SKIP"
