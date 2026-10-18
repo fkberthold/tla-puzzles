@@ -593,8 +593,17 @@ fi
 # habit and also MEANING-PRESERVING, so the mutant's baked verdicts would
 # still hold if anybody ran swipe/level0/bake.sh over it. The mix is
 # untouched, so the floor does not move and the only thing that changed is the
-# alignment. Neither the word TRUE nor a forward slash appears anywhere in the
-# shipped claims, so the planted token is pure wherever it lands.
+# alignment.
+#
+# THIS COMMENT USED TO END "neither the word TRUE nor a forward slash appears
+# anywhere in the shipped claims, so the planted token is pure wherever it
+# lands", AND THE CORPUS OUTGREW IT. Bead tla-7xql.9 measured five T2 claims
+# carrying one or the other: L0-T2-22, -23, -33, -34 and -43, spread over all
+# three labels. The plant is still pure, but for a narrower reason than the one
+# written here. It lands in the FIRST template, the collisions are all in T2,
+# and the count assertion below is scoped to the target template for exactly
+# that case. A purity claim over the whole file was a fact about eighty items
+# wearing the clothes of a fact about the corpus.
 # ===========================================================================
 printf '\n== part 4: a planted artifact, and whether the probe sees it ==\n'
 
@@ -836,6 +845,311 @@ if awk -v b="$leak_best" -v m="$pow_md" 'BEGIN { exit !(b < m) }'; then
   ok "the leakiest template is $leak_tpl on $leak_feat at $leak_best, under the n=16 detection floor $pow_md, so 16 items cannot settle it"
 else
   ok "the leakiest template is $leak_tpl on $leak_feat at $leak_best, at or above the n=16 detection floor $pow_md"
+fi
+
+# ===========================================================================
+# PART 7: no token in three or more claims of one template is perfectly
+# correlated with that template's label.
+#
+# THIS IS A SECOND INVARIANT, NOT A RESTATEMENT OF PART 3, and the gap between
+# them is the whole reason this part exists. Bead tla-7xql.8 carried the line
+# above as its RED spec. It was violated four times and the probe never saw
+# any of it:
+#
+#   T5  the token 17, 4 items, all true              named on the bead
+#   T2  the token 5, 3 items, all right              shipped, never recorded
+#   T2  the universal quantifier, 3 claims, vacuous  first draft
+#   T3  the empty set, 3 claims, all vacuous         first draft
+#
+# What found all four was an author checking the line by hand, which makes the
+# corpus's cleanliness a property of one person having been careful.
+#
+# WHY PART 3 MISSES THEM, and it is not a defect in part 3. The probe fits a
+# decision stump scored by leave-one-out against a permutation null, so a rule
+# covering 3 of 48 items is worth almost nothing to it however pure the 3 are.
+# That is the right answer to the probe's own question, which is whether a
+# judge could beat the base rate. "Does this template have a tell" is a
+# different question. A three-item tell cannot move an accuracy number and can
+# still be the thing a reader learns, because a reader meets the items one at
+# a time rather than in aggregate.
+#
+# So the two gates disagree at n=48, THIS ONE IS STRICTER, and until this part
+# landed only the looser one ran.
+#
+# WHICH LABEL, and the choice changes what "perfectly correlated" means.
+# Field 6, the swipe, for two reasons that point the same way. It is what a
+# judge predicts: stemblind.sh scores a prediction against field 6 and the
+# probe fits against field 6, so correlating against anything else would gate
+# a signal no judge is being asked for. And it is the STRICTER of the two
+# candidates, which is not obvious. The swipe is a function of the kind
+# (vacuous and illformed both bake to down), so grouping by swipe merges two
+# classes into one, which can only raise a token's purity. Every kind-pure
+# token is therefore swipe-pure, and a token on three down items that splits
+# two vacuous and one illformed is swipe-pure while the kind column calls it
+# clean. Measured on today's corpus the two columns give the same five worst
+# offenders at the same purities, so the choice costs nothing here and is
+# right for when it does.
+#
+# THE TOKENIZER IS STEMBLIND.SH'S OWN, reached through its tokens subcommand,
+# which bead tla-7xql.9 added for this. A second tokenizer would make any
+# disagreement between the two gates read as a finding about the corpus when
+# it is a finding about the code, so the first assertion below checks that the
+# feature the probe names is a string this part can see.
+#
+# WHAT IS NOT GATED. The worst purity per template is PRINTED and never
+# asserted. Writing today's 0.75 in here would be a fact about 240 items
+# pretending to be a threshold, which is the defect LIVE_N above was created
+# to remove and the one part 4's comment just outgrew.
+# ===========================================================================
+printf '\n== part 7: no token is perfectly correlated with a label ==\n'
+
+# The label order is stemblind.sh's LABELS, fixed rather than discovered for
+# the reason given there: a tie broken by whichever key an awk implementation
+# hashes first is a number that moves with the interpreter.
+CORR_LABELS="right left down"
+
+# Emits one CORR row per template, a CORR-PERFECT row for each template that
+# carries one, and a CORR-RESULT line. Returns 1 when any template carries a
+# perfect token, 0 when none does, 2 on an input defect.
+corr_scan() {
+  local items="$1" minc="$2" tk="$3"
+  "$SB" tokens --items "$items" > "$tk" 2>/dev/null
+  awk -F'\t' -v minc="$minc" -v labels="$CORR_LABELS" '
+    FNR == NR {
+      if ($1 == "ITEM") {
+        lab[$2] = $6
+        if (!($3 in tseen)) { tseen[$3] = 1; order[++nt] = $3 }
+      }
+      next
+    }
+    $1 == "TOKEN" {
+      # An id in the token stream with no row in the items file would silently
+      # land in a label bucket no label name matches, which UNDERSTATES purity
+      # and quietly weakens the gate. Caught by name instead.
+      if (!($2 in lab)) { unk = unk " " $2; next }
+      key = $3 SUBSEP $4
+      if (!(key in kn)) { kn[key] = 1; klist[++nk] = key }
+      tot[key]++
+      cnt[key, lab[$2]]++
+    }
+    END {
+      if (unk != "") {
+        printf("corr: token rows for items not in the corpus:%s\n", unk) > "/dev/stderr"
+        exit 2
+      }
+      nl = split(labels, L, " ")
+      # Sorted, so the token named when two tie on purity is the
+      # lexicographically first one and not whichever awk hashed first.
+      for (i = 2; i <= nk; i++) {
+        v = klist[i]; j = i - 1
+        while (j >= 1 && klist[j] > v) { klist[j + 1] = klist[j]; j-- }
+        klist[j + 1] = v
+      }
+      for (i = 1; i <= nk; i++) {
+        key = klist[i]
+        if (tot[key] < minc) continue
+        split(key, p, SUBSEP); t = p[1]; tok = p[2]
+        top = 0; topl = "-"; acc = 0
+        for (j = 1; j <= nl; j++) {
+          v = cnt[key, L[j]] + 0
+          acc += v
+          if (v > top) { top = v; topl = L[j] }
+        }
+        # The same understatement from the other side: a label in the corpus
+        # that this list does not name.
+        if (acc != tot[key]) {
+          printf("corr: %s %s has %d items but %d carry a known label\n", t, tok, tot[key], acc) > "/dev/stderr"
+          bad = 1
+        }
+        elig[t]++
+        if (top == tot[key]) {
+          perf[t]++
+          plist[t] = plist[t] (plist[t] == "" ? "" : " ") tok "(n=" tot[key] "," topl ")"
+        }
+        pur = top / tot[key]
+        if (!(t in wseen) || pur > wpur[t] + 1e-12) {
+          wseen[t] = 1; wpur[t] = pur; wtok[t] = tok; wn[t] = tot[key]; wl[t] = topl
+        }
+      }
+      if (bad) exit 2
+      tp = 0
+      for (i = 1; i <= nt; i++) {
+        t = order[i]
+        printf("CORR\t%s\tmin=%d\teligible=%d\tperfect=%d\tworst=%s\tn=%d\tpurity=%.4f\tlabel=%s\n",
+               t, minc, elig[t] + 0, perf[t] + 0,
+               (t in wseen ? wtok[t] : "-"), (t in wseen ? wn[t] : 0),
+               (t in wseen ? wpur[t] : 0), (t in wseen ? wl[t] : "-"))
+        if (perf[t] + 0 > 0) printf("CORR-PERFECT\t%s\t%s\n", t, plist[t])
+        tp += perf[t] + 0
+      }
+      printf("CORR-RESULT\t%s\ttemplates=%d\tperfect=%d\tmin=%d\n",
+             (tp ? "ARTIFACT" : "holds"), nt, tp, minc)
+      if (tp) exit 1
+    }
+  ' "$items" "$tk"
+}
+
+TOKENS_ALL="$SCRATCH/tokens.tsv"
+"$SB" tokens > "$TOKENS_ALL" 2>"$SCRATCH/tokens.err"
+tokens_rc=$?
+tok_items="$(awk -F'\t' '$1 == "TOKEN" { seen[$2] = 1 } END { n = 0; for (k in seen) n++; print n }' "$TOKENS_ALL")"
+if [ "$tokens_rc" -eq 0 ] && [ "$tok_items" = "$n_items" ]; then
+  ok "stemblind tokens runs clean and carries a bag for each of the $tok_items items"
+else
+  bad "stemblind tokens exited $tokens_rc and covered $tok_items of $n_items items: $(cat "$SCRATCH/tokens.err")"
+fi
+
+# THE TWO INSTRUMENTS AGREE ON WHAT A TOKEN IS. The probe names its best
+# feature by the same string this part reports, so whatever bag-of-tokens
+# feature part 3 picked must be visible here, in the same template. The probe
+# also has three derived features the bag does not carry (ask=, len>= and
+# tok>=), so those are skipped rather than failed. They are not tokens of a
+# claim, so the bead's invariant does not reach them.
+TPL_TOKENS="$(awk -F'\t' -v OFS='\t' '$1 == "TOKEN" { print $3, $4 }' "$TOKENS_ALL" | LC_ALL=C sort -u)"
+disagree=""
+checked=0
+for t in $TPL_IDS; do
+  f="$(field "$(grep -E "^PROBE	$t	" <<<"$PROBE_OUT" || true)" feature)"
+  case "$f" in
+    has:*) : ;;
+    *) continue ;;
+  esac
+  checked=$((checked + 1))
+  grep -Fqx -- "$t	$f" <<<"$TPL_TOKENS" || disagree="$disagree $t($f)"
+done
+if [ "$checked" -gt 0 ] && [ -z "$disagree" ]; then
+  ok "every bag feature the probe named is a token this part can see, $checked of them"
+elif [ "$checked" -eq 0 ]; then
+  skip "the probe named no bag feature, so the two tokenizers were not compared"
+else
+  bad "the probe named a feature the tokenizer here does not produce:$disagree"
+fi
+
+# ---------------------------------------------------------------------------
+# THE INVARIANT.
+# ---------------------------------------------------------------------------
+CORR_OUT="$(corr_scan "$ITEMS" 3 "$SCRATCH/tok-ship.tsv")"
+corr_rc=$?
+printf '%s\n' "$CORR_OUT" | sed 's/^/       /'
+
+corr_perfect="$(field "$(grep '^CORR-RESULT	' <<<"$CORR_OUT" || true)" perfect)"
+if [ "$corr_rc" -eq 0 ] && [ "${corr_perfect:-1}" = "0" ]; then
+  ok "no token in 3 or more claims of one template is perfectly correlated with its label"
+else
+  bad "$corr_perfect token(s) are perfectly correlated with a label: $(grep '^CORR-PERFECT	' <<<"$CORR_OUT" | tr '\n' ' ')"
+fi
+
+# Field 8 is purity=, field 7 is n=. The first draft of this line sorted on 7
+# and reported the token on the MOST items rather than the most correlated
+# one, which read plausibly and was wrong: has:5 in T2 at 0.6250 over has:6 in
+# T3 at 0.7500. A fixed %.4f with a constant prefix sorts lexically, so the
+# string compare is the numeric one here.
+CORR_WORST="$(grep '^CORR	' <<<"$CORR_OUT" | LC_ALL=C sort -t'	' -k8,8r | awk 'NR == 1')"
+printf '       the worst correlated token in the corpus is %s in %s, %s on %s items\n' \
+  "$(field "$CORR_WORST" worst)" "$(cut -f2 <<<"$CORR_WORST")" \
+  "$(field "$CORR_WORST" purity)" "$(field "$CORR_WORST" n)"
+
+# ---------------------------------------------------------------------------
+# CONTROL A: a planted perfect token must fire and name itself.
+#
+# Same plant as part 4 and for the same reason it is meaning-preserving, but
+# scoped to exactly three items of one label rather than to a whole class,
+# because three is the number the invariant turns on.
+# ---------------------------------------------------------------------------
+# The label to plant on is the target template's own most common one, read off
+# part 1's output rather than written here. Any label with three items would
+# do, and the majority one is the only choice that stays true however the mix
+# is rebalanced later.
+CORR_LABEL="$(field "$(grep -E "^BASE	$PLANT_TPL	" <<<"$BASE_OUT" || true)" top)"
+PLANT3="$SCRATCH/ITEMS-corr3.tsv"
+awk -F'\t' -v OFS='\t' -v t="$PLANT_TPL" -v lb="$CORR_LABEL" -v want=3 '
+  $1 == "ITEM" && $3 == t && $6 == lb && k < want { k++; $9 = "TRUE /\\ (" $9 ")" }
+  { print }
+' "$ITEMS" > "$PLANT3"
+
+# THE CONTROL'S OWN CAPABILITY CHECK, and it is the assertion that stops this
+# going the way part 4's comment went. The plant is only a perfect 3-item
+# token while PLANT_TPL carries no TRUE of its own. Five T2 claims already do,
+# so this is a live hazard rather than a hypothetical: count the carriers in
+# the target template before and after, and go red if the plant is diluted.
+pre_true="$(awk -F'\t' -v t="$PLANT_TPL" '$1 == "ITEM" && $3 == t && index($9, "TRUE") > 0 { n++ } END { print n + 0 }' "$ITEMS")"
+post_true="$(awk -F'\t' -v t="$PLANT_TPL" '$1 == "ITEM" && $3 == t && index($9, "TRUE") > 0 { n++ } END { print n + 0 }' "$PLANT3")"
+if [ "$pre_true" = "0" ] && [ "$post_true" = "3" ]; then
+  ok "the 3-item plant is the only TRUE in $PLANT_TPL, so the control can still produce a perfect token"
+else
+  bad "$PLANT_TPL already carries $pre_true TRUE claims and the plant made it $post_true, so the control is diluted"
+fi
+
+C3_OUT="$(corr_scan "$PLANT3" 3 "$SCRATCH/tok-c3.tsv")"
+c3_rc=$?
+c3_perf="$(field "$(grep '^CORR-RESULT	' <<<"$C3_OUT" || true)" perfect)"
+c3_row="$(grep -E "^CORR-PERFECT	$PLANT_TPL	" <<<"$C3_OUT" || true)"
+if [ "$c3_rc" -eq 1 ] && [ "${c3_perf:-0}" -ge 1 ] && [ -n "$c3_row" ]; then
+  ok "a token planted on 3 same-label claims fires the gate and names $PLANT_TPL (rc=$c3_rc)"
+else
+  bad "the 3-item plant did not fire: rc=$c3_rc perfect=${c3_perf:-?} row=[$c3_row]"
+fi
+if grep -Fq 'has:TRUE(n=3,' <<<"$c3_row"; then
+  ok "the gate names the planted token and its count: $(cut -f3 <<<"$c3_row")"
+else
+  bad "the gate fired on $PLANT_TPL without naming the planted token: $(cut -f3 <<<"$c3_row")"
+fi
+
+# Template-local, the same property part 4 asserts for the probe. A perfect
+# token in one family must not move another family's reading.
+c3_others="$(grep -E '^CORR	' <<<"$C3_OUT" | grep -vE "^CORR	$PLANT_TPL	" || true)"
+ship_others_c="$(grep -E '^CORR	' <<<"$CORR_OUT" | grep -vE "^CORR	$PLANT_TPL	" || true)"
+if [ -n "$ship_others_c" ] && [ "$c3_others" = "$ship_others_c" ]; then
+  ok "planting in $PLANT_TPL leaves every other template's correlation reading identical"
+else
+  bad "planting in $PLANT_TPL moved another template's reading, so the scan is not template-local"
+fi
+
+# ---------------------------------------------------------------------------
+# CONTROL B: two is not three. A gate too eager is as broken as a blind one.
+#
+# THE SECOND HALF IS WHAT MAKES THE FIRST HALF MEAN ANYTHING. "It did not
+# fire" is also what a scan that reads nothing at all reports, so the same
+# mutant is run at min=2, where the planted token must appear as perfect on
+# exactly 2 items. That is the check that the quiet reading above is the
+# threshold doing its job rather than the instrument being asleep.
+# ---------------------------------------------------------------------------
+PLANT2="$SCRATCH/ITEMS-corr2.tsv"
+awk -F'\t' -v OFS='\t' -v t="$PLANT_TPL" -v lb="$CORR_LABEL" -v want=2 '
+  $1 == "ITEM" && $3 == t && $6 == lb && k < want { k++; $9 = "TRUE /\\ (" $9 ")" }
+  { print }
+' "$ITEMS" > "$PLANT2"
+
+# Scoped to the planted template rather than read off CORR-RESULT. The global
+# count answers "is the whole corpus clean", which the invariant above already
+# asked; this control is asking the narrower question of whether a 2-item
+# token in THIS template fired, and a count over every template would make the
+# control's verdict depend on families it never touched.
+C2_OUT="$(corr_scan "$PLANT2" 3 "$SCRATCH/tok-c2.tsv")"
+c2_perf="$(field "$(grep -E "^CORR	$PLANT_TPL	" <<<"$C2_OUT" || true)" perfect)"
+if [ "${c2_perf:-1}" = "0" ]; then
+  ok "a perfect token on only 2 claims does not fire, since the invariant says three"
+else
+  bad "the 2-item plant fired at min=3 in $PLANT_TPL, so the gate is too eager: perfect=${c2_perf:-?}"
+fi
+
+# Sharper than the count: the whole row for the planted template must read
+# exactly as the shipped one does, worst offender included.
+c2_tpl_row="$(grep -E "^CORR	$PLANT_TPL	" <<<"$C2_OUT" || true)"
+ship_tpl_row="$(grep -E "^CORR	$PLANT_TPL	" <<<"$CORR_OUT" || true)"
+if [ -n "$ship_tpl_row" ] && [ "$c2_tpl_row" = "$ship_tpl_row" ]; then
+  ok "$PLANT_TPL's reading under the 2-item plant is identical to the shipped one"
+else
+  bad "the 2-item plant moved $PLANT_TPL's reading: [$c2_tpl_row] against [$ship_tpl_row]"
+fi
+
+C2LOW_OUT="$(corr_scan "$PLANT2" 2 "$SCRATCH/tok-c2low.tsv")"
+c2low_rc=$?
+c2low_row="$(grep -E "^CORR-PERFECT	$PLANT_TPL	" <<<"$C2LOW_OUT" || true)"
+if [ "$c2low_rc" -eq 1 ] && grep -Fq 'has:TRUE(n=2,' <<<"$c2low_row"; then
+  ok "the same 2-item plant DOES fire at min=2, so the quiet reading above is the threshold and not a blind scan"
+else
+  bad "the 2-item plant is invisible even at min=2, so control B proves nothing: rc=$c2low_rc row=[$c2low_row]"
 fi
 
 printf '\n%s passed, %s failed, %s skipped\n' "$PASS" "$FAIL" "$SKIP"

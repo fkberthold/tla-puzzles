@@ -90,11 +90,21 @@
 #   base   [--template TN]        the per-template label counts and base rate
 #   power  [--items N] [--base B] what sample size the tolerance assumes
 #   reveal [--template TN]        stem id to item id. THIS IS THE ANSWER KEY.
+#   tokens [--template TN]        the tokenizer's bag, one row per token
+#
+# tokens exists so a SECOND instrument can agree with the probe on what a token
+# is. The probe asks whether a judge could beat the base rate, and a rule
+# covering three of forty-eight items is worth almost nothing to it however
+# pure it is. "Does this template have a tell" is a different question, and
+# harness/test-swipe-stemblind.sh part 7 asks it directly. Two tokenizers would
+# make a disagreement between those two gates read as a finding about the
+# corpus when it is a finding about the code, so there is one tokenizer and
+# this prints what it produces.
 #
 # --items PATH points every subcommand at a different ITEMS.tsv, which is how
 # harness/test-swipe-stemblind.sh plants an artifact without touching swipe/.
 #
-# Lineage: bead tla-7xql.1.
+# Lineage: bead tla-7xql.1. The tokens subcommand is bead tla-7xql.9.
 
 set -euo pipefail
 
@@ -111,8 +121,13 @@ OPT_ITEMS_N="16"
 OPT_BASE="0.375"
 OPT_POWER="0.80"
 
+# Prints the leading comment block, stopping at the first line of code. It read
+# `sed -n '2,100p'` until bead tla-7xql.9 added a subcommand and its paragraph,
+# which pushed the lineage footer past line 100 and out of the help. A line
+# number in a help function is the same hardcoded-count defect the suite's own
+# LIVE_N comment records, so the window is found rather than written down.
 usage() {
-  sed -n '2,100p' "${BASH_SOURCE[0]}"
+  awk 'NR == 1 { next } /^[^#]/ { exit } { print }' "${BASH_SOURCE[0]}"
 }
 
 die() { printf 'stemblind: %s\n' "$1" >&2; exit 2; }
@@ -257,6 +272,42 @@ cmd_reveal() {
       printf("KEY\t%s\t%s\t%s\t%s\t%s\n", stem_id($2), $2, $3, $5, $6)
     }
   ' "$ITEMS"
+}
+
+# ---------------------------------------------------------------------------
+# tokens: the tokenizer's own bag, printed, and nothing else.
+#
+# READ-ONLY and label-free by construction. It calls tokenize() exactly as
+# cmd_probe does, over the same field 9, so the two instruments cannot drift
+# apart on what a token is.
+#
+#   TOKEN <tab> <item-id> <tab> <template> <tab> <token>
+#
+# One row per item and token, sorted, so the output is stable between gawk and
+# mawk for the same reason cmd_base sorts: a bare `for (k in arr)` walk has no
+# specified order and a gate whose output moves with the interpreter is not a
+# gate.
+#
+# WHAT IS DELIBERATELY NOT HERE. cmd_probe's feature set is the bag PLUS three
+# derived features: the ask tag, a length bucket and a token-count bucket.
+# Those are not tokens of a claim, so they are the probe's business. The bead's
+# invariant is about a token in three or more CLAIMS, and a length bucket
+# covering half a template is a different animal that the probe is already the
+# right instrument for.
+#
+# The item id is here because a caller has to join these rows to a label, and
+# the label is not. Nothing in this output tells a reader the answer, which
+# keeps it on the same side of the line as emit.
+# ---------------------------------------------------------------------------
+cmd_tokens() {
+  awk -F'\t' -v tpl="$OPT_TEMPLATE" -v SYMS="$SYMBOL_TOKENS" "$AWK_PRELUDE"'
+    $1 == "ITEM" {
+      if (tpl != "" && $3 != tpl) next
+      delete toks
+      tokenize($9, toks)
+      for (k in toks) printf("TOKEN\t%s\t%s\t%s\n", $2, $3, k)
+    }
+  ' "$ITEMS" | LC_ALL=C sort
 }
 
 # ---------------------------------------------------------------------------
@@ -639,6 +690,7 @@ done
 case "$SUB" in
   emit)   cmd_emit ;;
   reveal) cmd_reveal ;;
+  tokens) cmd_tokens ;;
   base)   cmd_base ;;
   power)  cmd_power ;;
   score)  cmd_score ;;
