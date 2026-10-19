@@ -750,16 +750,33 @@ A sideways scroll of the model and a left swipe are two gestures on one pixel,
 so the gesture handler declines a touch that starts inside the screen body.
 Without that, reading along a long line answers the item.
 
-**No browser reading confirms the pixels, and that is a gap rather than a
-finish.** Chrome 154 in a worktree sandbox would not complete a headless load
-for me: `Page.navigate` over the DevTools protocol times out and wedges the
+**The pixels were read in a real browser on 2026-10-19**, at a true 390x844
+viewport against the published site. The bead that built this could not take
+the reading, because Chrome 154 would not complete a headless load in its
+sandbox: `Page.navigate` over the DevTools protocol times out and wedges the
 renderer, `--dump-dom` and `--screenshot` both hang with no output, and a URL
 on the command line leaves `location.href` at `about:blank` whenever remote
-debugging is on. The static server log shows the built page fetching
-`index.html` and then `items.json`, so the reader boots and reaches its
-payload, and that is all it shows. The docked question is what makes the
-layout correct without the measurement, which is why it is a dock and not a
-height budget.
+debugging is on. So it shipped a table computed from the CSS and marked it
+INFERRED, and the reading is what settles it.
+
+**The dock held.** It is fully visible at scroll 0 and at every position where
+the premise is in view, 298px at level 1 and 269px at level 2 against a worst
+case of 384px, which is 45% of the viewport. That is the one thing the design
+was betting on, since a sticky dock puts the question somewhere that does not
+depend on the roughly 250px of theme above it.
+
+**Two of the inferred numbers were wrong.** The claim font renders 34 chars
+to a line rather than the 24 the table assumed, and claims still wrap longer
+than it predicted, because `pre-wrap` breaks at spaces and a TLA+ formula is
+mostly unbreakable tokens. Measured over all 432: 156 claims wrap to 2 lines,
+206 to 3, 58 to 4, 11 to 5, and `L1-E3-37` to 6. So 70 of 432 run to four
+lines or more, where the table said one did.
+
+**And level 2 does not fit above the dock.** The screen is 296px and the pin
+327px against 575px of room, so 198px of pin sits behind the dock when the
+item is drawn. The reader lands on a `steps to` label with its content
+covered, and nothing says to scroll. Hiding the model clears it, and that is
+a lever rather than an answer. Filed as `tla-7xql.15`.
 
 ### The record is a file and the browser is a cache
 

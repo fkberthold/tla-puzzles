@@ -89,14 +89,30 @@
 # subscription are checked as text. The LAYOUT is checked as text too, which
 # is the weakest thing in this file and is called out in part 5.
 #
-# NO BROWSER READING OF THE LAYOUT EXISTS. The author of tla-7xql.14 tried
-# four ways to take one and Chrome would not complete a headless load in that
-# sandbox, so the numbers in the merge commit are computed from the shipped
-# CSS and are marked INFERRED there. The layout holds by position instead:
-# the question is docked sticky at the bottom, so where it lands does not
-# depend on anything above it. The headless run that did happen belongs to
-# the level 0 reader bead and established that the page BOOTS at the real
-# origin, which is a different claim from where the question sits.
+# THE LAYOUT WAS READ IN A REAL BROWSER ON 2026-10-19, after tla-7xql.14
+# merged and against the published site at a true 390x844 viewport. The
+# author of that bead could not take the reading, because Chrome would not
+# complete a headless load in its sandbox, so the numbers in its merge commit
+# are computed from the shipped CSS and marked INFERRED. Two of them were
+# wrong and the reading is what settles them.
+#
+#   the dock is never off screen. Fully visible at scroll 0 and at every
+#   position where the premise is in view, at both pinned rungs. 298px at
+#   level 1 and 269px at level 2, against a worst case of 384px.
+#
+#   the worst claim wraps to SIX lines, not the three the bead inferred.
+#   Measured over all 432 claims at the shipped font: 156 wrap to 2 lines,
+#   206 to 3, 58 to 4, 11 to 5, and L1-E3-37 to 6. So 70 of 432 run to four
+#   lines or more where the bead said one did.
+#
+#   at level 2 the premise does not fit above the dock. The screen is 296px
+#   and the pin 327px against 575px of room, so 198px of pin sits BEHIND the
+#   dock when the item is drawn. Scrolling reaches it, and the reader is not
+#   told to. Filed as tla-7xql.15.
+#
+# The dock itself is what survived. It is sticky at the bottom, so where the
+# question lands does not depend on anything above it, and that held at every
+# item measured.
 #
 # A localhost run cannot reproduce the instant-navigation
 # hazard: the theme matches a clicked link against its sitemap after
@@ -1435,11 +1451,11 @@ note "No browser ran. The rendering, the touch gestures, the document\$"
 note "subscription and the LAYOUT are read as text here, never executed."
 note "The layout checks in part 5 are the weakest thing in this file: they"
 note "assert that the cap and the sticky row exist, not that the question"
-note "lands above the fold. NO BROWSER READING OF THE LAYOUT EXISTS: four"
-note "attempts at a headless load failed in the authoring sandbox, so the"
-note "numbers in the merge commit are computed from the shipped CSS and are"
-note "marked INFERRED there. The question is docked by position rather than"
-note "by arithmetic, which is what makes these text checks worth anything."
+note "lands above the fold. A REAL BROWSER READ IT ON 2026-10-19 at 390x844"
+note "against the published site, and the dock held at every item measured:"
+note "298px at level 1, 269px at level 2, 384px worst case, never off screen."
+note "That reading also found 70 of 432 claims wrapping to four lines or more"
+note "and 198px of level 2 pin sitting behind the dock, which is tla-7xql.15."
 note "A localhost run cannot reproduce the instant-navigation hazard: the"
 note "theme normalizes its sitemap by protocol and hostname and never by"
 note "port, so instant navigation declines every link on a local server."
