@@ -59,8 +59,8 @@
  *   them, and however tall it is, the reader can read the question and
  *   answer it without scrolling. That is an invariant rather than an
  *   arithmetic result, which is the only kind worth having here. Since bead
- *   tla-7xql.18 the dock is the RESTING view's and a step replaces it, with
- *   one line of the claim carried along. See A STEP IS THE WHOLE PAGE.
+ *   tla-7xql.18 the dock is the RESTING view's and a step replaces it
+ *   entirely. See A STEP IS THE WHOLE PAGE.
  *
  *   THE PREMISE IS A STACK THE READER WALKS UP. At rest the card is the
  *   question and nothing else, so the premise cannot sit behind the dock
@@ -157,13 +157,10 @@
  *       can see a table. harness/test-swipe-reader.sh drives all 24.
  *
  *   D2  ONE LINE OF THE CLAIM STAYS, at the foot of the step view, on the
- *       dock's own .swipe-claim type. No tag, no ask prompt, no buttons. At
- *       level 2 the reader is checking a claim against a step in front of
- *       them, and holding it in their head is friction rather than the
- *       exercise. It is drawn where answersLive() is true, which is every
- *       step about the item in hand: the explanation step is about a different
- *       item and already carries that item's claim, so a second one there
- *       would put two claims from two items on one screen.
+ *       dock's own .swipe-claim type. REVERSED THE SAME DAY by bead
+ *       tla-7xql.19, and the reversal is recorded here rather than the
+ *       decision being edited away, because the two readings together are
+ *       what the next author needs. See THE CLAIM LEAVES THE STEP below.
  *
  *   D3  THE MENU COLLAPSES BEHIND ONE CONTROL AT REST TOO. Eight controls
  *       touched once a session against one touched every item. It is the third
@@ -184,14 +181,60 @@
  * it is most of the phone, where the back button would be the only way out.
  * So the decline reads the axis it is about: scrollWidth against clientWidth,
  * the sideways form of the test .swipe-step-body already used. A model that
- * fits keeps the whole page for tap and swipe, and the room says most of them
- * now do: 824 less the step's own furniture leaves about 660 for the model
- * body against the 438 the worst one wants.
+ * fits keeps the whole page for tap and swipe, and most of them now do.
+ *
+ * THE 660 THAT USED TO BE WRITTEN HERE WAS ARITHMETIC AND IT WAS WRONG. It
+ * read "824 less the step's own furniture leaves about 660 for the model
+ * body". A browser read the body at 480.0 with the claim drawn and 613.9
+ * without it, under bead tla-7xql.19, so the inference was 180 pixels over
+ * even before the claim came out. The lesson is the one this file keeps
+ * learning: the chrome around the body is the theme's, so subtracting a
+ * guess at it is not a reading.
  *
  * scrollerDeclining() holds all three declines so the table can be driven with
  * no browser, in both directions. A decline that always fires and a decline
  * that never fires both pass a one-sided check, and the first of those is the
  * defect this bead removes.
+ *
+ * ========================================================================
+ * THE CLAIM LEAVES THE STEP, AND THE MODEL STOPS BEING COLLAPSIBLE
+ * ========================================================================
+ *
+ * Bead tla-7xql.19, the same afternoon as tla-7xql.18. Frank read a model on
+ * his phone and reversed D2: "I think we will be better off having to flick
+ * back and forth for the problem." To re-read the claim you tap back to the
+ * question and swipe up again.
+ *
+ * THE REVERSAL IS THE USEFUL PART, so it is written down rather than tidied
+ * away. D2's argument was that a reader checking a claim against a step in
+ * front of them should not be holding it in their head, and nothing refuted
+ * that. It lost to a measurement nobody had taken yet. Read in Chrome at a
+ * true 390x844 against the published build, model step open on 1:Fences, with
+ * the claim line set to display: none and the body re-read:
+ *
+ *   model body with the claim      480.0
+ *   model body without it          613.9
+ *   returned                       133.9
+ *
+ * Over all 24 published screens, at 21.28 pixels per line and 12 of bottom
+ * padding, that is five overflowing vertically with the claim and one without.
+ * The one left is 1:Shelves at 29 lines, which wants about 629 against 613.9
+ * and scrolls a little. Frank ruled it stays scrolling rather than the type
+ * shrinking for one screen, and accepted the sideways scroll in the same
+ * breath: "the phone screen is going to be tight."
+ *
+ * harness/test-swipe-reader.sh holds that reading as a scan over the payload
+ * rather than as a sentence here, and it keeps BOTH heights, because the pair
+ * is what makes the scan discriminate.
+ *
+ * THE COLLAPSE CONTROL WENT WITH IT, and it was a leftover rather than a
+ * second decision. The head was a button toggling v.collapsed[key] and
+ * printing "hide" or "show". That earned its place while the model shared the
+ * resting view with the card. The step IS the model since D1, so collapsing it
+ * leaves the step with a head and nothing under it, which is very likely what
+ * Frank was looking at when he reported that the model was not showing. The
+ * head is a label now and the model's NAME stays on it, since that is the one
+ * thing on screen saying which model is being read.
  *
  * ========================================================================
  * navigation.instant, AND WHY A PLAIN SCRIPT WOULD BE WRONG HERE
@@ -1026,10 +1069,21 @@
   /* ------------------------------------------------------------------ */
   /* The model screen                                                    */
   /*                                                                     */
-  /* Returns null for a level 0 item, which has no model. The panel is    */
-  /* collapsible and its state is remembered per bucket for this visit,   */
-  /* so a reader who has read the model gets the whole viewport for the   */
-  /* stream and can bring it back with one tap.                           */
+  /* Returns null for a level 0 item, which has no model.                 */
+  /*                                                                     */
+  /* THE HEAD IS A LABEL AND NOT A CONTROL, since bead tla-7xql.19. It    */
+  /* used to be a button that collapsed the body and remembered that per  */
+  /* bucket for the visit, which earned its place while the model shared  */
+  /* the resting view with the card and the reader wanted the viewport    */
+  /* back for the stream. The step IS the model now, so collapsing it     */
+  /* left the step with a head and nothing under it, and that is very     */
+  /* likely what Frank was looking at when he reported that the model was */
+  /* not showing.                                                        */
+  /*                                                                     */
+  /* THE NAME STAYS, because it is the only label on screen that says     */
+  /* which model is being read. harness/swipe/stemblind.sh withholds the  */
+  /* module name from a judge for exactly the reason a reader has to be   */
+  /* shown it.                                                           */
   /*                                                                     */
   /* The body is NOT a swipe surface. See bindGestures().                 */
   /* ------------------------------------------------------------------ */
@@ -1051,24 +1105,17 @@
         "to read it against. Skip it."));
       return warn;
     }
-    var collapsed = Boolean(v.collapsed[key]);
-
     var box = el("div", "swipe-screen");
     box.setAttribute("data-swipe-screen", "1");
 
-    var head = el("button", "swipe-screen-head");
-    head.type = "button";
+    var head = el("div", "swipe-screen-head");
     head.appendChild(el("span", "swipe-screen-name", item.model));
-    head.appendChild(el("span", "swipe-screen-toggle", collapsed ? "show" : "hide"));
-    head.addEventListener("click", function () {
-      v.collapsed[key] = !collapsed;
-      render();
-    });
     box.appendChild(head);
 
-    if (!collapsed) {
-      box.appendChild(el("pre", "swipe-screen-body", text));
-    }
+    /* At renderScreen()'s own statement level, which is the point rather than
+       the formatting. No state of the reader can withhold the model from a
+       step whose whole subject is that model. */
+    box.appendChild(el("pre", "swipe-screen-body", text));
     return box;
   }
 
@@ -1103,16 +1150,24 @@
      a wide model is most of the page now. Tap anywhere is the convenience and
      the button is the guarantee.
 
-     THE BODY IS THE ONE THING HERE THAT GIVES UP ROOM. The head, the claim and
-     the hint take their own height and the body takes the rest, which is the
-     same rule #swipe-app follows one level up and the reason that rule cost
-     the model 66 pixels when the chrome was still in the way.
+     THE BODY IS THE ONE THING HERE THAT GIVES UP ROOM. The head and the hint
+     take their own height and the body takes the rest, which is the same rule
+     #swipe-app follows one level up and the reason that rule cost the model 66
+     pixels when the chrome was still in the way.
 
-     ONE LINE OF THE CLAIM COMES ALONG, which is D2. It is drawn where
-     answersLive() is true, so it is on screen for every step about the item in
-     hand and absent on the explanation step, which is about a different item
-     and already carries that item's claim. Two claims from two items on one
-     screen is the confusion this avoids. */
+     THE CLAIM IS NOT HERE, AND IT WAS FOR ONE AFTERNOON. Decision D2 of bead
+     tla-7xql.18 put one line of it at the foot, so that a reader checking a
+     claim against a step in front of them was not holding it in their head.
+     Frank reversed that the same day, bead tla-7xql.19, after reading a model
+     on his phone: "I think we will be better off having to flick back and
+     forth for the problem." To re-read the claim you tap back to the question
+     and swipe up again.
+
+     The argument for keeping it was never refuted. It lost to a measurement
+     nobody had taken yet. The claim cost the model body 133.9 of its 613.9
+     pixels, and four of the 24 published screens went from overflowing to
+     fitting the moment it left. answersLive() is untouched by this: it still
+     governs the answer buttons, and it had three other callers all along. */
   function renderStep(steps) {
     var v = view;
     var kind = steps[v.depth - 1];
@@ -1146,18 +1201,6 @@
       body.appendChild(renderExplain());
     }
     box.appendChild(body);
-
-    /* THE CLAIM, AT THE FOOT, ON THE DOCK'S OWN TYPE. The class is reused so
-       the type and the gate are one thing rather than two, and the modifier is
-       what keeps it from being squeezed when the body wants the room.
-
-       The whole claim rather than a truncation. 70 of the 432 claims wrap to
-       four lines or more and one to six, measured at the shipped font, and
-       cutting a claim to one rendered line would hide part of the question,
-       which is this bead's own defect in a smaller room. */
-    if (v.current && answersLive(v.depth, steps)) {
-      box.appendChild(el("pre", "swipe-claim swipe-step-claim", v.current.claim));
-    }
 
     if (v.depth < steps.length) {
       box.appendChild(el("p", "swipe-hint",
@@ -1735,7 +1778,6 @@
     v.flash = null;
     v.bucket = null;
     v.depth = 0;
-    v.collapsed = {};
     rebuildLastMiss();
     nextItem();
     v.panel = "message";
@@ -2049,7 +2091,6 @@
       state: loadState(),
       current: null,
       bucket: null,
-      collapsed: {},
       flash: null,
       lastMiss: null,
       /* How deep the premise stack is open. 0 is the resting card and k is
