@@ -58,7 +58,10 @@
  * the screen, because an indented conjunction list that wraps loses the
  * alignment that says which conjuncts belong to which action, so the body
  * scrolls sideways instead. swipe.js declines a swipe that starts in either
- * scroller, since otherwise reading along a line would answer the item.
+ * scroller WHEN THAT SCROLLER IS ACTUALLY SCROLLING, each on the axis it
+ * scrolls on, since otherwise reading along a line would answer the item and
+ * an unconditional decline over a full-page step would take the gesture away
+ * from most of the phone. scrollerDeclining() holds the whole table.
  *
  * The screen is collapsible on top of that, which is the reader's own lever
  * rather than a rule: once the model has been read, collapsing it leaves the
@@ -73,6 +76,36 @@
  * THREE now has a tighter form under the viewport-owning class, where the
  * room is divided by flexbox rather than by a viewport fraction. A fraction
  * cannot know what else is on screen; a flex line can.
+ *
+ * FOUR. A STEP IS THE WHOLE PAGE, bead tla-7xql.18, and it is the rule that
+ * made the other three pay off. Flexbox dividing the room is only fair when
+ * everything asking for room has a claim on it. Read in Chrome at a true
+ * 390x844 with the model step open: the counts took 29.6 pixels, the card
+ * 304, the menu 172 and the padding and gaps 62, and .swipe-step was the only
+ * flex-shrink child, so it absorbed the whole deficit and got 276.4. The model
+ * screen inside it got 66.3 against the 438 its content wanted, which is one
+ * line of a 29-line module. Frank, on his phone: "It isn't showing the model."
+ *
+ * Hiding the menu alone took the step to 462.4 and the screen to 252.3. So at
+ * depth the counts, the card and the menu are not drawn at all and the step
+ * gets 824 of the 844. One line of the claim comes with it, on the dock's own
+ * type and with .swipe-step-claim to stop it being the thing that shrinks.
+ *
+ * The menu collapses behind one control in the resting view as well, and the
+ * eight go into a panel behind it. The row count comes off the reading rather
+ * than out of a browser: .swipe-btn is 2.6rem tall and .swipe-menu's gap is
+ * 0.4rem, so at 20px to the rem three rows are 52 times 3 plus 8 times 2,
+ * which is the 172 that was measured. One row is 52, so the collapse returns
+ * 120 pixels.
+ *
+ * THOSE 120 ARE EMPTY SPACE AT THE RESTING CARD and real room everywhere
+ * else. The card has margin-top: auto, so the free space above it was already
+ * free. What takes the 120 is every view that is flex: 1 1 auto with the menu
+ * still drawn: the flash and the three panels. The flash in particular goes
+ * from 594.4 pixels to 714.4, and 39 of the 48 level 2 corrections used to
+ * run past it by up to 111, so the pan-y scroll above stops being the only
+ * way to read them. That last figure is arithmetic on measured parts rather
+ * than a second browser reading.
  *
  * touch-action IS pinch-zoom ON THE GESTURE SURFACES rather than none, and it
  * is set per element rather than on the root. The swipe needs the browser to
@@ -184,6 +217,7 @@
 .swipe-review,
 .swipe-stats,
 .swipe-message,
+.swipe-menu-panel,
 .swipe-done {
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.5rem;
@@ -221,8 +255,23 @@
 .swipe-review,
 .swipe-stats,
 .swipe-message,
+.swipe-menu-panel,
 .swipe-done {
   min-height: 11rem;
+}
+
+/* THE CLAIM AT THE FOOT OF A STEP, decision D2 of bead tla-7xql.18. It is the
+   dock's own .swipe-claim type with a modifier, so the gate and the type are
+   one thing rather than two, and the modifier exists for one reason: the step
+   body is the only thing in a step that gives up room, and a claim able to
+   shrink would be the 66-pixel model screen one level down wearing a
+   different name.
+
+   justify-content on .swipe-step centers its children, so the claim is at the
+   foot of the content rather than nailed to the bottom edge. The step hint is
+   the last line here as it is everywhere else in the reader. */
+.swipe-step-claim {
+  flex: 0 0 auto;
 }
 
 /* touch-action IS SET PER ELEMENT AND NEVER ON AN ANCESTOR OF A SCROLLER.
@@ -239,9 +288,10 @@
    than none, because a reader still has to be able to zoom a line of TLA+ and
    none would take that away with the pan.
 
-   .swipe-stats and .swipe-message are NOT here on purpose. A stats table runs
-   past the screen and has to be readable, and gesture() answers nothing but
-   tap while a panel is open, so a pan there is unambiguous already. */
+   .swipe-stats, .swipe-message and .swipe-menu-panel are NOT here on purpose.
+   A stats table runs past the screen and has to be readable, and gesture()
+   answers nothing but tap while a panel is open, so a pan there is
+   unambiguous already. */
 .swipe-status,
 .swipe-card,
 .swipe-done,
@@ -684,6 +734,7 @@ html.swipe-owns-viewport .swipe-step,
 html.swipe-owns-viewport .swipe-flash,
 html.swipe-owns-viewport .swipe-stats,
 html.swipe-owns-viewport .swipe-message,
+html.swipe-owns-viewport .swipe-menu-panel,
 html.swipe-owns-viewport .swipe-done {
   flex: 1 1 auto;
   min-height: 0;
@@ -693,9 +744,12 @@ html.swipe-owns-viewport .swipe-done {
    these scroll. The done screen does not: it is a gesture surface and it fits,
    measured at 844 with the menu 10 pixels inside the bottom edge. The flash is
    in here because 39 of the 48 level 2 corrections do not fit, and the rule
-   above it is the half that makes the scroll reachable. */
+   above it is the half that makes the scroll reachable. The menu panel is in
+   here because it holds every control the resting view gave up, and a screen
+   shorter than this one is where that list would run past the edge. */
 html.swipe-owns-viewport .swipe-stats,
 html.swipe-owns-viewport .swipe-message,
+html.swipe-owns-viewport .swipe-menu-panel,
 html.swipe-owns-viewport .swipe-flash {
   overflow: auto;
 }

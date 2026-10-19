@@ -58,7 +58,9 @@
  *   sit in one block stuck to the bottom of the viewport. Whatever is above
  *   them, and however tall it is, the reader can read the question and
  *   answer it without scrolling. That is an invariant rather than an
- *   arithmetic result, which is the only kind worth having here.
+ *   arithmetic result, which is the only kind worth having here. Since bead
+ *   tla-7xql.18 the dock is the RESTING view's and a step replaces it, with
+ *   one line of the claim carried along. See A STEP IS THE WHOLE PAGE.
  *
  *   THE PREMISE IS A STACK THE READER WALKS UP. At rest the card is the
  *   question and nothing else, so the premise cannot sit behind the dock
@@ -70,7 +72,9 @@
  *
  * A sideways scroll of the model and a left swipe are then two gestures on
  * one pixel, so the gesture handler declines a touch that starts inside the
- * screen body. The buttons still work there.
+ * screen body WHEN THAT BODY IS ACTUALLY SCROLLING SIDEWAYS. The buttons
+ * still work there. See R1 under A STEP IS THE WHOLE PAGE below for why the
+ * reading has to be conditional.
  *
  * ========================================================================
  * THE STACK, AND THE FIVE GESTURES
@@ -105,22 +109,89 @@
  * vacuity verdict on an item that is a claim, and the log cannot tell that
  * from a reader who meant it.
  *
- * THE DOCK STAYS WHILE THE STACK IS OPEN, so a step fills the room above it
- * rather than taking the screen. The dock is the claim and the three
- * answers, not chrome, and reading the premise with the claim hidden is the
- * working-memory test the dock was built to prevent. Each step fits above
- * it alone where the two together did not.
- *
  * THE ANSWERS GO DEAD AT THE LAST STEP ONLY. Steps 1 and 2 are the item on
- * screen, so an answer there is an answer to the question in the dock. The
- * last step is the explanation of a DIFFERENT item, the last one answered
- * wrong, so the dock greys out and that is the one visible mode change.
+ * screen, so an answer there is an answer to the question the reader is being
+ * asked. The last step is the explanation of a DIFFERENT item, the last one
+ * answered wrong, so the answers go dead and that is the one mode change.
  *
  * EVERY STEP DRAWS ITS OWN BACK BUTTON. Tap anywhere is the convenience and
  * the button is the guarantee, because touchstart declines a touch that
- * starts inside the model screen body and that body is 296 of the 575
- * pixels above the dock. A tap surface with a hole in it where the reader's
- * thumb has just been is not a way out on its own.
+ * starts inside a model screen scrolling sideways, and at level 2 that is
+ * most of the page. A tap surface with a hole in it where the reader's thumb
+ * has just been is not a way out on its own.
+ *
+ * ========================================================================
+ * A STEP IS THE WHOLE PAGE, AND IT TOOK THREE BEADS TO GET HERE
+ * ========================================================================
+ *
+ * Bead tla-7xql.18. The stack above kept the dock drawn while a step was
+ * open, on the argument that reading the premise with the claim hidden is the
+ * working-memory test the dock exists to prevent. That argument was right and
+ * the arithmetic underneath it was not.
+ *
+ * Read in Chrome at a true 390x844 against the published build, with a record
+ * present and the model step open. Every child of #swipe-app is flex: 0 0 auto
+ * except .swipe-step, so the step is the ONLY shrinkable thing and absorbs
+ * whatever is left over:
+ *
+ *   the counts      29.6
+ *   the step       276.4
+ *   the card       304
+ *   the menu       172
+ *   padding+gaps    62
+ *                  844 exactly
+ *
+ * Inside that 276.4 the model screen got 66.3 pixels against the 438 its
+ * content wanted. Frank, on his phone: "It isn't showing the model." It was
+ * showing the model, through a slot one line tall. Hiding the menu alone took
+ * the step to 462.4 and the screen to 252.3, which is what said the chrome was
+ * the whole deficit rather than the payload. The payload was checked and
+ * cleared: 24 screen keys against 24 non-zero bucket keys, nothing missing.
+ *
+ * SO A STEP IS THE WHOLE PAGE. At depth the counts, the card and the menu are
+ * not drawn at all, and the step gets 824 of the 844.
+ *
+ *   D1  chromeAt() is the whole rule and it is ONE PURE FUNCTION. render()
+ *       asks it rather than carrying three conditions, because what has to be
+ *       true is a table over every state and no pattern over render()'s source
+ *       can see a table. harness/test-swipe-reader.sh drives all 24.
+ *
+ *   D2  ONE LINE OF THE CLAIM STAYS, at the foot of the step view, on the
+ *       dock's own .swipe-claim type. No tag, no ask prompt, no buttons. At
+ *       level 2 the reader is checking a claim against a step in front of
+ *       them, and holding it in their head is friction rather than the
+ *       exercise. It is drawn where answersLive() is true, which is every
+ *       step about the item in hand: the explanation step is about a different
+ *       item and already carries that item's claim, so a second one there
+ *       would put two claims from two items on one screen.
+ *
+ *   D3  THE MENU COLLAPSES BEHIND ONE CONTROL AT REST TOO. Eight controls
+ *       touched once a session against one touched every item. It is the third
+ *       value of v.panel rather than a new mechanism, so it inherits the rule
+ *       that a swipe is declined while a panel is open. Three rows of buttons
+ *       become one, which is 120 pixels: a 2.6rem button and a 0.4rem gap at
+ *       20px to the rem put three rows at exactly the 172 that was measured.
+ *       At the resting card those 120 are free space the dock was not using
+ *       anyway. What takes them is every view that flexes with the menu still
+ *       drawn, which is the flash and the three panels.
+ *
+ *   D4  THE GESTURE TABLE DOES NOT MOVE. A swipe right at the model step still
+ *       files "true" with no button on screen. answersLive() is untouched: the
+ *       buttons going away removes the affordance, not the answer.
+ *
+ * R1, WHICH THIS CHANGE CREATES. The screen-body decline above was
+ * unconditional. At 66 of 844 pixels that cost almost nothing, and full-page
+ * it is most of the phone, where the back button would be the only way out.
+ * So the decline reads the axis it is about: scrollWidth against clientWidth,
+ * the sideways form of the test .swipe-step-body already used. A model that
+ * fits keeps the whole page for tap and swipe, and the room says most of them
+ * now do: 824 less the step's own furniture leaves about 660 for the model
+ * body against the 438 the worst one wants.
+ *
+ * scrollerDeclining() holds all three declines so the table can be driven with
+ * no browser, in both directions. A decline that always fires and a decline
+ * that never fires both pass a one-sided check, and the first of those is the
+ * defect this bead removes.
  *
  * ========================================================================
  * navigation.instant, AND WHY A PLAIN SCRIPT WOULD BE WRONG HERE
@@ -582,9 +653,46 @@
      names the FIRST step, read off the same list the gesture walks, so it
      cannot promise a step the item does not have. At level 0 that is today's
      line unchanged, which is the right answer rather than a coincidence: the
-     explanation is still all that rung has above the card. */
+     explanation is still all that rung has above the card.
+
+     IT IS THE RESTING VIEW'S LINE AND ONLY THE RESTING VIEW'S. At the model
+     step it used to read "up for the pinned state" with the pinned state one
+     step BELOW, which was the third defect bead tla-7xql.18 closed. The card
+     is not drawn at depth now, so the line cannot be reached from a step, and
+     renderStep() writes its own. */
   function cardHint(item) {
     return "up for " + stepLabel(stepsFor(item)[0], item);
+  }
+
+  /* WHICH CHROME A STATE DRAWS, bead tla-7xql.18. D1 of that bead is that a
+     step is the whole page: at depth the counts, the card and the menu are not
+     drawn and the step gets 824 of the 844 rather than 276.
+
+     THIS IS A FUNCTION AND NOT THREE CONDITIONS INSIDE render(), because what
+     has to be true is a table over every state the reader can be in and no
+     pattern over render()'s source can see a table. The gate drives all 24
+     combinations of depth, panel and flash through here.
+
+     The three slots are the three things render() appends around whatever the
+     middle of the view is: the counts row, the resting view's own box, and the
+     menu. `card` is the resting box rather than the card element, since the
+     done screen stands in the same slot when the pool is empty.
+
+     Half the 24 are unreachable through the reader today: answer() closes the
+     stack before it sets the flash, and the menu control is only drawn in the
+     resting view. The function is total anyway, so a later bead that makes one
+     of them reachable finds it already answered. */
+  function chromeAt(depth, panel, flash) {
+    var open = Boolean(panel) || Boolean(flash);
+    var stepped = !open && depth > 0;
+    return {
+      status: !stepped,
+      card: !open && depth <= 0,
+      /* The menu panel IS the menu, so drawing the resting control beside it
+         would put two ways into one thing on one screen. Every other panel
+         keeps the control, which is how a reader leaves stats for export. */
+      controls: !stepped && panel !== "menu"
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -835,37 +943,47 @@
     var v = view;
     clear(v.root);
 
-    v.root.appendChild(renderStatus());
+    var steps = stepsFor(v.current);
+    if (v.depth > steps.length) {
+      /* Reachable when the item changed under an open stack, which the menu
+         and the import both do. Clamped rather than reset, so a reader deep
+         in the explanation stays there. Clamped BEFORE the chrome is decided,
+         because a depth past the top is not a step and must not take the
+         card away. */
+      v.depth = steps.length;
+    }
+
+    /* WHAT THIS STATE DRAWS AROUND THE MIDDLE OF THE VIEW. One call, so the
+       rule is chromeAt()'s and the gate can drive it. See D1 in the header. */
+    var chrome = chromeAt(v.depth, v.panel, v.flash);
+
+    if (chrome.status) {
+      v.root.appendChild(renderStatus());
+    }
 
     if (v.panel === "stats") {
       v.root.appendChild(renderStats());
     } else if (v.panel === "message") {
       v.root.appendChild(renderMessage());
+    } else if (v.panel === "menu") {
+      v.root.appendChild(renderMenu());
     } else if (v.flash) {
       v.root.appendChild(renderFlash());
+    } else if (chrome.card) {
+      /* The resting view, which is the question or the done screen. They stand
+         in one slot because they are the same slot: whichever is drawn, it is
+         what the reader is looking at with no step open. */
+      v.root.appendChild(v.current ? renderCard() : renderDone());
     } else {
-      /* THE STEP FIRST AND THE QUESTION LAST, which is both the reading order
-         and the stacking order. At rest there is no step, so the resting view
-         is the question and nothing else and nothing can hide behind the dock.
-         The dock stays drawn while the stack is open. */
-      var steps = stepsFor(v.current);
-      if (v.depth > steps.length) {
-        /* Reachable when the item changed under an open stack, which the menu
-           and the import both do. Clamped rather than reset, so a reader deep
-           in the explanation stays there. */
-        v.depth = steps.length;
-      }
-      if (v.depth > 0) {
-        v.root.appendChild(renderStep(steps));
-      }
-      if (v.current) {
-        v.root.appendChild(renderCard());
-      } else if (v.depth === 0) {
-        v.root.appendChild(renderDone());
-      }
+      /* THE STEP IS THE WHOLE PAGE. Nothing else is appended in this branch,
+         so the step is the only child of #swipe-app and the flex rule that
+         made it the one shrinkable thing now hands it everything. */
+      v.root.appendChild(renderStep(steps));
     }
 
-    v.root.appendChild(renderControls());
+    if (chrome.controls) {
+      v.root.appendChild(renderControls());
+    }
   }
 
   function renderStatus() {
@@ -877,7 +995,7 @@
     if (v.state.log.length === 0) {
       box.appendChild(el("p", "swipe-status-empty",
         "No record in this browser. The record lives in SWIPE.tsv, so import " +
-        "one below to pick up where you left off, or just start."));
+        "one from the menu to pick up where you left off, or just start."));
     }
     if (v.state.corrupt) {
       box.appendChild(el("p", "swipe-status-warn",
@@ -974,19 +1092,27 @@
     return g;
   }
 
-  /* ONE STEP OF THE STACK, with its own head and its own back button.
-     Every step carries that button and it is not decoration: touchstart
-     declines a touch that starts inside .swipe-screen-body, so there is no tap
-     surface over the model screen, and that screen is 296 of the 575 pixels
-     above the dock at level 2. Tap anywhere is the convenience and the button
-     is the guarantee.
+  /* ONE STEP OF THE STACK, WHICH SINCE BEAD tla-7xql.18 IS THE WHOLE PAGE.
+     Nothing else is drawn at depth, so this is the only child of #swipe-app
+     and it gets 824 of the 844 rather than the 276 it had while the counts,
+     the card and the menu took their own height first.
 
-     THE BODY IS CAPPED AND SCROLLS INSIDE ITSELF, which is R1 of the design.
-     A step taller than the room would put its own tail behind the dock, which
-     is the defect this stack exists to remove, so it is capped in viewport
-     units the way the model screen already was. The two steps that can reach
-     the cap are the explanation, whose correction is free prose, and the level
-     2 pin at a measured 327 pixels against a 40vh cap of 338 at 844. */
+     Every step carries its own back button and it is not decoration:
+     touchstart declines a touch that starts inside a .swipe-screen-body that
+     is scrolling sideways, so there is no tap surface over a wide model, and
+     a wide model is most of the page now. Tap anywhere is the convenience and
+     the button is the guarantee.
+
+     THE BODY IS THE ONE THING HERE THAT GIVES UP ROOM. The head, the claim and
+     the hint take their own height and the body takes the rest, which is the
+     same rule #swipe-app follows one level up and the reason that rule cost
+     the model 66 pixels when the chrome was still in the way.
+
+     ONE LINE OF THE CLAIM COMES ALONG, which is D2. It is drawn where
+     answersLive() is true, so it is on screen for every step about the item in
+     hand and absent on the explanation step, which is about a different item
+     and already carries that item's claim. Two claims from two items on one
+     screen is the confusion this avoids. */
   function renderStep(steps) {
     var v = view;
     var kind = steps[v.depth - 1];
@@ -1020,6 +1146,18 @@
       body.appendChild(renderExplain());
     }
     box.appendChild(body);
+
+    /* THE CLAIM, AT THE FOOT, ON THE DOCK'S OWN TYPE. The class is reused so
+       the type and the gate are one thing rather than two, and the modifier is
+       what keeps it from being squeezed when the body wants the room.
+
+       The whole claim rather than a truncation. 70 of the 432 claims wrap to
+       four lines or more and one to six, measured at the shipped font, and
+       cutting a claim to one rendered line would hide part of the question,
+       which is this bead's own defect in a smaller room. */
+    if (v.current && answersLive(v.depth, steps)) {
+      box.appendChild(el("pre", "swipe-claim swipe-step-claim", v.current.claim));
+    }
 
     if (v.depth < steps.length) {
       box.appendChild(el("p", "swipe-hint",
@@ -1225,11 +1363,11 @@
     if (v.mode === "misses") {
       box.appendChild(el("p", "swipe-verdict", "Nothing is standing wrong."));
       box.appendChild(el("p", null,
-        "The review queue is empty. Switch back to the main stream below."));
+        "The review queue is empty. Switch back to the main stream from the menu."));
     } else if (v.level !== null) {
       box.appendChild(el("p", "swipe-verdict", "Level " + v.level + " is done."));
       box.appendChild(el("p", null,
-        "Switch to all levels below, or export the record."));
+        "Switch to all levels from the menu, or export the record."));
     } else {
       box.appendChild(el("p", "swipe-verdict", "That is all " + v.items.length + "."));
       box.appendChild(el("p", null,
@@ -1239,12 +1377,38 @@
     return box;
   }
 
-  /* The menu, which is everything that is not an answer. The three answer
-     buttons live in the dock with the claim, so they cannot be scrolled away
-     from the question they answer. */
+  /* THE RESTING VIEW GETS ONE CONTROL, bead tla-7xql.18. Eight of them were
+     three rows of buttons at 390 pixels wide, measured at 172 of the 844, and
+     every one is touched once a session against the stream the reader touches
+     on every item. So the eight go behind this one and the resting view gets
+     120 pixels back.
+
+     IT IS v.panel's THIRD VALUE rather than a new mechanism. That is what
+     makes a swipe with the menu open get declined and a tap close it: both
+     rules are already written for stats and the messages, and gesture() reads
+     v.panel rather than naming a panel.
+
+     The three answer buttons are not in here. They live in the dock with the
+     claim, so they cannot be scrolled away from the question they answer. */
   function renderControls() {
     var v = view;
     var box = el("div", "swipe-controls");
+    var bar = el("div", "swipe-menu");
+    bar.appendChild(menuButton("menu", function () {
+      v.panel = "menu";
+      render();
+    }));
+    box.appendChild(bar);
+    return box;
+  }
+
+  /* THE MENU ITSELF, which is everything that is not an answer. A panel like
+     stats and the messages, with its own back button, because that is the
+     pattern this reader already has and a second one would be a second set of
+     rules about what a swipe means while it is open. */
+  function renderMenu() {
+    var v = view;
+    var box = el("div", "swipe-menu-panel");
 
     var menu = el("div", "swipe-menu");
 
@@ -1319,6 +1483,17 @@
     menu.appendChild(menuButton("forget", doForget));
 
     box.appendChild(menu);
+
+    /* The way out, the same one stats and the messages draw. Tap anywhere also
+       closes a panel, through gesture(), and the button is the guarantee for
+       the same reason every step carries one. */
+    var back = el("button", "swipe-btn", "back");
+    back.type = "button";
+    back.addEventListener("click", function () {
+      v.panel = null;
+      render();
+    });
+    box.appendChild(back);
     return box;
   }
 
@@ -1606,6 +1781,75 @@
     return Boolean(node && node.closest && node.closest("a, button, label, input"));
   }
 
+  /* WHICH SCROLLER, IF ANY, SWALLOWS A TOUCH THAT STARTS ON THIS TARGET.
+     Returns the scroller's short name or null, and the name is what the gate
+     reads: a table that only answered yes or no could not tell a decline on
+     the right scroller from a decline on the wrong one.
+
+     THE READING IS CONDITIONAL AND PER AXIS, which is R1 of bead tla-7xql.18.
+     Each scroller is declined on the axis it actually scrolls on, so a drag
+     that cannot scroll anything is a gesture and the whole surface stays
+     usable. The declines used to live inside the touchstart listener, where
+     nothing could drive them.
+
+     The +1 is a rounding tolerance. A box one pixel over its own client size
+     is a subpixel artifact rather than a scroll. */
+  function scrollerDeclining(target) {
+    if (!target || !target.closest) {
+      return null;
+    }
+
+    /* THE MODEL SCREEN, ON THE SIDEWAYS AXIS. The widest screen line is 73
+       characters, which does not fit 390 CSS pixels at any readable size, so
+       a wide model scrolls sideways and a left swipe and that scroll would be
+       one gesture on one pixel: the reader would answer "false" every time
+       they looked along a line.
+
+       IT USED TO DECLINE WHATEVER THE MODEL WAS. That cost almost nothing
+       while the screen was 66 of 844 pixels, and a step is the whole page now,
+       so it would take tap and swipe away from most of the phone and leave the
+       back button as the only way out. Frank ruled the conditional form.
+
+       A MODEL TALLER THAN THE ROOM IS NOT DECLINED, and that is the ruling
+       rather than an oversight. The step leaves about 660 pixels for the model
+       body against the 438 the tallest one wants, so this corpus does not
+       reach it at 844. A viewport short enough to make the screen scroll
+       vertically is where it would start to cost something. */
+    var screen = target.closest(".swipe-screen-body");
+    if (screen && screen.scrollWidth > screen.clientWidth + 1) {
+      return "screen";
+    }
+
+    /* R1 OF THE STACK DESIGN, bead tla-7xql.15. A step taller than the room
+       scrolls inside itself, and a drag in there has to scroll rather than
+       move the stack. */
+    var body = target.closest(".swipe-step-body");
+    if (body && body.scrollHeight > body.clientHeight + 1) {
+      return "step";
+    }
+
+    /* R1 AGAIN, ON THE FLASH, since bead tla-7xql.16. The page no longer
+       scrolls, so a correction taller than the flash has nowhere else to be
+       read. Measured at 390x844 on 2026-10-19 over EVERY item of each pinned
+       rung: 39 of the 48 level 2 corrections run past the flash, by up to 111
+       pixels, against 0 of 144 at level 1.
+
+       So the flash allows pan-y and a drag in an overflowing one scrolls it.
+       Without this line that stroke would scroll the correction and advance
+       off it at once.
+
+       TAP STILL ADVANCES EVERYWHERE IN HERE, which is what makes declining
+       safe: renderFlash() owns a click handler on the box, and the browser
+       raises a click after a tap and suppresses it after a scroll. The
+       discrimination is the browser's rather than this file's. */
+    var flash = target.closest(".swipe-flash");
+    if (flash && flash.scrollHeight > flash.clientHeight + 1) {
+      return "flash";
+    }
+
+    return null;
+  }
+
   function bindGestures(root) {
     var startX = 0;
     var startY = 0;
@@ -1616,46 +1860,9 @@
         tracking = false;
         return;
       }
-      var t = ev.target;
-      if (t && t.closest) {
-        /* THE MODEL SCREEN IS NOT A SWIPE SURFACE. The widest screen line is
-           73 characters, which does not fit 390 CSS pixels at any readable
-           size, so the body scrolls sideways. A left swipe and a sideways
-           scroll would then be the same gesture on the same pixel, and the
-           reader would answer "false" every time they looked along a line. */
-        if (t.closest(".swipe-screen-body")) {
-          tracking = false;
-          return;
-        }
-        /* R1 OF THE STACK DESIGN. A step taller than the room scrolls inside
-           itself, and a drag in there has to scroll rather than move the
-           stack. Declined only when the body is ACTUALLY overflowing, so a
-           step that fits keeps the whole of its surface for tap and swipe. */
-        var body = t.closest(".swipe-step-body");
-        if (body && body.scrollHeight > body.clientHeight + 1) {
-          tracking = false;
-          return;
-        }
-        /* R1 AGAIN, ON THE FLASH, since bead tla-7xql.16. The page no longer
-           scrolls, so a correction taller than the flash has nowhere else to
-           be read. Measured at 390x844 on 2026-10-19 over EVERY item of each
-           pinned rung: 39 of the 48 level 2 corrections run past the flash, by
-           up to 111 pixels, against 0 of 144 at level 1.
-
-           So the flash allows pan-y and a drag in an overflowing one scrolls
-           it. Without this line that stroke would scroll the correction and
-           advance off it at once, which is this bead's own defect in a
-           smaller room.
-
-           TAP STILL ADVANCES EVERYWHERE IN HERE, which is what makes declining
-           safe: renderFlash() owns a click handler on the box, and the browser
-           raises a click after a tap and suppresses it after a scroll. The
-           discrimination is the browser's rather than this file's. */
-        var flash = t.closest(".swipe-flash");
-        if (flash && flash.scrollHeight > flash.clientHeight + 1) {
-          tracking = false;
-          return;
-        }
+      if (scrollerDeclining(ev.target)) {
+        tracking = false;
+        return;
       }
       tracking = true;
       startX = ev.touches[0].clientX;
@@ -1958,6 +2165,14 @@
       depthAfter: depthAfter,
       answersLive: answersLive,
       cardHint: cardHint,
+      /* tla-7xql.18's two, and both are here because a text gate cannot see a
+         table. chromeAt answers what a state draws, over 24 combinations, and
+         scrollerDeclining answers which scroller eats a touch, in BOTH
+         directions: a decline that always fires and a decline that never fires
+         both pass a one-sided check, and the first of those is the defect that
+         bead removed. */
+      chromeAt: chromeAt,
+      scrollerDeclining: scrollerDeclining,
       /* tla-7xql.16's two. applyViewport takes the document rather than
          reaching for a global precisely so it can be driven here, and the
          removal direction is the assertion worth having: a class left on the
