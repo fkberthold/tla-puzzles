@@ -171,6 +171,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* THE HELP CONTROL'S RESTING CORNER, bead tla-7xql.20. The row is here only
+   to put the counts and the i at opposite ends of one line, so the control is
+   in the same corner of the page as it is in a step head. It costs no height:
+   the counts line was already a line. */
+.swipe-counts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* The margin goes because the counts line is no longer the last thing in the
+   box. `.swipe-status p` gives every paragraph 0.4rem underneath, and against
+   an icon centered on the row that reads as a misalignment rather than as
+   spacing. #swipe-app's own 0.7rem gap is what separates the row from what is
+   under it. I have not read the result in a browser, so the claim here is
+   about which box owns the spacing rather than about a pixel. */
+.swipe-counts-row .swipe-counts {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
 /* ---- the model screen, which is the premise ---- */
 
 .swipe-screen {
@@ -228,6 +251,7 @@
 .swipe-stats,
 .swipe-message,
 .swipe-menu-panel,
+.swipe-help-panel,
 .swipe-done {
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.5rem;
@@ -266,6 +290,7 @@
 .swipe-stats,
 .swipe-message,
 .swipe-menu-panel,
+.swipe-help-panel,
 .swipe-done {
   min-height: 11rem;
 }
@@ -363,7 +388,11 @@
   gap: 0.5rem;
 }
 
+/* The label takes the slack, so the back button and the help control sit
+   together at the right end rather than being spread across the head. */
 .swipe-step-where {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -374,6 +403,39 @@
   flex: 0 0 auto;
   min-height: 2.2rem;
   padding: 0.3rem 0.7rem;
+}
+
+/* THE HELP CONTROL, bead tla-7xql.20, AND IT IS THE ONE TRANSLUCENT THING
+   HERE. Frank offered the translucency and it is right for a control that
+   sits in a corner over content: at 0.55 it reads as available without
+   competing with a line of TLA+ for the eye. The panel it opens is opaque,
+   which is the other half of that ruling and the reason this comment names
+   both.
+
+   2.2rem square is 44 pixels at this theme's root size, which is the touch
+   floor every mobile platform publishes and the same height the back button
+   beside it carries. A smaller circle would look better and miss. */
+.swipe-help {
+  flex: 0 0 auto;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--md-typeset-color);
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.swipe-help:hover,
+.swipe-help:focus {
+  opacity: 1;
 }
 
 /* RULE THREE OF THE HEIGHT BUDGET. A step taller than the room above the dock
@@ -478,10 +540,36 @@
 
 .swipe-message p,
 .swipe-done p,
-.swipe-review p {
+.swipe-review p,
+.swipe-help-panel p {
   margin: 0;
   font-size: 0.86rem;
   line-height: 1.6;
+}
+
+/* ---- the gesture table, bead tla-7xql.20 ---- */
+
+/* Two columns because the content is two-dimensional: the gesture and what it
+   means. A grid rather than a flex row per line so the meanings line up down
+   the panel, which is what makes five rows readable at a glance. */
+.swipe-help-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.7rem;
+  align-items: baseline;
+}
+
+.swipe-help-move {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.swipe-help-means {
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 
 /* ---- controls ---- */
@@ -731,6 +819,7 @@ html.swipe-owns-viewport .swipe-flash,
 html.swipe-owns-viewport .swipe-stats,
 html.swipe-owns-viewport .swipe-message,
 html.swipe-owns-viewport .swipe-menu-panel,
+html.swipe-owns-viewport .swipe-help-panel,
 html.swipe-owns-viewport .swipe-done {
   flex: 1 1 auto;
   min-height: 0;
@@ -742,10 +831,13 @@ html.swipe-owns-viewport .swipe-done {
    in here because 39 of the 48 level 2 corrections do not fit, and the rule
    above it is the half that makes the scroll reachable. The menu panel is in
    here because it holds every control the resting view gave up, and a screen
-   shorter than this one is where that list would run past the edge. */
+   shorter than this one is where that list would run past the edge. The help
+   panel is in here for the same reason: five gesture rows and two paragraphs
+   is the longest thing the reader can open that is not a model. */
 html.swipe-owns-viewport .swipe-stats,
 html.swipe-owns-viewport .swipe-message,
 html.swipe-owns-viewport .swipe-menu-panel,
+html.swipe-owns-viewport .swipe-help-panel,
 html.swipe-owns-viewport .swipe-flash {
   overflow: auto;
 }
