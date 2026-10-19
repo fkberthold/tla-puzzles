@@ -599,7 +599,7 @@ five files under `swipe/reader/`:
 ```
 emit-items.sh      turns every corpus into items.json
 render-screens.sh  bakes the model screens into SCREENS.tsv
-SCREENS.tsv        374 screen lines over 24 models. Generated, committed
+SCREENS.tsv        373 screen lines over 24 models. Generated, committed
 swipe.js           the page
 swipe.css          phone-first, because the phone is the only target
 ```

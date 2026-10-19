@@ -1404,7 +1404,11 @@ else
   awk -F'\t' -v OFS='\t' '$1 == "SCREEN" { print $1, $2, $3, $4, $5 } $1 == "EMPTY" { print $1, $2, $3 }' \
     "$SCREENS" > "$COMMITTED"
   if diff -q "$COMMITTED" "$FRESH" > /dev/null 2>&1; then
-    ok "swipe/reader/SCREENS.tsv is byte for byte what the renderers produce ($(grep -c '^SCREEN' "$FRESH") lines)"
+    # awk on field 1, not grep on a prefix. The fresh file carries no
+    # SCREENFMT row so a prefix grep is right here by accident, and the
+    # generator was wrong the same way over the committed file, which does.
+    fresh_n=$(awk -F'\t' '$1 == "SCREEN" { n++ } END { print n + 0 }' "$FRESH")
+    ok "swipe/reader/SCREENS.tsv is byte for byte what the renderers produce ($fresh_n lines)"
   else
     nope "swipe/reader/SCREENS.tsv is stale. Run swipe/reader/render-screens.sh:"
     diff "$COMMITTED" "$FRESH" > "$TMP_ROOT/screens-fresh.diff" 2>&1 || true

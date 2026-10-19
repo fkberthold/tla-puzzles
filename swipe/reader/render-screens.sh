@@ -232,5 +232,11 @@ if ! generate > "$TMP"; then
 fi
 mv "$TMP" "$OUT"
 trap - EXIT
+# awk on field 1 rather than grep on a prefix. `grep -c '^SCREEN'` counts the
+# SCREENFMT row as well, which made this line report 374 against a real 373
+# and put the wrong number into swipe/README.md before the gate printed its
+# own count and the two disagreed.
 printf 'render-screens.sh: wrote %s screen lines and %s empty models to %s\n' \
-  "$(grep -c '^SCREEN' "$OUT")" "$(grep -c '^EMPTY' "$OUT" || true)" "${OUT#"$ROOT"/}"
+  "$(awk -F'\t' '$1 == "SCREEN" { n++ } END { print n + 0 }' "$OUT")" \
+  "$(awk -F'\t' '$1 == "EMPTY" { n++ } END { print n + 0 }' "$OUT")" \
+  "${OUT#"$ROOT"/}"
