@@ -138,10 +138,32 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# The levels this emitter publishes, in the order the payload lists them. A
-# level is a directory under swipe/, so adding one is adding a directory and
-# a row here rather than editing the body below.
-LEVELS="0 1 2"
+# The levels this emitter publishes, in the order the payload lists them.
+#
+# DERIVED FROM THE TREE RATHER THAN LISTED HERE, and that is the whole shape
+# of the failure this bead closed. A list in this file was right the day level
+# 0 was the only corpus and wrong the moment two more landed, with every gate
+# still green. A fourth rung now reaches the page on the day its directory
+# does. harness/test-swipe-reader.sh derives the same set the same way and
+# requires the payload to declare it.
+# A GLOB RATHER THAN A find, because swipe/ is a SYMLINK in the mini-repo
+# harness/test-swipe-reader.sh builds, and find does not follow a symlink it
+# was handed unless told to. The first version of this line used find and the
+# gate went red on nine assertions in part 4 with a generator that could not
+# see a single level.
+LEVELS=""
+for d in "$SWIPE_ROOT"/level*/; do
+  [ -d "$d" ] || continue
+  lvl="${d%/}"
+  LEVELS="$LEVELS ${lvl##*/level}"
+done
+LEVELS="$(printf '%s' "${LEVELS# }" | tr ' ' '\n' | LC_ALL=C sort -n | tr '\n' ' ')"
+LEVELS="${LEVELS% }"
+
+if [ -z "$LEVELS" ]; then
+  echo "emit-items.sh: no level directory under $SWIPE_ROOT" >&2
+  exit 1
+fi
 
 for lvl in $LEVELS; do
   for f in "$SWIPE_ROOT/level$lvl/ITEMS.tsv" "$SWIPE_ROOT/level$lvl/TEMPLATES.tsv"; do
@@ -376,7 +398,18 @@ awk -F'\t' \
     lvl = $1
     id = $3; template = $4; ask = $5; swipe = $7; claim = $10; flash = $12
 
-    want = (lvl == "0") ? 12 : (lvl == "1") ? 14 : 16
+    # The level set is derived from the tree, so a rung can arrive that this
+    # program has no field map for. It dies rather than guessing: reading a
+    # level 3 row with the map for level 2 would publish the wrong columns
+    # under the right names, which is worse than not publishing at all.
+    #
+    # Note for a later editor: this program sits in a single-quoted shell
+    # string, so an apostrophe anywhere in it, including in a comment, ends
+    # the quote and the shell reports a syntax error on the next line.
+    if      (lvl == "0") want = 12
+    else if (lvl == "1") want = 14
+    else if (lvl == "2") want = 16
+    else die("level " lvl " has a corpus and this emitter has no field map for it")
     if (NF != want) die("level " lvl " row " FNR " has " (NF - 1) " fields, expected " (want - 1))
     if (id == "" || template == "" || ask == "")
       die("row " FNR " (" id ") has an empty id, template or ask")
