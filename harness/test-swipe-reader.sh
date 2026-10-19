@@ -2439,11 +2439,18 @@ const declineCases = [
   // A box one pixel over is a rounding artifact, not a scroll.
   ["decline-screen-by-one", [scroller(SCREEN, 1, 0)], null],
   // A MODEL TALLER THAN THE ROOM DOES NOT DECLINE, and that is the ruling
-  // rather than an oversight. Frank ruled the sideways form only. The step
-  // leaves roughly 660 pixels for the model body against the 438 the worst
-  // one wants, so vertical overflow of the screen is out of reach for this
-  // corpus at 844, and a shorter viewport is where it would start to cost
-  // something.
+  // rather than an oversight: Frank named the sideways axis and only the
+  // sideways axis.
+  //
+  // THIS CORPUS DOES REACH IT, on one screen of 24, and this comment used to
+  // say the opposite off two wrong figures. It read 660 pixels of room against
+  // 438 for the worst model. The body is 613.9 measured, the tallest is
+  // 1:Shelves at 29 lines wanting 629.1, and the 438 was a correct reading of
+  // 1:Alternation at 20 lines, which comes to 437.6 and was the model on
+  // screen at the time rather than the worst one. So 1:Shelves scrolls
+  // vertically and a drag in it moves the stack in one stroke. Frank ruled it
+  // stays scrolling. The case below is still right and still what the ruling
+  // asks for.
   ["decline-screen-tall-only", [scroller(SCREEN, 0, 200)], null],
   // The step body keeps the vertical form it already had, unchanged.
   ["decline-step-tall", [scroller(STEPBODY, 0, 50)], "step"],

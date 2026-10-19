@@ -1078,14 +1078,37 @@ sideways. The pattern already sat twelve lines below it, where the
 `.swipe-step-body` decline reads `scrollHeight` against `clientHeight`. The
 screen body takes the sideways form of the same test.
 
-The room says most models now keep the whole page for tap and swipe.
+**This paragraph used to read "the room says most models now keep the whole
+page for tap and swipe", and the conditional decline frees two screens of
+twenty-four.** That is the error worth reading twice, because it is the one
+that flatters the change.
 
-This paragraph used to put a number on that and the number was wrong. It read
-"824 less the step's own head, claim and hint leaves about 660 for the model
-body". A browser read the body at 480.0 pixels with the claim drawn, under
-`tla-7xql.19` the same afternoon, so the arithmetic was 180 pixels over before
-the claim even came out. The chrome around the body is the theme's, so
-subtracting a guess at it was never a reading.
+The room figure behind it was wrong first. It read "824 less the step's own
+head, claim and hint leaves about 660 for the model body". A browser read the
+body at 480.0 pixels with the claim drawn, under `tla-7xql.19` the same
+afternoon, so the arithmetic was 180 pixels over before the claim came out. The
+chrome around the body is the theme's, so subtracting a guess at it was never a
+reading.
+
+But the room was never the question on this axis. The decline fires on
+`scrollWidth` against `clientWidth`, and the same browser pass read the model
+body's client width at 318 pixels and the type at 10.825 pixels a character. So
+29 characters fit across. Against the emitted payload:
+
+| model screens at 390x844 | count |
+|---|---|
+| fit within 29 characters | 2 |
+| overflow sideways | 22 |
+
+The two are `2:Contention` at 25 characters and `1:Contention` at 23. On the
+other 22 the model body still takes no gestures at all, and with the claim gone
+that body is 613.9 of 844. So about three quarters of the step view declines a
+tap on nearly every pinned item.
+
+I think that's the number the next decision rests on, and it doesn't change any
+code here. The conditional decline was right and it bought less than the
+paragraph claimed. What it means for a reader is that on 22 of 24 screens the
+back button isn't a second way out. It's the way out.
 
 `scrollerDeclining()` holds all three declines so the table can be driven with
 no browser, in both directions. That matters more than it sounds. A decline
@@ -1098,12 +1121,20 @@ A model taller than the room isn't declined, and that's the ruling rather than
 an oversight. The sideways axis is the one Frank named.
 
 **This paragraph also claimed the corpus never reaches vertical overflow at
-844, and it does.** The claim rested on the same 660. Measured against the real
-body height, five of the 24 screens overflowed with the claim drawn and one
+844, and it does.** The claim rested on the same 660 and on 438 for "the
+tallest" model. Five of the 24 screens overflowed with the claim drawn and one
 still does without it. So a vertical drag inside `1:Shelves` scrolls the model
 and moves the stack in one stroke, today, on a 390x844 phone. I don't think
 that's urgent, since it's one screen of 24 and it's over by about 15 pixels, but
-it's a live case rather than a hypothetical about shorter viewports.
+it's a live case rather than a hypothetical about shorter viewports. Frank ruled
+it stays scrolling.
+
+**The 438 reconciles, and it was never the tallest.** `1:Alternation` is 20
+lines, and 20 times 21.28 plus 12 of padding is 437.6. So the reading was right
+and the label on it was wrong: it was the model that happened to be on screen,
+not the worst case. The tallest is `1:Shelves` at 29 lines wanting 629.1. A
+correct number carrying the wrong superlative is worse than a wrong number,
+since nothing about it looks off.
 
 #### The card hint closed itself
 

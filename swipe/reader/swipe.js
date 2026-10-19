@@ -1849,14 +1849,30 @@
 
        IT USED TO DECLINE WHATEVER THE MODEL WAS. That cost almost nothing
        while the screen was 66 of 844 pixels, and a step is the whole page now,
-       so it would take tap and swipe away from most of the phone and leave the
-       back button as the only way out. Frank ruled the conditional form.
+       so it would take tap and swipe away from most of the phone. Frank ruled
+       the conditional form.
+
+       AND IT FREES TWO SCREENS OF 24, which is worth stating here because the
+       prose around this decline used to imply most of them. The same browser
+       pass read the model body's client width at 318 pixels and the type at
+       10.825 pixels a character, so 29 characters fit across, and 22 of the 24
+       published screens are wider than that. Only 2:Contention at 25 and
+       1:Contention at 23 fit. On the other 22 this decline still fires over a
+       613.9-pixel body in an 844-pixel view, so the back button is the way out
+       rather than a second one.
 
        A MODEL TALLER THAN THE ROOM IS NOT DECLINED, and that is the ruling
-       rather than an oversight. The step leaves about 660 pixels for the model
-       body against the 438 the tallest one wants, so this corpus does not
-       reach it at 844. A viewport short enough to make the screen scroll
-       vertically is where it would start to cost something. */
+       rather than an oversight: Frank named the sideways axis and only the
+       sideways axis.
+
+       THIS CORPUS DOES REACH IT, on one screen of 24. The paragraph here used
+       to say otherwise, off 660 pixels of room and 438 for the tallest model,
+       and both figures were wrong. The body is 613.9 measured, the tallest is
+       1:Shelves at 29 lines wanting 629.1, and the 438 was a correct reading
+       of 1:Alternation at 20 lines, which is 437.6 and was simply the model
+       on screen at the time. So 1:Shelves scrolls vertically and a drag in it
+       moves the stack in one stroke. Frank ruled it stays scrolling rather
+       than the type shrinking for one screen of 24. */
     var screen = target.closest(".swipe-screen-body");
     if (screen && screen.scrollWidth > screen.clientWidth + 1) {
       return "screen";
