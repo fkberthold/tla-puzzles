@@ -2498,8 +2498,15 @@ fi
 if [ -z "$(printf '%s' "$end_body" | tr -d '[:space:]')" ]; then
   nope "the touchend listener was not found, so the decline ordering check read nothing"
 else
-  axis_line=$(grep -nE 'Math\.abs\(dx\) > Math\.abs\(dy\)' <<<"$end_body" | head -1 | cut -d: -f1)
-  decl_line=$(grep -nE 'scrollerDeclining\(' <<<"$end_body" | head -1 | cut -d: -f1)
+  # First match only, and NOT through `| head -1`: an early-exiting consumer
+  # takes the producer down with SIGPIPE and the pipeline returns 141 under
+  # pipefail, so a present pattern reports as absent. harness/test-pipefail.sh
+  # bans it. Parameter expansion needs no pipe at all: cut to the first line,
+  # then to the first colon, which is where grep -n puts the line number.
+  axis_hits=$(grep -nE 'Math\.abs\(dx\) > Math\.abs\(dy\)' <<<"$end_body" || true)
+  decl_hits=$(grep -nE 'scrollerDeclining\(' <<<"$end_body" || true)
+  axis_line=${axis_hits%%$'\n'*}; axis_line=${axis_line%%:*}
+  decl_line=${decl_hits%%$'\n'*}; decl_line=${decl_line%%:*}
   if [ -z "$axis_line" ] || [ -z "$decl_line" ]; then
     nope "touchend does not both resolve an axis and ask the decline, so the ordering could not be read: axis=[$axis_line] decline=[$decl_line]"
   elif [ "$axis_line" -lt "$decl_line" ]; then
