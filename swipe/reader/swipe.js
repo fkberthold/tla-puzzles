@@ -60,10 +60,10 @@
  *   answer it without scrolling. That is an invariant rather than an
  *   arithmetic result, which is the only kind worth having here.
  *
- *   THE PREMISE SCROLLS. The model screen and the pin sit above the dock and
- *   move with the page. The screen is a collapsible panel, capped in
- *   viewport units and scrolling inside itself both ways, so one model can
- *   never push another layout around.
+ *   THE PREMISE IS A STACK THE READER WALKS UP. At rest the card is the
+ *   question and nothing else, so the premise cannot sit behind the dock
+ *   because none of it is drawn. Swipe up for one step deeper and tap for
+ *   one step back. See THE STACK below.
  *
  *   THE STREAM IS SERVED IN BUCKETS, one per level and model, so the screen
  *   stays put across a run of items and the reader reads it once.
@@ -71,6 +71,56 @@
  * A sideways scroll of the model and a left swipe are then two gestures on
  * one pixel, so the gesture handler declines a touch that starts inside the
  * screen body. The buttons still work there.
+ *
+ * ========================================================================
+ * THE STACK, AND THE FIVE GESTURES
+ * ========================================================================
+ *
+ * Bead tla-7xql.15. Measured in a real browser at a true 390x844 viewport on
+ * 2026-10-19: a level 2 item drew a 296-pixel model screen and a 327-pixel
+ * pin above a dock that left 575 pixels of room, so 198 pixels of pin sat
+ * BEHIND the dock the moment the item appeared. The reader landed on a
+ * "steps to" label with its content covered and nothing to say so.
+ *
+ * Frank ruled against tuning those heights. The premise leaves the resting
+ * view instead and becomes a stack:
+ *
+ *   level 0   1 = the explanation of the last wrong answer
+ *   level 1   1 = the pinned state, 2 = the model, 3 = the explanation
+ *   level 2   1 = from, steps to and where, 2 = the model, 3 = the same
+ *
+ * The list is built from what the item carries rather than from its level,
+ * so an item with no model skips that step instead of drawing an empty one.
+ * stepsFor() is the whole rule.
+ *
+ * EVERY GESTURE KEEPS ONE MEANING IN EVERY STATE, and that is the point
+ * rather than a nicety:
+ *
+ *   right, left, down   true, false, not a claim
+ *   up                  one step deeper
+ *   tap                 one step back
+ *
+ * An earlier draft had down mean "back" while the stack was open. It was
+ * dropped because a reader wrong about which mode they were in would file a
+ * vacuity verdict on an item that is a claim, and the log cannot tell that
+ * from a reader who meant it.
+ *
+ * THE DOCK STAYS WHILE THE STACK IS OPEN, so a step fills the room above it
+ * rather than taking the screen. The dock is the claim and the three
+ * answers, not chrome, and reading the premise with the claim hidden is the
+ * working-memory test the dock was built to prevent. Each step fits above
+ * it alone where the two together did not.
+ *
+ * THE ANSWERS GO DEAD AT THE LAST STEP ONLY. Steps 1 and 2 are the item on
+ * screen, so an answer there is an answer to the question in the dock. The
+ * last step is the explanation of a DIFFERENT item, the last one answered
+ * wrong, so the dock greys out and that is the one visible mode change.
+ *
+ * EVERY STEP DRAWS ITS OWN BACK BUTTON. Tap anywhere is the convenience and
+ * the button is the guarantee, because touchstart declines a touch that
+ * starts inside the model screen body and that body is 296 of the 575
+ * pixels above the dock. A tap surface with a hole in it where the reader's
+ * thumb has just been is not a way out on its own.
  *
  * ========================================================================
  * navigation.instant, AND WHY A PLAIN SCRIPT WOULD BE WRONG HERE
@@ -194,6 +244,26 @@
     right: "true",
     left: "false",
     down: "not a claim"
+  };
+
+  /* THE ENGLISH NAME OF EACH RUNG, which is TLA+'s own level calculus. A
+     level 0 claim is constant, a level 1 claim is about a state and a level 2
+     claim is about a step, so the tag teaches the vocabulary the project
+     exists to make automatic rather than inventing a second one. "level 1"
+     teaches nothing. Level 3 is temporal and this corpus has no rung for it,
+     so a level with no name here shows as itself. */
+  var TAGS = {
+    0: "constant",
+    1: "state",
+    2: "action"
+  };
+
+  /* What each step of the stack is called where the reader can see it. The pin
+     step takes its name from the item, since level 1 pins a state and level 2
+     pins a step, so stepLabel() rather than a fourth entry here. */
+  var STEP_NAMES = {
+    screen: "the model",
+    explain: "the last one you got wrong"
   };
 
   /* What the ask tag means as a question, per rung. A tag with no entry is
@@ -352,6 +422,119 @@
       out[k].push(items[i]);
     }
     return out;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* The stack                                                           */
+  /*                                                                     */
+  /* These four are pure and they are the whole rule, so                  */
+  /* harness/test-swipe-reader.sh drives them through module.exports      */
+  /* rather than grepping the file for a shape. Depth 0 is the resting    */
+  /* card and depth k is step k of stepsFor(), so a depth is only ever    */
+  /* read against the step list it was produced from.                     */
+  /* ------------------------------------------------------------------ */
+
+  /* The pin, as the blocks a renderer draws, in reading order. The labels are
+     the renderers' own, from swipe/level1/render.sh and swipe/level2/render.sh,
+     so a reader who has seen a terminal render sees the same words here.
+
+     A BLOCK WITH NO ROWS IS LEFT OUT, which is what lets stepsFor() ask
+     whether an item has a pin at all without knowing its level. 18 of the 48
+     level 2 items carry no bind list, so that case is live rather than
+     theoretical. */
+  function pinBlocks(item) {
+    var out = [];
+    if (!item) {
+      return out;
+    }
+    if (item.pin && item.pin.length > 0) {
+      out.push({ label: "pinned at", rows: item.pin });
+      return out;
+    }
+    if (item.pre && item.pre.length > 0) {
+      out.push({ label: "from", rows: item.pre });
+    }
+    if (item.post && item.post.length > 0) {
+      out.push({ label: "steps to", rows: item.post });
+    }
+    if (item.binds && item.binds.length > 0) {
+      out.push({ label: "where", rows: item.binds });
+    }
+    return out;
+  }
+
+  /* The steps above the resting card, nearest first.
+
+     BUILT FROM WHAT THE ITEM CARRIES, not from its level. A level 0 item has
+     neither a pin nor a model, so its stack is one step deep and the rung is
+     unchanged by all of this. An item that named a model but shipped no pin
+     would skip the pin step rather than draw an empty panel. That last case is
+     defensive rather than observed: every one of the 192 shipped level 1 and
+     level 2 items names a model and carries a pin, and SCREENS.tsv holds no
+     EMPTY row, so nothing in the corpus today takes the short list.
+
+     THE LAST STEP IS ALWAYS THE EXPLANATION, and it is the one step that is
+     not about the current item. So the list has it even with no item in hand,
+     which is what keeps the review reachable from the done screen. */
+  function stepsFor(item) {
+    var out = [];
+    if (item) {
+      if (pinBlocks(item).length > 0) {
+        out.push("pin");
+      }
+      if (item.model) {
+        out.push("screen");
+      }
+    }
+    out.push("explain");
+    return out;
+  }
+
+  /* Where one gesture leaves the stack. Up goes a step deeper and stops at the
+     top, tap comes a step back and stops at rest, and the three answers never
+     move it. A gesture that cannot move returns the depth it was given, so a
+     caller compares rather than branching on the direction twice. */
+  function depthAfter(dir, depth, steps) {
+    var n = steps.length;
+    if (dir === "up") {
+      return depth >= n ? n : depth + 1;
+    }
+    if (dir === "tap") {
+      return depth <= 0 ? 0 : depth - 1;
+    }
+    return depth;
+  }
+
+  /* Whether the three answers mean anything at this depth. They do wherever
+     the reader is still looking at the item the dock is asking about, which is
+     the resting card and every step but the last. */
+  function answersLive(depth, steps) {
+    if (depth <= 0) {
+      return true;
+    }
+    if (depth > steps.length) {
+      return false;
+    }
+    return steps[depth - 1] !== "explain";
+  }
+
+  /* What a step is called on screen. The pin step is named by the item,
+     because level 1 pins a state and level 2 pins a step, and those are
+     different things to go and read. */
+  function stepLabel(kind, item) {
+    if (STEP_NAMES[kind]) {
+      return STEP_NAMES[kind];
+    }
+    return (item && item.pre) ? "the step" : "the pinned state";
+  }
+
+  /* The one line on the resting card that says the premise is up there. It
+     names the FIRST step, read off the same list the gesture walks, so it
+     cannot promise a step the item does not have. At level 0 that is today's
+     line unchanged, which is the right answer rather than a coincidence: the
+     explanation is still all that rung has above the card. */
+  function cardHint(item) {
+    return "up for " + stepLabel(stepsFor(item)[0], item);
   }
 
   /* ------------------------------------------------------------------ */
@@ -606,26 +789,30 @@
 
     if (v.panel === "stats") {
       v.root.appendChild(renderStats());
-    } else if (v.panel === "review") {
-      v.root.appendChild(renderReview());
     } else if (v.panel === "message") {
       v.root.appendChild(renderMessage());
     } else if (v.flash) {
       v.root.appendChild(renderFlash());
-    } else if (v.current) {
-      /* The premise first and the question last, which is both the reading
-         order and the stacking order: the premise scrolls and the question
-         is docked to the bottom of the viewport. */
-      var screen = renderScreen(v.current);
-      if (screen) {
-        v.root.appendChild(screen);
-      }
-      if (v.current.level !== 0) {
-        v.root.appendChild(renderPin(v.current));
-      }
-      v.root.appendChild(renderCard());
     } else {
-      v.root.appendChild(renderDone());
+      /* THE STEP FIRST AND THE QUESTION LAST, which is both the reading order
+         and the stacking order. At rest there is no step, so the resting view
+         is the question and nothing else and nothing can hide behind the dock.
+         The dock stays drawn while the stack is open. */
+      var steps = stepsFor(v.current);
+      if (v.depth > steps.length) {
+        /* Reachable when the item changed under an open stack, which the menu
+           and the import both do. Clamped rather than reset, so a reader deep
+           in the explanation stays there. */
+        v.depth = steps.length;
+      }
+      if (v.depth > 0) {
+        v.root.appendChild(renderStep(steps));
+      }
+      if (v.current) {
+        v.root.appendChild(renderCard());
+      } else if (v.depth === 0) {
+        v.root.appendChild(renderDone());
+      }
     }
 
     v.root.appendChild(renderControls());
@@ -718,20 +905,14 @@
   }
 
   /* The pin, which is the question's subject. Level 1 pins one state and
-     level 2 pins a step, so one rung draws one block and the other draws
-     three. The labels are the renderers' own, from swipe/level1/render.sh
-     and swipe/level2/render.sh, so a reader who has seen a terminal render
-     sees the same words on the page. */
+     level 2 pins a step, so one rung draws one block and the other draws two
+     or three. pinBlocks() decides which, and it is the same reading stepsFor()
+     uses to know whether the item has a pin step at all. */
   function renderPin(item) {
     var box = el("div", "swipe-pin");
-    if (item.level === 1) {
-      box.appendChild(pinBlock("pinned at", item.pin));
-      return box;
-    }
-    box.appendChild(pinBlock("from", item.pre));
-    box.appendChild(pinBlock("steps to", item.post));
-    if (item.binds && item.binds.length > 0) {
-      box.appendChild(pinBlock("where", item.binds));
+    var blocks = pinBlocks(item);
+    for (var i = 0; i < blocks.length; i++) {
+      box.appendChild(pinBlock(blocks[i].label, blocks[i].rows));
     }
     return box;
   }
@@ -743,20 +924,85 @@
     return g;
   }
 
-  /* THE CARD IS THE DOCK, and it writes the ask tag, the claim and the three
-     answer buttons and nothing else. No item id, for the reason in this
-     file's header, and no template name either: the claim already says what
-     family it is in and the tag is the only label decision D5 asks for.
+  /* ONE STEP OF THE STACK, with its own head and its own back button.
+     Every step carries that button and it is not decoration: touchstart
+     declines a touch that starts inside .swipe-screen-body, so there is no tap
+     surface over the model screen, and that screen is 296 of the 575 pixels
+     above the dock at level 2. Tap anywhere is the convenience and the button
+     is the guarantee.
 
-     The pin is NOT in here. It is premise, it scrolls, and a 7-row level 2
-     pin inside the dock would be a dock taller than half the viewport. */
+     THE BODY IS CAPPED AND SCROLLS INSIDE ITSELF, which is R1 of the design.
+     A step taller than the room would put its own tail behind the dock, which
+     is the defect this stack exists to remove, so it is capped in viewport
+     units the way the model screen already was. The two steps that can reach
+     the cap are the explanation, whose correction is free prose, and the level
+     2 pin at a measured 327 pixels against a 40vh cap of 338 at 844. */
+  function renderStep(steps) {
+    var v = view;
+    var kind = steps[v.depth - 1];
+    var box = el("div", "swipe-step swipe-step-" + kind);
+    box.setAttribute("data-swipe-step", kind);
+
+    /* The head says which step this is and how many there are, so the reader
+       knows there is more above without having to swipe and find out. */
+    var head = el("div", "swipe-step-head");
+    head.appendChild(el("span", "swipe-step-where",
+      stepLabel(kind, v.current) + ", " + v.depth + " of " + steps.length));
+    var back = el("button", "swipe-btn swipe-step-back", "back");
+    back.type = "button";
+    back.addEventListener("click", function () {
+      v.depth = v.depth - 1;
+      render();
+    });
+    head.appendChild(back);
+    box.appendChild(head);
+
+    var body = el("div", "swipe-step-body");
+    body.setAttribute("data-swipe-step-body", "1");
+    if (kind === "pin") {
+      body.appendChild(renderPin(v.current));
+    } else if (kind === "screen") {
+      var screen = renderScreen(v.current);
+      if (screen) {
+        body.appendChild(screen);
+      }
+    } else {
+      body.appendChild(renderExplain());
+    }
+    box.appendChild(body);
+
+    if (v.depth < steps.length) {
+      box.appendChild(el("p", "swipe-hint",
+        "up for " + stepLabel(steps[v.depth], v.current) + ", tap to come back"));
+    } else {
+      box.appendChild(el("p", "swipe-hint", "tap to come back"));
+    }
+    return box;
+  }
+
+  /* THE CARD IS THE DOCK, and it writes the level tag, the ask, the claim and
+     the three answer buttons and nothing else. No item id, for the reason in
+     this file's header, and no template name either: the claim already says
+     what family it is in and the tag is the only label decision D5 asks for.
+
+     NEITHER THE PIN NOR THE MODEL IS IN HERE, and since tla-7xql.15 neither
+     is anywhere else in the resting view. They are premise and they are steps
+     of the stack. That is what makes the resting view fit at every level by
+     construction rather than by arithmetic. */
   function renderCard() {
     var v = view;
     var item = v.current;
     var card = el("div", "swipe-card");
     card.setAttribute("data-swipe-card", "1");
 
-    card.appendChild(el("p", "swipe-ask", PROMPTS[item.ask] || item.ask));
+    /* THE TAG SITS BESIDE THE ASK rather than on a line of its own, so the
+       rung is on screen before the reader answers and the dock is no taller
+       for it. Every pixel here is a pixel of premise the reader does not get. */
+    var ask = el("p", "swipe-ask");
+    ask.appendChild(el("span", "swipe-tag", TAGS[item.level] || ("level " + item.level)));
+    ask.appendChild(el("span", "swipe-ask-text", PROMPTS[item.ask] || item.ask));
+    card.appendChild(ask);
+
     card.appendChild(el("pre", "swipe-claim", item.claim));
 
     var answers = el("div", "swipe-answers");
@@ -765,10 +1011,11 @@
     }
     card.appendChild(answers);
 
-    /* One line, and short, because every pixel here is a pixel of premise
-       the reader does not get. The long form is on the page itself and in
-       the status block on a cold start. */
-    card.appendChild(el("p", "swipe-hint", "up for the last one you got wrong"));
+    /* One line, and short. It names the first step of this item's own stack,
+       so it stops saying "the last one you got wrong" at a rung where up 1 is
+       the state. The hint is how a reader learns the premise is up there at
+       all, which makes it the opposite of decoration here. */
+    card.appendChild(el("p", "swipe-hint", cardHint(item)));
     return card;
   }
 
@@ -787,7 +1034,7 @@
        and that sentence is unreadable without the state it is about. The
        model screen does NOT come along: it is 29 lines at worst and the
        flash is the feedback L2 measured, so it gets the screen to itself. */
-    if (v.flash.item.level !== 0) {
+    if (pinBlocks(v.flash.item).length > 0) {
       box.appendChild(renderPin(v.flash.item));
     }
     box.appendChild(el("pre", "swipe-claim", v.flash.item.claim));
@@ -800,35 +1047,32 @@
     return box;
   }
 
-  /* Decision D4: swipe up carries the explanation of the last WRONG answer,
-     held until the next wrong one. The explanation a wrong answer has is its
-     flash, which is field 11. At the pinned rungs the pin goes with it, since
-     a claim without its pin says nothing. */
-  function renderReview() {
+  /* Decision D4: the top of the stack carries the explanation of the last
+     WRONG answer, held until the next wrong one. The explanation a wrong
+     answer has is its flash, which is field 11. At the pinned rungs the pin
+     goes with it, since a claim without its pin says nothing.
+
+     THE CONTENT IS WHAT THE REVIEW PANEL ALWAYS SHOWED. Only its frame moved:
+     renderStep() owns the head and the back button now, because every step
+     carries one and a step that brought its own would carry two. */
+  function renderExplain() {
     var v = view;
     var box = el("div", "swipe-review");
     if (!v.lastMiss) {
       box.appendChild(el("p", "swipe-hint",
         "Nothing to review yet. This holds the last answer you got wrong."));
-    } else {
-      var item = v.lastMiss.item;
-      box.appendChild(el("p", "swipe-verdict",
-        "You said " + LABELS[v.lastMiss.given] + ". It is " +
-        LABELS[item.swipe] + "."));
-      if (item.level !== 0) {
-        box.appendChild(el("p", "swipe-hint", item.model));
-        box.appendChild(renderPin(item));
-      }
-      box.appendChild(el("pre", "swipe-claim", item.claim));
-      box.appendChild(el("p", "swipe-correction", item.flash));
+      return box;
     }
-    var back = el("button", "swipe-btn", "back");
-    back.type = "button";
-    back.addEventListener("click", function () {
-      v.panel = null;
-      render();
-    });
-    box.appendChild(back);
+    var item = v.lastMiss.item;
+    box.appendChild(el("p", "swipe-verdict",
+      "You said " + LABELS[v.lastMiss.given] + ". It is " +
+      LABELS[item.swipe] + "."));
+    if (pinBlocks(item).length > 0) {
+      box.appendChild(el("p", "swipe-hint", item.model));
+      box.appendChild(renderPin(item));
+    }
+    box.appendChild(el("pre", "swipe-claim", item.claim));
+    box.appendChild(el("p", "swipe-correction", item.flash));
     return box;
   }
 
@@ -954,8 +1198,13 @@
 
     var menu = el("div", "swipe-menu");
 
+    /* STRAIGHT TO THE TOP OF THE STACK, which is where the explanation lives.
+       It is the same step a reader reaches by swiping up through the premise,
+       so the button is a shortcut rather than a second route. */
     menu.appendChild(menuButton("review", function () {
-      v.panel = "review";
+      v.panel = null;
+      v.message = null;
+      v.depth = stepsFor(v.current).length;
       render();
     }));
     menu.appendChild(menuButton("stats", function () {
@@ -969,6 +1218,7 @@
         v.panel = null;
         v.flash = null;
         v.bucket = null;
+        v.depth = 0;
         nextItem();
         render();
       }
@@ -984,6 +1234,7 @@
         v.panel = null;
         v.flash = null;
         v.bucket = null;
+        v.depth = 0;
         nextItem();
         render();
       }
@@ -1009,10 +1260,18 @@
     return box;
   }
 
+  /* THE DOCK GOES DEAD AT THE LAST STEP AND NOWHERE ELSE. stats and the
+     message panels change the subject, and so does the explanation step,
+     which is about the last item answered wrong rather than the one in the
+     dock. Steps 1 and 2 are the SAME item, so an answer there is an answer to
+     the question on screen and the buttons stay live. Before tla-7xql.15 this
+     read `view.panel !== null`, which was right for the panels and had no
+     opinion about a stack that did not exist yet. */
   function answerButton(swipe) {
     var b = el("button", "swipe-btn swipe-answer swipe-answer-" + swipe, LABELS[swipe]);
     b.type = "button";
-    b.disabled = !view.current || view.panel !== null;
+    b.disabled = !view.current || view.panel !== null ||
+      !answersLive(view.depth, stepsFor(view.current));
     b.addEventListener("click", function () {
       answer(swipe);
     });
@@ -1083,6 +1342,11 @@
     if (!v.current || v.panel !== null || v.flash) {
       return;
     }
+    /* The same rule the buttons are disabled by, enforced again here because a
+       keyboard reaches answer() without passing a button. */
+    if (!answersLive(v.depth, stepsFor(v.current))) {
+      return;
+    }
     var item = v.current;
     var verdict = swipe === item.swipe ? "hit" : "miss";
     v.state.log.push({ i: item.id, t: nowStamp(), s: swipe, v: verdict });
@@ -1090,12 +1354,16 @@
     if (verdict === "miss") {
       v.lastMiss = { item: item, given: swipe };
     }
+    /* The flash owns the screen, so the stack closes under it rather than
+       being held open over a different item. */
+    v.depth = 0;
     v.flash = { item: item, given: swipe, verdict: verdict };
     render();
   }
 
   function advance() {
     view.flash = null;
+    view.depth = 0;
     nextItem();
     render();
   }
@@ -1178,6 +1446,7 @@
       v.message = { kind: "info", title: "Imported.", body: body };
       v.flash = null;
       v.bucket = null;
+      v.depth = 0;
       rebuildLastMiss();
       nextItem();
       render();
@@ -1206,6 +1475,14 @@
   /* Gestures                                                            */
   /* ------------------------------------------------------------------ */
 
+  /* A tap on one of these is the control's own business and must not also move
+     the stack. Without it a tap on "true" at depth 1 would answer the item and
+     step back out of the premise in the same motion, which is one touch doing
+     two unrelated things. */
+  function isControl(node) {
+    return Boolean(node && node.closest && node.closest("button, label, input"));
+  }
+
   function bindGestures(root) {
     var startX = 0;
     var startY = 0;
@@ -1216,15 +1493,26 @@
         tracking = false;
         return;
       }
-      /* THE MODEL SCREEN IS NOT A SWIPE SURFACE. The widest screen line is
-         73 characters, which does not fit 390 CSS pixels at any readable
-         size, so the body scrolls sideways. A left swipe and a sideways
-         scroll would then be the same gesture on the same pixel, and the
-         reader would answer "false" every time they looked along a line. */
       var t = ev.target;
-      if (t && t.closest && t.closest(".swipe-screen-body")) {
-        tracking = false;
-        return;
+      if (t && t.closest) {
+        /* THE MODEL SCREEN IS NOT A SWIPE SURFACE. The widest screen line is
+           73 characters, which does not fit 390 CSS pixels at any readable
+           size, so the body scrolls sideways. A left swipe and a sideways
+           scroll would then be the same gesture on the same pixel, and the
+           reader would answer "false" every time they looked along a line. */
+        if (t.closest(".swipe-screen-body")) {
+          tracking = false;
+          return;
+        }
+        /* R1 OF THE STACK DESIGN. A step taller than the room scrolls inside
+           itself, and a drag in there has to scroll rather than move the
+           stack. Declined only when the body is ACTUALLY overflowing, so a
+           step that fits keeps the whole of its surface for tap and swipe. */
+        var body = t.closest(".swipe-step-body");
+        if (body && body.scrollHeight > body.clientHeight + 1) {
+          tracking = false;
+          return;
+        }
       }
       tracking = true;
       startX = ev.touches[0].clientX;
@@ -1240,6 +1528,22 @@
       var dx = t.clientX - startX;
       var dy = t.clientY - startY;
       if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+        /* A TAP, WHICH MEANS ONE STEP BACK. It is handled here and nowhere
+           else: a touch produces a touchend AND a synthesized click, and some
+           browsers synthesize the click after a drag, so a second listener on
+           click would double-fire and a swipe would also step back.
+
+           THE FLASH IS LEFT ALONE. renderFlash() has owned a click handler
+           since tla-7xql.12 and prints "Tap anywhere here for the next one",
+           which is where the reader learns the gesture. Handling a tap here as
+           well would advance twice on one touch. */
+        if (view && view.flash) {
+          return;
+        }
+        if (isControl(ev.target)) {
+          return;
+        }
+        gesture("tap");
         return;
       }
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -1250,18 +1554,38 @@
     }, { passive: true });
   }
 
+  /* THE FIVE GESTURES, EACH WITH ONE MEANING IN EVERY STATE. right, left and
+     down are the three answers, up is one step deeper and tap is one step
+     back. Nothing here reads a mode to decide what a direction means, which is
+     the property the whole design turns on: a reader wrong about which mode
+     they are in would otherwise file a vacuity verdict on a real claim. */
   function gesture(dir) {
     var v = view;
     if (v.panel !== null) {
+      /* stats and the message panels are not steps of the stack, so no answer
+         and no stack move reaches them. Tap still means one step back, which
+         from a panel is out of it. */
+      if (dir === "tap") {
+        v.panel = null;
+        v.message = null;
+        render();
+      }
       return;
     }
     if (v.flash) {
       advance();
       return;
     }
-    if (dir === "up") {
-      v.panel = "review";
-      render();
+    var steps = stepsFor(v.current);
+    if (dir === "up" || dir === "tap") {
+      var d = depthAfter(dir, v.depth, steps);
+      if (d !== v.depth) {
+        v.depth = d;
+        render();
+      }
+      return;
+    }
+    if (!answersLive(v.depth, steps)) {
       return;
     }
     answer(dir);
@@ -1276,11 +1600,14 @@
       if (!view || !view.root.isConnected) {
         return;
       }
+      /* Escape is tap, because a desktop has no tap and the stack still has to
+         be walkable both ways from a keyboard. The four arrows are unchanged. */
       var map = {
         ArrowRight: "right",
         ArrowLeft: "left",
         ArrowDown: "down",
-        ArrowUp: "up"
+        ArrowUp: "up",
+        Escape: "tap"
       };
       var dir = map[ev.key];
       if (!dir) {
@@ -1329,6 +1656,10 @@
       collapsed: {},
       flash: null,
       lastMiss: null,
+      /* How deep the premise stack is open. 0 is the resting card and k is
+         step k of stepsFor(v.current). Separate from panel on purpose: a panel
+         changes the subject and a step does not. */
+      depth: 0,
       panel: null,
       message: null,
       mode: "all"
@@ -1409,12 +1740,16 @@
       });
   }
 
-  /* THE PARSE, EXPORT AND BUCKET HALVES ARE PURE, SO A GATE CAN EXERCISE
-     THEM WITH NO BROWSER. harness/test-swipe-reader.sh requires this file
-     through a script runtime and drives the refusal paths and the bucket
-     split directly rather than grepping for a message. These lines are the
-     only place in this file that knows a module system exists, and a browser
-     takes neither branch. */
+  /* THE PARSE, EXPORT, BUCKET AND STACK HALVES ARE PURE, SO A GATE CAN
+     EXERCISE THEM WITH NO BROWSER. harness/test-swipe-reader.sh requires this
+     file through a script runtime and drives the refusal paths, the bucket
+     split and every depth transition directly rather than grepping for a
+     shape. These lines are the only place in this file that knows a module
+     system exists, and a browser takes neither branch.
+
+     The stack five are exported for that reason and not as an afterthought:
+     the step list and the depth transitions are the whole of tla-7xql.15's
+     rule, and a rule asserted by grep is a rule nobody ran. */
   if (typeof module === "object" && module && module.exports) {
     module.exports = {
       parseLog: parseLog,
@@ -1422,6 +1757,11 @@
       exportText: exportText,
       bucketsOf: bucketsOf,
       bucketKey: bucketKey,
+      pinBlocks: pinBlocks,
+      stepsFor: stepsFor,
+      depthAfter: depthAfter,
+      answersLive: answersLive,
+      cardHint: cardHint,
       LOG_FORMAT: LOG_FORMAT,
       PAYLOAD_VERSION: PAYLOAD_VERSION
     };

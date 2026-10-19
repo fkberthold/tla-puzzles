@@ -33,26 +33,34 @@
  * app, but that number is the theme's and it moves with the theme. A layout
  * that budgets against it is a layout that is wrong after the next bump.
  *
- * So the budget is not arithmetic. It is two rules.
+ * So the budget is not arithmetic. It is three rules.
  *
- * ONE. THE QUESTION IS DOCKED. .swipe-card holds the ask, the claim and the
- * three answer buttons, and it is stuck to the bottom of the viewport.
- * Whatever sits above it, and however tall that is, the reader can read the
- * question and answer it without scrolling. The pin is deliberately NOT in
- * there: it is premise, and a 7-row level 2 pin would make the dock taller
- * than half the screen.
+ * ONE. THE QUESTION IS DOCKED. .swipe-card holds the tag, the ask, the claim
+ * and the three answer buttons, and it is stuck to the bottom of the
+ * viewport. Whatever sits above it, and however tall that is, the reader can
+ * read the question and answer it without scrolling. The pin is deliberately
+ * NOT in there: it is premise, and a 7-row level 2 pin would make the dock
+ * taller than half the screen.
  *
- * TWO. THE PREMISE SCROLLS, and one model cannot push another layout around.
- * .swipe-screen-body is capped in VIEWPORT units and scrolls inside itself
- * both ways. 26vh is 219 pixels at 844, which is 9 of Shelves's 29 lines. No
- * wrapping, because an indented conjunction list that wraps loses the
+ * TWO. THE PREMISE IS NOT IN THE RESTING VIEW AT ALL, since bead
+ * tla-7xql.15. A browser read 198 pixels of level 2 pin sitting behind the
+ * dock on 2026-10-19, because the screen at 296 and the pin at 327 came to
+ * 623 against 575 pixels of room. One step of the stack is drawn at a time
+ * instead, so the resting view fits at every level by construction. Nothing
+ * can hide behind the dock when nothing but the question is drawn.
+ *
+ * THREE. A STEP THAT CANNOT FIT SCROLLS INSIDE ITSELF, and one model cannot
+ * push another layout around. .swipe-screen-body is capped in VIEWPORT units
+ * and scrolls both ways, and .swipe-step-body caps whichever step it holds.
+ * 26vh is 219 pixels at 844, which is 9 of Shelves's 29 lines. No wrapping in
+ * the screen, because an indented conjunction list that wraps loses the
  * alignment that says which conjuncts belong to which action, so the body
- * scrolls sideways instead. swipe.js declines a swipe that starts in there,
- * since otherwise reading along a line would answer the item.
+ * scrolls sideways instead. swipe.js declines a swipe that starts in either
+ * scroller, since otherwise reading along a line would answer the item.
  *
- * The panel is collapsible on top of that, which is the reader's own lever
- * rather than a rule: once the model has been read, collapsing it gives the
- * stream the whole screen, and the bucketed stream means the next ten to
+ * The screen is collapsible on top of that, which is the reader's own lever
+ * rather than a rule: once the model has been read, collapsing it leaves the
+ * head alone on the step, and the bucketed stream means the next ten to
  * twenty items are about the same model.
  *
  * COLOR COMES FROM THE THEME'S OWN VARIABLES, never from literals, so the
@@ -163,6 +171,7 @@
 
 .swipe-card,
 .swipe-flash,
+.swipe-step,
 .swipe-review,
 .swipe-stats,
 .swipe-message,
@@ -175,6 +184,16 @@
   flex-direction: column;
   justify-content: center;
   gap: 0.6rem;
+}
+
+/* A step is a box around one of the three panels, so it carries the frame and
+   the panel inside it does not draw a second one. */
+.swipe-step .swipe-review {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  min-height: 0;
+  background: transparent;
 }
 
 /* RULE ONE OF THE HEIGHT BUDGET. The ask, the claim and the three buttons
@@ -202,12 +221,69 @@
   touch-action: pinch-zoom;
 }
 
+/* The tag and the ask share one row, so the rung is on screen before the
+   reader answers and the dock is no taller for it. */
 .swipe-ask {
   margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+/* THE RUNG IN ENGLISH: constant, state, action. That is TLA+'s own level
+   calculus, so the tag carries weight rather than being greyed out with the
+   ask beside it. */
+.swipe-tag {
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  background: var(--md-code-bg-color);
+  white-space: nowrap;
+}
+
+.swipe-ask-text {
   opacity: 0.7;
+}
+
+/* ---- the stack, which is the premise one step at a time ---- */
+
+/* The head is where the reader is and the way out. The back button is the
+   guarantee that a step can always be left, because swipe.js declines a touch
+   that starts in a scrolling body and that is where a thumb has just been. */
+.swipe-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.swipe-step-where {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.swipe-step-back {
+  flex: 0 0 auto;
+  min-height: 2.2rem;
+  padding: 0.3rem 0.7rem;
+}
+
+/* RULE THREE OF THE HEIGHT BUDGET. A step taller than the room above the dock
+   would put its own tail behind it, which is the defect the stack removes, so
+   the body is capped in viewport units like the model screen. 40vh is 338
+   pixels at 844, against a measured 327 for the tallest level 2 pin, so the
+   common case does not scroll at all. The model screen keeps its own 26vh cap
+   inside this one and is the shorter of the two. */
+.swipe-step-body {
+  max-height: 40vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ---- the pin, which is the question's subject ---- */
@@ -419,5 +495,9 @@
   .swipe-screen-body {
     max-height: 48vh;
     font-size: 0.82rem;
+  }
+
+  .swipe-step-body {
+    max-height: 60vh;
   }
 }

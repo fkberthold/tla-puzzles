@@ -2,9 +2,9 @@
 
 A phone recognition channel graded by TLC. The reader sees a stream of single
 lines and answers each one with a swipe: right for true, left for false, down
-for not a true-or-false claim at all, up to review the last wrong answer.
-Verdicts are baked when the corpus is built, so the phone runs no model
-checker.
+for not a true-or-false claim at all. Up walks into the premise one step at a
+time and tap comes back out. Verdicts are baked when the corpus is built, so
+the phone runs no model checker.
 
 Epic `tla-7xql` carries the contract and the seven locked decisions. This file
 covers what the level 0 rung looks like once there are real items in it, which
@@ -732,19 +732,22 @@ works back to roughly 400 pixels of page, and that number is the theme's
 rather than ours. A layout that budgets against it is wrong after the next
 theme bump, with nothing in the repo to say so.
 
-So the budget is two rules rather than a sum.
+So the budget is three rules rather than a sum.
 
-1. **The question is docked.** `.swipe-card` holds the ask, the claim and the
-   three buttons and sticks to the bottom of the viewport. The reader can read
-   the question and answer it without scrolling, whatever is above it.
-2. **The premise scrolls.** The screen box is capped at 26vh and scrolls
-   inside itself both ways, so one long model cannot push another layout
-   around.
+1. **The question is docked.** `.swipe-card` holds the tag, the ask, the claim
+   and the three buttons and sticks to the bottom of the viewport. The reader
+   can read the question and answer it without scrolling, whatever is above it.
+2. **The premise is not in the resting view at all.** It is a stack the reader
+   walks up, one step at a time. See the section below.
+3. **A step that cannot fit scrolls inside itself.** The screen box is capped
+   at 26vh and a step body at 40vh, so one long model cannot push another
+   layout around.
 
-The pin stays out of the dock, because 278 pixels of it in there is a dock
-that has eaten the room it exists to leave. The screen also folds away on a
-tap, remembered per bucket for the visit, which is the reader's own lever
-rather than a rule.
+Rule 2 is what `tla-7xql.15` added, and rule 3 is the old rule 2 widened to
+cover a step. The pin stays out of the dock either way, because 278 pixels of
+it in there is a dock that has eaten the room it exists to leave. The screen
+also folds away on a tap, remembered per bucket for the visit, which is the
+reader's own lever rather than a rule.
 
 A sideways scroll of the model and a left swipe are two gestures on one pixel,
 so the gesture handler declines a touch that starts inside the screen body.
@@ -772,11 +775,90 @@ mostly unbreakable tokens. Measured over all 432: 156 claims wrap to 2 lines,
 206 to 3, 58 to 4, 11 to 5, and `L1-E3-37` to 6. So 70 of 432 run to four
 lines or more, where the table said one did.
 
-**And level 2 does not fit above the dock.** The screen is 296px and the pin
-327px against 575px of room, so 198px of pin sits behind the dock when the
-item is drawn. The reader lands on a `steps to` label with its content
-covered, and nothing says to scroll. Hiding the model clears it, and that is
-a lever rather than an answer. Filed as `tla-7xql.15`.
+**And level 2 did not fit above the dock.** The screen is 296px and the pin
+327px against 575px of room, so 198px of pin sat behind the dock when the
+item was drawn. The reader landed on a `steps to` label with its content
+covered, and nothing said to scroll. Hiding the model cleared it, and that is
+a lever rather than an answer. Filed as `tla-7xql.15` and fixed by the stack
+below.
+
+### The premise is a stack, and it costs the reader a swipe
+
+Frank ruled on 2026-10-19 against fitting the premise and the question into
+one room. The premise leaves the resting view instead. At rest the card is the
+level tag, the ask, the claim and the three answers, and that is all. Swipe up
+for one step deeper, tap for one step back.
+
+| gesture | meaning |
+|---|---|
+| right, left, down | true, false, not a claim |
+| up | one step deeper |
+| tap | one step back |
+
+**Every gesture keeps one meaning in every state**, and that is the property
+the design turns on rather than a nicety. An earlier draft had down mean back
+while the stack was open. It went because a reader wrong about the mode would
+file a vacuity verdict on a real claim. The log cannot tell that from a reader
+who meant it.
+
+| rung | up 1 | up 2 | up 3 |
+|---|---|---|---|
+| constant | the last one you got wrong | | |
+| state | the pinned state | the model | the last one you got wrong |
+| action | from, steps to, where | the model | the last one you got wrong |
+
+**The list is built from what the item carries, not from its level**, so an
+item with no model skips that step rather than drawing an empty one. Nothing
+in the corpus takes the short list today. All 192 shipped level 1 and 2 items
+name a model and carry a pin, and `SCREENS.tsv` holds no `EMPTY` row. So the
+branch is defensive, and the gate drives it against two items the corpus does
+not have.
+
+**The dock stays while the stack is open.** The dock is the claim and the three
+answers, so reading the premise with the claim hidden is the working-memory
+test the dock was built to prevent. Each step fits above it alone where the two
+together did not: 327px for the tallest pin and 296px for the screen, against
+575px of room.
+
+**The answers go dead at the last step and nowhere else.** Steps 1 and 2 are
+the item in the dock. The last step is the last item you answered wrong, which
+is a different item, so the three buttons grey out there. That is the one
+visible mode change in the reader.
+
+**Every step draws its own back button.** `touchstart` declines a touch that
+starts inside the model screen body, and that body is 296 of the 575 pixels
+above the dock. So tap anywhere is the convenience and the button is the
+guarantee. A tap surface with a hole in it where the reader's thumb has just
+been is not a way out on its own. Escape does the same job from a keyboard.
+
+**The tags are `constant`, `state` and `action`.** Frank asked for an English
+name on each item, and that is TLA+'s own level calculus, so the tag teaches
+the vocabulary the project exists to make automatic. "level 1" teaches
+nothing. Level 3 is temporal and this corpus has no rung for it.
+
+#### What the stack costs
+
+192 of 432 items stop being answerable without at least one swipe, which is
+the 144 level 1 items and the 48 level 2 items. That is a change to the task
+and not only to the layout. A level 1 item used to put the state on screen
+beside the claim, and now it asks the reader to go and get it.
+
+I think that is the right trade at these rungs, and it is worth saying what
+the argument rests on. The occlusion is gone by construction rather than by
+arithmetic, since nothing can sit behind the dock when nothing but the
+question is drawn. Tuning heights would have left the next corpus free to
+break it again.
+
+The cost I would watch is the run rate at level 2. The epic measures
+recognition at flow speed and two swipes per item is not flow. The bucket
+should take most of that back, since a run of ten to twenty items shares one
+model and the model is step 2. The reader reads it once and then walks one
+step for the pin. Whether that holds up is a reading somebody has to take on
+a phone.
+
+**The stack has not been read in a browser.** The step heights above are
+arithmetic again, and arithmetic is what the reading on 2026-10-19 corrected
+twice.
 
 ### The record is a file and the browser is a cache
 

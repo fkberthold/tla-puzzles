@@ -15,6 +15,13 @@
 #   corpus, records the reader's swipe against the baked verdict, and its
 #   source carries neither field 5 nor field 10.
 #
+# and adds tla-7xql.15's:
+#
+#   INVARIANT: the resting view draws no premise, the premise is a stack built
+#   from what the item carries, each of the five gestures keeps one meaning at
+#   every depth, and the three answers are live on every step about the item in
+#   the dock and dead on the one that is not.
+#
 # ===========================================================================
 # WHY THIS SUITE EXISTS, AND IT IS NOT "A FILE IS MISSING"
 # ===========================================================================
@@ -67,19 +74,24 @@
 # the section to be absent, so part 3's assertions discriminate rather than
 # agreeing with themselves.
 #
-# THE IMPORT CONTRACT IS EXECUTED where a script runtime exists. swipe.js
-# exports its pure halves when a module system is present, so part 5 drives
-# the refusal paths directly rather than grepping for a message. Part 5 SKIPS
-# with a loud count where no runtime exists, and part 7 prints that count.
+# THE IMPORT CONTRACT AND THE PREMISE STACK ARE EXECUTED where a script
+# runtime exists. swipe.js exports its pure halves when a module system is
+# present, so part 6 drives the refusal paths and every depth transition
+# directly rather than grepping for a message or a shape. Part 6 SKIPS loudly
+# where no runtime exists, and part 8 prints the skip count.
+#
+# The stack is the half of tla-7xql.15 that CAN be executed. Which element
+# carries the level tag, what the resting view draws and which hint reaches
+# the card are not functions, so part 5 reads those as text and says so.
 #
 # THE SCREENS ARE RE-RENDERED, and that is the one part of this suite that
-# starts a JVM. Part 6 drives swipe/level1/render.sh and swipe/level2/render.sh
+# starts a JVM. Part 7 drives swipe/level1/render.sh and swipe/level2/render.sh
 # over every model the corpora use and requires swipe/reader/SCREENS.tsv to
 # match byte for byte. It writes the normalization again rather than calling
 # the generator's copy, so the committed file is compared against two
 # independent readings of the same renderer.
 #
-# `--static` skips part 6 and nothing else. That is the split
+# `--static` skips part 7 and nothing else. That is the split
 # harness/test-drill.sh and harness/test-completion-gate.sh already use, and
 # scripts/test registers both rows: the static one in the fast tier, the full
 # one in the slow tier where a JVM belongs.
@@ -105,10 +117,14 @@
 #   206 to 3, 58 to 4, 11 to 5, and L1-E3-37 to 6. So 70 of 432 run to four
 #   lines or more where the bead said one did.
 #
-#   at level 2 the premise does not fit above the dock. The screen is 296px
-#   and the pin 327px against 575px of room, so 198px of pin sits BEHIND the
-#   dock when the item is drawn. Scrolling reaches it, and the reader is not
-#   told to. Filed as tla-7xql.15.
+#   at level 2 the premise did not fit above the dock. The screen is 296px
+#   and the pin 327px against 575px of room, so 198px of pin sat BEHIND the
+#   dock when the item was drawn. Scrolling reached it, and the reader was not
+#   told to. Filed and fixed as tla-7xql.15, which took the premise out of the
+#   resting view altogether. THAT FIX HAS NOT BEEN READ IN A BROWSER. It is
+#   sound by construction, since nothing but the question is drawn at rest, but
+#   the step heights above the dock are arithmetic again and arithmetic is what
+#   the first reading corrected twice.
 #
 # The dock itself is what survived. It is sticky at the bottom, so where the
 # question lands does not depend on anything above it, and that held at every
@@ -187,7 +203,7 @@ cleanup() { rm -rf "$TMP_ROOT"; }
 trap cleanup EXIT
 
 echo "test-swipe-reader.sh"
-[ "$STATIC" = "1" ] && echo "  (--static: part 6, the screen re-render, is skipped)"
+[ "$STATIC" = "1" ] && echo "  (--static: part 7, the screen re-render, is skipped)"
 echo ""
 
 if [ -z "$LEVELS" ]; then
@@ -1276,12 +1292,152 @@ else
   nope "a sideways scroll of the model would also read as a left or right swipe"
 fi
 
+# ---------------------------------------------------------------------------
+# THE PREMISE STACK, bead tla-7xql.15. The step list and the depth transitions
+# are functions, so part 6 DRIVES those and nothing here greps for them. What is
+# left over is the half that is not a function: which element carries the tag,
+# what the resting view draws, which hint reaches the card, and the two
+# bindings tap and Escape need.
+#
+# A browser read 198 pixels of level 2 pin sitting behind the dock on
+# 2026-10-19, so the regression these catch is the premise coming BACK into the
+# resting view. That is a two-line change in render() and nothing else in this
+# suite would notice it.
+#
+# Every pattern below is code-shaped rather than prose-shaped, which matters
+# here more than usual: the comment strip above removes the FIRST line of a
+# block comment and leaves its continuation lines, so a bare word like Escape
+# can be matched out of a sentence about Escape.
+# ---------------------------------------------------------------------------
+render_body=$(awk '/^  function render\(\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$render_body" | tr -d '[:space:]')" ]; then
+  nope "render() was not found in the reader, so the resting-view checks read nothing"
+elif grep -qE 'renderPin\(|renderScreen\(' <<<"$render_body"; then
+  nope "render() draws the pin or the model screen itself, so the premise is back in the resting view and can sit behind the dock"
+else
+  ok "render() draws neither the pin nor the model screen, so the resting view is the question alone"
+fi
+
+if grep -qE 'renderStep\(' <<<"$render_body" && grep -qE 'stepsFor\(' <<<"$render_body"; then
+  ok "render() draws the premise through the step list rather than from the level"
+else
+  nope "render() does not go through stepsFor(), so the stack is not what decides the premise"
+fi
+
+step_body=$(awk '/^  function renderStep\(/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$step_body" | tr -d '[:space:]')" ]; then
+  nope "renderStep() was not found, so the back-button check read nothing"
+elif grep -q 'swipe-step-back' <<<"$step_body"; then
+  ok "every stack step draws its own back button, which is the way out tap cannot guarantee"
+else
+  nope "a stack step draws no back button, and tap does not reach inside the model screen body"
+fi
+
+if grep -q '"swipe-tag"' <<<"$card_body" && grep -q 'TAGS\[item.level\]' <<<"$card_body"; then
+  ok "the level tag reaches the dock, where the reader sees it before answering"
+else
+  nope "renderCard() writes no level tag, so the rung is never named in English"
+fi
+
+if grep -qE '0:[[:space:]]*"constant"' "$CODE" &&
+   grep -qE '1:[[:space:]]*"state"' "$CODE" &&
+   grep -qE '2:[[:space:]]*"action"' "$CODE"; then
+  ok "the tags are constant, state and action, which is TLA+'s own level calculus"
+else
+  nope "the level tags are not constant, state and action, so the tag teaches a second vocabulary"
+fi
+
+if grep -q 'cardHint(item)' <<<"$card_body"; then
+  ok "the card hint is derived per item, so it cannot promise a step the item does not have"
+else
+  nope "renderCard() writes a fixed hint, which stops being true at a rung where up 1 is the state"
+fi
+
+keys_body=$(awk '/^  function bindKeys\(\)/, /^  }$/' "$CODE")
+if grep -qE 'Escape:[[:space:]]*"tap"' <<<"$keys_body"; then
+  ok "Escape is bound to tap, so a keyboard can walk the stack back"
+else
+  nope "Escape is not bound, so a desktop reader has no key for step back"
+fi
+if grep -qE 'ArrowUp:[[:space:]]*"up"' <<<"$keys_body" &&
+   grep -qE 'ArrowDown:[[:space:]]*"down"' <<<"$keys_body"; then
+  ok "the four arrows are still bound as they were"
+else
+  nope "an arrow key binding moved, and this bead was not supposed to touch them"
+fi
+
+# THE TAP TARGET EXCLUSION. A tap on a button inside the card bubbles to the
+# root listener, so at depth 1 a tap on "true" would answer the item AND step
+# back out of the premise on one touch.
+if grep -q '"button, label, input"' "$CODE"; then
+  ok "a tap whose target is a control is declined, so answering does not also close the stack"
+else
+  nope "a tap on an answer button would also step the stack back"
+fi
+
+# TAP IS HANDLED IN touchend AND NOWHERE ELSE. A touch produces a touchend and
+# a synthesized click, and some browsers synthesize the click after a drag, so
+# a second listener on click double-fires and a swipe also steps back.
+tap_sites=$(grep -c 'gesture("tap")' "$CODE")
+if [ "$tap_sites" = "1" ]; then
+  ok "tap is raised from one place only, so one touch cannot fire it twice"
+else
+  nope "gesture(\"tap\") is raised from $tap_sites places, and a touch produces both a touchend and a click"
+fi
+
+# AND IT LEAVES THE FLASH ALONE. renderFlash() has owned a click handler since
+# tla-7xql.12 and prints the hint that teaches the gesture, so a tap path that
+# also fired there would advance twice on one touch.
+end_body=$(awk '/addEventListener\("touchend"/, /^    \}, \{ passive: true \}\);$/' "$CODE")
+if [ -z "$(printf '%s' "$end_body" | tr -d '[:space:]')" ]; then
+  nope "the touchend listener was not found, so the flash check read nothing"
+elif grep -qE 'view\.flash' <<<"$end_body"; then
+  ok "the tap path ignores the flash, which already has its own click handler"
+else
+  nope "the tap path does not check the flash, so one tap on a correction advances twice"
+fi
+
+# THE REVIEW IS A STEP RATHER THAN A PANEL, which is what keeps the answers
+# live on the two steps that are about the item in the dock.
+if grep -qE 'panel = "review"' "$CODE"; then
+  nope "the review is still a panel, so swipe up changes the subject instead of opening the premise"
+else
+  ok "the review is the top step of the stack rather than a panel"
+fi
+
+# Read the body of answerButton() rather than the whole file, since the
+# expression wraps over two lines and `disabled = .*answersLive` on one line
+# would be a pattern that depends on how the line happens to be broken.
+button_body=$(awk '/^  function answerButton\(/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$button_body" | tr -d '[:space:]')" ]; then
+  nope "answerButton() was not found, so the dead-dock check read nothing"
+elif grep -qE 'disabled' <<<"$button_body" && grep -qE 'answersLive\(' <<<"$button_body"; then
+  ok "the answer buttons read answersLive(), so the dock dies at the review step and nowhere else"
+else
+  nope "the answer buttons do not consult the stack, so they are live over a different item or dead over this one"
+fi
+
+# RULE THREE OF THE HEIGHT BUDGET. A step taller than the room above the dock
+# would put its own tail behind it, which is the defect the stack removes.
+step_rule=$(awk '/^\.swipe-step-body/, /^\}/' "$CSSCODE")
+if grep -qE 'max-height:[^;]*vh' <<<"$step_rule" && grep -qE 'overflow' <<<"$step_rule"; then
+  ok "a stack step is capped in viewport units and scrolls inside itself"
+else
+  nope "a stack step has no viewport-relative cap, so a tall step puts its own tail behind the dock"
+fi
+
+if grep -q 'swipe-step-body' "$CODE" && grep -qE 'scrollHeight' "$CODE"; then
+  ok "a drag inside an overflowing step scrolls rather than moving the stack, which is R1"
+else
+  nope "a drag inside a scrolling step would move the stack instead of scrolling it"
+fi
+
 echo ""
 
 # ===========================================================================
-# PART 6 -- the import contract, executed
+# PART 6 -- the import contract and the premise stack, executed
 # ===========================================================================
-echo "Part 6: the import contract, executed"
+echo "Part 6: the import contract and the premise stack, executed"
 
 JS_RUNTIME=""
 for c in node nodejs; do
@@ -1292,9 +1448,12 @@ for c in node nodejs; do
 done
 
 if [ -z "$JS_RUNTIME" ]; then
-  skip "no script runtime on this box, so the import refusals were NOT executed"
-  note "that is 6 assertions not run. They are the ones that say a bad file is"
-  note "refused rather than silently starting the record over."
+  skip "no script runtime on this box, so the reader's pure halves were NOT executed"
+  note "that is every assertion in this part: the import refusals, the bucket"
+  note "split, and the whole premise-stack transition table. They are the ones"
+  note "that say a bad file is refused rather than silently starting the record"
+  note "over, and that each of the five gestures keeps one meaning at every"
+  note "depth. No count is written here, because a count in prose rots."
 else
   DRIVER="$TMP_ROOT/drive.js"
   cat > "$DRIVER" <<'DRIVER_EOF'
@@ -1360,6 +1519,116 @@ console.log("bucket-sizes " + (b["0"].length === 2 && b["1:M"].length === 2 ? "O
 const only1 = mod.bucketsOf(items.filter(function (i) { return i.level === 1; }));
 console.log("level-filter " + (Object.keys(only1).sort().join(",") === "1:M,1:N" ? "OK" : "BAD") +
   " " + Object.keys(only1).sort().join(","));
+
+// ===========================================================================
+// THE PREMISE STACK, bead tla-7xql.15.
+//
+// A level 2 item drew 623 pixels of premise into 575 pixels of room, so 198
+// pixels of pin sat behind the dock the moment the item appeared. The fix
+// takes the premise out of the resting view and makes it a stack the reader
+// walks up, and the whole of that rule is four pure functions. They are
+// DRIVEN here rather than asserted by grep, because the thing that has to be
+// true is the transition table and a pattern over the source cannot see one.
+// ===========================================================================
+const l0 = { id: "s0", level: 0, swipe: "right" };
+const l1 = { id: "s1", level: 1, model: "M", pin: ["a = 0"], swipe: "left" };
+const l2 = { id: "s2", level: 2, model: "M", pre: ["a = 0"], post: ["a = 1"],
+             binds: ["p = p1"], swipe: "down" };
+// 18 of the 48 shipped level 2 items carry no bind list, so this is the live
+// case rather than a theoretical one.
+const l2nb = { id: "s3", level: 2, model: "M", pre: ["a = 0"], post: ["a = 1"],
+               binds: [], swipe: "right" };
+// Neither of these two exists in the corpus today: every shipped level 1 and
+// level 2 item names a model and carries a pin. They are what says the list
+// is built from the ITEM rather than from its level number.
+const noScreen = { id: "s4", level: 1, pin: ["a = 0"], swipe: "right" };
+const noPin = { id: "s5", level: 1, model: "M", pin: [], swipe: "right" };
+
+function stepsOf(item) { return mod.stepsFor(item).join(","); }
+const stepCases = [
+  ["steps-level0", l0, "explain"],
+  ["steps-level1", l1, "pin,screen,explain"],
+  ["steps-level2", l2, "pin,screen,explain"],
+  ["steps-level2-no-binds", l2nb, "pin,screen,explain"],
+  ["steps-no-screen", noScreen, "pin,explain"],
+  ["steps-no-pin", noPin, "screen,explain"],
+  ["steps-no-item", null, "explain"]
+];
+for (const [name, item, want] of stepCases) {
+  const got = stepsOf(item);
+  console.log(name + " " + (got === want ? "OK" : "BAD") + " " + got + " (wanted " + want + ")");
+}
+
+// THE WHOLE GESTURE TABLE, every direction from every depth. up goes one
+// deeper and stops at the top, tap comes one back and stops at rest, and the
+// three answers never move the stack at all.
+const s3 = mod.stepsFor(l1);
+const s1 = mod.stepsFor(l0);
+function walk(dir, steps) {
+  const out = [];
+  for (let d = 0; d <= steps.length; d++) { out.push(mod.depthAfter(dir, d, steps)); }
+  return out.join(",");
+}
+const depthCases = [
+  ["depth-up-3step", "up", s3, "1,2,3,3"],
+  ["depth-tap-3step", "tap", s3, "0,0,1,2"],
+  ["depth-right-3step", "right", s3, "0,1,2,3"],
+  ["depth-left-3step", "left", s3, "0,1,2,3"],
+  ["depth-down-3step", "down", s3, "0,1,2,3"],
+  ["depth-up-1step", "up", s1, "1,1"],
+  ["depth-tap-1step", "tap", s1, "0,0"],
+  ["depth-down-1step", "down", s1, "0,1"]
+];
+for (const [name, dir, steps, want] of depthCases) {
+  const got = walk(dir, steps);
+  console.log(name + " " + (got === want ? "OK" : "BAD") + " " + got + " (wanted " + want + ")");
+}
+
+// THE ONE VISIBLE MODE CHANGE. Steps 1 and 2 are the item in the dock, so an
+// answer there answers the question on screen. The last step is the last item
+// answered WRONG, which is a different item, so the dock goes dead.
+function liveness(steps) {
+  const out = [];
+  for (let d = 0; d <= steps.length; d++) { out.push(mod.answersLive(d, steps) ? "live" : "dead"); }
+  return out.join(",");
+}
+const live3 = liveness(s3);
+console.log("answers-3step " + (live3 === "live,live,live,dead" ? "OK" : "BAD") + " " + live3);
+const live1 = liveness(s1);
+console.log("answers-1step " + (live1 === "live,dead" ? "OK" : "BAD") + " " + live1);
+
+// THE HINT IS HOW THE READER LEARNS THE PREMISE IS UP THERE AT ALL, so it has
+// to name this item's own first step. Level 0 keeps the line it always had,
+// which is right rather than a coincidence: the explanation is still all that
+// rung has above the card.
+const hintCases = [
+  ["hint-level0", l0, "up for the last one you got wrong"],
+  ["hint-level1", l1, "up for the pinned state"],
+  ["hint-level2", l2, "up for the step"],
+  ["hint-no-screen", noScreen, "up for the pinned state"],
+  ["hint-no-pin", noPin, "up for the model"]
+];
+for (const [name, item, want] of hintCases) {
+  const got = mod.cardHint(item);
+  console.log(name + " " + (got === want ? "OK" : "BAD") + " \"" + got + "\"");
+}
+
+// The pin blocks, which are what stepsFor() reads to know whether the item
+// has a pin step at all. The labels are the renderers' own words.
+function labelsOf(item) {
+  return mod.pinBlocks(item).map(function (b) { return b.label; }).join(",");
+}
+const pinCases = [
+  ["pin-level0", l0, ""],
+  ["pin-level1", l1, "pinned at"],
+  ["pin-level2", l2, "from,steps to,where"],
+  ["pin-level2-no-binds", l2nb, "from,steps to"],
+  ["pin-no-pin", noPin, ""]
+];
+for (const [name, item, want] of pinCases) {
+  const got = labelsOf(item);
+  console.log(name + " " + (got === want ? "OK" : "BAD") + " [" + got + "]");
+}
 DRIVER_EOF
 
   if "$JS_RUNTIME" "$DRIVER" "$READER_JS" > "$TMP_ROOT/drive.out" 2> "$TMP_ROOT/drive.err"; then
@@ -1455,7 +1724,12 @@ note "lands above the fold. A REAL BROWSER READ IT ON 2026-10-19 at 390x844"
 note "against the published site, and the dock held at every item measured:"
 note "298px at level 1, 269px at level 2, 384px worst case, never off screen."
 note "That reading also found 70 of 432 claims wrapping to four lines or more"
-note "and 198px of level 2 pin sitting behind the dock, which is tla-7xql.15."
+note "and 198px of level 2 pin sitting behind the dock, which was tla-7xql.15."
+note "THE STACK THAT FIXED IT HAS NOT BEEN READ IN A BROWSER. Nothing but the"
+note "question is drawn at rest, so the occlusion is gone by construction, but"
+note "every step height above the dock is arithmetic again and arithmetic is"
+note "what the first reading corrected twice. Part 6 drives the stack's rule"
+note "and no part of this suite can see where a step lands."
 note "A localhost run cannot reproduce the instant-navigation hazard: the"
 note "theme normalizes its sitemap by protocol and hostname and never by"
 note "port, so instant navigation declines every link on a local server."
