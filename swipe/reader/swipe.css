@@ -312,7 +312,23 @@
    .swipe-stats, .swipe-message and .swipe-menu-panel are NOT here on purpose.
    A stats table runs past the screen and has to be readable, and gesture()
    answers nothing but tap while a panel is open, so a pan there is
-   unambiguous already. */
+   unambiguous already.
+
+   .swipe-screen IS NOT HERE EITHER, AND IT IS THE ONE A LATER AUTHOR WILL
+   REACH FOR. Bead tla-7xql.21 made the whole model box dead to gestures,
+   because the name row, the gaps and the bottom padding all look like the
+   model and were all taking swipes. The obvious way to say that in a
+   stylesheet is to refuse panning on the box, and it is wrong: the box is an
+   ancestor of .swipe-screen-body, so the property would intersect down onto
+   the one scroll in this reader that no layout can remove.
+
+   The decline belongs in bindGestures(), which can tell the box from the body
+   and judges them on different grounds. The box is declined whatever the thumb
+   does. The body is judged by what KIND of stroke it was: a swipe by what the
+   body can scroll on that one axis, so a model that scrolls sideways still
+   takes a vertical swipe, and a tap by whether it moved the body at all. A
+   stylesheet cannot draw any of those lines, and a value here would take both
+   axes from everything below it. */
 .swipe-status,
 .swipe-card,
 .swipe-done,

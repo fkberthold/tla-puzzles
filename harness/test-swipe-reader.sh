@@ -692,6 +692,43 @@ SCREEN_OVER_N=1
 SCREEN_OVER_CLAIMED_N=5
 
 # ---------------------------------------------------------------------------
+# THE SHORT VIEWPORT, bead tla-7xql.21, AND ONE HEIGHT WAS NEVER A PHONE
+#
+# Everything above was read at an innerHeight of 844, which is the figure a
+# phone's spec sheet gives. A phone showing its URL bar hands the page 730,
+# and that is the height Frank's own screenshots show. The gate pinned 844
+# alone, so it was green while the defect this bead fixes was on his screen:
+# at 844 one screen overflows vertically and there is no conflict, and at 730
+# four do.
+#
+# 500 is the body's height in central's 730 geometry, read the same way as the
+# two above it: the model box runs 93 to 669, its name row takes 94 to 138,
+# the gap under that 15 and the bottom padding 16, which leaves the body 153
+# to 653. Central read it in Chrome and nothing here can re-derive it.
+#
+# WHY TWO HEIGHTS RATHER THAN THE WORST ONE. A scan that broke would report
+# the same set at both, and these differ by three screens. The short set also
+# has to CONTAIN the tall one, which is a property of the scan rather than of
+# the corpus: a body that is shorter cannot stop a screen overflowing. An
+# assertion on the count alone would miss a scan that returned a different
+# four.
+# ---------------------------------------------------------------------------
+SCREEN_SHORT_VIEW_PX=730
+SCREEN_BODY_SHORT_PX=500
+SCREEN_OVER_SHORT_N=4
+
+# Tallest first, which is the order screens_over sorts in. 1:Ledger and
+# 2:Contention are both 23 lines, and sort's last-resort comparison puts the
+# whole line in order, so the tie is stable rather than lucky.
+#
+# 2:Contention IS THE ONE THAT CONFLICTS, and it is the reason this list is
+# named out rather than counted. It is one of the only two screens narrow
+# enough to fit the body sideways, so under the OLD sideways-only decline it
+# was not declined at all: a vertical drag there scrolled the model AND
+# navigated in one stroke.
+SCREEN_OVER_SHORT_KEYS="1:Shelves 1:Break 1:Ledger 2:Contention"
+
+# ---------------------------------------------------------------------------
 # screens_over <payload> <body height in pixels>
 #
 # One line per screen whose rendered height exceeds that body height:
@@ -1913,10 +1950,23 @@ else
   nope "a stack step has no viewport-relative cap, so a tall step puts its own tail behind the dock"
 fi
 
-if grep -q 'swipe-step-body' "$CODE" && grep -qE 'scrollHeight' "$CODE"; then
-  ok "a drag inside an overflowing step scrolls rather than moving the stack, which is R1"
+# R1 OF THE STACK DESIGN, bead tla-7xql.15, AND BEAD tla-7xql.21 CHANGED WHAT
+# PROVES IT. This used to ask whether the file named .swipe-step-body anywhere
+# and whether it read scrollHeight anywhere, which were two greps over the whole
+# file that never had to be about each other. The decline reads a scroll
+# POSITION now and the capacity words are gone, so the old form would have
+# reddened on a correct file.
+#
+# The behavior is part 6's decline-step-tall and decline-step-fits rows. What is
+# worth asserting here is narrower: the step body is one of the scrollers the
+# mark records, in the function that records them.
+r1_mark=$(awk '/^  function scrollerMark\(/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$r1_mark" | tr -d '[:space:]')" ]; then
+  nope "scrollerMark() was not found, so R1 of the stack design rests on nothing here"
+elif grep -qE '"\.swipe-step-body"' <<<"$r1_mark"; then
+  ok "the step body is one of the scrollers the mark records, so a drag that scrolls a step does not also move the stack, which is R1"
 else
-  nope "a drag inside a scrolling step would move the stack instead of scrolling it"
+  nope "scrollerMark() does not name .swipe-step-body, so a drag inside a scrolling step would move the stack instead of scrolling it"
 fi
 
 # AND ITS STYLE GOES WITH IT. tla-7xql.18 gave .swipe-step-claim `flex: 0 0
@@ -2046,6 +2096,51 @@ else
   nope "the scan names $over_claimed_n overflowing screens at ${SCREEN_BODY_CLAIMED_PX}px where central measured $SCREEN_OVER_CLAIMED_N, so the line count is wrong rather than the layout"
 fi
 
+# ---------------------------------------------------------------------------
+# THE SAME SCAN ON A PHONE SHOWING ITS URL BAR, bead tla-7xql.21.
+#
+# The two scans above both read 844. That is why this suite was green on the
+# morning Frank reported a drag on the model filing "not a claim": the height
+# he was holding was 730, where four screens scroll vertically instead of one,
+# and one of the four fits sideways and so took a gesture AND a scroll from the
+# same stroke.
+#
+# ONE VIEWPORT HEIGHT IS NOT A MEASUREMENT OF A PHONE. That is the lesson this
+# block exists to keep, and it is why the next author who changes the type size
+# gets two numbers to re-read rather than one.
+# ---------------------------------------------------------------------------
+over_short=$(screens_over "$PAYLOAD" "$SCREEN_BODY_SHORT_PX")
+over_short_n=$(grep -c . <<<"$over_short")
+over_short_keys=$(cut -f1 <<<"$over_short" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+if [ "$over_short_n" = "$SCREEN_OVER_SHORT_N" ] && [ "$over_short_keys" = "$SCREEN_OVER_SHORT_KEYS" ]; then
+  ok "at the ${SCREEN_BODY_SHORT_PX}px body a ${SCREEN_SHORT_VIEW_PX}px phone gives, $SCREEN_OVER_SHORT_N screens scroll vertically and they are $SCREEN_OVER_SHORT_KEYS"
+else
+  nope "the ${SCREEN_BODY_SHORT_PX}px scan names $over_short_n screens [$over_short_keys], where central measured $SCREEN_OVER_SHORT_N [$SCREEN_OVER_SHORT_KEYS]"
+fi
+
+# THE CONTAINMENT IS THE CONTROL. A shorter body cannot stop a screen
+# overflowing, so every screen over at 613.9 has to be over at 500 as well.
+# That is a property of the scan rather than of this corpus, so it still fires
+# when the payload changes under it, and it is the half a count cannot see.
+#
+# The membership test is a shell `case` rather than a grep on purpose. The
+# idiom this would otherwise reach for, an alternation of a leading anchor
+# against a space, is the one shape the Bash tool's ugrep answers differently
+# from GNU, so a hand-run of this line and the gate's own run could disagree.
+# A glob over a space-padded string has no such question.
+short_missing=""
+for k in $over_keys; do
+  case " $over_short_keys " in
+    *" $k "*) ;;
+    *) short_missing="$short_missing $k" ;;
+  esac
+done
+if [ -z "$short_missing" ]; then
+  ok "every screen that overflows the taller body also overflows the shorter one, so the two scans are one scan at two heights"
+else
+  nope "the ${SCREEN_BODY_SHORT_PX}px scan dropped [$short_missing], which a shorter body cannot do, so the scan is wrong rather than the corpus"
+fi
+
 tallest_lines=$(awk -F'\t' -v k="$SCREEN_TALLEST" '$1 == k { print $2 }' <<<"$(screens_of "$PAYLOAD")")
 if [ "$tallest_lines" = "$SCREEN_TALLEST_LINES" ]; then
   ok "$SCREEN_TALLEST is still $SCREEN_TALLEST_LINES lines, which is the corpus the pixel heights were read against"
@@ -2162,10 +2257,25 @@ fi
 # So the rule is: set the property on the surfaces that are gestures, and never
 # on #swipe-app or on either scroller.
 # ---------------------------------------------------------------------------
-for sel in '#swipe-app' '.swipe-screen-body'; do
+# .swipe-screen JOINS THE LIST IN BEAD tla-7xql.21, and it is the one a future
+# author will reach for. P1 of that bead makes the whole model box dead to
+# gestures, and the obvious way to say so in a stylesheet is to refuse panning
+# on the box. That would intersect down onto .swipe-screen-body and take away
+# the one scroll in the reader no layout can remove. The decline belongs in the
+# gesture handler, where it can tell the box from the body, and nowhere here.
+#
+# THE EXISTENCE HALF IS WHY THIS IS NOT TWO LINES. "No rule sets the property"
+# is green when no rule names the selector at all, so a renamed or deleted
+# selector would read as a pass forever. Each one is therefore asserted to be
+# in the stylesheet before it is asserted to be quiet, which is CLAUDE.md's
+# completeness rule turned on the gate rather than on the claim.
+for sel in '#swipe-app' '.swipe-screen' '.swipe-screen-body'; do
+  named=$(grep -cF "$sel " "$CSSRULES")
   rule=$(grep -F "$sel " "$CSSRULES" | grep -F 'touch-action' || true)
-  if [ -z "$rule" ]; then
-    ok "$sel sets no touch-action, so it cannot take the sideways scroll away from the model screen"
+  if [ "$named" = "0" ]; then
+    nope "$sel is in no rule of the stylesheet, so the touch-action check on it was vacuous rather than passing"
+  elif [ -z "$rule" ]; then
+    ok "$sel is styled in $named rules and sets no touch-action in any of them, so it cannot take the sideways scroll away from the model screen"
   else
     nope "$sel sets touch-action, which intersects down the chain and would kill the model screen's sideways scroll: $rule"
   fi
@@ -2204,41 +2314,224 @@ else
   nope "the flash refuses pan-y, and 39 of the 48 level 2 corrections are taller than it: $ta_flash"
 fi
 
-# THE THREE DECLINES MOVED OUT OF THE LISTENER IN BEAD tla-7xql.18, so part 6
-# can drive the table in both directions. What is left here is the half a
-# driver cannot see: that the listener goes through the one function rather
-# than carrying a fourth condition of its own.
-decline_body=$(awk '/^  function scrollerDeclining\(/, /^  }$/' "$CODE")
-if [ -z "$(printf '%s' "$decline_body" | tr -d '[:space:]')" ]; then
+# ---------------------------------------------------------------------------
+# THE DECLINE IS PER AXIS, bead tla-7xql.21, AND THAT IS AN ARCHITECTURAL
+# CHANGE RATHER THAN A BETTER NUMBER
+#
+# It used to decide from WHERE THE TOUCH STARTED and ask of that region whether
+# the BOX could overflow. Both halves were wrong. The parts of the step that
+# look like the model are not the scroller, so a region test on the body could
+# never cover them, and a whole-box capacity test kills both axes whenever
+# either one overflows while missing the case Frank hit: a body that scrolls
+# down while it fits sideways.
+#
+# So the decline is two functions and the pair is the whole rule:
+#
+#   scrollerMark(target)         at touchstart, WHICH scrollers the thumb is in
+#   scrollerDeclining(mark, axis) at touchend, WHETHER one takes this stroke
+#
+# WHAT THE CHECKS BELOW CAN AND CANNOT SEE. Part 6 drives the pair over a table
+# of (start element, per-axis overflow, gesture axis), which is where the
+# behavior is pinned. What is left here is the half a driver cannot see: that
+# neither listener carries a reading of its own, that the rule reads capacity
+# on BOTH axes, and that it reads no scroll POSITION at all.
+#
+# TWO RULES AND THE STROKE PICKS ONE, which is the part a reader is most likely
+# to read as indecision. It is a split, and the split is:
+#
+#   a swipe, which has an axis   CAPACITY on that one axis
+#   a tap, which has none        whether the position MOVED
+#
+# Each is right for the stroke it judges and wrong for the other. A swipe
+# cannot use the position, because the browser may legitimately have hit a
+# limit: at the bottom of 1:Shelves a further drag down moves nothing, so a
+# delta reads zero and files "not a claim". A tap cannot use the capacity,
+# because a tap is spelled "both deltas under SWIPE_THRESHOLD" and that is 55
+# pixels while a small deliberate scroll is 30 or 40, so a short flick reads as
+# a tap and filing it throws the reader out of the model.
+# ---------------------------------------------------------------------------
+# THE TWO HELPERS ARE READ AS PART OF THE RULE rather than as functions of
+# their own. overflowsOn() holds the capacity pairs and movedFrom() holds the
+# position comparison, and both are helpers because scrollerDeclining() picks
+# between them in one line. A check that read scrollerDeclining() alone would
+# redden on a correct file for having had them factored out.
+mark_body=$(awk '/^  function scrollerMark\(/, /^  }$/' "$CODE")
+mark_body="$mark_body
+$(awk '/^  function scrollerAt\(/, /^  }$/' "$CODE")"
+rule_body=$(awk '/^  function scrollerDeclining\(/, /^  }$/' "$CODE")
+decline_body="$rule_body
+$(awk '/^  function overflowsOn\(/, /^  }$/' "$CODE")
+$(awk '/^  function movedFrom\(/, /^  }$/' "$CODE")"
+
+if [ -z "$(printf '%s' "$mark_body" | tr -d '[:space:]')" ]; then
+  nope "scrollerMark() was not found, so nothing records which scrollers the thumb landed in"
+elif [ -z "$(printf '%s' "$decline_body" | tr -d '[:space:]')" ]; then
   nope "scrollerDeclining() was not found, so the scroller declines are back inside the listener where no driver reaches them"
-elif grep -qE 'swipe-flash' <<<"$decline_body" && grep -qE 'scrollHeight' <<<"$decline_body"; then
-  ok "a drag inside an overflowing flash scrolls the correction instead of advancing past it"
 else
-  nope "the decline table does not refuse an overflowing flash, so one stroke would scroll the correction AND advance off it"
+  ok "the decline is a mark taken at touchstart and a per-axis reading at touchend, both of them functions a driver reaches"
 fi
 
-# R1 OF THIS BEAD. The screen-body decline was UNCONDITIONAL, which was almost
-# free at 66 of 844 pixels and is most of the phone once a step is the whole
-# page. The horizontal reading is what makes it conditional, and scrollWidth is
-# the word that says so: scrollHeight on the screen body would be the wrong
-# axis and would read as a fix.
-screen_decline=$(grep -A2 -F 'swipe-screen-body' <<<"$decline_body" || true)
-if [ -z "$(printf '%s' "$screen_decline" | tr -d '[:space:]')" ]; then
-  nope "nothing in scrollerDeclining() names the model screen body, so a sideways scroll of the model is a left swipe again"
-elif grep -qE 'scrollWidth' <<<"$screen_decline" && grep -qE 'clientWidth' <<<"$screen_decline"; then
-  ok "the model screen is declined on the sideways axis only, so a model that fits keeps the whole page for tap and swipe"
+# BOTH AXES, EACH WITH ITS OWN PAIR. The sideways pair alone is tla-7xql.18's
+# ruling, which is what shipped the defect. The vertical pair alone would take
+# the sideways decline away from 22 screens of 24.
+if [ -z "$(printf '%s' "$decline_body" | tr -d '[:space:]')" ]; then
+  nope "scrollerDeclining() was not found, so the per-axis check read nothing"
+elif grep -qE 'scrollWidth' <<<"$decline_body" && grep -qE 'clientWidth' <<<"$decline_body" &&
+     grep -qE 'scrollHeight' <<<"$decline_body" && grep -qE 'clientHeight' <<<"$decline_body"; then
+  ok "the rule compares scrollWidth against clientWidth and scrollHeight against clientHeight, so each axis has its own reading"
 else
-  nope "the model screen decline does not read scrollWidth against clientWidth, so it is either unconditional or on the wrong axis: $screen_decline"
+  nope "the decline does not carry both capacity pairs, so one axis is either unconditional or unasked: $(grep -oE 'scroll(Width|Height)|client(Width|Height)' <<<"$decline_body" | LC_ALL=C sort -u | tr '\n' ' ')"
 fi
 
+# IT TAKES THE AXIS AS AN ARGUMENT, which is what makes it per-axis rather than
+# two tests joined by an or. A function reading both pairs and returning their
+# disjunction would pass the check above and be tla-7xql.18 again.
+if [ -z "$(printf '%s' "$decline_body" | tr -d '[:space:]')" ]; then
+  nope "scrollerDeclining() was not found, so the axis-argument check read nothing"
+elif grep -qE 'function scrollerDeclining\(mark, axis\)' <<<"$decline_body" &&
+     grep -qE 'axis === "x"' <<<"$decline_body"; then
+  ok "the decline takes the gesture's axis and branches on it, so an overflow on the other axis does not take this stroke"
+else
+  nope "scrollerDeclining() does not take an axis and branch on it, so either axis overflowing declines both, which is the tla-7xql.18 defect"
+fi
+
+# AND IT READS A POSITION TOO, ON BOTH AXES, which is the tap half. A tap that
+# scrolled the model was never a tap, and the only way to know is to compare
+# against where the scroller stood when the touch began.
+if [ -z "$(printf '%s' "$mark_body$decline_body" | tr -d '[:space:]')" ]; then
+  nope "the decline functions were not found, so the position check read nothing and would have passed on an empty file"
+elif grep -qE 'scrollTop' <<<"$mark_body$decline_body" &&
+     grep -qE 'scrollLeft' <<<"$mark_body$decline_body"; then
+  ok "the decline reads a scroll position on both axes as well as a capacity, which is what lets a tap be judged by what moved"
+else
+  nope "the decline reads no scroll position, so a short flick under the 55-pixel threshold reads as a tap and throws the reader out of the model"
+fi
+
+# ---------------------------------------------------------------------------
+# AND THE TWO READINGS ARE ON DIFFERENT PATHS, WITH THE AXIS CHOOSING.
+#
+# This is the check that stops the synthesis collapsing back into one of the
+# four rules that were wrong. A file carrying both readings would satisfy every
+# check above while applying the capacity to a tap, or the delta to a swipe,
+# and either of those is a defect this bead already met.
+#
+# Part 6 is where the pairing is pinned, over strokes with and without an axis.
+# What is left here is that scrollerDeclining() names both readings itself
+# rather than one of them being dead code.
+# ---------------------------------------------------------------------------
+if [ -z "$(printf '%s' "$rule_body" | tr -d '[:space:]')" ]; then
+  nope "scrollerDeclining() was not found, so the two-path check read nothing"
+elif grep -qE 'overflowsOn\(' <<<"$rule_body" &&
+     grep -qE 'movedFrom\(' <<<"$rule_body" &&
+     grep -qE 'axis \?' <<<"$rule_body"; then
+  ok "scrollerDeclining() calls both readings and the axis picks between them, so a swipe is judged by capacity and a tap by what moved"
+else
+  nope "scrollerDeclining() does not pick between a capacity and a position reading on the axis, so one stroke is being judged by the other's rule: $(grep -oE 'overflowsOn\(|movedFrom\(|axis \?' <<<"$rule_body" | tr '\n' ' ')"
+fi
+
+# P1 OF THIS BEAD. The model's own NAME ROW, the two gaps inside its box and
+# its bottom padding are all outside .swipe-screen-body, so a region test on
+# the body never covered them. Central read 143 of 730 pixels sitting on or
+# around the model box and taking gestures. The box is what gets declined now.
+#
+# IT IS A REGION RULE AND NOT A CAPACITY ONE, which is why P1 needs its own
+# branch rather than falling into the per-axis reading below it. The name row
+# fits its own content, so asking it what it can scroll answers "nothing" and
+# files a verdict. It has to be dead for what it LOOKS like, and no measurement
+# of the element reports that.
+#
+# THE NEGATION IS THE LOAD-BEARING WORD. Declining .swipe-screen on its own,
+# with no exception for the part of it that scrolls, would take the body's own
+# per-axis reading out of reach and kill every gesture over the model, which is
+# what tla-7xql.15 did.
+if [ -z "$(printf '%s' "$mark_body" | tr -d '[:space:]')" ]; then
+  nope "scrollerMark() was not found, so the model-box check read nothing"
+elif grep -qE '"\.swipe-screen"' <<<"$mark_body" &&
+     grep -qE '"\.swipe-screen-body"' <<<"$mark_body"; then
+  ok "the mark names the whole model box and the scrolling part of it separately, which is what makes the name row dead and the body read per axis"
+else
+  nope "scrollerMark() does not name both .swipe-screen and .swipe-screen-body, so either the name row still takes a gesture or the body has lost its own reading: $(grep -oE '"\.swipe-[a-z-]*"' <<<"$mark_body" | tr '\n' ' ')"
+fi
+
+# ---------------------------------------------------------------------------
+# NEITHER LISTENER CARRIES A RULE OF ITS OWN, which is what keeps part 6's
+# table the whole of the behavior. The touchstart half is the check this file
+# has carried since tla-7xql.18. The touchend half is new, because that is
+# where the decline now happens, and a condition written there would be
+# invisible to every driver.
+#
+# THE FORBIDDEN WORDS ARE ALL FOUR. A listener could cheat with a capacity
+# reading or with a position one, and either would be a second copy of the rule
+# that no driver reaches.
+#
+# THE ORDER INSIDE touchend IS NOT CHECKED HERE and part 6 cannot see it
+# either, so it is worth naming. The axis has to be read before the decline can
+# be asked, so the decline sits after dx and dy and before anything is filed. A
+# decline moved above them would be asked with no axis and would file every
+# swipe over a scrolling model.
+# ---------------------------------------------------------------------------
 start_body=$(awk '/addEventListener\("touchstart"/, /^    \}, \{ passive: true \}\);$/' "$CODE")
 if [ -z "$(printf '%s' "$start_body" | tr -d '[:space:]')" ]; then
   nope "the touchstart listener was not found, so the one-route check read nothing"
-elif grep -qE 'scrollerDeclining\(' <<<"$start_body" &&
-     ! grep -qE 'scrollHeight|scrollWidth' <<<"$start_body"; then
-  ok "touchstart asks the decline table and holds no scroll reading of its own"
+elif grep -qE 'scrollerMark\(' <<<"$start_body" &&
+     ! grep -qE 'scrollHeight|scrollWidth|scrollTop|scrollLeft' <<<"$start_body"; then
+  ok "touchstart takes the mark through the one function and holds no scroll reading of its own"
 else
-  nope "touchstart reads a scroller directly, so part 6's table is not the whole rule any more"
+  nope "touchstart reads a scroller directly, or never takes a mark, so part 6's table is not the whole rule any more"
+fi
+
+end_body=$(awk '/addEventListener\("touchend"/, /^    \}, \{ passive: true \}\);$/' "$CODE")
+if [ -z "$(printf '%s' "$end_body" | tr -d '[:space:]')" ]; then
+  nope "the touchend listener was not found, so the decline route check read nothing"
+elif grep -qE 'scrollerDeclining\(' <<<"$end_body" &&
+     ! grep -qE 'scrollHeight|scrollWidth|scrollTop|scrollLeft' <<<"$end_body"; then
+  ok "touchend asks the one decline function and holds no scroll reading of its own"
+else
+  nope "touchend decides the decline itself rather than asking scrollerDeclining(), so part 6's table is not the whole rule any more"
+fi
+
+# THE AXIS IS READ BEFORE THE DECLINE IS ASKED, which part 6 cannot see because
+# the table hands the axis in rather than deriving it. A decline moved above
+# the dx and dy reads would be asked with a null axis on every swipe, and a
+# null axis is how a TAP is spelled, so every swipe over a scrolling model
+# would file. That is the whole defect, reachable by reordering two lines.
+if [ -z "$(printf '%s' "$end_body" | tr -d '[:space:]')" ]; then
+  nope "the touchend listener was not found, so the decline ordering check read nothing"
+else
+  # First match only, and NOT through `| head -1`: an early-exiting consumer
+  # takes the producer down with SIGPIPE and the pipeline returns 141 under
+  # pipefail, so a present pattern reports as absent. harness/test-pipefail.sh
+  # bans it. Parameter expansion needs no pipe at all: cut to the first line,
+  # then to the first colon, which is where grep -n puts the line number.
+  axis_hits=$(grep -nE 'Math\.abs\(dx\) > Math\.abs\(dy\)' <<<"$end_body" || true)
+  decl_hits=$(grep -nE 'scrollerDeclining\(' <<<"$end_body" || true)
+  axis_line=${axis_hits%%$'\n'*}; axis_line=${axis_line%%:*}
+  decl_line=${decl_hits%%$'\n'*}; decl_line=${decl_line%%:*}
+  if [ -z "$axis_line" ] || [ -z "$decl_line" ]; then
+    nope "touchend does not both resolve an axis and ask the decline, so the ordering could not be read: axis=[$axis_line] decline=[$decl_line]"
+  elif [ "$axis_line" -lt "$decl_line" ]; then
+    ok "touchend resolves the gesture's axis before it asks the decline, so a swipe is never declined with the axis a tap uses"
+  else
+    nope "touchend asks the decline at line $decl_line before it resolves the axis at line $axis_line, so every swipe is asked with no axis and files over a scrolling model"
+  fi
+fi
+
+# THE LISTENERS STAY PASSIVE. Passive means this file cannot cancel the
+# browser's scroll, which is correct: the browser should scroll, and all this
+# code decides is whether to ALSO fire a gesture. A non-passive listener could
+# preventDefault() and then the box's own capacity would no longer say what the
+# reader's thumb actually reached.
+#
+# Each listener is counted on its own rather than over the two joined. A
+# command substitution drops the trailing newline, so concatenating the two
+# bodies welds the last line of one onto the first line of the next and a
+# line-counting grep answers for a line that exists in neither file.
+passive_start=$(grep -cF '{ passive: true }' <<<"$start_body")
+passive_end=$(grep -cF '{ passive: true }' <<<"$end_body")
+if [ "$passive_start" -ge 1 ] && [ "$passive_end" -ge 1 ]; then
+  ok "both touch listeners stay passive, so the browser does the scrolling and this file only decides whether to also fire a gesture"
+else
+  nope "touchstart declares passive $passive_start times and touchend $passive_end, where both of them must, so this file can cancel the scroll it is trying to measure"
 fi
 
 # THE STEP BODY HAS TO KEEP BOTH AXES. The model screen is inside it, so a
@@ -2635,27 +2928,93 @@ console.log("card-hint-unreachable-at-depth " + (hintReach === "" ? "OK" : "BAD"
   " card drawn at depth:" + (hintReach || " none"));
 
 // ===========================================================================
-// R1, WHICH THIS BEAD CREATES AND HAS TO SOLVE.
+// THE DECLINE, AND SINCE BEAD tla-7xql.21 IT IS TWO RULES WITH THE STROKE
+// CHOOSING BETWEEN THEM.
 //
-// bindGestures() declined every touch starting inside .swipe-screen-body,
-// unconditionally. At 66 of 844 pixels that was almost nothing. Full-page it
-// is most of the screen, and the back button would be the only way out of a
-// view filling the phone.
+// THE SPLIT FIRST, because "we use both" reads as indecision unless it is
+// written down:
 //
-// Frank's mitigation: decline only when the line ACTUALLY overflows sideways.
-// The pattern was already twelve lines below it, where the .swipe-step-body
-// decline reads scrollHeight against clientHeight, so the screen body takes
-// the horizontal form of the same reading.
+//   a swipe, which has an axis   CAPACITY on that one axis
+//   a tap, which has none        whether the position MOVED
+//
+// Each rule is right for the stroke it judges and wrong for the other, and the
+// table below pins both pairings. A swipe cannot use the position, because the
+// browser may legitimately have hit a limit. A tap cannot use the capacity,
+// because a tap is spelled "both deltas under SWIPE_THRESHOLD" and that is 55
+// pixels while a deliberate small scroll is 30 or 40.
+//
+// THIS TABLE HAS HELD FIVE RULES AND THREE OF THEM WERE WRONG. The history is
+// here rather than in a diff, because a reader who finds five shapes in the
+// log should be able to see which three failed and why.
+//
+//   1  tla-7xql.15, REGION, every stroke. Every touch starting inside
+//      .swipe-screen-body was declined, whatever the model looked like. Almost
+//      free at 66 of 844 pixels, and most of the phone once a step became the
+//      whole page. It left the back button as the only way out of 22 screens.
+//
+//   2  tla-7xql.18, WHOLE-BOX CAPACITY, every stroke. Declined when the box
+//      could overflow sideways. WRONG, and the one that shipped. Asking the
+//      box rather than the axis means either axis overflowing kills both, so
+//      it both takes gestures that were safe and misses the case Frank hit. On
+//      2026-10-19: "Scrolling up and down in the model is being read as a
+//      navigation swipe", which files "not a claim" into his record.
+//
+//   3  this bead's first build, SCROLL DELTA, every stroke. WRONG, and it
+//      never shipped. At a scroll limit the browser moves nothing, so the
+//      delta reads zero and the stroke files. A reader at the bottom of
+//      1:Shelves dragging down would file "not a claim", which is the reported
+//      defect by another route.
+//
+//   4  this bead's second build, PER-AXIS CAPACITY, every stroke. WRONG, and
+//      it never shipped either. It fixes the swipe and breaks the tap. A 30 or
+//      40 pixel flick of the model is under the 55-pixel threshold, so it
+//      reads as a tap, and capacity has nothing to say about a stroke with no
+//      axis. It filed, and the reader scrolled two lines and was thrown out of
+//      the model. Not the wrong-verdict class, and the same family of surprise.
+//
+//   5  this bead as landed, BOTH, with the stroke choosing. Rule 4 for a
+//      swipe, rule 3 for a tap. The flaw in 2 was never that it used capacity,
+//      it was that it used the box and applied one rule to every stroke.
+//
+// P1 IS SEPARATE FROM ALL FIVE and is the other half of this bead. The parts
+// that LOOK like the model are not the scroller: the name row, the gaps inside
+// the box and the bottom padding all sit outside .swipe-screen-body. Central
+// read 143 of 730 pixels in that class, taking gestures. Inside .swipe-screen
+// and outside .swipe-screen-body is dead whatever the thumb does, so neither
+// rule is consulted there at all.
+//
+// So this is a table over (start element, per-axis overflow, scroll movement,
+// gesture axis). It drives the real pair in the real order: scrollerMark() at
+// touchstart, a movement applied to the fake scroller, then
+// scrollerDeclining() with the axis at touchend.
+//
+// ROWS DELETED ALONG THE WAY, because they only meant anything under a rule
+// that is gone and bending them would have hidden that. From 3 to 4:
+// decline-body-moved-sideways, decline-body-moved-down,
+// decline-body-moved-back, decline-body-still, decline-body-still-mid-scroll,
+// decline-screen-head-with-step-move and decline-nested-both-move. What they
+// asserted comes back below, either in capacity form on the swipe rows or in
+// movement form on the tap rows.
 //
 // THE TABLE MATTERS IN BOTH DIRECTIONS. A decline that always fires and a
 // decline that never fires both pass a one-sided check, and the first of those
-// is the defect being removed here.
+// is what rule 2 shipped.
 // ===========================================================================
+// A FAKE SCROLLER CARRIES A SIZE ON EACH AXIS AND A POSITION, and both are
+// read now, by different strokes. The position starts at 37 and 11 rather than
+// 0 and that is still the control it was under rule 3: a rule reading a
+// constant instead of the element would agree with a table that started at
+// zero. It caught exactly that once already.
 function scroller(sel, overX, overY) {
   return { sel: sel,
            scrollWidth: 300 + overX, clientWidth: 300,
-           scrollHeight: 400 + overY, clientHeight: 400 };
+           scrollHeight: 400 + overY, clientHeight: 400,
+           scrollTop: 37, scrollLeft: 11 };
 }
+// A movement applied to one scroller of the chain between the mark and the
+// reading, by selector. This is what makes a tap row a tap row.
+function moved(sel, dx, dy) { return { sel: sel, dx: dx, dy: dy }; }
+const STILL = [];
 // closest() walks a declared chain, which is the only thing the function under
 // test reads off the DOM.
 function touchIn(chain) {
@@ -2666,57 +3025,191 @@ function touchIn(chain) {
     }
   };
 }
+const SCREENBOX = ".swipe-screen";
+const SCREENHEAD = ".swipe-screen-head";
 const SCREEN = ".swipe-screen-body";
 const STEPBODY = ".swipe-step-body";
+const STEPHEAD = ".swipe-step-head";
 const FLASHBOX = ".swipe-flash";
+// The axis the gesture turned out to be on. "x" and "y" are what the listener
+// passes, and null is how a TAP is spelled, since a tap has no axis.
+const X = "x";
+const Y = "y";
+const TAP = null;
 const declineCases = [
-  // The screen body, on the sideways axis and nothing else.
-  ["decline-screen-wide", [scroller(SCREEN, 120, 0)], "screen"],
-  ["decline-screen-narrow", [scroller(SCREEN, 0, 0)], null],
-  // The +1 is the same tolerance the step body has carried since tla-7xql.15.
-  // A box one pixel over is a rounding artifact, not a scroll.
-  ["decline-screen-by-one", [scroller(SCREEN, 1, 0)], null],
-  // A MODEL TALLER THAN THE ROOM DOES NOT DECLINE, and that is the ruling
-  // rather than an oversight: Frank named the sideways axis and only the
-  // sideways axis.
+  // ---- A SWIPE: THE THREE CASES A READER MEETS, judged by capacity ----
   //
-  // THIS CORPUS DOES REACH IT, on one screen of 24, and this comment used to
-  // say the opposite off two wrong figures. It read 660 pixels of room against
-  // 438 for the worst model. The body is 613.9 measured, the tallest is
-  // 1:Shelves at 29 lines wanting 629.1, and the 438 was a correct reading of
-  // 1:Alternation at 20 lines, which comes to 437.6 and was the model on
-  // screen at the time rather than the worst one. So 1:Shelves scrolls
-  // vertically and a drag in it moves the stack in one stroke. Frank ruled it
-  // stays scrolling. The case below is still right and still what the ruling
-  // asks for.
-  ["decline-screen-tall-only", [scroller(SCREEN, 0, 200)], null],
-  // The step body keeps the vertical form it already had, unchanged.
-  ["decline-step-tall", [scroller(STEPBODY, 0, 50)], "step"],
-  ["decline-step-fits", [scroller(STEPBODY, 0, 0)], null],
-  ["decline-step-wide-only", [scroller(STEPBODY, 200, 0)], null],
-  // And the flash keeps its own, which is what makes a tall correction
-  // readable instead of advancing off it in one stroke.
-  ["decline-flash-tall", [scroller(FLASHBOX, 0, 50)], "flash"],
-  ["decline-flash-fits", [scroller(FLASHBOX, 0, 0)], null],
-  // The real chain: the screen body is INSIDE the step body, so both answer
-  // closest() and the screen is the one that has to be read first.
-  ["decline-nested-wide", [scroller(SCREEN, 120, 0), scroller(STEPBODY, 0, 0)], "screen"],
-  ["decline-nested-narrow", [scroller(SCREEN, 0, 0), scroller(STEPBODY, 0, 0)], null],
-  ["decline-nested-step-scrolls", [scroller(SCREEN, 0, 0), scroller(STEPBODY, 0, 90)], "step"],
+  // EVERY ROW HERE CARRIES THE BOX AS WELL AS THE BODY, because that is the
+  // real chain: .swipe-screen-body is always inside .swipe-screen. A stub
+  // holding the body alone looks tidier and costs the table its best rows. It
+  // was written that way first, and the still-body row then passed against an
+  // implementation that declined the whole box unconditionally, which is the
+  // most likely way to get P1 wrong.
+  //
+  // CASE ONE: OVERFLOWS SIDEWAYS ONLY, which is 22 of the 24 published
+  // screens. A vertical swipe fires, so D4 of tla-7xql.18 survives and the
+  // reader can still answer from the model. A horizontal swipe is declined,
+  // which is rule 2's ruling and is unavoidable: a left swipe and a sideways
+  // scroll are one gesture on one pixel, so the reader would answer "false"
+  // every time they read along a line.
+  ["decline-wide-only-vertical", [scroller(SCREEN, 120, 0), scroller(SCREENBOX, 0, 0)], STILL, Y, null],
+  ["decline-wide-only-horizontal", [scroller(SCREEN, 120, 0), scroller(SCREENBOX, 0, 0)], STILL, X, "screen"],
+  //
+  // CASE TWO: OVERFLOWS BOTH, which is 1:Shelves at an innerHeight of 730.
+  // Nothing fires inside the body and the back button is the way out.
+  ["decline-both-vertical", [scroller(SCREEN, 120, 200), scroller(SCREENBOX, 0, 0)], STILL, Y, "screen"],
+  ["decline-both-horizontal", [scroller(SCREEN, 120, 200), scroller(SCREENBOX, 0, 0)], STILL, X, "screen"],
+  //
+  // CASE THREE: OVERFLOWS NEITHER. Everything fires.
+  ["decline-neither-vertical", [scroller(SCREEN, 0, 0), scroller(SCREENBOX, 0, 0)], STILL, Y, null],
+  ["decline-neither-horizontal", [scroller(SCREEN, 0, 0), scroller(SCREENBOX, 0, 0)], STILL, X, null],
+  //
+  // AND THE FOURTH CORNER, which is the one rule 2 could not express: a body
+  // that overflows DOWN and fits sideways. 2:Contention at 730 is this model.
+  ["decline-tall-only-vertical", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)], STILL, Y, "screen"],
+  ["decline-tall-only-horizontal", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)], STILL, X, null],
+
+  // THE ROUNDING TOLERANCE IS GONE, and rule 2 carried a +1 here. The two
+  // failure directions are not symmetric: a box one pixel over and declined
+  // costs a gesture the reader sees fail, and one pixel over and NOT declined
+  // scrolls under the thumb while a verdict is filed.
+  ["decline-over-by-one-horizontal", [scroller(SCREEN, 1, 0), scroller(SCREENBOX, 0, 0)], STILL, X, "screen"],
+
+  // ---- A SWIPE IS NOT JUDGED BY MOVEMENT, which is the regression guard ----
+  //
+  // These two are the rule-3 guard and they are the reason rule 3 is named in
+  // the history above rather than quietly deleted. Route a swipe through the
+  // movement reading and both of them flip.
+  //
+  // THE LIMIT CASE. The body can scroll on this axis and the browser moved
+  // nothing, which is what the bottom of 1:Shelves looks like. Capacity
+  // declines. A movement reading would file "not a claim", which is the whole
+  // defect.
+  ["decline-swipe-at-limit", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)], STILL, Y, "screen"],
+  // AND THE OTHER DIRECTION. The body cannot scroll sideways and something
+  // moved it vertically during a horizontal stroke, which a diagonal thumb
+  // does. Capacity on the gesture's axis files. A movement reading would
+  // decline and swallow the answer.
+  ["decline-swipe-moved-off-axis", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)],
+    [moved(SCREEN, 0, 60)], X, null],
+
+  // ---- A TAP: judged by whether the scroller MOVED ----
+  //
+  // THE HOLE RULE 4 LEFT. A tap is spelled "both deltas under 55 pixels" and a
+  // deliberate small scroll of the model is 30 or 40, so a short flick reads
+  // as a tap. Rule 4 had nothing to say about a stroke with no axis, so it
+  // filed, and the reader scrolled two lines and was thrown out of the model.
+  ["decline-tap-that-scrolled", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)],
+    [moved(SCREEN, 0, 40)], TAP, "screen"],
+  ["decline-tap-that-scrolled-sideways", [scroller(SCREEN, 120, 0), scroller(SCREENBOX, 0, 0)],
+    [moved(SCREEN, 30, 0)], TAP, "screen"],
+  //
+  // AND A TAP THAT REALLY WAS A TAP STILL STEPS BACK, on all 24 screens. This
+  // is the half that must not regress to rule 1 or 2, which declined every
+  // touch over a model that could scroll sideways and left the back button as
+  // the only way out of 22 of them. The body here CAN scroll on both axes and
+  // the stroke moved nothing, so it files.
+  ["decline-tap-over-wide", [scroller(SCREEN, 120, 0), scroller(SCREENBOX, 0, 0)], STILL, TAP, null],
+  ["decline-tap-over-both", [scroller(SCREEN, 120, 200), scroller(SCREENBOX, 0, 0)], STILL, TAP, null],
+  // A tap part-way down a model it had already scrolled still files. The fake
+  // scrollers start at 37 and 11 rather than 0, so this row is the one that
+  // catches a rule comparing against a constant instead of the mark.
+  ["decline-tap-mid-scroll", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)],
+    [moved(SCREEN, 0, 0)], TAP, null],
+  // A tap that scrolled the STEP under the model is the step's, not a step
+  // back out of it.
+  ["decline-tap-that-scrolled-step", [scroller(SCREEN, 0, 0), scroller(SCREENBOX, 0, 0), scroller(STEPBODY, 0, 90)],
+    [moved(STEPBODY, 0, 45)], TAP, "step"],
+
+  // ---- P1: the model box minus the part of it that scrolls ----
+  // A thumb landing on the model's own NAME and dragging down filed "not a
+  // claim". The head is inside .swipe-screen and outside .swipe-screen-body,
+  // so it is dead on both axes and for a tap, and neither rule is consulted.
+  // Its own sizes say it fits and nothing moves it, so BOTH readings would
+  // file here. That is what makes P1 a region rule: the head has to be dead
+  // for what it looks like, and no measurement of it reports that.
+  ["decline-screen-head-vertical", [scroller(SCREENHEAD, 0, 0), scroller(SCREENBOX, 0, 0)], STILL, Y, "screen"],
+  ["decline-screen-head-horizontal", [scroller(SCREENHEAD, 0, 0), scroller(SCREENBOX, 0, 0)], STILL, X, "screen"],
+  ["decline-screen-head-tap", [scroller(SCREENHEAD, 0, 0), scroller(SCREENBOX, 0, 0)], STILL, TAP, "screen"],
+  // The gaps inside the box and its bottom padding are in the box itself and
+  // in no child of it. Central read 143 of 730 pixels in this class.
+  ["decline-screen-gap-vertical", [scroller(SCREENBOX, 0, 0)], STILL, Y, "screen"],
+  ["decline-screen-gap-tap", [scroller(SCREENBOX, 0, 0)], STILL, TAP, "screen"],
+
+  // ---- P1 IS NOT "DECLINE EVERYTHING", which is the other direction ----
+  // The step's own head is outside the model box and stays live, so a reader
+  // keeps a gesture surface at the top of the step. A rule that declined the
+  // whole step would pass every P1 row above and fail this one.
+  ["decline-step-head-live", [scroller(STEPHEAD, 0, 0)], STILL, Y, null],
+
+  // ---- the step body, per axis, same rule ----
+  ["decline-step-tall-vertical", [scroller(STEPBODY, 0, 50)], STILL, Y, "step"],
+  ["decline-step-tall-horizontal", [scroller(STEPBODY, 0, 50)], STILL, X, null],
+  ["decline-step-fits", [scroller(STEPBODY, 0, 0)], STILL, Y, null],
+  ["decline-step-wide-horizontal", [scroller(STEPBODY, 200, 0)], STILL, X, "step"],
+  ["decline-step-wide-vertical", [scroller(STEPBODY, 200, 0)], STILL, Y, null],
+
+  // ---- and the flash, which is what makes a tall correction readable ----
+  // The flash has no sideways scroll, so a horizontal drag in one fires.
+  ["decline-flash-tall-vertical", [scroller(FLASHBOX, 0, 50)], STILL, Y, "flash"],
+  ["decline-flash-tall-horizontal", [scroller(FLASHBOX, 0, 50)], STILL, X, null],
+  ["decline-flash-fits", [scroller(FLASHBOX, 0, 0)], STILL, Y, null],
+
+  // ---- the real chain, where more than one scroller answers closest() ----
+  // The model body is INSIDE the step body, so both answer and the inner one
+  // is read first.
+  ["decline-nested-wide", [scroller(SCREEN, 120, 0), scroller(SCREENBOX, 0, 0), scroller(STEPBODY, 0, 0)],
+    STILL, X, "screen"],
+  ["decline-nested-narrow", [scroller(SCREEN, 0, 0), scroller(SCREENBOX, 0, 0), scroller(STEPBODY, 0, 0)],
+    STILL, X, null],
+  // THE FALL-THROUGH, and it is the row most easily lost in a rewrite. The
+  // model body fits on this axis and the step body under it does not, so the
+  // stroke is the step's. An implementation that stopped at the innermost
+  // scroller it found would report null and let one stroke scroll the step AND
+  // move the stack.
+  ["decline-nested-step-scrolls", [scroller(SCREEN, 0, 0), scroller(SCREENBOX, 0, 0), scroller(STEPBODY, 0, 90)],
+    STILL, Y, "step"],
+  // And the inner one wins when both overflow on the axis, which is the
+  // priority the read-screen-first order has always encoded.
+  ["decline-nested-both-overflow", [scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0), scroller(STEPBODY, 0, 90)],
+    STILL, Y, "screen"],
+
   // The dock, the counts and the menu are in no scroller at all.
-  ["decline-bare-target", [], null]
+  ["decline-bare-target", [], STILL, Y, null]
 ];
-for (const [name, chain, want] of declineCases) {
-  const got = mod.scrollerDeclining(touchIn(chain));
+for (const [name, chain, moves, axis, want] of declineCases) {
+  const mark = mod.scrollerMark(touchIn(chain));
+  for (const m of moves) {
+    for (const n of chain) {
+      if (n.sel === m.sel) { n.scrollLeft += m.dx; n.scrollTop += m.dy; }
+    }
+  }
+  const got = mod.scrollerDeclining(mark, axis);
   console.log(name + " " + (got === want ? "OK" : "BAD") + " " + String(got) +
     " (wanted " + String(want) + ")");
 }
 // The observable is the theme's and a touch target is the browser's, so
-// neither is assumed to have what this function reads.
+// neither function assumes it was handed what it reads. The mark is this
+// file's own value, so the second pair asks the same of it.
 console.log("decline-no-target " +
-  (mod.scrollerDeclining(null) === null ? "OK" : "BAD"));
+  (mod.scrollerMark(null) === null ? "OK" : "BAD"));
 console.log("decline-no-closest " +
-  (mod.scrollerDeclining({}) === null ? "OK" : "BAD"));
+  (mod.scrollerMark({}) === null ? "OK" : "BAD"));
+console.log("decline-no-mark " +
+  (mod.scrollerDeclining(null, "y") === null ? "OK" : "BAD"));
+console.log("decline-empty-mark " +
+  (mod.scrollerDeclining({}, "y") === null ? "OK" : "BAD"));
+// A MARK TAKEN WHERE NOTHING SCROLLS IS NOT A DECLINE. The dock and the counts
+// row sit in no scroller, and the mark has to say so rather than returning
+// something the decline reads as a region.
+console.log("decline-bare-mark-files " +
+  (mod.scrollerDeclining(mod.scrollerMark(touchIn([])), "y") === null ? "OK" : "BAD"));
+// AN AXIS NOBODY SET IS NOT A THIRD AXIS. Anything that is not "x" is read as
+// the vertical one, so a caller that passed a typo gets the safer reading
+// rather than a silent "decline nothing".
+console.log("decline-unknown-axis-reads-vertical " +
+  (mod.scrollerDeclining(mod.scrollerMark(touchIn([scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)])),
+    "vertical") === "screen" ? "OK" : "BAD"));
 
 // ===========================================================================
 // THE VIEWPORT CLASS, bead tla-7xql.16, AND THE REMOVAL IS THE HALF THAT CAN
