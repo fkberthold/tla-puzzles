@@ -948,8 +948,23 @@ left both the document and the open step where they were.
 
 The flash is a gesture surface, so a drag on it means advance. With the page no
 longer scrolling, a correction taller than the flash had nowhere left to be
-read. Measured over 40 answered items per rung: 35 of 40 at level 2 ran past
-the flash, worst case 111 pixels, against 0 of 40 at level 1.
+read. Measured over every item of each pinned rung: 39 of the 48 at level 2 run
+past the flash, worst case 111 pixels, against 0 of 144 at level 1.
+
+**The first reading of this sampled, and the sample moved.** It answered 40
+items drawn from the 48, and the stream draws at random from what the browser
+has no answer for, so three runs of one tree gave 35, 31 and 29. I had it in
+four files at two values before anyone caught it. Answering until the done
+screen covers each item once, and then both numbers repeat exactly. Don't
+sample a rung you can exhaust in 48 answers.
+
+The worst case moved for a real reason and it's worth knowing which. The
+pre-fix reading was 93 pixels and the committed one is 111, a uniform 18 across
+the five tallest corrections, and 18 pixels is the flash's own
+`padding-bottom`. A box with `overflow: visible` leaves its bottom padding out
+of the scrollable region and a scroll container puts it in, so adding
+`overflow: auto` to the flash moved the number by exactly that. Measured both
+ways by taking the one rule back off.
 
 So the flash allows `pan-y` and `bindGestures` declines a touch that starts in
 an overflowing one. That's R1 of the stack design applied to one more scroller,

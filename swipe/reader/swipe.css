@@ -252,11 +252,17 @@
 
 /* THE FLASH IS THE ONE GESTURE SURFACE THAT ALSO HAS TO SCROLL, and the pan-y
    here is a measurement rather than a preference. Measured in a real browser
-   at 390x844 on 2026-10-19 over 40 answered level 2 items: 28 of the 40
-   corrections ran past the flash's own height, worst case 93 pixels. At level
-   1, 0 of 40 did. The page no longer scrolls, so those pixels have nowhere
-   else to be read, and refusing the pan would put the correction out of reach
-   on more than two thirds of the rung.
+   at 390x844 on 2026-10-19 over EVERY item of each pinned rung: 39 of the 48
+   level 2 corrections run past the flash's own height, worst case 111 pixels,
+   against 0 of 144 at level 1. The page no longer scrolls, so those pixels
+   have nowhere else to be read, and refusing the pan would put the correction
+   out of reach on four fifths of the rung.
+
+   THE RUNG RATHER THAN A SAMPLE, and that is why the number is here at all. An
+   earlier reading answered 40 items drawn from the 48, which is the stream's
+   own random draw, and three runs of one tree gave 35, 31 and 29. The count
+   was a property of the draw. Answering until the done screen covers each item
+   once and gives the same two numbers every run.
 
    pan-y rather than auto, because the flash has no horizontal scroll and a
    sideways pan on it could only be the page's, which is now nobody's.
@@ -686,8 +692,8 @@ html.swipe-owns-viewport .swipe-done {
 /* A panel is the whole screen for a moment and a stats table runs past it, so
    these scroll. The done screen does not: it is a gesture surface and it fits,
    measured at 844 with the menu 10 pixels inside the bottom edge. The flash is
-   in here because 28 of 40 measured level 2 corrections do not fit, and the
-   rule above it is the half that makes the scroll reachable. */
+   in here because 39 of the 48 level 2 corrections do not fit, and the rule
+   above it is the half that makes the scroll reachable. */
 html.swipe-owns-viewport .swipe-stats,
 html.swipe-owns-viewport .swipe-message,
 html.swipe-owns-viewport .swipe-flash {

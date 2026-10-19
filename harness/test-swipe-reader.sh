@@ -1663,11 +1663,17 @@ else
 fi
 
 # THE FLASH HAS TO KEEP pan-y, AND THAT IS A MEASUREMENT RATHER THAN A
-# PREFERENCE. Measured in a real browser at 390x844 on 2026-10-19, over 40
-# answered level 2 items: 28 of the 40 corrections ran past the flash's own
-# height, worst case 93 pixels. With the page no longer scrolling there is
-# nowhere else for those pixels to be read, and touch-action pinch-zoom alone
-# means touch cannot pan the flash to reach them. At level 1, 0 of 40 overflow.
+# PREFERENCE. Measured in a real browser at 390x844 on 2026-10-19, over EVERY
+# item of each pinned rung: 39 of the 48 level 2 corrections run past the
+# flash's own height, worst case 111 pixels, against 0 of 144 at level 1. With
+# the page no longer scrolling there is nowhere else for those pixels to be
+# read, and touch-action pinch-zoom alone means touch cannot pan the flash to
+# reach them.
+#
+# THE RUNG RATHER THAN A SAMPLE. An earlier reading answered 40 items drawn
+# from the 48, and since the stream draws at random, three runs of one tree
+# gave 35, 31 and 29. Nothing was changing but the draw. Answering until the
+# done screen covers each item once and repeats exactly.
 #
 # Allowing pan-y is only half: the gesture handler has to decline a drag that
 # starts in an OVERFLOWING flash, or the drag scrolls the correction and
@@ -1679,7 +1685,7 @@ if [ -z "$ta_flash" ]; then
 elif grep -qE 'pan-y' <<<"$ta_flash" && grep -qE 'pinch-zoom' <<<"$ta_flash"; then
   ok "the flash keeps pan-y, so a correction taller than the flash can still be read, and keeps pinch-zoom"
 else
-  nope "the flash refuses pan-y, and 28 of 40 measured level 2 corrections are taller than it: $ta_flash"
+  nope "the flash refuses pan-y, and 39 of the 48 level 2 corrections are taller than it: $ta_flash"
 fi
 
 start_body=$(awk '/addEventListener\("touchstart"/, /^    \}, \{ passive: true \}\);$/' "$CODE")

@@ -1638,9 +1638,9 @@
         }
         /* R1 AGAIN, ON THE FLASH, since bead tla-7xql.16. The page no longer
            scrolls, so a correction taller than the flash has nowhere else to
-           be read. Measured at 390x844 on 2026-10-19 over 40 answered level 2
-           items: 28 of the 40 ran past the flash by up to 93 pixels, against 0
-           of 40 at level 1.
+           be read. Measured at 390x844 on 2026-10-19 over EVERY item of each
+           pinned rung: 39 of the 48 level 2 corrections run past the flash, by
+           up to 111 pixels, against 0 of 144 at level 1.
 
            So the flash allows pan-y and a drag in an overflowing one scrolls
            it. Without this line that stroke would scroll the correction and
