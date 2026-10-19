@@ -84,12 +84,21 @@
 # scripts/test registers both rows: the static one in the fast tier, the full
 # one in the slow tier where a JVM belongs.
 #
-# WHAT THIS SUITE CANNOT SEE, and part 7 prints it on every run: nothing here
+# WHAT THIS SUITE CANNOT SEE, and part 8 prints it on every run: nothing here
 # runs a browser, so the rendering, the gestures and the navigation.instant
 # subscription are checked as text. The LAYOUT is checked as text too, which
-# is the weakest thing in this file and is called out in part 4. The author
-# drove a real headless Chromium at 390x844 once and the numbers are in the
-# bead's merge commit. A localhost run cannot reproduce the instant-navigation
+# is the weakest thing in this file and is called out in part 5.
+#
+# NO BROWSER READING OF THE LAYOUT EXISTS. The author of tla-7xql.14 tried
+# four ways to take one and Chrome would not complete a headless load in that
+# sandbox, so the numbers in the merge commit are computed from the shipped
+# CSS and are marked INFERRED there. The layout holds by position instead:
+# the question is docked sticky at the bottom, so where it lands does not
+# depend on anything above it. The headless run that did happen belongs to
+# the level 0 reader bead and established that the page BOOTS at the real
+# origin, which is a different claim from where the question sits.
+#
+# A localhost run cannot reproduce the instant-navigation
 # hazard: the theme matches a clicked link against its sitemap after
 # overwriting only the protocol and the hostname, never the port, so instant
 # navigation silently declines every link on any local server.
@@ -1426,8 +1435,11 @@ note "No browser ran. The rendering, the touch gestures, the document\$"
 note "subscription and the LAYOUT are read as text here, never executed."
 note "The layout checks in part 5 are the weakest thing in this file: they"
 note "assert that the cap and the sticky row exist, not that the question"
-note "lands above the fold. The author measured that in headless Chromium at"
-note "390x844 once and the numbers are in the bead's merge commit."
+note "lands above the fold. NO BROWSER READING OF THE LAYOUT EXISTS: four"
+note "attempts at a headless load failed in the authoring sandbox, so the"
+note "numbers in the merge commit are computed from the shipped CSS and are"
+note "marked INFERRED there. The question is docked by position rather than"
+note "by arithmetic, which is what makes these text checks worth anything."
 note "A localhost run cannot reproduce the instant-navigation hazard: the"
 note "theme normalizes its sitemap by protocol and hostname and never by"
 note "port, so instant navigation declines every link on a local server."
