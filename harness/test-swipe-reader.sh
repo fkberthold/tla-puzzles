@@ -43,12 +43,29 @@
 # slots a state draws, part 6 drives all 24 combinations of depth, panel and
 # flash, and part 5 holds render() to obeying every slot the predicate answers.
 #
-# The claim half is read as text, because which element renderStep() appends is
-# not a function. The one claim at depth is renderStep()'s own, drawn where
-# answersLive() is true, so the explanation step carries the MISSED item's
-# claim and no second one. Two claims from two items on one screen is what
-# that condition avoids, and it is why "exactly one" holds at every depth
-# rather than only at the one the invariant was written about.
+# The claim half was read as text, because which element renderStep() appends
+# is not a function.
+#
+# and tla-7xql.19's, WHICH REVERSES HALF OF THE ONE ABOVE:
+#
+#   INVARIANT: the step view renders no .swipe-step-claim and the model screen
+#   renders no collapse control, and every model screen except 1:Shelves fits
+#   its body without vertical overflow at 390x844.
+#
+# THE REVERSED ASSERTION IS FLIPPED RATHER THAN DELETED, and the one above it
+# is left standing with this note beside it, because the pair is the record. D2
+# of tla-7xql.18 and its reversal were ruled on the same day, the argument for
+# keeping the claim was never refuted, and what beat it was a browser reading
+# nobody had taken: the claim cost the model body 133.9 of its 613.9 pixels.
+# A deleted assertion would leave the second ruling looking like the only one
+# there had ever been.
+#
+# THE THIRD CONJUNCT IS A GATE OVER WHAT THE READER IS SHOWN rather than over
+# what the code computes, and that distinction is the reason it exists. bd
+# memory a-gate-over-what-the-code-computes-never-sees records three defects
+# Frank found in the recall rung on 2026-10-17 that 339 assertions had not
+# seen, all of them about what reached the reader. This suite had 214 and not
+# one of them could say whether a model fits the screen it is drawn on.
 #
 # ===========================================================================
 # WHY THIS SUITE EXISTS, AND IT IS NOT "A FILE IS MISSING"
@@ -615,6 +632,68 @@ screen_text() {
       print unesc(v)
     }
   ' "$1"
+}
+
+# ---------------------------------------------------------------------------
+# WHAT THE READER IS SHOWN AT 390x844, AND THE ONLY PLACE THESE PIXELS LIVE
+#
+# Every figure here was read in Chrome at a true 390x844 against the published
+# build on 2026-10-19, under bead tla-7xql.19, with the model step open on
+# 1:Fences. They are a browser reading rather than arithmetic off the
+# stylesheet, and nothing in this suite can re-derive them, because no browser
+# runs here.
+#
+#   SCREEN_LINE_PX           the line box of one line of .swipe-screen-body
+#   SCREEN_PAD_PX            its bottom padding, 0.6rem at 20px to the rem
+#   SCREEN_BODY_PX           the body's own height with no claim at the foot
+#   SCREEN_BODY_CLAIMED_PX   the same height while the claim was still drawn
+#
+# WHAT INVALIDATES THEM, and this is the paragraph for whoever changes the type
+# size: the font size or the line height on .swipe-screen-body, the padding on
+# it, the theme's rem, anything that changes what a step draws around the body,
+# and the viewport. Every one of those moves a number here, and none of them
+# reddens an assertion on its own. Re-read them in a browser rather than
+# recomputing them, because the chrome around the body is the theme's.
+#
+# THE TWO BODY HEIGHTS ARE A BEFORE AND AN AFTER, and both are kept on purpose.
+# tla-7xql.18 drew the claim at the foot of the step and tla-7xql.19 took it
+# back out, which returned 133.9 pixels to the model. The pair is what makes
+# the fit scan below discriminate: a line count that came back wrong would
+# report the same overflow set at either height, and the two differ by four
+# screens.
+# ---------------------------------------------------------------------------
+SCREEN_LINE_PX=21.28
+SCREEN_PAD_PX=12
+SCREEN_BODY_PX=613.9
+SCREEN_BODY_CLAIMED_PX=480.0
+
+# The one screen Frank ruled stays scrolling, and its line count. 29 lines want
+# 629.1 pixels against 613.9, so it is over by about 15 and scrolls a little.
+# The line count is pinned because the heights above were read against THIS
+# corpus: a shorter Shelves makes them a reading of something else.
+SCREEN_TALLEST="1:Shelves"
+SCREEN_TALLEST_LINES=29
+
+# How many of the 24 published screens overflow at each height. Central's
+# reading over the whole payload, not a number this file picked.
+SCREEN_OVER_N=1
+SCREEN_OVER_CLAIMED_N=5
+
+# ---------------------------------------------------------------------------
+# screens_over <payload> <body height in pixels>
+#
+# One line per screen whose rendered height exceeds that body height:
+# <level:model> <tab> <lines> <tab> <height>, tallest first.
+#
+# THE HEIGHT IS THE LINE COUNT AND NOTHING ELSE, because .swipe-screen-body is
+# `white-space: pre`. A line wider than the body scrolls sideways instead of
+# wrapping, so no width can add a row, and that is the whole reason this is
+# computable with no browser. A body that wrapped would need one.
+# ---------------------------------------------------------------------------
+screens_over() {
+  screens_of "$1" | awk -F'\t' -v body="$2" -v lh="$SCREEN_LINE_PX" -v pad="$SCREEN_PAD_PX" '
+    { h = $2 * lh + pad; if (h > body) printf "%s\t%d\t%.1f\n", $1, $2, h }
+  ' | LC_ALL=C sort -k2,2nr
 }
 
 # ===========================================================================
@@ -1521,15 +1600,23 @@ else
   nope "a stack step draws no back button, and tap does not reach inside the model screen body"
 fi
 
-# DECISION D2. One line of the claim stays, at the foot of the step view, and
-# it reuses .swipe-claim so the type and the gate are one thing rather than
-# two. At level 2 the reader is checking a one-line claim against a step in
-# front of them, and holding it in their head is friction rather than the
-# exercise.
+# THIS ONE WAS DECIDED TWICE IN ONE DAY, AND THE ASSERTION IS FLIPPED RATHER
+# THAN DELETED SO THE FILE SAYS SO. Decision D2 of bead tla-7xql.18 put one
+# line of the claim at the foot of the step view, on the argument that a reader
+# checking a claim against a step in front of them should not be holding it in
+# their head. tla-7xql.19 reversed it the same afternoon, after Frank read a
+# model on his phone: "I think we will be better off having to flick back and
+# forth for the problem."
+#
+# The argument for keeping it was not refuted. It lost to a measurement nobody
+# had taken yet, which is the useful part. The claim cost the model body 133.9
+# of its 613.9 pixels, and that is four of the 24 screens going from
+# overflowing to fitting. See WHAT THE READER IS SHOWN below for the scan that
+# holds the figure, and the constants block for where it was read.
 if grep -qE '"swipe-claim swipe-step-claim"' <<<"$step_body"; then
-  ok "the step view carries the claim at its foot, on the dock's own type"
+  nope "renderStep() draws the claim at its foot, which tla-7xql.19 removed: it costs the model body 133.9 of its 613.9 pixels"
 else
-  nope "renderStep() draws no claim, so a reader at the model step is holding the question in their head"
+  ok "the step view carries no claim, so the model gets the whole body and the reader flicks back to the question"
 fi
 
 # AND IT IS THE CLAIM AND NOTHING ELSE. The dock's other three parts are what
@@ -1688,18 +1775,138 @@ else
   nope "a drag inside a scrolling step would move the stack instead of scrolling it"
 fi
 
-# THE CLAIM AT THE FOOT OF A STEP MUST NOT BE SHRINKABLE, bead tla-7xql.18.
-# The step body is the one thing in the step that gives up room, which is the
-# same rule #swipe-app follows one level up: everything else takes its own
-# height and the premise takes the rest. A claim that could shrink would be
-# the 66-pixel model screen one level down.
-claim_rule=$(grep -F '.swipe-step-claim' "$CSSRULES" || true)
-if [ -z "$claim_rule" ]; then
-  nope "no rule styles .swipe-step-claim, so the claim at the foot of a step can be squeezed to nothing"
-elif grep -qE 'flex:[[:space:]]*0 0 auto' <<<"$claim_rule"; then
-  ok "the claim at the foot of a step takes its own height, so the model body is what gives up room"
+# AND ITS STYLE GOES WITH IT. tla-7xql.18 gave .swipe-step-claim `flex: 0 0
+# auto` so the claim could not be the thing that shrank, and that rule has
+# nothing left to style. A dead selector in a stylesheet is how the next author
+# comes to believe the element is still drawn.
+if grep -F -q '.swipe-step-claim' "$CSSRULES"; then
+  nope "a rule still styles .swipe-step-claim, which no element carries since tla-7xql.19"
 else
-  nope ".swipe-step-claim does not take its own height, so the step body and the claim would fight over the deficit: $claim_rule"
+  ok "no rule styles .swipe-step-claim, so the stylesheet does not describe an element the reader never draws"
+fi
+
+# ---------------------------------------------------------------------------
+# THE COLLAPSE CONTROL IS GONE AND THE MODEL'S NAME STAYED, bead tla-7xql.19.
+#
+# The head was a button toggling v.collapsed[key] and printing "hide" or
+# "show". It earned that when the model shared the resting view with the card
+# and the reader wanted the viewport back for the stream. THE STEP IS THE MODEL
+# NOW, so collapsing it leaves the step with a head and nothing under it, which
+# is very likely what Frank saw when he reported "It isn't showing the model".
+#
+# The NAME is the one thing that has to survive: it is the only label on screen
+# saying which model is being read, and the stem-blind instrument withholds the
+# module name from a judge for exactly the reason a reader has to be shown it.
+# ---------------------------------------------------------------------------
+screen_body=$(awk '/^  function renderScreen\(/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$screen_body" | tr -d '[:space:]')" ]; then
+  nope "renderScreen() was not found, so the collapse checks read nothing"
+else
+  if grep -qE 'swipe-screen-toggle|collapsed' <<<"$screen_body"; then
+    nope "renderScreen() still draws the collapse toggle, so the step can be collapsed to a head with nothing under it"
+  else
+    ok "renderScreen() draws no collapse toggle, so a step always has its model under its head"
+  fi
+
+  if grep -qE 'addEventListener\(' <<<"$screen_body"; then
+    nope "renderScreen() binds a listener, so the head is still a control rather than a label"
+  else
+    ok "the model head is non-interactive, which is the shape a label has"
+  fi
+
+  if grep -q '"swipe-screen-head"' <<<"$screen_body" &&
+     grep -q '"swipe-screen-name"' <<<"$screen_body" &&
+     grep -qE 'item\.model' <<<"$screen_body"; then
+    ok "the head still carries the model's name, which is the one label saying what is being read"
+  else
+    nope "renderScreen() does not write the model's name into its head, so the reader is not told which model this is"
+  fi
+
+  # AND THE BODY IS APPENDED UNCONDITIONALLY. A `collapsed` that was renamed
+  # rather than removed would pass the toggle check above and still hand the
+  # reader an empty step.
+  #
+  # THE INDENTATION IS THE WHOLE TEST, which is the same reading render()'s
+  # bare-append check takes four screens up. Four spaces is renderScreen()'s
+  # own statement level and six is inside a branch, so a pattern that tolerated
+  # leading whitespace would agree with the defect it exists to catch.
+  if grep -qE '^    box\.appendChild\(el\("pre", "swipe-screen-body"' <<<"$screen_body"; then
+    ok "the model body is appended at renderScreen()'s own statement level, so no state can withhold it"
+  else
+    nope "the model body is not appended at statement level, so some state draws a screen box with no model in it"
+  fi
+fi
+
+# THE STATE GOES TOO, in the view object and in forget. A key nothing reads is
+# a key the next author wires back up.
+if grep -qE '\bcollapsed\b' "$CODE"; then
+  nope "the reader still carries collapse state: $(grep -nE '\bcollapsed\b' "$CODE" | tr '\n' ' ')"
+else
+  ok "no collapse state survives in the reader, so forget and the view object have nothing to reset"
+fi
+
+if grep -F -q '.swipe-screen-toggle' "$CSSRULES"; then
+  nope "a rule still styles .swipe-screen-toggle, which no element carries since tla-7xql.19"
+else
+  ok "no rule styles .swipe-screen-toggle"
+fi
+
+head_rule=$(grep -F '.swipe-screen-head' "$CSSRULES" || true)
+if [ -z "$head_rule" ]; then
+  nope "no rule styles .swipe-screen-head, so the model's name draws as unstyled body text"
+elif grep -qE 'cursor:[[:space:]]*pointer' <<<"$head_rule"; then
+  nope ".swipe-screen-head still shows a pointer cursor, so it reads as a control the reader cannot press: $head_rule"
+else
+  ok "the model head is styled as a label and offers no pointer cursor"
+fi
+
+# ---------------------------------------------------------------------------
+# WHAT THE READER IS SHOWN, WHICH IS NOT WHAT THE CODE COMPUTES
+#
+# Every other check in this part reads the reader's source. This one reads the
+# PAYLOAD and asks how tall each model is on a phone, which is a different
+# question and the one the reader meets.
+#
+# bd memory a-gate-over-what-the-code-computes-never-sees is why it is here.
+# On 2026-10-17 Frank found three defects in the recall rung that 339
+# assertions had not seen, and all three were about what reached the reader.
+# This suite had the same hole in a smaller room: 214 assertions and not one of
+# them could say whether a model fits the screen it is drawn on.
+#
+# The constants and what invalidates them are in one block above PART 1.
+# ---------------------------------------------------------------------------
+screen_n=$(grep -c . <<<"$(screens_of "$PAYLOAD")")
+if [ "$screen_n" -ge 20 ]; then
+  ok "the payload publishes $screen_n model screens, so the fit scan below read a corpus"
+else
+  nope "only $screen_n model screens came out of the payload, so the fit scan below would pass over almost nothing"
+fi
+
+over=$(screens_over "$PAYLOAD" "$SCREEN_BODY_PX")
+over_n=$(grep -c . <<<"$over")
+over_keys=$(cut -f1 <<<"$over" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+if [ "$over_n" = "$SCREEN_OVER_N" ] && [ "$over_keys" = "$SCREEN_TALLEST" ]; then
+  ok "exactly $SCREEN_OVER_N model screen overflows the ${SCREEN_BODY_PX}px step body and it is $SCREEN_TALLEST, which Frank ruled stays scrolling"
+else
+  nope "$over_n model screens overflow the ${SCREEN_BODY_PX}px step body [$over_keys], where the ruling is $SCREEN_OVER_N and it is $SCREEN_TALLEST"
+fi
+
+# THE SAME SCAN AT THE HEIGHT THE CLAIM LEFT, which is the control rather than
+# a second reading. A line count that came back wrong would report the same
+# overflow set at both heights, and a scan that extracted nothing would report
+# none at either. The two differ by four screens, so neither failure is quiet.
+over_claimed_n=$(grep -c . <<<"$(screens_over "$PAYLOAD" "$SCREEN_BODY_CLAIMED_PX")")
+if [ "$over_claimed_n" = "$SCREEN_OVER_CLAIMED_N" ]; then
+  ok "the same scan names $SCREEN_OVER_CLAIMED_N overflowing screens at the ${SCREEN_BODY_CLAIMED_PX}px the claim left, which is what the claim cost"
+else
+  nope "the scan names $over_claimed_n overflowing screens at ${SCREEN_BODY_CLAIMED_PX}px where central measured $SCREEN_OVER_CLAIMED_N, so the line count is wrong rather than the layout"
+fi
+
+tallest_lines=$(awk -F'\t' -v k="$SCREEN_TALLEST" '$1 == k { print $2 }' <<<"$(screens_of "$PAYLOAD")")
+if [ "$tallest_lines" = "$SCREEN_TALLEST_LINES" ]; then
+  ok "$SCREEN_TALLEST is still $SCREEN_TALLEST_LINES lines, which is the corpus the pixel heights were read against"
+else
+  nope "$SCREEN_TALLEST is $tallest_lines lines and the heights above were read at $SCREEN_TALLEST_LINES, so re-read them in a browser before trusting the scan"
 fi
 
 # THE MENU PANEL GETS THE PANEL FRAME. It is the third value of v.panel, so it
@@ -2232,11 +2439,18 @@ const declineCases = [
   // A box one pixel over is a rounding artifact, not a scroll.
   ["decline-screen-by-one", [scroller(SCREEN, 1, 0)], null],
   // A MODEL TALLER THAN THE ROOM DOES NOT DECLINE, and that is the ruling
-  // rather than an oversight. Frank ruled the sideways form only. The step
-  // leaves roughly 660 pixels for the model body against the 438 the worst
-  // one wants, so vertical overflow of the screen is out of reach for this
-  // corpus at 844, and a shorter viewport is where it would start to cost
-  // something.
+  // rather than an oversight: Frank named the sideways axis and only the
+  // sideways axis.
+  //
+  // THIS CORPUS DOES REACH IT, on one screen of 24, and this comment used to
+  // say the opposite off two wrong figures. It read 660 pixels of room against
+  // 438 for the worst model. The body is 613.9 measured, the tallest is
+  // 1:Shelves at 29 lines wanting 629.1, and the 438 was a correct reading of
+  // 1:Alternation at 20 lines, which comes to 437.6 and was the model on
+  // screen at the time rather than the worst one. So 1:Shelves scrolls
+  // vertically and a drag in it moves the stack in one stroke. Frank ruled it
+  // stays scrolling. The case below is still right and still what the ruling
+  // asks for.
   ["decline-screen-tall-only", [scroller(SCREEN, 0, 200)], null],
   // The step body keeps the vertical form it already had, unchanged.
   ["decline-step-tall", [scroller(STEPBODY, 0, 50)], "step"],
@@ -2481,6 +2695,14 @@ note "content wanted. Nothing here can see a pixel. What IS driven is the"
 note "chrome decision over all 24 states and the scroller-decline table in"
 note "both directions, and the 120 pixels the menu collapse returns at rest is"
 note "arithmetic off the stylesheet rather than a second browser reading."
+note "THE CLAIM LEFT THE STEP under tla-7xql.19, on a second reading in the"
+note "same browser the same afternoon: the model body went from 480.0 pixels"
+note "to 613.9 when the claim was hidden. The fit scan in part 5 is the ONE"
+note "check in this file about what the reader is shown rather than about what"
+note "the code computes, and it is still not a browser reading: it is a scan"
+note "over the payload against four numbers a browser gave us. It can tell you"
+note "a model gained lines. It cannot tell you the stylesheet changed under it,"
+note "which is why the constants block above PART 1 says what invalidates them."
 note "The shown-roots rule itself is gated by harness/test-swipe-enabled.sh"
 note "and harness/test-swipe-subscript.sh. This suite checks the obligations"
 note "and the machine from each model's .cfg, and part 7 ties the committed"

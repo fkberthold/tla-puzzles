@@ -63,10 +63,13 @@
  * an unconditional decline over a full-page step would take the gesture away
  * from most of the phone. scrollerDeclining() holds the whole table.
  *
- * The screen is collapsible on top of that, which is the reader's own lever
- * rather than a rule: once the model has been read, collapsing it leaves the
- * head alone on the step, and the bucketed stream means the next ten to
- * twenty items are about the same model.
+ * THE SCREEN USED TO BE COLLAPSIBLE and bead tla-7xql.19 took that away. It
+ * was the reader's own lever rather than a rule: once the model had been read,
+ * collapsing it gave the viewport back to the stream, and the bucketed stream
+ * means the next ten to twenty items are about the same model. That made sense
+ * while the model shared the resting view with the card. The step IS the model
+ * since tla-7xql.18, so collapsing it leaves a head over nothing, and the head
+ * is a label now.
  *
  * COLOR COMES FROM THE THEME'S OWN VARIABLES, never from literals, so the
  * light and dark palettes in mkdocs.yml both work with no second set of
@@ -88,8 +91,21 @@
  *
  * Hiding the menu alone took the step to 462.4 and the screen to 252.3. So at
  * depth the counts, the card and the menu are not drawn at all and the step
- * gets 824 of the 844. One line of the claim comes with it, on the dock's own
- * type and with .swipe-step-claim to stop it being the thing that shrinks.
+ * gets 824 of the 844.
+ *
+ * FIVE. THE CLAIM DOES NOT COME WITH IT, bead tla-7xql.19, and it did for one
+ * afternoon. tla-7xql.18 put one line of it at the foot of the step on the
+ * dock's own type, with a .swipe-step-claim modifier so it could not be the
+ * thing that shrank. Frank reversed that the same day after reading a model on
+ * his phone, and the measurement is why: with the claim drawn the model body
+ * read 480.0 pixels and without it 613.9, so the claim was taking 133.9. Over
+ * all 24 published screens that is five overflowing vertically against one.
+ * The one left is 1:Shelves at 29 lines, which wants about 629 and scrolls a
+ * little rather than the type shrinking for one screen.
+ *
+ * So there is no .swipe-step-claim rule in this file any more, and that is a
+ * deliberate absence rather than an omission: a selector nothing carries is
+ * how the next author comes to believe the element is still drawn.
  *
  * The menu collapses behind one control in the resting view as well, and the
  * eight go into a panel behind it. The row count comes off the reading rather
@@ -164,32 +180,26 @@
   background: var(--md-code-bg-color);
 }
 
-/* The header is the collapse control and the model's name. It is a button so
-   it is reachable by keyboard and reads as a control to a screen reader. */
+/* THE HEAD IS THE MODEL'S NAME AND NOTHING ELSE, since bead tla-7xql.19. It
+   was a button carrying the name and a collapse toggle, and it was a button so
+   that the collapse was reachable by keyboard and read as a control to a
+   screen reader. There is no collapse to reach now, and a button that does
+   nothing is worse to a screen reader than a label: it is announced as
+   pressable. So this is a div, and the three properties that only ever existed
+   to undo a button's own styling went with it. */
 .swipe-screen-head {
   display: flex;
-  width: 100%;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
   padding: 0.45rem 0.7rem;
-  border: 0;
-  background: transparent;
-  color: var(--md-typeset-color);
-  font-family: inherit;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  cursor: pointer;
   min-height: 2.2rem;
 }
 
 .swipe-screen-name {
   font-weight: 700;
-}
-
-.swipe-screen-toggle {
-  opacity: 0.6;
 }
 
 /* THE CAP AND THE SCROLL. See the height budget in the header. 26vh at 844
@@ -258,20 +268,6 @@
 .swipe-menu-panel,
 .swipe-done {
   min-height: 11rem;
-}
-
-/* THE CLAIM AT THE FOOT OF A STEP, decision D2 of bead tla-7xql.18. It is the
-   dock's own .swipe-claim type with a modifier, so the gate and the type are
-   one thing rather than two, and the modifier exists for one reason: the step
-   body is the only thing in a step that gives up room, and a claim able to
-   shrink would be the 66-pixel model screen one level down wearing a
-   different name.
-
-   justify-content on .swipe-step centers its children, so the claim is at the
-   foot of the content rather than nailed to the bottom edge. The step hint is
-   the last line here as it is everywhere else in the reader. */
-.swipe-step-claim {
-  flex: 0 0 auto;
 }
 
 /* touch-action IS SET PER ELEMENT AND NEVER ON AN ANCESTOR OF A SCROLLER.

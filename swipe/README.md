@@ -1078,9 +1078,37 @@ sideways. The pattern already sat twelve lines below it, where the
 `.swipe-step-body` decline reads `scrollHeight` against `clientHeight`. The
 screen body takes the sideways form of the same test.
 
-The room says most models now keep the whole page for tap and swipe. 824 less
-the step's own head, claim and hint leaves about 660 for the model body against
-the 438 the worst one wants.
+**This paragraph used to read "the room says most models now keep the whole
+page for tap and swipe", and the conditional decline frees two screens of
+twenty-four.** That is the error worth reading twice, because it is the one
+that flatters the change.
+
+The room figure behind it was wrong first. It read "824 less the step's own
+head, claim and hint leaves about 660 for the model body". A browser read the
+body at 480.0 pixels with the claim drawn, under `tla-7xql.19` the same
+afternoon, so the arithmetic was 180 pixels over before the claim came out. The
+chrome around the body is the theme's, so subtracting a guess at it was never a
+reading.
+
+But the room was never the question on this axis. The decline fires on
+`scrollWidth` against `clientWidth`, and the same browser pass read the model
+body's client width at 318 pixels and the type at 10.825 pixels a character. So
+29 characters fit across. Against the emitted payload:
+
+| model screens at 390x844 | count |
+|---|---|
+| fit within 29 characters | 2 |
+| overflow sideways | 22 |
+
+The two are `2:Contention` at 25 characters and `1:Contention` at 23. On the
+other 22 the model body still takes no gestures at all, and with the claim gone
+that body is 613.9 of 844. So about three quarters of the step view declines a
+tap on nearly every pinned item.
+
+I think that's the number the next decision rests on, and it doesn't change any
+code here. The conditional decline was right and it bought less than the
+paragraph claimed. What it means for a reader is that on 22 of 24 screens the
+back button isn't a second way out. It's the way out.
 
 `scrollerDeclining()` holds all three declines so the table can be driven with
 no browser, in both directions. That matters more than it sounds. A decline
@@ -1090,11 +1118,23 @@ making the screen decline unconditional reddened five cases, and taking it out
 reddened two others.
 
 A model taller than the room isn't declined, and that's the ruling rather than
-an oversight. The sideways axis is the one Frank named. This corpus doesn't
-reach vertical overflow of the screen at 844, since 660 beats the 438 the
-tallest model wants. A shorter viewport is where I'd expect it to start costing
-something, and there a vertical drag would scroll the model and move the stack
-in one stroke.
+an oversight. The sideways axis is the one Frank named.
+
+**This paragraph also claimed the corpus never reaches vertical overflow at
+844, and it does.** The claim rested on the same 660 and on 438 for "the
+tallest" model. Five of the 24 screens overflowed with the claim drawn and one
+still does without it. So a vertical drag inside `1:Shelves` scrolls the model
+and moves the stack in one stroke, today, on a 390x844 phone. I don't think
+that's urgent, since it's one screen of 24 and it's over by about 15 pixels, but
+it's a live case rather than a hypothetical about shorter viewports. Frank ruled
+it stays scrolling.
+
+**The 438 reconciles, and it was never the tallest.** `1:Alternation` is 20
+lines, and 20 times 21.28 plus 12 of padding is 437.6. So the reading was right
+and the label on it was wrong: it was the model that happened to be on screen,
+not the worst case. The tallest is `1:Shelves` at 29 lines wanting 629.1. A
+correct number carrying the wrong superlative is worse than a wrong number,
+since nothing about it looks off.
 
 #### The card hint closed itself
 
@@ -1103,6 +1143,85 @@ model step it read "up for the pinned state" with the pinned state one step
 below. D1 takes the card away at depth, so the line can't be reached from a
 step at all. `renderStep()` writes its own hint, and the gate drives the
 unreachability rather than leaving it to inference.
+
+### The claim left the step, the same day it arrived
+
+D2 above put one line of the claim at the foot of the step. Frank took it back
+out that afternoon, after reading a model on his phone: "I think we will be
+better off having to flick back and forth for the problem." To re-read the
+claim you tap back to the question and swipe up again.
+
+**The reversal is the useful part, so it's written down rather than tidied
+away.** D2's argument was that a reader checking a claim against a step in
+front of them shouldn't be holding it in their head. Nothing refuted that. It
+lost to a measurement nobody had taken yet.
+
+Read in Chrome at a true 390x844 against the published build, model step open
+on `1:Fences`, with the claim line set to `display: none` and the body
+re-measured:
+
+| the model body | pixels |
+|---|---|
+| with the claim | 480.0 |
+| without it | 613.9 |
+| returned | 133.9 |
+
+At 21.28 pixels a line and 12 of bottom padding, that's five of the 24 screens
+overflowing vertically with the claim against one without. The one left is
+`1:Shelves` at 29 lines, which wants about 629 against 613.9. Frank ruled it
+stays scrolling rather than the type shrinking for one screen, and accepted the
+sideways scroll in the same breath: "the phone screen is going to be tight."
+
+I'd watch this one the way the bead before it said to watch D2, and for the
+opposite reason. The working-memory argument was real and it's now a thing the
+reader pays for on every pinned item. If flicking back turns out to cost more
+than the two lines bought, the measurement to take is how often a reader swipes
+up and straight back down.
+
+#### The collapse control was a leftover
+
+The model head was a button. It toggled `v.collapsed[key]` and printed "hide"
+or "show", and the state was remembered per bucket for the visit.
+
+That earned its place while the model shared the resting view with the card. It
+gave the viewport back to the stream, and the bucketed stream means the next
+ten to twenty items are about the same model. D1 made the step the whole page,
+so there's no stream to give the viewport back to. Collapsing a step now leaves
+a head over nothing, which I suspect is what Frank was looking at when he
+reported that the model wasn't showing.
+
+The head is a `div` now and the model's **name** stays on it. That name is the
+one label on screen saying which model is being read.
+`harness/swipe/stemblind.sh` withholds the module name from a judge for exactly
+the reason a reader has to be shown it.
+
+Dropping the button took three CSS properties with it. `border: 0`,
+`background: transparent` and `font-family: inherit` only ever existed to undo
+a button's own styling, and `cursor: pointer` is worse than useless on a label.
+A button that does nothing is announced as pressable to a screen reader, which
+is a stronger reason to drop it than the pixels.
+
+#### The gate learned to read what the reader is shown
+
+Both changes are text checks over the source, which is what every other
+assertion in `harness/test-swipe-reader.sh` already was. 214 of them, and not
+one could say whether a model fits the screen it's drawn on.
+
+So the gate now scans the emitted payload: line count per screen, times the
+measured line height, plus the measured padding, against the measured body
+height. Exactly one screen overflows and it's `1:Shelves`. It keeps **both**
+body heights, 613.9 and 480.0, and that pair is the control rather than a
+second reading. A broken line count reports the same overflow set at either
+height, and the two differ by four screens.
+
+The four measured constants sit in one block above Part 1, with a paragraph
+saying what invalidates them. That list is longer than it looks: the font size,
+the line height, the padding, the theme's rem, anything that changes what a
+step draws around the body, and the viewport. None of them reddens an assertion
+on its own.
+
+The flipped assertion is flipped rather than deleted. A deleted one would leave
+the second ruling looking like the only one there had ever been.
 
 ### The record is a file and the browser is a cache
 
