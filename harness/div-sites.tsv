@@ -142,6 +142,9 @@ SITE	swipe/level0/ITEMS.tsv	1	12 \div 2	the comment block's parse-failure exampl
 SITE	swipe/level0/ITEMS.tsv	1	12 \div 5.	the second parse-failure example in that block. The dividend is 12
 SITE	swipe/level1/ITEMS.tsv	1	ON \div WITH	the heading of the comment block that carries the level 0 rule forward
 SITE	swipe/level1/ITEMS.tsv	1	uses \div at	the same comment block, stating that no level 1 claim or pin uses it
+SITE	swipe/level2/ITEMS.tsv	1	ON \div. TLC	the heading of the comment block that carries the rule to this rung
+SITE	swipe/level2/ITEMS.tsv	1	and \div 0	the same block, recording that a div by zero inside a STEP formula reads rc 255 rather than the 75 every other evaluation failure at this rung reads
+SITE	swipe/level2/ITEMS.tsv	1	uses \div at	the same block, stating that no level 2 claim or pin uses it
 SITE	swipe/README.md	1	on `\div` with	the section heading that records this bug
 SITE	swipe/README.md	1	`a \div b`	the quoted Naturals.tla contract
 SITE	swipe/README.md	1	(a \div b)	the quoted identity from the same contract
