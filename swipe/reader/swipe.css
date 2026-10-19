@@ -1,11 +1,59 @@
 /*
- * swipe.css -- the level 0 swipe reader's styles (bead tla-7xql.12, epic
- * tla-7xql).
+ * swipe.css -- the swipe reader's styles (beads tla-7xql.12 and tla-7xql.14,
+ * epic tla-7xql).
  *
  * THE PHONE IS THE ONLY TARGET. Frank, 2026-10-18: "this will only ever be
  * used on a phone browser." So this is not a desktop layout that also works
  * small. The default rules are the phone rules, and the one media query
  * widens the card on a big screen rather than the other way round.
+ *
+ * ==========================================================================
+ * THE HEIGHT BUDGET AT 390x844, AND THE TWO RULES THAT HOLD IT
+ * ==========================================================================
+ *
+ * A level 0 card is a claim and three buttons and fits with room to spare.
+ * The pinned rungs do not. Measured over the two corpora:
+ *
+ *   the tallest model screen           29 lines, 1:Shelves
+ *   the widest screen line             73 characters
+ *   the level 1 pin                    1 to 3 conjuncts
+ *   the level 2 pin                    4 to 7 rows, pre and post and binds
+ *   the longest claim                  80 characters
+ *
+ * The theme sets 1rem to 20px, so a rem here is 20 pixels and not 16. 29
+ * lines of monospace at 0.76rem and a 1.45 line height is 638 pixels, and 73
+ * characters does not fit 390 CSS pixels at any readable size at all. The
+ * level 2 pin adds 7 rows and three labels on top of that. So the model, the
+ * pin, the claim and three buttons cannot share one viewport.
+ *
+ * AND THE PAGE AROUND THE READER IS NOT MEASURABLE FROM HERE. mkdocs-material
+ * puts a 2.4rem sticky header, an h1 and a lead-in paragraph above
+ * #swipe-app. Bead tla-7xql.12 measured the level 0 answer row landing at
+ * 812 pixels of 844, which works back to roughly 400 pixels of page above the
+ * app, but that number is the theme's and it moves with the theme. A layout
+ * that budgets against it is a layout that is wrong after the next bump.
+ *
+ * So the budget is not arithmetic. It is two rules.
+ *
+ * ONE. THE QUESTION IS DOCKED. .swipe-card holds the ask, the claim and the
+ * three answer buttons, and it is stuck to the bottom of the viewport.
+ * Whatever sits above it, and however tall that is, the reader can read the
+ * question and answer it without scrolling. The pin is deliberately NOT in
+ * there: it is premise, and a 7-row level 2 pin would make the dock taller
+ * than half the screen.
+ *
+ * TWO. THE PREMISE SCROLLS, and one model cannot push another layout around.
+ * .swipe-screen-body is capped in VIEWPORT units and scrolls inside itself
+ * both ways. 26vh is 219 pixels at 844, which is 9 of Shelves's 29 lines. No
+ * wrapping, because an indented conjunction list that wraps loses the
+ * alignment that says which conjuncts belong to which action, so the body
+ * scrolls sideways instead. swipe.js declines a swipe that starts in there,
+ * since otherwise reading along a line would answer the item.
+ *
+ * The panel is collapsible on top of that, which is the reader's own lever
+ * rather than a rule: once the model has been read, collapsing it gives the
+ * stream the whole screen, and the bucketed stream means the next ten to
+ * twenty items are about the same model.
  *
  * COLOR COMES FROM THE THEME'S OWN VARIABLES, never from literals, so the
  * light and dark palettes in mkdocs.yml both work with no second set of
@@ -22,7 +70,7 @@
 #swipe-app {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.7rem;
   margin: 1rem 0 2rem;
   user-select: none;
   -webkit-user-select: none;
@@ -57,7 +105,61 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- the card ---- */
+/* ---- the model screen, which is the premise ---- */
+
+.swipe-screen {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--md-code-bg-color);
+}
+
+/* The header is the collapse control and the model's name. It is a button so
+   it is reachable by keyboard and reads as a control to a screen reader. */
+.swipe-screen-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--md-typeset-color);
+  font-family: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 2.2rem;
+}
+
+.swipe-screen-name {
+  font-weight: 700;
+}
+
+.swipe-screen-toggle {
+  opacity: 0.6;
+}
+
+/* THE CAP AND THE SCROLL. See the height budget in the header. 26vh at 844
+   is 219 pixels, which is 9 lines at this size and a line height of 1.45.
+   `pre` rather than `pre-wrap` because a wrapped conjunction list loses its
+   alignment. */
+.swipe-screen-body {
+  margin: 0;
+  padding: 0 0.7rem 0.6rem;
+  max-height: 26vh;
+  overflow: auto;
+  font-family: var(--md-code-font-family, monospace);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  white-space: pre;
+  background: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---- the card, which is the question dock ---- */
 
 .swipe-card,
 .swipe-flash,
@@ -67,13 +169,32 @@
 .swipe-done {
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.5rem;
-  padding: 1.1rem 1rem;
+  padding: 0.9rem 1rem;
   background: var(--md-default-bg-color);
-  min-height: 11rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.7rem;
+  gap: 0.6rem;
+}
+
+/* RULE ONE OF THE HEIGHT BUDGET. The ask, the claim and the three buttons
+   stay on the viewport floor whatever is above them, so the question is
+   never the thing a reader has to scroll to find. The background is opaque
+   on purpose: a translucent dock over a line of TLA+ reads as neither. */
+.swipe-card {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+/* A flash or a panel is the whole screen for a moment, so it gets a floor.
+   The dock does not: its height is the question and nothing else. */
+.swipe-flash,
+.swipe-review,
+.swipe-stats,
+.swipe-message,
+.swipe-done {
+  min-height: 11rem;
 }
 
 .swipe-card,
@@ -89,26 +210,57 @@
   opacity: 0.7;
 }
 
-/* The claim is the whole item, so it gets the space. pre-wrap rather than
-   pre: a level 0 claim can run past a phone's width and a horizontal
-   scrollbar inside a card you are about to swipe is the wrong gesture in the
-   wrong place. */
-.swipe-claim {
+/* ---- the pin, which is the question's subject ---- */
+
+.swipe-pin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.swipe-pin-label {
   margin: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* The pin wraps where the model screen does not. A pin row is one conjunct
+   rather than part of an aligned list, so a wrapped row loses nothing, and
+   the longest measured 35 characters. */
+.swipe-pin-body {
+  margin: 0;
+  padding: 0.35rem 0.55rem;
   font-family: var(--md-code-font-family, monospace);
-  font-size: 1.05rem;
-  line-height: 1.55;
+  font-size: 0.8rem;
+  line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: break-word;
   background: var(--md-code-bg-color);
-  padding: 0.7rem 0.6rem;
+  border-radius: 0.25rem;
+}
+
+/* The claim is the whole question, so it gets the space. pre-wrap rather than
+   pre: a claim can run past a phone's width, and a horizontal scrollbar
+   inside a card you are about to swipe is the wrong gesture in the wrong
+   place. */
+.swipe-claim {
+  margin: 0;
+  font-family: var(--md-code-font-family, monospace);
+  font-size: 1.02rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  background: var(--md-code-bg-color);
+  padding: 0.6rem 0.6rem;
   border-radius: 0.3rem;
 }
 
 .swipe-hint {
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.5;
+  font-size: 0.68rem;
+  line-height: 1.45;
   opacity: 0.7;
 }
 
@@ -162,9 +314,11 @@
   gap: 0.6rem;
 }
 
-/* Three answers across the bottom, equal width, tall enough to hit with a
-   thumb without looking. 3rem is above the 44px floor every mobile platform
-   publishes for a touch target. */
+/* Three answers across the bottom of the dock, equal width, tall enough to
+   hit with a thumb without looking. 3rem is 60 pixels at this theme's root
+   size, well above the 44 pixel floor every mobile platform publishes for a
+   touch target. The dock is what makes them reachable, so nothing here
+   positions them. */
 .swipe-answers {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -243,8 +397,8 @@
   border-bottom: 1px solid var(--md-default-fg-color--lightest);
 }
 
-.swipe-table td:nth-child(2),
-.swipe-table td:nth-child(3) {
+.swipe-table td:nth-child(3),
+.swipe-table td:nth-child(4) {
   font-variant-numeric: tabular-nums;
 }
 
@@ -252,10 +406,18 @@
 
 @media screen and (min-width: 45em) {
   #swipe-app {
-    max-width: 34rem;
+    max-width: 38rem;
   }
 
   .swipe-claim {
     font-size: 1.15rem;
+  }
+
+  /* A laptop has the height for the whole model, so the cap loosens rather
+     than disappearing. A screen with no cap at all is a page that jumps when
+     the model changes. */
+  .swipe-screen-body {
+    max-height: 48vh;
+    font-size: 0.82rem;
   }
 }

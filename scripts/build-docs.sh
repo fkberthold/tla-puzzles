@@ -1301,11 +1301,20 @@ fi
 # swipe/reader/emit-items.sh, which this section calls rather than reimplements.
 # harness/test-swipe-reader.sh drives the same script.
 #
-# SCOPE IS LEVEL 0. A level 0 item is a single constant expression and needs
-# no model screen at all, which is the whole reason the epic built level 0
-# first. Level 1 items need a model screen and a pin and do not exist yet.
-# The page is built so a model screen can be added above the claim without
-# the rest moving, and bead tla-7xql.4 is measuring what one costs in lines.
+# ALL THREE LEVELS SHIP, since bead tla-7xql.14. A level 0 item is a single
+# constant expression and needs no model screen, which is the whole reason
+# the epic built that rung first. A level 1 item pins a state and a level 2
+# item pins a step, and both show the model with its obligations stripped.
+#
+# THIS SECTION STARTS NO JVM, AND THAT IS A HARD CONSTRAINT RATHER THAN A
+# PREFERENCE. The model screens are rendered by swipe/level1/render.sh, which
+# reads SANY's semantic tree. .github/workflows/pages.yml installs Python and
+# mkdocs-material and nothing else, so a render here would fail on the deploy
+# runner, where scripts/cibuild would never see it because cibuild does
+# install the toolchain. So the screens are baked into
+# swipe/reader/SCREENS.tsv by swipe/reader/render-screens.sh on a dev box and
+# emit-items.sh reads bytes. harness/test-swipe-reader.sh drives this build
+# with java, tlc, sany and javac shimmed out and asserts none was called.
 # ===========================================================================
 
 if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
@@ -1322,11 +1331,16 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
   cp swipe/reader/swipe.js "$DOCS/javascripts/swipe.js"
   cp swipe/reader/swipe.css "$DOCS/stylesheets/swipe.css"
 
-  # Derived from the corpus, never written here. Same rule the reading
-  # section above follows, for the reason bead tla-i3zu measured: a hand-kept
-  # number is right until somebody adds an item, and then it is silently
-  # wrong with every gate still green.
-  SWIPE_COUNT=$(grep -c '^ITEM' swipe/level0/ITEMS.tsv)
+  # Derived from the corpora, never written here, and derived over every
+  # level directory rather than over a list. Same rule the reading section
+  # above follows, for the reason bead tla-i3zu measured: a hand-kept number
+  # is right until somebody adds an item, and then it is silently wrong with
+  # every gate still green. A hand-kept LIST of levels has the same shape one
+  # layer up, which is the failure tla-7xql.14 closed.
+  # awk rather than bc, which this box does not have and the deploy runner
+  # has no reason to.
+  SWIPE_COUNT=$(cat swipe/level*/ITEMS.tsv | awk '/^ITEM/ { n += 1 } END { print n + 0 }')
+  SWIPE_LEVELS=$(find swipe -maxdepth 1 -type d -name 'level*' | wc -l | tr -d ' ')
 
   {
     echo "# Swipe"
@@ -1337,8 +1351,8 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
     # is 32 pixels inside the fold. The card's own hint already says what a
     # swipe means, so the paragraph above it was saying it twice and costing
     # the reader a scroll on every cold start.
-    echo "$SWIPE_COUNT single lines of TLA+, one at a time. The buttons do what"
-    echo "the gestures do."
+    echo "$SWIPE_COUNT lines of TLA+, one at a time, over $SWIPE_LEVELS rungs. The"
+    echo "buttons do what the gestures do."
     echo ""
     # THE ROOT ELEMENT. swipe.js keys everything off this id: on any other
     # page of the site it finds nothing and does nothing. data-items is
@@ -1349,9 +1363,25 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
     echo 'the items themselves are in the repository link at the bottom.</p>'
     echo '</div>'
     echo ""
+    echo "## The three rungs, and why two of them show a model"
+    echo ""
+    echo "A level 0 line is constant TLA+. It needs nothing but itself, which"
+    echo "is why that rung came first."
+    echo ""
+    echo "A level 1 line is about a STATE and a level 2 line is about a STEP,"
+    echo "so those come with the model on screen. The model is shown with its"
+    echo "invariants and properties stripped out, and without Init, Next or"
+    echo "Spec: a model that ships its obligations asserts its own answers,"
+    echo "and showing the machine invites a reachability check that is not the"
+    echo "question being asked."
+    echo ""
+    echo "Tap the model's name to fold it away once you have read it. The"
+    echo "stream serves a run of lines about one model before it moves on, so"
+    echo "folding it is worth doing. The level button runs one rung on its own."
+    echo ""
     echo "## Where the answer comes from"
     echo ""
-    echo "Nothing here runs a model checker. TLC ran once when the corpus was"
+    echo "Nothing here runs a model checker. TLC ran once when each corpus was"
     echo "built: it measured every item and wrote the verdict into the table,"
     echo "and this page reads that table. So the grading needs no server and"
     echo "works offline once the page has loaded."
@@ -1382,8 +1412,14 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
     echo "how an item is authored, why the mix is what it is, and what the"
     echo "verdict channel measures."
     echo ""
-    echo "[\`swipe/level0/ITEMS.tsv\`]($GH_BLOB/swipe/level0/ITEMS.tsv)"
-    echo ""
+    # One link per level directory, derived rather than listed, for the same
+    # reason the count above is derived.
+    for d in swipe/level*/; do
+      lvl="${d#swipe/level}"
+      lvl="${lvl%/}"
+      echo "[\`swipe/level$lvl/ITEMS.tsv\`]($GH_BLOB/swipe/level$lvl/ITEMS.tsv)"
+      echo ""
+    done
   } > "$DOCS/swipe/index.md"
 
   {
