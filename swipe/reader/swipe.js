@@ -154,7 +154,7 @@
  *   D1  chromeAt() is the whole rule and it is ONE PURE FUNCTION. render()
  *       asks it rather than carrying three conditions, because what has to be
  *       true is a table over every state and no pattern over render()'s source
- *       can see a table. harness/test-swipe-reader.sh drives all 24.
+ *       can see a table. harness/test-swipe-reader.sh drives all 30.
  *
  *   D2  ONE LINE OF THE CLAIM STAYS, at the foot of the step view, on the
  *       dock's own .swipe-claim type. REVERSED THE SAME DAY by bead
@@ -235,6 +235,63 @@
  * Frank was looking at when he reported that the model was not showing. The
  * head is a label now and the model's NAME stays on it, since that is the one
  * thing on screen saying which model is being read.
+ *
+ * ========================================================================
+ * THE STEP HINT GOES, AND AN i CARRIES THE GESTURE TABLE
+ * ========================================================================
+ *
+ * Bead tla-7xql.20, the evening of the two above. The step view ended with
+ * "up for the model, tap to come back", or "tap to come back" at the top, and
+ * the second half of that line promised something most of the view cannot
+ * keep. scrollerDeclining() refuses a touch that starts over a model
+ * scrolling sideways, and central read 22 of the 24 published screens in
+ * Chrome as wider than the 29 characters the body fits. With the claim gone
+ * that body is 613.9 of 844, so about three quarters of the step will not
+ * take the tap the hint was offering.
+ *
+ * Both lines go and nothing replaces them. The head reads "THE MODEL, 2 OF 3"
+ * and the back button says "back", which is what the hint was restating.
+ *
+ *   D1  THE CARD HINT STAYS, and the pair was decided together rather than as
+ *       one deletion. cardHint() is the only thing on screen saying the
+ *       premise exists at all, and the resting view has had room since the
+ *       menu became one control. Hiding it would buy space that is not scarce
+ *       with discoverability that is.
+ *
+ *   D2  THE i CONTROL CARRIES THE FIVE GESTURES. Nothing on screen has ever
+ *       said what down means, and "not a claim" is the one meaning a reader
+ *       cannot reconstruct from what is in front of them. The control sits in
+ *       the step head beside the back button and in the counts row at rest,
+ *       which is the same corner of the page in both. Those two slots are
+ *       never drawn together, so there is exactly one of it on screen.
+ *
+ *       The panel's words are the contract page's own, down to the sentence
+ *       about what down covers. Two readings of one gesture is worse than
+ *       none, and the reader reaches that page from the menu.
+ *
+ *   D3  THE HELP IS v.panel's FOURTH VALUE AND NOT AN OVERLAY, and this is
+ *       the load-bearing part. gesture() returns early while a panel is open,
+ *       and that guard is what stands between an open help screen and an
+ *       accidental verdict. Frank reported those on 2026-10-19: "I've now
+ *       accidentally sent multiple responses." An overlay would leave the
+ *       step rendered underneath and would need a second guard written from
+ *       scratch, so a panel is both the cheaper route and the safer one.
+ *
+ *       chromeAt() NEEDED NO CHANGE FOR IT, which reads like an omission and
+ *       is not one. The function never asks which panel is open, only whether
+ *       one is, so the fourth value was answered the day the third landed.
+ *       render()'s dispatch is the half that does need its own branch, and
+ *       WITHOUT ONE IT FALLS THROUGH to chrome.card, which is false at depth,
+ *       and draws the step instead of the help. The gate holds render() to
+ *       having a branch for every value the code can set, rather than to
+ *       having one for this value, because a fifth would arrive the same way.
+ *
+ *   D4  THE ICON IS TRANSLUCENT AND THE PANEL IS NOT. Frank offered the
+ *       translucency and it is right for a control that sits in a corner over
+ *       content and costs no layout. It is wrong for the panel: a translucent
+ *       panel over a model is monospace over monospace, and a reader
+ *       comparing a step against a claim is who can least afford it. You are
+ *       reading one or the other and never both.
  *
  * ========================================================================
  * navigation.instant, AND WHY A PLAIN SCRIPT WOULD BE WRONG HERE
@@ -713,7 +770,7 @@
 
      THIS IS A FUNCTION AND NOT THREE CONDITIONS INSIDE render(), because what
      has to be true is a table over every state the reader can be in and no
-     pattern over render()'s source can see a table. The gate drives all 24
+     pattern over render()'s source can see a table. The gate drives all 30
      combinations of depth, panel and flash through here.
 
      The three slots are the three things render() appends around whatever the
@@ -721,10 +778,16 @@
      menu. `card` is the resting box rather than the card element, since the
      done screen stands in the same slot when the pool is empty.
 
-     Half the 24 are unreachable through the reader today: answer() closes the
-     stack before it sets the flash, and the menu control is only drawn in the
-     resting view. The function is total anyway, so a later bead that makes one
-     of them reachable finds it already answered. */
+     Many of the 30 are unreachable through the reader today, and the reason
+     is worth more than the count: answer() returns early on an open panel and
+     closes the stack before it sets the flash, so no panel can be open with a
+     flash up. The function is total anyway, so a later bead that makes one of
+     them reachable finds it already answered.
+
+     IT NEEDED NO CHANGE FOR THE FOURTH PANEL VALUE, bead tla-7xql.20. It
+     never asks WHICH panel is open, only whether one is, so the help was
+     answered the day the menu landed. render()'s dispatch is the half a new
+     value does need work in. */
   function chromeAt(depth, panel, flash) {
     var open = Boolean(panel) || Boolean(flash);
     var stepped = !open && depth > 0;
@@ -1010,6 +1073,12 @@
       v.root.appendChild(renderMessage());
     } else if (v.panel === "menu") {
       v.root.appendChild(renderMenu());
+    } else if (v.panel === "help") {
+      /* A BRANCH OF ITS OWN, bead tla-7xql.20, and leaving it out is the
+         defect rather than an omission: the chain would fall through to
+         chrome.card, which is false at depth, and draw the step instead of
+         the help. */
+      v.root.appendChild(renderHelp());
     } else if (v.flash) {
       v.root.appendChild(renderFlash());
     } else if (chrome.card) {
@@ -1062,7 +1131,16 @@
       " right, " + remaining + " of " + v.items.length + " unseen" +
       (v.level === null ? "" : ", level " + v.level + " only") +
       (v.mode === "misses" ? ", reviewing misses" : "");
-    box.appendChild(line);
+
+    /* THE HELP CONTROL'S RESTING CORNER, bead tla-7xql.20. The counts row is
+       drawn in every state that is not a step, so the control is here for all
+       of them and in the step head for the rest. The row exists only to put
+       the two at opposite ends of one line, which is why the counts keep their
+       own element and their own type. */
+    var row = el("div", "swipe-counts-row");
+    row.appendChild(line);
+    row.appendChild(helpControl());
+    box.appendChild(row);
     return box;
   }
 
@@ -1150,10 +1228,17 @@
      a wide model is most of the page now. Tap anywhere is the convenience and
      the button is the guarantee.
 
-     THE BODY IS THE ONE THING HERE THAT GIVES UP ROOM. The head and the hint
-     take their own height and the body takes the rest, which is the same rule
-     #swipe-app follows one level up and the reason that rule cost the model 66
-     pixels when the chrome was still in the way.
+     THE BODY IS THE ONE THING HERE THAT GIVES UP ROOM. The head takes its own
+     height and the body takes the rest, which is the same rule #swipe-app
+     follows one level up and the reason that rule cost the model 66 pixels
+     when the chrome was still in the way.
+
+     THERE IS NO HINT UNDER THE BODY SINCE BEAD tla-7xql.20. It read "up for
+     the model, tap to come back", and scrollerDeclining() refuses a touch
+     over 22 of the 24 published screens, so most of the view would not take
+     the tap it offered. The head's own "2 of 3" and the back button were
+     already saying the rest of it. The gesture table moved to the i control
+     beside the back button, which is where down finally gets explained.
 
      THE CLAIM IS NOT HERE, AND IT WAS FOR ONE AFTERNOON. Decision D2 of bead
      tla-7xql.18 put one line of it at the foot, so that a reader checking a
@@ -1186,6 +1271,9 @@
       render();
     });
     head.appendChild(back);
+    /* THE SAME CORNER AS THE COUNTS ROW, which is the one the counts row is
+       not drawn in. See D2 of bead tla-7xql.20. */
+    head.appendChild(helpControl());
     box.appendChild(head);
 
     var body = el("div", "swipe-step-body");
@@ -1201,13 +1289,6 @@
       body.appendChild(renderExplain());
     }
     box.appendChild(body);
-
-    if (v.depth < steps.length) {
-      box.appendChild(el("p", "swipe-hint",
-        "up for " + stepLabel(steps[v.depth], v.current) + ", tap to come back"));
-    } else {
-      box.appendChild(el("p", "swipe-hint", "tap to come back"));
-    }
     return box;
   }
 
@@ -1540,6 +1621,69 @@
     return box;
   }
 
+  /* THE GESTURE TABLE AS A PANEL, bead tla-7xql.20. Five gestures, and before
+     this the reader was told what down means on the contract page and nowhere
+     the thumb could reach.
+
+     THE THREE ANSWERS COME OFF SWIPES AND LABELS rather than being written out
+     again. Those two are what gesture() dispatches on and what the dock prints,
+     so a table typed a second time here would be a second account of one
+     gesture, and the account that goes stale is the one nobody runs.
+
+     THE WORDS FOR DOWN ARE THE CONTRACT PAGE'S, in scripts/build-docs.sh. A
+     reader who meets two accounts of a gesture has to work out which one is
+     current, so there is one account standing in two places.
+
+     A PANEL AND NOT AN OVERLAY. See D3 in this file's header: gesture()
+     declines everything but tap while v.panel is set, so this screen cannot
+     be swiped through into a verdict. The last paragraph says so out loud,
+     because a reader who has already filed verdicts by accident has no reason
+     to believe a help screen is safe to read. */
+  function renderHelp() {
+    var v = view;
+    var box = el("div", "swipe-help-panel");
+    box.appendChild(el("p", "swipe-verdict", "What the gestures do"));
+
+    var rows = el("div", "swipe-help-rows");
+    var i;
+    for (i = 0; i < SWIPES.length; i++) {
+      helpRow(rows, "swipe " + SWIPES[i], LABELS[SWIPES[i]]);
+    }
+    helpRow(rows, "swipe up", "one step deeper into the premise");
+    helpRow(rows, "tap", "one step back out");
+    box.appendChild(rows);
+
+    box.appendChild(el("p", null,
+      "Down is the answer for a line that is not a true-or-false claim here. " +
+      "It can fail to mean anything, it can be vacuously true in a way that " +
+      "makes the claim empty, or it can fail to parse at all."));
+
+    box.appendChild(el("p", null,
+      "Nothing in here answers an item. A swipe does nothing while a panel is " +
+      "open, so this is a safe place to stop and read. Tap anywhere, or use " +
+      "the button, and you are back on the step you were on."));
+
+    var back = el("button", "swipe-btn", "back");
+    back.type = "button";
+    back.addEventListener("click", function () {
+      v.panel = null;
+      render();
+    });
+    box.appendChild(back);
+    return box;
+  }
+
+  /* ONE ROW OF THE TABLE, APPENDED RATHER THAN RETURNED. The table is a
+     two-column grid and the two cells are its direct children, so there is no
+     row element to hand back. That is the whole reason for the grid: the
+     meanings line up down the panel without this file guessing how wide
+     "SWIPE RIGHT" renders, and a width guessed in a stylesheet is what cost
+     the model 66 pixels two beads ago. */
+  function helpRow(rows, move, means) {
+    rows.appendChild(el("span", "swipe-help-move", move));
+    rows.appendChild(el("span", "swipe-help-means", means));
+  }
+
   /* THE DOCK GOES DEAD AT THE LAST STEP AND NOWHERE ELSE. stats and the
      message panels change the subject, and so does the explanation step,
      which is about the last item answered wrong rather than the one in the
@@ -1562,6 +1706,31 @@
     var b = el("button", "swipe-btn", text);
     b.type = "button";
     b.addEventListener("click", fn);
+    return b;
+  }
+
+  /* THE WAY INTO THE GESTURE TABLE, bead tla-7xql.20. One control, drawn in
+     the counts row at rest and in the step head at depth, which is the same
+     corner of the page in both.
+
+     IT OPENS A PANEL AND NOT AN OVERLAY. gesture() returns early while
+     v.panel is set, so this inherits the decline that stands between an open
+     help screen and an accidental verdict. It touches v.depth nowhere, which
+     is what leaves the reader on the step they were reading.
+
+     A BUTTON, SO isControl() DECLINES THE TAP. Without that a tap here would
+     open the help and step the stack back in one motion. The label is a
+     letter rather than a glyph, because the type here is the theme's and a
+     glyph font is one more thing that can fail to load. */
+  function helpControl() {
+    var v = view;
+    var b = el("button", "swipe-help", "i");
+    b.type = "button";
+    b.setAttribute("aria-label", "what the gestures do");
+    b.addEventListener("click", function () {
+      v.panel = "help";
+      render();
+    });
     return b;
   }
 
@@ -2223,7 +2392,7 @@
       answersLive: answersLive,
       cardHint: cardHint,
       /* tla-7xql.18's two, and both are here because a text gate cannot see a
-         table. chromeAt answers what a state draws, over 24 combinations, and
+         table. chromeAt answers what a state draws, over 30 combinations, and
          scrollerDeclining answers which scroller eats a touch, in BOTH
          directions: a decline that always fires and a decline that never fires
          both pass a one-sided check, and the first of those is the defect that

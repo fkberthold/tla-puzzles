@@ -1037,7 +1037,7 @@ the card and the menu aren't drawn at all, and the step gets 824 of the 844.
 `chromeAt()` is the whole of D1, and it's one pure function rather than three
 conditions inside `render()`. D1 has to hold over every state the reader can be
 in, and no pattern over `render()`'s source can read a table. So the gate drives
-all 24 combinations of depth, panel and flash, and holds `render()` to obeying
+all 30 combinations of depth, panel and flash, and holds `render()` to obeying
 every slot the answer carries.
 
 D2 is the half I'd watch. One line of the claim comes along on the dock's own
@@ -1141,8 +1141,11 @@ since nothing about it looks off.
 The hint on the card names the first step of the item's own stack, so at the
 model step it read "up for the pinned state" with the pinned state one step
 below. D1 takes the card away at depth, so the line can't be reached from a
-step at all. `renderStep()` writes its own hint, and the gate drives the
+step at all. `renderStep()` wrote its own hint, and the gate drives the
 unreachability rather than leaving it to inference.
+
+That second hint is gone since `tla-7xql.20`, and the card's own stayed. See
+"the step hint went" below, where the pair is the whole decision.
 
 ### The claim left the step, the same day it arrived
 
@@ -1222,6 +1225,87 @@ on its own.
 
 The flipped assertion is flipped rather than deleted. A deleted one would leave
 the second ruling looking like the only one there had ever been.
+
+### The step hint went and an `i` carries the gesture table
+
+Bead `tla-7xql.20`, the evening of the two above. The step view ended with "up
+for the model, tap to come back", and the second half of that line promised
+something most of the view can't keep.
+
+`scrollerDeclining()` refuses a touch that starts over a model scrolling
+sideways. Central read 22 of the 24 published screens in Chrome as wider than
+the 29 characters the body fits. With the claim gone that body is 613.9 of 844,
+so about three quarters of the step wouldn't take the tap the hint was offering.
+That reading is central's browser rather than this suite's, and nothing in
+`harness/test-swipe-reader.sh` can see a pixel.
+
+Both lines went and nothing replaced them. The head reads "THE MODEL, 2 OF 3"
+and the back button says "back", which is what the hint was restating.
+
+Frank's proposal was one control. "Would it be sensible, instead, just to have
+an i icon in the upper corner that can be clicked for any such hints, you could
+even make it translucent to give readable space if that's useful." That split
+three ways, because the two hints on screen were doing different jobs.
+
+**The card hint stayed.** `cardHint()` is the only thing on screen saying the
+premise exists at all, and the resting view has had room since the menu became
+one control. Hiding it would buy space that isn't scarce with discoverability
+that is. The gate asserts the two hints next to each other, so a later author
+meets both rulings or neither.
+
+**The gesture table went behind the icon**, and that's the hint neither
+per-view line was carrying. Nothing on screen had ever said what down means,
+and "not a claim" is the one meaning a reader can't reconstruct from what's in
+front of them. The control sits in the step head beside the back button and in
+the counts row at rest, which is the same corner in both. Those two slots are
+never drawn together, so there's exactly one of it on screen, and part 6 drives
+that over all 30 chrome states.
+
+The panel's words are the contract page's own, down to the sentence about what
+down covers. Two accounts of one gesture is worse than one, and the account
+that goes stale is the one nobody runs.
+
+#### The help is a panel, and that is the part to leave alone
+
+`gesture()` returns early while `v.panel` is set. That guard is what stands
+between an open help screen and an accidental verdict, and the accidental
+verdicts are a thing Frank has already reported: "I've now accidentally sent
+multiple responses."
+
+So the help is `v.panel`'s fourth value. An overlay would leave the step
+rendered underneath and would need a second guard written from scratch. That's
+more work, and it's the kind of work that gets it wrong. I think this is the
+ruling a later reader is most likely to undo, because an overlay looks lighter
+until you ask what a swipe over it means.
+
+`chromeAt()` needed no change for it, and that reads like an omission. The
+function never asks which panel is open, only whether one is, so the fourth
+value was answered the day the third landed. `render()`'s dispatch is the half
+that does need its own branch. Without one the chain falls through to
+`chrome.card`, which is false at depth, so it draws the step instead of the
+help. I watched that happen before fixing it.
+
+The gate holds `render()` to having a branch for **every** value the code can
+set, rather than to having one for this value. A fifth would arrive the same
+way, and a check written for the fourth would stay green while it did.
+
+Leaving the panel returns the reader to the depth they were on, and that's
+about not breaking it rather than about adding it. Opening a panel doesn't
+touch `v.depth` today. `renderMenu()` is the one place that resets it, for the
+review shortcut, which is also the negative control for the check: the pattern
+finds an assignment there, so its silence over `renderHelp()` means something.
+
+#### Translucency is for the icon and not for the panel
+
+Frank offered the translucency and it's right for a control that sits in a
+corner over content and costs no layout. At 0.55 the icon reads as available
+without competing with a line of TLA+ for the eye.
+
+It's wrong for the panel. A translucent panel over a model is monospace over
+monospace, and a reader comparing a step against a claim is who can least
+afford it. You're reading one or the other and never both, so the panel is
+opaque and covers the model. The gate pins the pair: the icon rule declares an
+opacity under 1, and no rule for the panel declares one at all.
 
 ### The record is a file and the browser is a cache
 

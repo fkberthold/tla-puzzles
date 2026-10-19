@@ -40,7 +40,7 @@
 # difference is worth stating because the predicate is the stronger reading. No
 # browser runs here, so nothing can count the elements a state renders. What
 # can be driven is the decision: chromeAt() answers which of the three chrome
-# slots a state draws, part 6 drives all 24 combinations of depth, panel and
+# slots a state draws, part 6 drives all 30 combinations of depth, panel and
 # flash, and part 5 holds render() to obeying every slot the predicate answers.
 #
 # The claim half was read as text, because which element renderStep() appends
@@ -66,6 +66,18 @@
 # Frank found in the recall rung on 2026-10-17 that 339 assertions had not
 # seen, all of them about what reached the reader. This suite had 214 and not
 # one of them could say whether a model fits the screen it is drawn on.
+#
+# and tla-7xql.20's:
+#
+#   INVARIANT: chromeAt() answers for the help panel, render() draws it, a
+#   swipe is declined while it is open, and leaving it returns the reader to
+#   the depth they were at.
+#
+# THE HELP IS A PANEL BECAUSE THE PANEL GUARD ALREADY WORKS, and that is the
+# reason a later author will be tempted to undo. gesture() returns early on
+# v.panel !== null, so a fourth value inherits the decline that stands between
+# an open help screen and an accidental verdict. An overlay would leave the
+# step rendered underneath and would need a second guard written from scratch.
 #
 # ===========================================================================
 # WHY THIS SUITE EXISTS, AND IT IS NOT "A FILE IS MISSING"
@@ -1559,7 +1571,7 @@ fi
 # the 438 pixels its content wanted. Frank, on his phone: "It isn't showing the
 # model."
 #
-# THE CHROME DECISION IS A FUNCTION AND PART 6 DRIVES IT over all 24 states.
+# THE CHROME DECISION IS A FUNCTION AND PART 6 DRIVES IT over all 30 states.
 # What is left here is that render() ASKS it, because three inline conditions
 # would pass every assertion in part 6 while answering a different question.
 # ---------------------------------------------------------------------------
@@ -1638,6 +1650,51 @@ else
   ok "the depth-0 hint stays in the card, so no step promises a step below it"
 fi
 
+# ---------------------------------------------------------------------------
+# BEAD tla-7xql.20, AND THE NEXT TWO ASSERTIONS ARE ONE DECISION. The step view
+# ended with "up for the model, tap to come back", and the second half of that
+# line promised something most of the view cannot keep. scrollerDeclining()
+# refuses a touch that starts over a model scrolling sideways, and central's
+# browser read 22 of the 24 published screens as wider than the body they are
+# drawn in. With the claim gone that body is 613.9 of 844.
+#
+# THE CARD HINT STAYED, which is why the pair sits here rather than apart.
+# cardHint() is the only thing on screen saying the premise exists at all, and
+# the resting view has had room since the menu became one control. A later
+# author who met one of these without the other would read them as one ruling
+# about hints, and they are two rulings about two different views.
+# ---------------------------------------------------------------------------
+if grep -qE '"swipe-hint"' <<<"$step_body"; then
+  nope "renderStep() still writes a hint, and the step is the one view where a tap is declined over most of the corpus"
+else
+  ok "the step view writes no hint, so nothing there offers a tap the model body will not take"
+fi
+
+if grep -qE '"swipe-hint", cardHint\(item\)' <<<"$card_body"; then
+  ok "the resting card still writes its own hint, which is the only line saying the premise is up there"
+else
+  nope "the card hint went out with the step hint, so nothing tells a reader the premise exists at all"
+fi
+
+# D2 OF THE SAME BEAD. Five gestures, and nothing on screen has ever said what
+# down means. The control goes in the step head beside the back button and in
+# the counts row at rest, which is the same corner of the page in both. Those
+# two slots are never drawn together, and part 6 drives that over all 30 states
+# rather than leaving it to inference here.
+status_body=$(awk '/^  function renderStatus\(\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$status_body" | tr -d '[:space:]')" ]; then
+  nope "renderStatus() was not found, so the help-control checks read nothing"
+elif grep -qE 'helpControl\(' <<<"$status_body"; then
+  ok "the counts row carries the help control, which is the upper corner of the resting view"
+else
+  nope "the resting view draws no help control, so the gesture table is reachable from a step and nowhere else"
+fi
+if grep -qE 'helpControl\(' <<<"$step_body"; then
+  ok "the step head carries the help control beside the back button, which is the same corner"
+else
+  nope "a step draws no help control, and a step is the one view with no counts row to put it in"
+fi
+
 # DECISION D3. Eight controls touched once a session against one touched every
 # item. The third panel value is the cheap route and it inherits the rule that
 # swipes are declined while a panel is open.
@@ -1661,6 +1718,93 @@ if grep -qE 'panel = "menu"' <<<"$controls_body"; then
   ok "the one control opens the menu through v.panel, so it inherits the panel rules rather than inventing a mechanism"
 else
   nope "the menu control does not set v.panel, so a swipe with the menu open would answer the item behind it"
+fi
+
+# ---------------------------------------------------------------------------
+# A PANEL AND NOT AN OVERLAY, which is the load-bearing half of bead
+# tla-7xql.20. gesture() returns early on v.panel !== null, and that guard is
+# what stands between an open help screen and an accidental verdict. Frank
+# reported the accidental verdicts on 2026-10-19: "I've now accidentally sent
+# multiple responses." An overlay would leave the step rendered underneath and
+# would need a second guard written from scratch.
+#
+# THE FALL-THROUGH IS THE DEFECT THESE CATCH. render() dispatches on v.panel
+# through an if-else chain, so a value with no branch of its own falls to
+# chrome.card, which is false at depth, and draws the STEP instead of the
+# panel. The check is therefore not "help has a branch" but "every value the
+# code can set has one", which is the form that still fires for a fifth value.
+# That is CLAUDE.md's completeness rule turned on the gate: which panel would I
+# expect this to read that it does not?
+# ---------------------------------------------------------------------------
+panel_values=$(sed -n 's/.*v\.panel = "\([a-z]*\)".*/\1/p' "$CODE" | LC_ALL=C sort -u | tr '\n' ' ' | sed 's/ *$//')
+if [ "$panel_values" = "help menu message stats" ]; then
+  ok "the panel values the reader can set are stats, message, menu and help"
+else
+  nope "the panel values are [$panel_values], where this bead expects help, menu, message and stats"
+fi
+panel_unbranched=""
+for p in $panel_values; do
+  if ! grep -qE "panel === \"$p\"" <<<"$render_body"; then
+    panel_unbranched="$panel_unbranched $p"
+  fi
+done
+if [ -z "$panel_values" ]; then
+  nope "no v.panel assignment was found at all, so the branch check below read nothing"
+elif [ -z "$panel_unbranched" ]; then
+  ok "render() has a dispatch branch for every panel value the reader can set"
+else
+  nope "render() has no branch for:$panel_unbranched, so that panel falls through to the card test and draws the step at depth"
+fi
+
+# THE DECLINE THE HELP PANEL INHERITS. gesture() reads v.panel rather than
+# naming a panel, so the fourth value is declined by the guard that was written
+# for the first three. A guard that enumerated them would leave the help screen
+# answering items, which is the failure the whole design is built around.
+gesture_body=$(awk '/^  function gesture\(dir\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$gesture_body" | tr -d '[:space:]')" ]; then
+  nope "gesture() was not found, so the panel-decline check read nothing"
+elif grep -qE 'v\.panel !== null' <<<"$gesture_body" && ! grep -qE 'panel === "' <<<"$gesture_body"; then
+  ok "gesture() declines everything but tap on v.panel alone, so a swipe over the open help panel answers nothing"
+else
+  nope "gesture() names a panel value, so its decline covers the panels somebody listed rather than whichever one is open"
+fi
+
+# AND LEAVING IT RETURNS THE READER TO THE DEPTH THEY WERE AT. Opening a panel
+# does not touch v.depth today, so this is about not breaking it rather than
+# about adding it, and it is the kind of invariant that holds until somebody
+# resets depth in a back handler. renderMenu() DOES reset it, on purpose, for
+# the review shortcut, and that is the negative control: it says this pattern
+# can see an assignment when there is one to see.
+help_body=$(awk '/^  function renderHelp\(\)/, /^  }$/' "$CODE")
+control_body=$(awk '/^  function helpControl\(\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$help_body" | tr -d '[:space:]')" ]; then
+  nope "renderHelp() was not found, so the depth-survives check read nothing"
+elif [ -z "$(printf '%s' "$control_body" | tr -d '[:space:]')" ]; then
+  nope "helpControl() was not found, so the depth-survives check read half the pair"
+# THE PATTERN TAKES BOTH SPELLINGS, and that came out of watching it fail.
+# Every renderer here opens with `var v = view`, so `v.depth` is the idiom and
+# `v\.depth` was the obvious pattern. It does not match `view.depth`, because
+# the character before the dot is a w. A probe that reset the depth through the
+# outer name passed the check, so the pattern reads either.
+elif grep -qE '(v|view)\.depth' <<<"$help_body$control_body"; then
+  nope "the help panel assigns the depth, so opening or leaving it moves the reader off the step they were on"
+else
+  ok "neither the help control nor the help panel touches the depth, so leaving it returns the reader to the step they were on"
+fi
+if grep -qE '(v|view)\.depth' <<<"$menu_body"; then
+  ok "the same pattern does find the depth in renderMenu(), which resets it for the review on purpose"
+else
+  nope "the pattern found no depth assignment in renderMenu(), which does reset it, so the check above proves nothing"
+fi
+
+# EVERY PANEL DRAWS ITS OWN WAY OUT. Tap closes a panel through gesture(), and
+# the button is the guarantee, for the same reason every step carries one.
+if [ -z "$(printf '%s' "$help_body" | tr -d '[:space:]')" ]; then
+  nope "renderHelp() was not found, so the way-out check read nothing"
+elif grep -qE 'swipe-btn' <<<"$help_body" && grep -qE 'panel = null' <<<"$help_body"; then
+  ok "the help panel draws its own button out, like stats, the messages and the menu"
+else
+  nope "the help panel draws no button out, so a reader whose tap lands on a control has no way back"
 fi
 
 if grep -q '"swipe-tag"' <<<"$card_body" && grep -q 'TAGS\[item.level\]' <<<"$card_body"; then
@@ -1909,18 +2053,42 @@ else
   nope "$SCREEN_TALLEST is $tallest_lines lines and the heights above were read at $SCREEN_TALLEST_LINES, so re-read them in a browser before trusting the scan"
 fi
 
-# THE MENU PANEL GETS THE PANEL FRAME. It is the third value of v.panel, so it
-# has to be in the four places the other two are, or it draws as bare buttons
-# floating in the viewport.
-menu_panel_missing=""
-for rule in 'border-radius' 'min-height' 'overflow:' 'flex:'; do
-  hit=$(grep -F '.swipe-menu-panel' "$CSSRULES" | grep -F "$rule" || true)
-  [ -n "$hit" ] || menu_panel_missing="$menu_panel_missing $rule"
+# EVERY LATER PANEL VALUE GETS THE PANEL FRAME. The menu is v.panel's third
+# value and the help is its fourth, so each has to be in the four places stats
+# and the messages are, or it draws as bare content floating in the viewport.
+# The loop is widened rather than copied, for the same reason part 6's chrome
+# table is: two lists of panels drift apart and nothing notices.
+for cls in '.swipe-menu-panel' '.swipe-help-panel'; do
+  panel_frame_missing=""
+  for rule in 'border-radius' 'min-height' 'overflow:' 'flex:'; do
+    hit=$(grep -F "$cls" "$CSSRULES" | grep -F "$rule" || true)
+    [ -n "$hit" ] || panel_frame_missing="$panel_frame_missing $rule"
+  done
+  if [ -z "$panel_frame_missing" ]; then
+    ok "$cls is framed, floored, scrollable and flexed like stats and the messages"
+  else
+    nope "$cls is missing:$panel_frame_missing, so it draws differently from stats and the messages"
+  fi
 done
-if [ -z "$menu_panel_missing" ]; then
-  ok "the menu panel is framed, floored, scrollable and flexed like the other two panels"
+
+# TRANSLUCENT ICON, OPAQUE PANEL, and the pair is one ruling rather than two
+# preferences. Frank offered translucency on 2026-10-19 and it is right for a
+# control that sits in a corner over content and costs no layout. It is wrong
+# for the panel: a translucent panel over a model is monospace over monospace,
+# and a reader comparing a step against a claim is who can least afford it.
+icon_rule=$(grep -F '.swipe-help {' "$CSSRULES" || true)
+if [ -z "$icon_rule" ]; then
+  nope "there is no rule for the help icon, so it draws as a bare button in the corner"
+elif grep -qE 'opacity:[[:space:]]*0\.' <<<"$icon_rule"; then
+  ok "the help icon is translucent, so it sits over content without taking a line of the view"
 else
-  nope "the menu panel is missing:$menu_panel_missing, so it draws differently from stats and the messages"
+  nope "the help icon sets no opacity below 1, so it costs the view the room it exists to save"
+fi
+help_panel_rules=$(grep -F '.swipe-help-panel' "$CSSRULES" || true)
+if grep -qE 'opacity:' <<<"$help_panel_rules"; then
+  nope "a rule for the help panel sets opacity, and a translucent panel over a model reads as neither"
+else
+  ok "no rule makes the help panel translucent, so it covers the model rather than sitting over it"
 fi
 
 # ---------------------------------------------------------------------------
@@ -2329,14 +2497,24 @@ function chromeOf(depth, panel, flash) {
           c.controls ? "controls" : "-"].join(",");
 }
 const flashOn = { verdict: "hit", item: l1, given: "left" };
-// EVERY COMBINATION: three depths by four panel values by two flash values.
-// The depths are rest, one step in, and the top of a three-step stack.
+// EVERY COMBINATION: three depths by five panel values by two flash values.
+// The depths are rest, one step in, and the top of a three-step stack. The
+// fifth panel value is the help, bead tla-7xql.20, and the table is WIDENED
+// rather than given a second table of its own: two tables over one function
+// drift apart, and the one that was not widened stays green while it does.
 //
-// Half of these 24 are unreachable through the reader today, because answer()
-// closes the stack before it sets the flash and the menu is only reachable
-// from the resting view. They are driven anyway: the function is total, and a
-// later bead that makes one of them reachable should find it already answered
-// rather than discover render() had no opinion.
+// Many of these are unreachable through the reader today, and the reason is
+// worth more than the count was: answer() returns early on an open panel and
+// closes the stack before it sets the flash, so no panel can be open with a
+// flash up. They are driven anyway, because the function is total and a later
+// bead that makes one of them reachable should find it already answered rather
+// than discover render() had no opinion.
+//
+// chromeAt() NEEDED NO CHANGE FOR THE FOURTH PANEL, which reads like an
+// omission and is not one. The function never asks which panel is open, only
+// whether one is, so the fourth value was answered the day the third landed.
+// render()'s dispatch is the half that does need a branch, and part 5 holds it
+// to having one for every value the code can set.
 const REST = "status,card,controls";
 const PANEL = "status,-,controls";
 const MENU = "status,-,-";
@@ -2350,6 +2528,8 @@ const chromeCases = [
   ["chrome-rest-message-flash", 0, "message", flashOn, PANEL],
   ["chrome-rest-menu", 0, "menu", null, MENU],
   ["chrome-rest-menu-flash", 0, "menu", flashOn, MENU],
+  ["chrome-rest-help", 0, "help", null, PANEL],
+  ["chrome-rest-help-flash", 0, "help", flashOn, PANEL],
   ["chrome-step1", 1, null, null, STEPPED],
   ["chrome-step1-flash", 1, null, flashOn, PANEL],
   ["chrome-step1-stats", 1, "stats", null, PANEL],
@@ -2358,6 +2538,8 @@ const chromeCases = [
   ["chrome-step1-message-flash", 1, "message", flashOn, PANEL],
   ["chrome-step1-menu", 1, "menu", null, MENU],
   ["chrome-step1-menu-flash", 1, "menu", flashOn, MENU],
+  ["chrome-step1-help", 1, "help", null, PANEL],
+  ["chrome-step1-help-flash", 1, "help", flashOn, PANEL],
   ["chrome-top", 3, null, null, STEPPED],
   ["chrome-top-flash", 3, null, flashOn, PANEL],
   ["chrome-top-stats", 3, "stats", null, PANEL],
@@ -2365,13 +2547,69 @@ const chromeCases = [
   ["chrome-top-message", 3, "message", null, PANEL],
   ["chrome-top-message-flash", 3, "message", flashOn, PANEL],
   ["chrome-top-menu", 3, "menu", null, MENU],
-  ["chrome-top-menu-flash", 3, "menu", flashOn, MENU]
+  ["chrome-top-menu-flash", 3, "menu", flashOn, MENU],
+  ["chrome-top-help", 3, "help", null, PANEL],
+  ["chrome-top-help-flash", 3, "help", flashOn, PANEL]
 ];
 for (const [name, depth, panel, flash, want] of chromeCases) {
   const got = chromeOf(depth, panel, flash);
   console.log(name + " " + (got === want ? "OK" : "BAD") + " " + got +
     " (wanted " + want + ")");
 }
+// AND THE TABLE HAS TO COVER EVERY PANEL VALUE, which is the hole a hand
+// written table has by construction. A fifth value added later would not be in
+// the rows above and nothing would say so, which is the shape of three gate
+// holes this project has already found. The values come off the reader's own
+// source rather than from a list here.
+//
+// THE WHOLE TRIMMED LINE HAS TO BE THE ASSIGNMENT. This reads the file with
+// its comments in, unlike part 5, so a pattern that matched anywhere in a line
+// would be answerable by a sentence about v.panel in the header. Part 5 runs
+// the same scan over the stripped code, and the two disagreeing reddens one of
+// them.
+const assigned = require("fs").readFileSync(path, "utf8")
+  .split("\n")
+  .map(function (l) { return /^v\.panel = "([a-z]+)";$/.exec(l.trim()); })
+  .filter(Boolean)
+  .map(function (m) { return m[1]; });
+const covered = chromeCases.map(function (c) { return c[2]; });
+const uncovered = assigned.filter(function (p) { return covered.indexOf(p) < 0; });
+console.log("chrome-covers-every-panel " + (assigned.length > 0 && uncovered.length === 0 ? "OK" : "BAD") +
+  " assigned=" + Array.from(new Set(assigned)).sort().join(",") +
+  " uncovered=" + (uncovered.join(",") || "none"));
+
+// EXACTLY ONE HELP CONTROL ON SCREEN, which is what "the same corner in both
+// views" comes to. The control sits in the counts row and in the step head,
+// and those two slots are never drawn together: render() draws a step only
+// where no panel and no flash is open and the card test is false, which is the
+// same condition chromeAt() reports as the absence of the counts row. Part 5
+// holds the two render functions to carrying the control.
+function controlSites(depth, panel, flash) {
+  const c = mod.chromeAt(depth, panel, flash);
+  const stepDrawn = !panel && !flash && !c.card;
+  return (c.status ? 1 : 0) + (stepDrawn ? 1 : 0);
+}
+let sites = "";
+for (const [name, depth, panel, flash] of chromeCases) {
+  const n = controlSites(depth, panel, flash);
+  if (n !== 1) { sites += " " + name + "=" + n; }
+}
+console.log("help-control-sites " + (sites === "" ? "OK" : "BAD") +
+  " states drawing none or two:" + (sites || " none"));
+
+// LEAVING THE HELP PANEL RETURNS THE READER TO THE DEPTH THEY WERE AT. Opening
+// one does not touch v.depth, so the same depth draws the step again the
+// moment the panel closes. The half of that which says v.depth is untouched is
+// a text check in part 5, over renderHelp() and the control that opens it,
+// with renderMenu() as its negative control.
+let roundTrip = "";
+for (const d of [1, 2, 3]) {
+  if (chromeOf(d, "help", null) !== PANEL || chromeOf(d, null, null) !== STEPPED) {
+    roundTrip += " " + d;
+  }
+}
+console.log("help-depth-roundtrip " + (roundTrip === "" ? "OK" : "BAD") +
+  " depths that did not come back:" + (roundTrip || " none"));
 
 // DECISION D4, AND IT IS THE ONE THIS BEAD COULD BREAK WITHOUT NOTICING. The
 // buttons go away at the model step and the ANSWER does not: a swipe right
@@ -2692,7 +2930,7 @@ note "against the published build, model step open, where the counts took 29.6"
 note "pixels, the card 304, the menu 172 and the padding and gaps 62, leaving"
 note "the step 276.4 and the model screen inside it 66.3 against the 438 its"
 note "content wanted. Nothing here can see a pixel. What IS driven is the"
-note "chrome decision over all 24 states and the scroller-decline table in"
+note "chrome decision over all 30 states and the scroller-decline table in"
 note "both directions, and the 120 pixels the menu collapse returns at rest is"
 note "arithmetic off the stylesheet rather than a second browser reading."
 note "THE CLAIM LEFT THE STEP under tla-7xql.19, on a second reading in the"
