@@ -1001,7 +1001,7 @@ SUITES=(
   #
   # FAST, and for the registry's stated reason rather than the clock: under
   # --static it starts no JVM. 1.15 / 1.17 / 1.25 s at load 0.4, so 3.0 is
-  # 2.4x the slowest. It read 383 ms at level 0 alone; the payload went from
+  # 2.4x the slowest. It read 383 ms at level 0 alone. The payload went from
   # 52 KB to 139 KB and the suite from 43 assertions to 83. The margin is
   # deliberate rather than lazy: the suite runs scripts/build-docs.sh three
   # times in a mini-repo and a slow disk moves that more than the box does.

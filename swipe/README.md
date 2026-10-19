@@ -43,6 +43,8 @@ swipe/level0/bake.sh         the verdict channel: --check, --write, --stats
 harness/test-swipe-level0.sh the gate
 harness/swipe/stemblind.sh   the stem-blind instrument
 harness/test-swipe-stemblind.sh  the gate over that instrument
+swipe/reader/               the published page. See "The reader" below
+harness/test-swipe-reader.sh     the gate over it. --static skips the JVMs
 ```
 
 Both tables carry a literal marker in field 1, so prose in them can never be
@@ -591,15 +593,47 @@ The page is at `https://fkberthold.github.io/tla-puzzles/swipe/`. Frank ruled
 on 2026-10-18 that this channel is **published rather than delivered**, so it
 is the one rung that does not put files in `~/tla-practice`.
 
-`scripts/build-docs.sh` emits it beside the reading section. The reader itself
-is three files under `swipe/reader/`: `emit-items.sh` turns the corpus into
-`items.json`, `swipe.js` is the page, and `swipe.css` is phone-first because
-the phone is the only target.
+`scripts/build-docs.sh` emits it beside the reading section. The reader is
+five files under `swipe/reader/`:
 
-**Six fields reach the page and four do not.** `id`, `template`, `ask`,
-`swipe`, `claim` and `flash` ship. `kind`, `rc_claim`, `rc_wf` and `vacuity`
-stay here. The last one matters most: a vacuity witness states in TLA+ exactly
+```
+emit-items.sh      turns every corpus into items.json
+render-screens.sh  bakes the model screens into SCREENS.tsv
+SCREENS.tsv        374 screen lines over 24 models. Generated, committed
+swipe.js           the page
+swipe.css          phone-first, because the phone is the only target
+```
+
+**All three rungs reach the page**, since bead `tla-7xql.14`. It served level
+0 alone for a day, which was right when it was written and stopped being right
+the moment 144 level 1 items and 48 level 2 items landed behind it. 432 items,
+138,987 bytes of payload.
+
+### What ships per level, and what does not
+
+| | ships | withheld |
+|---|---|---|
+| every level | `id`, `level`, `template`, `ask`, `swipe`, `claim`, `flash` | `kind`, `vacuity` |
+| level 0 | | `rc_claim`, `rc_wf` |
+| level 1 | `model`, `pin` | `rc`, `pin_states` |
+| level 2 | `model`, `pre`, `post`, `binds` | `rc`, `pin_states` |
+
+The vacuity witness is the one that matters most: it states in TLA+ exactly
 when an item is vacuous, so shipping it hands over the down swipe in prose.
+
+**The pin ships and the kind does not**, which looks inconsistent and is not.
+The reader cannot be asked whether `ENABLED Pop` holds without being told
+where. `harness/swipe/stemblind.sh` already draws the line in the same place:
+level 1 drives the probe with `--surface 9,13` and level 2 with
+`--surface 9,13,14,15`, so the pin is part of the surface a judge may see
+while the model stays the premise it withholds.
+
+**Two of the 46 vacuity witnesses are a conjunct of their own pin, verbatim.**
+`L1-E1-44` carries the witness `a = 0` and the pin `a = 0 /\ b = 0 /\ c = 2`,
+because a vacuous level 1 item is vacuous *because of* its pin. So the leak
+scan reads a copy of the payload with the pin blocks stripped by position.
+Exempting a witness for being a substring of its own pin would exempt a
+planted one too, and the scan's negative control plants exactly those.
 
 The baked verdict ships, and it is the answer. A page with no server cannot
 grade without it, so the rule is narrow rather than absent: ship the verdict
@@ -616,6 +650,116 @@ file order puts a matched true and false pair next to each other for review,
 which is right for an author and wrong for a reader. Drawing at random also
 makes resume fall out with nothing to store: the pool is the corpus minus the
 log.
+
+**The draw is inside a bucket**, one per level and model, and that narrows the
+random draw rather than replacing it. The epic's mechanic is "a model, then a
+stream of single lines", ten to twenty lines per model, and without the bucket
+a 29-line screen is redrawn every item and the reader crosses 17 models in 17
+items. Level 0 has no model, so the whole rung is one bucket.
+
+A bucket run can put two halves of a matched pair closer together than a
+whole-corpus draw would. At the pinned rungs I read that as the lesson rather
+than a leak: six pairs per template carry the same claim text at two pins with
+opposite answers, and meeting both is what says the claim does not decide and
+the state does.
+
+### The model screen is baked, and the reason is not the phone
+
+A level 1 item pins a state and a level 2 item pins a step, so both show the
+model. `swipe/level1/render.sh` builds that screen and it calls
+`harness/levels/levels.sh`, which reads SANY's semantic tree. One screen is
+one JVM, measured at 0.49 s per model over 24 models.
+
+The cost is the smaller half of the argument. The deciding half is that
+`.github/workflows/pages.yml` installs Python and mkdocs-material and nothing
+else. **There is no Java on the deploy runner**, so a `build-docs.sh` that
+rendered a screen would fail on the deploy, and `scripts/cibuild` would never
+see it because cibuild does install the toolchain.
+
+So `swipe/reader/render-screens.sh` runs on a dev box and its output is
+committed. `harness/test-swipe-reader.sh` re-renders every screen and compares
+byte for byte, which is what keeps the committed copy from drifting, and it
+drives the build again with `java`, `tlc`, `sany` and `javac` shimmed to write
+a sentinel and asserts the sentinel is absent.
+
+Field 5 of a `SCREEN` row opens with a pipe that is not part of the line. A
+screen carries blank lines between definitions and they are part of its
+layout, so without the pipe a blank line is a trailing tab, and an editor that
+strips trailing whitespace on save would delete it in silence: the file would
+still parse and every definition would run into the next one.
+
+### One model of the 33 renders an empty screen, and it is reported
+
+`Ring` renders nothing at either rung. Its actions live in the PlusCal
+translation block under names the shown-roots rule does not reach, so the
+module declares no action as far as the rule is concerned. That follows from
+the rule rather than breaking it, and PlusCal screens are separate work.
+
+No shipped item is about `Ring`, so nothing is dropped today. The rule is
+there anyway, because an item about such a model would arrive as a pin and a
+claim with no premise under them:
+
+- an `EMPTY` row in `SCREENS.tsv` means the items are **dropped**, stderr
+  names them, and the payload carries a `withheld` block
+- **no** row at all means a stale `SCREENS.tsv`, and the emitter **dies**
+
+Those two must not behave the same. Withholding items because the generator
+was not re-run would be a silent corpus shrink. The gate drives both paths
+against a scratch corpus carrying one `Ring` item.
+
+### The layout, which is where the work went
+
+Frank ruled on 2026-10-18 that the phone is the only target. Measured over the
+two pinned corpora:
+
+| | |
+|---|---|
+| tallest model screen | 29 lines, `Shelves` |
+| widest screen line | 73 characters |
+| level 1 pin | 1 to 3 conjuncts |
+| level 2 pin | 4 to 7 rows over two or three labels |
+| longest claim | 80 characters |
+
+The theme sets 1rem to 20 pixels, so 29 lines at 0.76rem and a 1.45 line
+height is 638 pixels and a 7-row level 2 pin is about 278. 73 characters does
+not fit 390 CSS pixels at any readable monospace size. None of it shares one
+844-pixel viewport.
+
+**The page above the reader is not ours to measure.** mkdocs-material puts a
+2.4rem sticky header, an h1 and a lead-in above `#swipe-app`. Bead
+`tla-7xql.12` measured the level 0 answer row landing at 812 of 844, which
+works back to roughly 400 pixels of page, and that number is the theme's
+rather than ours. A layout that budgets against it is wrong after the next
+theme bump, with nothing in the repo to say so.
+
+So the budget is two rules rather than a sum.
+
+1. **The question is docked.** `.swipe-card` holds the ask, the claim and the
+   three buttons and sticks to the bottom of the viewport. The reader can read
+   the question and answer it without scrolling, whatever is above it.
+2. **The premise scrolls.** The screen box is capped at 26vh and scrolls
+   inside itself both ways, so one long model cannot push another layout
+   around.
+
+The pin stays out of the dock, because 278 pixels of it in there is a dock
+that has eaten the room it exists to leave. The screen also folds away on a
+tap, remembered per bucket for the visit, which is the reader's own lever
+rather than a rule.
+
+A sideways scroll of the model and a left swipe are two gestures on one pixel,
+so the gesture handler declines a touch that starts inside the screen body.
+Without that, reading along a long line answers the item.
+
+**No browser reading confirms the pixels, and that is a gap rather than a
+finish.** Chrome 154 in a worktree sandbox would not complete a headless load
+for me: `Page.navigate` over the DevTools protocol times out and wedges the
+renderer, `--dump-dom` and `--screenshot` both hang with no output, and a URL
+on the command line leaves `location.href` at `about:blank` whenever remote
+debugging is on. The static server log shows the built page fetching
+`index.html` and then `items.json`, so the reader boots and reaches its
+payload, and that is all it shows. The docked question is what makes the
+layout correct without the measurement, which is why it is a dock and not a
+height budget.
 
 ### The record is a file and the browser is a cache
 
