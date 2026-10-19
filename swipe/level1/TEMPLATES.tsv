@@ -28,9 +28,26 @@
 # each other. The stem-blind instrument takes --items, so pointing it at the
 # wrong table is one flag away and the id is what catches it.
 #
-# ONE TEMPLATE SHIPS HERE, ON PURPOSE. Bead tla-7xql.4 scopes this rung to
-# machinery, a gate and one complete template as a pilot. Level 0 ships five
-# at 48 each and that 48 was chosen for the stem-blind gate's power, not for
-# the corpus. How many templates level 1 wants, and what its mix should be, is
-# a decision the pilot is here to inform rather than to take.
+# THREE TEMPLATES SHIP HERE AND THE RUNG STOPS AT THREE. Bead tla-7xql.4
+# shipped E1 as a pilot and proposed the rest, and Frank sized it on
+# 2026-10-18: three templates at 48 each, 144 items, and stop. Level 0 ships
+# five at 48, and that 48 is the stem-blind gate's power floor rather than a
+# fact about the corpus, so it carries to this rung unchanged.
+#
+# THE SPLIT IS BY CLAIM SHAPE AND NOT BY SUBJECT AREA, which is where level 1
+# departs from level 0. Level 0's five templates split by TLA+ subject, which
+# works because a level 0 item is about whatever its expression is about. At
+# level 1 the question kind is one thing throughout, so what a reader actually
+# experiences as a different family is the SHAPE of the claim: a named action
+# at a state, a quantifier over a parameter, or a whole state against every
+# action it has. That is three, and bead tla-7xql.13 records the argument
+# against a fourth: the shapes left over are the same question in new clothes.
+#
+# EACH TEMPLATE IS ITS OWN REGISTRY ROW. A level 1 item cannot batch, because
+# every item carries its own pin, so the gate's cost is linear in items and
+# one row over three templates would be the second-largest in the registry.
+# harness/test-swipe-enabled.sh takes --template so each row pays for its own
+# template, and one template's growth does not move the others.
 TPL	E1	does this action fire here	Ask whether a named action can take a step from the pinned state, where the trap is reading one conjunct of a guard as the whole enabling condition, reading a parameter as if it had to be in range, or asking whether an action HOLDS at a state when an action is not a claim about one state at all.	reading/sequences/01-brackets/Brackets.tla Push and Pop, reading/temporal/04-contention/Contention.tla the four owner actions, reading/temporal/05-break/Break.tla Start Stop Ask Resume, reading/temporal/01-handover/Handover.tla Request and Grant, reading/sequences/02-josephus/Josephus.tla Eliminate, reading/core/01-nim/Nim.tla Take, reading/modules/03-fences/Fences.tla MoveA and MoveB
+TPL	E2	one quantifier changes the question	Ask whether a parameterized action can take a step from the pinned state, where the trap is that an existential over the parameter, a universal over it and a fixed argument read alike and are three different questions, and where a range that happens to be empty answers without the action being looked at.	reading/temporal/03-alternation/Alternation.tla Ask Enter Leave over Proc and over turn, reading/state-space/04-key/Key.tla Take and Hang over Staff and over inside, reading/temporal/02-converge/Converge.tla Learn at a fixed node, reading/state-space/01-quorums/Quorums.tla Cast and Decide over Proc and over the ballot, reading/state-space/02-tickets/Tickets.tla Take and Leave over Player, reading/functions-records/01-matching/Matching.tla Pair and Unpair over two parameters at once, reading/functions-records/02-shelves/Shelves.tla Swap Return Lend at a fixed title, reading/functions-records/03-overlay/Overlay.tla Bind over a range that closes at the top
+TPL	E3	stuck, finished, or only this one action	Ask whether the pinned state is where the run stops, where the trap is that terminal means every action is disabled and each one is disabled for its own reason, so a reader who checks one guard and stops has answered a different question.	reading/core/02-chameleons/Chameleons.tla Meet at three counts, reading/functions-records/04-ledger/Ledger.tla Hit and Forget stopped by two unrelated facts, reading/temporal/02-converge/Converge.tla Learn at the settled state the config documents, reading/state-space/02-tickets/Tickets.tla Take and Leave stopped by two unrelated facts, reading/functions-records/03-overlay/Overlay.tla Push Pop Bind which never all stop at once, reading/functions-records/01-matching/Matching.tla Pair and Unpair at an unreachable terminal state, reading/state-space/04-key/Key.tla Take and Hang at an unreachable terminal state, reading/temporal/01-handover/Handover.tla Request and Grant whose guards are opposites

@@ -1,6 +1,6 @@
 # The level 1 swipe corpus (bead tla-7xql.4, epic tla-7xql).
 #
-# 48 items in one template, the pilot described in swipe/level1/TEMPLATES.tsv.
+# 144 items in three templates, described in swipe/level1/TEMPLATES.tsv.
 # Every item pins a STATE and asks a question about it, so unlike level 0 it
 # shows a model screen. swipe/level1/render.sh builds that screen and
 # swipe/level1/bake.sh measures the verdict.
@@ -16,7 +16,7 @@
 #
 #    1  marker      the literal ITEM
 #    2  id          L1-<template>-<nn>, stable, never renumbered
-#    3  template    E1, resolving to a TEMPLATES.tsv row
+#    3  template    E1, E2 or E3, resolving to a TEMPLATES.tsv row
 #    4  ask         the tag shown WITH the question: enabled, terminal or
 #                   implies. It names which of the epic's question kinds the
 #                   line is and it does NOT determine the answer
@@ -42,7 +42,11 @@
 #
 # FIELDS 6 AND 7 ARE OWNED BY swipe/level1/bake.sh. Do not hand-edit them.
 # Field 5 is the author's PREDICTION and the bake is there to contradict it.
-# Over this corpus it contradicted six of the forty-eight.
+# Over E1 it contradicted six of the forty-eight. Over E2 and E3 it
+# contradicted none of the ninety-six, and that number is worth as much
+# suspicion as a high one until you know what bought it: bead tla-7xql.13
+# drove 96 probe runs through a scratch copy of the same channel before any
+# row was written, so the contradictions happened at authoring time instead.
 #
 # THERE IS NO SECOND EXIT CODE HERE, and that is the first thing a level 0
 # reader will look for. Level 0 stores a PAIR because ASSUME exits 10 both
@@ -71,13 +75,37 @@
 # assignment, so it may admit more than one state, and then INVARIANT Claim
 # asks whether the claim holds at EVERY state it admits. Measured:
 # text = <<>> /\ open \in 0..1 with ENABLED Pop reads 12, because the claim
-# splits across the two states. Four items here pin three states on purpose,
-# because Handover's CONSTANT Site = {s1, s2, s3} is a set of MODEL VALUES and
-# a model value is not an identifier the pin module can name. Measured:
-# Ini == holder = s1 comes back rc 150 with a semantic error on s1, so
-# holder \in Site is the only pin Handover has. The bake confirms the count
-# with a POSTCONDITION, so a pin that admits more states than its author
-# thought reddens rather than shipping a different question.
+# splits across the two states. Several items pin more than one state on
+# purpose: Handover and Key over a set of model values, Matching over a
+# symmetric family, Key over the proper nonempty subsets of Staff. The bake
+# confirms the count with a POSTCONDITION, so a pin that admits more states
+# than its author thought reddens rather than shipping a different question.
+#
+# A MULTI-STATE PIN IS A CHOICE AND NOT A CONSTRAINT, AND THIS FILE SAID THE
+# OPPOSITE UNTIL 2026-10-18. The old wording ran: Handover's
+# CONSTANT Site = {s1, s2, s3} is a set of MODEL VALUES, a model value is not
+# an identifier the pin module can name, Ini == holder = s1 comes back rc 150,
+# so holder \in Site is the only pin Handover has. The first three clauses are
+# measured and the conclusion does not follow. Declare a constant in the pin
+# module and bind it in the .cfg:
+#
+#   CONSTANT H                      CONSTANT Site = {s1, s2, s3}
+#   Ini == holder = H /\ want = TRUE         H = s1
+#
+# Measured rc 0, one state. Corrected in swipe/README.md at commit 8148330 and
+# here by bead tla-7xql.13, which found the sentence still standing in this
+# file. bake.sh generates its CONSTANT block from the model's own .cfg and has
+# no field for an extra one, so no shipped item uses the shape yet. What it
+# changes is what an author sizing a new template believes, and most of the
+# models E2 and E3 draw on carry model values.
+#
+# A PIN MUST ALSO BE ENUMERABLE, which is a separate hazard with the same
+# symptom. TLC generates initial states from Ini rather than filtering them,
+# so a pin that only RECOGNIZES a state rather than constructing one fails.
+# Measured 2026-10-18: Ini == hook = FALSE /\ inside # {} /\ inside # Staff
+# reads rc 75 with 0 states, and so does the CLAIM module over the same pin,
+# which the channel would otherwise read as illformed. The auxiliary run is
+# what tells a broken pin from a claim that does not denote.
 #
 # ITEMS ARE AUTHORED IN MATCHED GROUPS, which is what keeps the stem-blind
 # gate green. The unit is either a four, one item of each of four kinds built
@@ -86,12 +114,33 @@
 # down without anybody counting. Rows sit in their authoring groups so a
 # reviewer sees a matched pair side by side, and ids are never renumbered.
 #
-# THE SWIPE MIX IS LEVEL 0'S AND THE KIND MIX IS NOT. Right is 18 of 48, so
-# the base rate is 0.3750 and the power table in swipe/README.md transfers
-# unchanged. That argument is about the SWIPE mix, which is why it carries.
-# The kind mix under down does not: level 0 splits 12 into 6 vacuous, 5
-# illformed and 1 unparsed over five kinds, and this rung splits it 4 vacuous,
-# 3 illformed, 3 wronglevel and 2 unparsed over six.
+# E2 AND E3 ADD A SECOND DEVICE ON TOP OF THE GROUPS: SIX PAIRS PER TEMPLATE
+# CARRY THE SAME CLAIM TEXT AT TWO PINS WITH OPPOSITE ANSWERS. That is the
+# one construction a surface classifier cannot be right about, because the
+# surface is identical and the labels differ, and it is cheap to build once
+# the pins are in hand. It also says the rung's own lesson to a reader who
+# meets both halves: the claim does not decide, the state does.
+#
+# THE SWIPE MIX IS LEVEL 0'S AND THE KIND MIX IS NOT. Right is 18 of 48 in
+# every template, so the base rate is 0.3750 and the power table in
+# swipe/README.md transfers unchanged. That argument is about the SWIPE mix,
+# which is why it carries. The kind mix under down does not: level 0 splits
+# 12 into 6 vacuous, 5 illformed and 1 unparsed over five kinds, and this
+# rung has six kinds to place.
+#
+#   template   vacuous  illformed  wronglevel  unparsed
+#   E1               4          3           3         2
+#   E2               5          3           2         2
+#   E3               3          3           4         2
+#
+# E1's split is the baseline and the two deviations are each one item, each
+# in the direction its own subject supplies. E2 is about quantifiers and an
+# empty range is the quantifier's own way of answering without looking at the
+# action, so vacuity is native there. E3 is about terminal states and writing
+# ~(Push \/ Pop) where ~ENABLED (Push \/ Pop) was meant is the mistake that
+# template exists to catch, so wronglevel is native there. A template that
+# supplies no kind more naturally should hold E1's split rather than invent a
+# reason to move.
 #
 # A CLAIM MAY ONLY NAME A DEFINITION THE SCREEN SHOWS. Decision D7 withholds
 # Init, Next and Spec, so a terminal item asks ~ENABLED (Push \/ Pop) and
@@ -155,3 +204,172 @@ ITEM	L1-E1-45	E1	enabled	true	right	0	1	ENABLED MoveA	-	MoveA carries no guard a
 ITEM	L1-E1-46	E1	enabled	false	left	12	1	~ENABLED MoveA	-	MoveA is enabled here, so its negation is false. An action with no guard is not an action that never fires.	Fences	a = 3 /\ b = 5
 ITEM	L1-E1-47	E1	enabled	true	right	0	1	ENABLED (MoveA /\ MoveB)	-	Each action leaves the other's variable alone, so together they ask that a sit in 1..b and b sit in a..N, and both do.	Fences	a = 3 /\ b = 5
 ITEM	L1-E1-48	E1	terminal	false	left	12	1	~ENABLED (MoveA \/ MoveB)	-	Neither action has a guard and both can fire from here, so this is as far from terminal as the model gets.	Fences	a = 3 /\ b = 5
+#
+# ===========================================================================
+# TEMPLATE E2 — one quantifier changes the question (bead tla-7xql.13)
+# ===========================================================================
+#
+# E1 spends five of its forty-eight items on a parameterized action. This
+# template spends all of them, because the three shapes a reader meets look
+# alike and are not: \E p \in S : ENABLED A(p) asks for one witness,
+# \A p \in S : ENABLED A(p) asks for every member, and ENABLED A(c) asks
+# about one argument and says nothing about the rest.
+#
+# SIX PAIRS CARRY THE SAME CLAIM TEXT AT TWO PINS WITH OPPOSITE ANSWERS, and
+# that is the template's defense against a reader who answers from the line
+# alone. L1-E2-11 and L1-E2-14 are both \A p \in Staff : ENABLED Take(p), one
+# right and one left. So are 12 and 13, 17 and 22, 24 and 27, 31 and 36, and
+# 37 against E3's matching pins.
+#
+# THE RANGE MATTERS AS MUCH AS THE QUANTIFIER, which is the half nobody
+# writes down. L1-E2-15 and L1-E2-16 are the same quantifier over the same
+# action at the same state, and the only difference is inside against Staff.
+#
+# THE KIND MIX UNDER down MOVES BY ONE FROM E1, and the reason is this
+# template's subject. E1 splits 12 into 4 vacuous, 3 illformed, 3 wronglevel
+# and 2 unparsed. E2 splits it 5, 3, 2, 2. An empty range is the quantifier's
+# own way of answering without looking at the action, so vacuity is not a
+# borrowed kind here, it is the failure mode the subject supplies. The epic's
+# bead names empty-range vacuity as living naturally in this template.
+#
+# A PIN HAS TO BE ENUMERABLE AND NOT MERELY TRUE OF A STATE. Measured on
+# 2026-10-18: Ini == hook = FALSE /\ inside # {} /\ inside # Staff comes back
+# rc 75 with 0 states, because TLC generates initial states from the predicate
+# rather than filtering them. The pin at L1-E2-15 says the same thing as
+# inside \in {s \in SUBSET Staff : s # {} /\ s # Staff} and that one
+# enumerates. A broken pin reads rc 75 on the CLAIM too, which the channel
+# would call illformed, so the bake's auxiliary run is what tells the two
+# apart.
+ITEM	L1-E2-01	E2	enabled	true	right	0	2	ENABLED Enter(turn)	-	Enter asks that a process be hungry and that the turn be its own. Whoever turn names is hungry, so Enter fires for that one at both pinned states.	Alternation	st = [p \in Proc |-> "hungry"] /\ turn \in Proc
+ITEM	L1-E2-02	E2	enabled	false	left	12	2	\A p \in Proc : ENABLED Enter(p)	-	Both processes are hungry, which is only Enter's first conjunct. The turn names one of them and the other fails the second conjunct, so the universal has a counterexample.	Alternation	st = [p \in Proc |-> "hungry"] /\ turn \in Proc
+ITEM	L1-E2-03	E2	enabled	vacuous	down	0	2	\A p \in {q \in Proc : st[q] = "busy"} : ENABLED Leave(p)	{q \in Proc : st[q] = "busy"} = {}	Nobody is busy, so the set the quantifier ranges over is empty and the line holds without Leave being looked at.	Alternation	st = [p \in Proc |-> "hungry"] /\ turn \in Proc
+ITEM	L1-E2-04	E2	enabled	wronglevel	down	76	2	\E p \in Proc : Enter(p)	-	Enter is an action, and a quantifier in front of one does not make it a claim about a state. Write \E p \in Proc : ENABLED Enter(p).	Alternation	st = [p \in Proc |-> "hungry"] /\ turn \in Proc
+ITEM	L1-E2-05	E2	enabled	true	right	0	2	\E p \in Proc : ENABLED Enter(p)	-	The turn names one of the two hungry processes, and that one is a witness, which is all an existential asks for.	Alternation	st = [p \in Proc |-> "hungry"] /\ turn \in Proc
+ITEM	L1-E2-06	E2	enabled	false	left	12	2	ENABLED Enter(Other(turn))	-	Other names the process whose turn it is not. It is hungry, so Enter's first conjunct holds for it, and the second one asks for the turn, which it does not have.	Alternation	st = [p \in Proc |-> "hungry"] /\ turn \in Proc
+ITEM	L1-E2-07	E2	enabled	true	right	0	2	\E p \in Proc : ENABLED Ask(p)	-	Both processes are idle and Ask asks only for that, so either one is a witness.	Alternation	st = [p \in Proc |-> "idle"] /\ turn \in Proc
+ITEM	L1-E2-08	E2	enabled	false	left	12	2	\A p \in Proc : ENABLED Leave(p)	-	Leave asks that the process be busy and both are idle, so the universal fails at both of them rather than at one.	Alternation	st = [p \in Proc |-> "idle"] /\ turn \in Proc
+ITEM	L1-E2-09	E2	enabled	true	right	0	2	\A p \in Proc : ENABLED Leave(p)	-	Leave asks only that the process be busy, and both of them are, so the universal has no counterexample to find.	Alternation	st = [p \in Proc |-> "busy"] /\ turn \in Proc
+ITEM	L1-E2-10	E2	enabled	false	left	12	2	\A p \in Proc : ENABLED Ask(p)	-	Ask asks that the process be idle. Both are busy, so neither one can ask.	Alternation	st = [p \in Proc |-> "busy"] /\ turn \in Proc
+ITEM	L1-E2-11	E2	enabled	true	right	0	1	\A p \in Staff : ENABLED Take(p)	-	Take asks only that the key be on its hook, which is a fact about the state rather than about the person, so it holds for every member of the staff at once.	Key	hook = TRUE /\ inside = {}
+ITEM	L1-E2-12	E2	enabled	false	left	12	1	\E p \in Staff : ENABLED Hang(p)	-	Hang asks that the key be off its hook, and it is on. No member of the staff is a witness, because the conjunct that fails does not mention one.	Key	hook = TRUE /\ inside = {}
+ITEM	L1-E2-13	E2	enabled	true	right	0	1	\E p \in Staff : ENABLED Hang(p)	-	The key is off its hook and all three are inside, so any one of them hangs it back. The same line was false one pin ago.	Key	hook = FALSE /\ inside = Staff
+ITEM	L1-E2-14	E2	enabled	false	left	12	1	\A p \in Staff : ENABLED Take(p)	-	Take asks that the key be on its hook, and somebody has taken it, so no member of the staff can take it again.	Key	hook = FALSE /\ inside = Staff
+ITEM	L1-E2-15	E2	enabled	true	right	0	6	\A p \in inside : ENABLED Hang(p)	-	The range is the set of people inside, and Hang asks exactly that the key be off its hook and the person be inside. Both hold at all six pinned states.	Key	hook = FALSE /\ inside \in {s \in SUBSET Staff : s # {} /\ s # Staff}
+ITEM	L1-E2-16	E2	enabled	false	left	12	6	\A p \in Staff : ENABLED Hang(p)	-	Widening the range from inside to Staff brings in somebody who is not inside, and Hang's second conjunct fails for that one. The quantifier did not change and the range did.	Key	hook = FALSE /\ inside \in {s \in SUBSET Staff : s # {} /\ s # Staff}
+ITEM	L1-E2-17	E2	enabled	true	right	0	1	ENABLED Learn(0)	-	Node 0's left neighbor is node 3, which holds 3, and 3 is above node 0's own 0, so Learn fires there.	Converge	best = [n \in 0..N-1 |-> n]
+ITEM	L1-E2-18	E2	enabled	false	left	12	1	ENABLED Learn(2)	-	Node 2's left neighbor is node 1, which holds 1, and 1 is not above node 2's own 2. A fixed argument asks about one node and says nothing about the rest.	Converge	best = [n \in 0..N-1 |-> n]
+ITEM	L1-E2-19	E2	enabled	illformed	down	75	1	ENABLED Learn(4)	-	The nodes run 0 through 3, so best has no value at 4 and Learn's guard does not denote. ENABLED does not rescue an argument out of range.	Converge	best = [n \in 0..N-1 |-> n]
+ITEM	L1-E2-20	E2	enabled	unparsed	down	150	1	\E n \in 0..N-1 : ENABLED Learn(n) = TRUE	-	ENABLED binds looser than = here, so SANY refuses the line. Write (ENABLED Learn(n)) = TRUE, or drop the comparison.	Converge	best = [n \in 0..N-1 |-> n]
+ITEM	L1-E2-21	E2	enabled	true	right	0	1	ENABLED Learn(1)	-	Node 1's left neighbor is node 0, which holds 3, and 3 is above node 1's own 0.	Converge	best = [n \in 0..N-1 |-> IF n = 0 THEN N-1 ELSE 0]
+ITEM	L1-E2-22	E2	enabled	false	left	12	1	ENABLED Learn(0)	-	Node 0 already holds the highest value there is and its left neighbor holds 0, so there is nothing for it to learn. The same line was true one pin ago.	Converge	best = [n \in 0..N-1 |-> IF n = 0 THEN N-1 ELSE 0]
+ITEM	L1-E2-23	E2	enabled	true	right	0	1	\A p \in Proc : ENABLED Cast(p, "yes")	-	Nobody has voted, so Cast's one conjunct holds for every process, and the ballot the second argument names does not enter the guard at all.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}
+ITEM	L1-E2-24	E2	enabled	false	left	12	1	ENABLED Decide("yes")	-	Decide asks for a quorum that has already voted yes, and nobody has voted at all.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}
+ITEM	L1-E2-25	E2	enabled	vacuous	down	0	1	\A v \in outcomes : ENABLED Decide(v)	outcomes = {}	Nothing has been decided, so outcomes is empty and the quantifier ranges over nothing. The line holds and says nothing about Decide.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}
+ITEM	L1-E2-26	E2	enabled	illformed	down	75	1	ENABLED Cast(1, "yes")	-	The processes are model values and 1 is not one of them, so vote has no value at 1 and Cast's guard does not denote.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}
+ITEM	L1-E2-27	E2	enabled	true	right	0	1	ENABLED Decide("yes")	-	All four have voted yes, so every quorum is a yes quorum and Decide fires. The same line was false one pin ago.	Quorums	vote = [p \in Proc |-> "yes"] /\ outcomes = {}
+ITEM	L1-E2-28	E2	enabled	false	left	12	1	\E p \in Proc : ENABLED Cast(p, "no")	-	Cast asks that the process have no vote yet, and all four have voted. The ballot in the second argument cannot make the guard true.	Quorums	vote = [p \in Proc |-> "yes"] /\ outcomes = {}
+ITEM	L1-E2-29	E2	enabled	true	right	0	1	\E q \in Quorum : \A p \in q : ENABLED Cast(p, "yes")	-	Nobody has voted, so Cast is enabled for every process, and any quorum at all is then a witness for the outer existential.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}
+ITEM	L1-E2-30	E2	enabled	false	left	12	1	\A v \in {"yes", "no"} : ENABLED Decide(v)	-	Neither ballot has a quorum behind it yet, so the universal fails at both of them. Quantifying over the ballot does not reach the conjunct that fails.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}
+ITEM	L1-E2-31	E2	enabled	true	right	0	1	\A p \in Player : ENABLED Take(p)	-	Nobody holds a ticket, so Take's one conjunct holds for each of the three players.	Tickets	ticket = [p \in Player |-> Nil] /\ next = 0 /\ serving = 0
+ITEM	L1-E2-32	E2	enabled	false	left	12	1	\E p \in Player : ENABLED Leave(p)	-	Leave asks that the player's ticket be the one being served. Every ticket reads Nil, so no player is a witness.	Tickets	ticket = [p \in Player |-> Nil] /\ next = 0 /\ serving = 0
+ITEM	L1-E2-33	E2	enabled	vacuous	down	0	1	\A q \in {p \in Player : ticket[p] = serving} : ENABLED Leave(q)	{p \in Player : ticket[p] = serving} = {}	Nobody holds the ticket now being served, so the range is empty and the line holds without Leave being looked at.	Tickets	ticket = [p \in Player |-> Nil] /\ next = 0 /\ serving = 0
+ITEM	L1-E2-34	E2	enabled	illformed	down	75	1	ENABLED Take(1)	-	The players are model values and 1 is a ticket number, so ticket has no value at 1 and Take's guard does not denote.	Tickets	ticket = [p \in Player |-> Nil] /\ next = 0 /\ serving = 0
+ITEM	L1-E2-35	E2	enabled	true	right	0	1	\A p \in Player : ENABLED Leave(p)	-	All three hold ticket 0 and 0 is the number being served, so Leave's one conjunct holds for each of them.	Tickets	ticket = [p \in Player |-> 0] /\ next = 1 /\ serving = 0
+ITEM	L1-E2-36	E2	enabled	false	left	12	1	\A p \in Player : ENABLED Take(p)	-	Take asks that the player hold no ticket, and all three hold one. The same line was true one pin ago.	Tickets	ticket = [p \in Player |-> 0] /\ next = 1 /\ serving = 0
+ITEM	L1-E2-37	E2	enabled	true	right	0	1	\E a, b \in Node : ENABLED Pair(a, b)	-	Every node is its own mate, so any two distinct nodes satisfy all three of Pair's conjuncts and the existential has plenty of witnesses.	Matching	mate = [n \in Node |-> n]
+ITEM	L1-E2-38	E2	enabled	false	left	12	1	\A a, b \in Node : ENABLED Pair(a, b)	-	The universal ranges over pairs where a and b are the same node, and Pair's first conjunct rules those out. Quantifying over both arguments at once includes the diagonal.	Matching	mate = [n \in Node |-> n]
+ITEM	L1-E2-39	E2	enabled	vacuous	down	0	1	\A a, b \in {n \in Node : mate[n] # n} : ENABLED Unpair(a, b)	{n \in Node : mate[n] # n} = {}	No node has a mate other than itself, so the range is empty and both quantifiers hold without Unpair being looked at.	Matching	mate = [n \in Node |-> n]
+ITEM	L1-E2-40	E2	enabled	unparsed	down	150	1	\E a, b \in Node, a # b : ENABLED Pair(a, b)	-	A bounded quantifier takes a list of ranges and not a filter. Write \E a, b \in Node : a # b /\ ENABLED Pair(a, b).	Matching	mate = [n \in Node |-> n]
+ITEM	L1-E2-41	E2	enabled	true	right	0	1	ENABLED Swap(1, 2)	-	Titles 1 and 2 are different and both are on the shelf, which is all three of Swap's conjuncts.	Shelves	book = [t \in Title |-> [slot |-> t]]
+ITEM	L1-E2-42	E2	enabled	false	left	12	1	ENABLED Swap(1, 1)	-	Both arguments name title 1, and Swap's first conjunct asks for two different titles. A fixed argument can fail a guard that no quantifier would have reached.	Shelves	book = [t \in Title |-> [slot |-> t]]
+ITEM	L1-E2-43	E2	enabled	true	right	0	2	\E t \in Title : ENABLED Return(t)	-	Every title is out on loan, so Return's one conjunct holds for each of them and any title is a witness.	Shelves	\E m \in Member : book = [t \in Title |-> [to |-> m, home |-> t]]
+ITEM	L1-E2-44	E2	enabled	false	left	12	2	\E t \in Title, m \in Member : ENABLED Lend(t, m)	-	Lend asks that the title be on the shelf, and none of them is. Quantifying over the member as well adds nothing, because the conjunct that fails does not mention one.	Shelves	\E m \in Member : book = [t \in Title |-> [to |-> m, home |-> t]]
+ITEM	L1-E2-45	E2	enabled	true	right	0	1	\A i \in 1..Depth, k \in Key, v \in Val : ~ENABLED Bind(i, k, v)	-	No layer is live, so Bind's first conjunct fails at every depth, and widening the range to all of them finds no exception.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E2-46	E2	enabled	false	left	12	1	\E i \in 1..Depth, k \in Key, v \in Val : ENABLED Bind(i, k, v)	-	Bind asks that the layer be at or below the top, and the top is 0, so no depth in range is a witness.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E2-47	E2	enabled	vacuous	down	0	1	\A i \in 1..top, k \in Key, v \in Val : ENABLED Bind(i, k, v)	1..top = {}	The range runs up to the top and the top is 0, so it is empty and the line holds whatever Bind can do. The same claim over 1..Depth is false.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E2-48	E2	enabled	wronglevel	down	76	1	\E i \in 1..Depth, k \in Key, v \in Val : ENABLED Bind(i, k, v) /\ Push	-	ENABLED reaches only as far as Bind, so Push is left as a bare action and the line asks whether a step holds at a state. Write ENABLED (Bind(i, k, v) /\ Push).	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+#
+# ===========================================================================
+# TEMPLATE E3 — stuck, finished, or only this one action (bead tla-7xql.13)
+# ===========================================================================
+#
+# 79 of the 337 published configurations in this project's corpus survey set
+# CHECK_DEADLOCK FALSE on purpose, so telling a stopped run from a wedged one
+# is a working skill rather than a footnote. E1 asks it seven times and every
+# one of those models has a single reason for stopping.
+#
+# THE ASK HERE IS THAT THE REASONS DIFFER. Ledger stops because every tally
+# has reached Max and because the sparse map carries no key, which are two
+# unrelated facts about one state. Tickets stops because every player already
+# holds a ticket and because none of those tickets is the one being served.
+# Key stops because the key is off its hook and because nobody is inside.
+# A reader who checks one guard and stops has answered a different question,
+# and the false items are built so that checking one guard gives the wrong
+# answer.
+#
+# FOUR PINS ARE UNREACHABLE AND TYPE CORRECT, which is the pin rule doing
+# work rather than being tolerated. Matching's terminal state violates its own
+# Involution invariant, and Key's violates Hooked. Neither model can reach a
+# terminal state at all without them, so under a reachability rule this
+# template would have had no true terminal item on either model. CENTRAL TOOK
+# THE RULE AND FRANK HAS NOT RULED ON IT.
+#
+# THE KIND MIX UNDER down MOVES BY ONE FROM E1 IN THE OTHER DIRECTION FROM
+# E2. E1 splits 12 into 4 vacuous, 3 illformed, 3 wronglevel and 2 unparsed.
+# E3 splits it 3, 3, 4, 2. Writing ~(Push \/ Pop) where ~ENABLED (Push \/ Pop)
+# was meant is this template's own mistake rather than a borrowed one, and two
+# of the four are the sharper version of it, where ENABLED is written once and
+# reaches only the first arm.
+#
+# SIX PAIRS CARRY THE SAME CLAIM TEXT AT TWO PINS WITH OPPOSITE ANSWERS.
+# L1-E3-01 and L1-E3-06 are both \A i, j \in Color : ~ENABLED Meet(i, j), one
+# right and one left, and so are 09 and 14, 15 and 20, 23 and 28, 35 and 40,
+# 41 and 44. The claim alone decides nothing at this rung.
+ITEM	L1-E3-01	E3	terminal	true	right	0	1	\A i, j \in Color : ~ENABLED Meet(i, j)	-	Only color 1 has any chameleons left, so every pair fails either the different-colors conjunct or one of the two counts, and the run stops here.	Chameleons	count = [k \in Color |-> IF k = 1 THEN 6 ELSE 0]
+ITEM	L1-E3-02	E3	enabled	false	left	12	1	ENABLED Meet(1, 2)	-	Colors 1 and 2 are different, which is the conjunct that is easy to stop at. No chameleon is color 2, so the second count is 0 and Meet cannot fire.	Chameleons	count = [k \in Color |-> IF k = 1 THEN 6 ELSE 0]
+ITEM	L1-E3-03	E3	terminal	wronglevel	down	76	1	~(Meet(1, 2) \/ Meet(2, 3))	-	Both arms are actions, so the line asks whether a step holds at a state. Write ~ENABLED (Meet(1, 2) \/ Meet(2, 3)).	Chameleons	count = [k \in Color |-> IF k = 1 THEN 6 ELSE 0]
+ITEM	L1-E3-04	E3	enabled	vacuous	down	0	1	\A i \in {k \in Color : count[k] = 1} : ENABLED Meet(i, 1)	{k \in Color : count[k] = 1} = {}	No color has exactly one chameleon, so the range is empty and the line holds without Meet being looked at.	Chameleons	count = [k \in Color |-> IF k = 1 THEN 6 ELSE 0]
+ITEM	L1-E3-05	E3	enabled	true	right	0	1	ENABLED Meet(1, 2)	-	Two chameleons of every color, so colors 1 and 2 differ and both counts are above 0. The same line was false one pin ago.	Chameleons	count = [k \in Color |-> 2]
+ITEM	L1-E3-06	E3	terminal	false	left	12	1	\A i, j \in Color : ~ENABLED Meet(i, j)	-	Every color has chameleons in it, so any two different colors can meet and this is not where the run stops.	Chameleons	count = [k \in Color |-> 2]
+ITEM	L1-E3-07	E3	terminal	true	right	0	1	\A i, j \in Color : ~ENABLED Meet(i, j)	-	Every count is 0, so both of Meet's count conjuncts fail for every pair and nothing is left to meet.	Chameleons	count = [k \in Color |-> 0]
+ITEM	L1-E3-08	E3	enabled	false	left	12	1	\E i \in Color : ENABLED Meet(i, 1)	-	No color has a chameleon in it, so no first argument makes Meet fire and the existential has no witness.	Chameleons	count = [k \in Color |-> 0]
+ITEM	L1-E3-09	E3	terminal	true	right	0	1	\A k \in Key : ~ENABLED (Hit(k) \/ Forget(k))	-	Hit is disabled because every tally has reached Max, and Forget is disabled because the sparse map carries no key at all. Two actions, two unrelated reasons, and the run stops.	Ledger	tally = [k \in Key |-> Max] /\ sparse = [k \in {} |-> 0]
+ITEM	L1-E3-10	E3	enabled	false	left	12	1	\E k \in Key : ENABLED Forget(k)	-	Forget asks that the key be in the sparse map's domain, and that domain is empty, so no key is a witness.	Ledger	tally = [k \in Key |-> Max] /\ sparse = [k \in {} |-> 0]
+ITEM	L1-E3-11	E3	terminal	wronglevel	down	76	1	\A k \in Key : ~ENABLED Hit(k) /\ ~Forget(k)	-	ENABLED reaches only as far as Hit, so the second arm is a bare action and the line asks whether a step holds at a state. Write ~ENABLED (Hit(k) \/ Forget(k)).	Ledger	tally = [k \in Key |-> Max] /\ sparse = [k \in {} |-> 0]
+ITEM	L1-E3-12	E3	terminal	illformed	down	75	1	~ENABLED (Hit(1) \/ Forget(1))	-	The keys are model values and 1 is not one of them, so tally has no value at 1 and Hit's guard does not denote.	Ledger	tally = [k \in Key |-> Max] /\ sparse = [k \in {} |-> 0]
+ITEM	L1-E3-13	E3	enabled	true	right	0	1	\A k \in Key : ENABLED Hit(k)	-	Every tally reads 0, which is below Max, so Hit fires for every key.	Ledger	tally = [k \in Key |-> 0] /\ sparse = [k \in {} |-> 0]
+ITEM	L1-E3-14	E3	terminal	false	left	12	1	\A k \in Key : ~ENABLED (Hit(k) \/ Forget(k))	-	Forget is disabled here, which is one of the two reasons the same line needed one pin ago, and Hit is not. A state is terminal only when every action is disabled.	Ledger	tally = [k \in Key |-> 0] /\ sparse = [k \in {} |-> 0]
+ITEM	L1-E3-15	E3	terminal	true	right	0	1	\A n \in 0..N-1 : ~ENABLED Learn(n)	-	Every node already holds the highest value there is, so no node's left neighbor is above it and the run has settled.	Converge	best = [n \in 0..N-1 |-> N-1]
+ITEM	L1-E3-16	E3	enabled	false	left	12	1	\E n \in 0..N-1 : ENABLED Learn(n)	-	Learn asks that the left neighbor hold something larger, and every node holds the same value, so no node is a witness.	Converge	best = [n \in 0..N-1 |-> N-1]
+ITEM	L1-E3-17	E3	terminal	wronglevel	down	76	1	\A n \in 0..N-1 : ~Learn(n)	-	Learn is an action, and a state cannot satisfy its negation either. Write ~ENABLED Learn(n) to ask whether the step is unavailable.	Converge	best = [n \in 0..N-1 |-> N-1]
+ITEM	L1-E3-18	E3	terminal	unparsed	down	150	1	\A n \in 0..N-1 : ~ENABLED Learn(n) = TRUE	-	ENABLED binds looser than = here, so SANY refuses the line. Write ~((ENABLED Learn(n)) = TRUE), or drop the comparison.	Converge	best = [n \in 0..N-1 |-> N-1]
+ITEM	L1-E3-19	E3	enabled	true	right	0	1	ENABLED Learn(0)	-	Node 0's left neighbor is node 3, which holds 3, and that is above node 0's own 0, so one node can still move.	Converge	best = [n \in 0..N-1 |-> n]
+ITEM	L1-E3-20	E3	terminal	false	left	12	1	\A n \in 0..N-1 : ~ENABLED Learn(n)	-	Three of the four nodes are stuck and the fourth one is not, so this is not where the run stops. Checking three of them and stopping is the mistake this item is about.	Converge	best = [n \in 0..N-1 |-> n]
+ITEM	L1-E3-21	E3	enabled	true	right	0	1	~ENABLED Learn(0)	-	Node 0 holds the highest value and its left neighbor holds 0, so this one node cannot move. That is a fact about node 0 rather than about the state.	Converge	best = [n \in 0..N-1 |-> IF n = 0 THEN N-1 ELSE 0]
+ITEM	L1-E3-22	E3	enabled	false	left	12	1	~ENABLED Learn(1)	-	Node 1's left neighbor is node 0, which holds 3 against node 1's own 0, so Learn does fire there.	Converge	best = [n \in 0..N-1 |-> IF n = 0 THEN N-1 ELSE 0]
+ITEM	L1-E3-23	E3	terminal	true	right	0	1	\A p \in Player : ~ENABLED (Take(p) \/ Leave(p))	-	Take is disabled because every player already holds a ticket, and Leave is disabled because the number being served is 0 and every ticket reads 5. Two actions, two unrelated reasons.	Tickets	ticket = [p \in Player |-> 5] /\ next = 6 /\ serving = 0
+ITEM	L1-E3-24	E3	enabled	false	left	12	1	\E p \in Player : ENABLED Leave(p)	-	Leave asks that the player's ticket be the one being served, and 5 is not 0, so no player is a witness.	Tickets	ticket = [p \in Player |-> 5] /\ next = 6 /\ serving = 0
+ITEM	L1-E3-25	E3	terminal	wronglevel	down	76	1	\A p \in Player : ~ENABLED Take(p) /\ ~Leave(p)	-	ENABLED reaches only as far as Take, so the second arm is a bare action. Write ~ENABLED (Take(p) \/ Leave(p)).	Tickets	ticket = [p \in Player |-> 5] /\ next = 6 /\ serving = 0
+ITEM	L1-E3-26	E3	terminal	illformed	down	75	1	~ENABLED (Take(0) \/ Leave(0))	-	The players are model values and 0 is a ticket number, so ticket has no value at 0 and Take's guard does not denote.	Tickets	ticket = [p \in Player |-> 5] /\ next = 6 /\ serving = 0
+ITEM	L1-E3-27	E3	enabled	true	right	0	1	\A p \in Player : ~ENABLED Leave(p)	-	Every ticket reads Nil and the number being served is 0, so no player can leave. Take is still available, which this line does not say.	Tickets	ticket = [p \in Player |-> Nil] /\ next = 0 /\ serving = 0
+ITEM	L1-E3-28	E3	terminal	false	left	12	1	\A p \in Player : ~ENABLED (Take(p) \/ Leave(p))	-	Leave is disabled for every player and Take is enabled for every player, so this is the start of the run rather than the end of it.	Tickets	ticket = [p \in Player |-> Nil] /\ next = 0 /\ serving = 0
+ITEM	L1-E3-29	E3	enabled	true	right	0	1	~ENABLED Pop	-	Pop asks that the top be above 0, and the top is 0, so this one action cannot fire.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E3-30	E3	terminal	false	left	12	1	~ENABLED (Push \/ Pop)	-	Pop is disabled and Push is not, because the top is below Depth. One disabled action is not a stopped run.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E3-31	E3	terminal	vacuous	down	0	1	\A i \in 1..top, k \in Key, v \in Val : ~ENABLED Bind(i, k, v)	1..top = {}	The range runs up to the top and the top is 0, so it is empty. The line holds, and a reader who takes it as proof that nothing can happen has been told nothing.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E3-32	E3	enabled	unparsed	down	150	1	ENABLED Push'	-	A prime cannot sit on the operand of ENABLED, and SANY refuses the line rather than picking a reading. ENABLED is already about the next step.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = 0
+ITEM	L1-E3-33	E3	enabled	true	right	0	1	~ENABLED Push	-	Push asks that the top be below Depth, and the top is at Depth, so this one action cannot fire.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = Depth
+ITEM	L1-E3-34	E3	terminal	false	left	12	1	~ENABLED (Push \/ Pop)	-	Push is disabled and Pop is not, because the top is above 0. The same line was false one pin ago for the opposite reason.	Overlay	layer = [i \in 1..Depth |-> Blank] /\ top = Depth
+ITEM	L1-E3-35	E3	terminal	true	right	0	4	\A a, b \in Node : ~ENABLED (Pair(a, b) \/ Unpair(a, b))	-	Every node points at the same one, so Pair finds at most one free node where it needs two, and Unpair finds no pair that points at each other. The state is unreachable and still terminal.	Matching	\E a \in Node : mate = [n \in Node |-> a]
+ITEM	L1-E3-36	E3	enabled	false	left	12	4	\E a, b \in Node : ENABLED Pair(a, b)	-	Pair asks for two distinct nodes that are each their own mate, and only one node here is its own mate.	Matching	\E a \in Node : mate = [n \in Node |-> a]
+ITEM	L1-E3-37	E3	implies	vacuous	down	0	4	\A a, b \in Node : (mate[a] = b /\ mate[b] = a /\ a # b) => ENABLED Unpair(a, b)	\A a, b \in Node : ~(mate[a] = b /\ mate[b] = a /\ a # b)	No two distinct nodes point at each other, so the antecedent is false at every pair and the line says nothing about Unpair.	Matching	\E a \in Node : mate = [n \in Node |-> a]
+ITEM	L1-E3-38	E3	terminal	illformed	down	75	4	~ENABLED (Pair(1, 2) \/ Unpair(1, 2))	-	The nodes are model values and 1 is not one of them, so mate has no value at 1 and Pair's second conjunct does not denote.	Matching	\E a \in Node : mate = [n \in Node |-> a]
+ITEM	L1-E3-39	E3	enabled	true	right	0	1	\E a, b \in Node : ENABLED Pair(a, b)	-	Every node is its own mate, so any two distinct nodes can be paired. The same line was false one pin ago.	Matching	mate = [n \in Node |-> n]
+ITEM	L1-E3-40	E3	terminal	false	left	12	1	\A a, b \in Node : ~ENABLED (Pair(a, b) \/ Unpair(a, b))	-	Unpair is disabled at every pair, which is half of what this line claims, and Pair is enabled at every distinct pair.	Matching	mate = [n \in Node |-> n]
+ITEM	L1-E3-41	E3	terminal	true	right	0	1	\A p \in Staff : ~ENABLED (Take(p) \/ Hang(p))	-	Take is disabled because the key is off its hook, and Hang is disabled because nobody is inside to hang it back. Two actions, two unrelated reasons, and the state is unreachable.	Key	hook = FALSE /\ inside = {}
+ITEM	L1-E3-42	E3	enabled	false	left	12	1	\E p \in Staff : ENABLED Hang(p)	-	Hang asks that the person be inside, and the storeroom is empty, so no member of the staff is a witness.	Key	hook = FALSE /\ inside = {}
+ITEM	L1-E3-43	E3	enabled	true	right	0	1	\E p \in Staff : ENABLED Hang(p)	-	The key is off its hook and all three are inside, so any one of them hangs it back.	Key	hook = FALSE /\ inside = Staff
+ITEM	L1-E3-44	E3	terminal	false	left	12	1	\A p \in Staff : ~ENABLED (Take(p) \/ Hang(p))	-	Take is disabled for everybody, which is one of the two things this line claims, and Hang is enabled for everybody.	Key	hook = FALSE /\ inside = Staff
+ITEM	L1-E3-45	E3	enabled	true	right	0	3	~ENABLED Request	-	Request asks that nobody want the handover, and somebody does, so this one action cannot fire at any of the three pinned states.	Handover	holder \in Site /\ want = TRUE
+ITEM	L1-E3-46	E3	terminal	false	left	12	3	~ENABLED (Request \/ Grant)	-	Request is disabled and Grant is not, because somebody wants the handover and there is always another site to hand it to.	Handover	holder \in Site /\ want = TRUE
+ITEM	L1-E3-47	E3	enabled	true	right	0	3	~ENABLED Grant	-	Grant asks that somebody want the handover, and nobody does, so the existential under that conjunct is never reached.	Handover	holder \in Site /\ want = FALSE
+ITEM	L1-E3-48	E3	terminal	false	left	12	3	~ENABLED (Request \/ Grant)	-	Grant is disabled and Request is not, because nobody wants the handover yet. The two guards are opposites, so exactly one of them is always available and this model never stops.	Handover	holder \in Site /\ want = FALSE
