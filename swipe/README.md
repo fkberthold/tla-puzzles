@@ -1120,6 +1120,14 @@ reddened two others.
 A model taller than the room isn't declined, and that's the ruling rather than
 an oversight. The sideways axis is the one Frank named.
 
+**That ruling is overturned, and "the decline is per axis" below is where it
+went.** It held for one day. Frank read a model on his phone on 2026-10-19 and
+the vertical drag he'd ruled out of scope was filing "not a claim" into his
+record. The ruling was right about the axis it named and silent about the other
+one, and the silence is what shipped the defect. The capacity reading itself
+survived and is still what decides this, asked one axis at a time. Nothing
+below this line in this section describes how the decline works today.
+
 **This paragraph also claimed the corpus never reaches vertical overflow at
 844, and it does.** The claim rested on the same 660 and on 438 for "the
 tallest" model. Five of the 24 screens overflowed with the claim drawn and one
@@ -1306,6 +1314,156 @@ monospace, and a reader comparing a step against a claim is who can least
 afford it. You're reading one or the other and never both, so the panel is
 opaque and covers the model. The gate pins the pair: the icon rule declares an
 opacity under 1, and no rule for the panel declares one at all.
+
+### The decline is per axis, and the whole model box is dead
+
+Frank, on his own phone on 2026-10-19: "Scrolling up and down in the model is
+being read as a navigation swipe." Down files "not a claim", so the reader was
+writing answers he never gave into the record this whole rung exists to
+produce. That's the third wrong-verdict defect in this epic, which is why the
+fix is to the class rather than to the one report.
+
+`scrollerDeclining()` decided from where the touch STARTED, and asked of that
+region whether the box could overflow on one axis. Two things follow from
+that, and I think both of them had to go for the class to close.
+
+**The parts that look like the model aren't the scroller.** The model's own
+name row, the two gaps inside its box and its bottom padding all sit outside
+`.swipe-screen-body`, so no region test on the body ever reached them. Central
+read the step view in Chrome at 390 wide with an innerHeight of 730, model step
+open on `1:Fences`:
+
+| band | pixels | takes a gesture |
+|---|---|---|
+| `.swipe-step-head` | 29 to 81 | yes |
+| gap | 81 to 93 | yes |
+| `.swipe-screen-head`, the model's NAME | 94 to 138 | yes |
+| gap | 138 to 153 | yes |
+| `.swipe-screen-body` | 153 to 653 | declined when it overflowed sideways |
+| bottom padding | 653 to 669 | yes |
+| gap | 669 to 681 | yes |
+| `.swipe-hint` | 681 to 701 | yes |
+| tail | 701 to 720 | yes |
+
+220 of 730 pixels took a gesture, and 143 of those sat on or around the model
+box. A thumb landing on the model's name and dragging down filed "not a claim".
+
+**The capacity test asked the box, not the axis.** So either axis overflowing
+killed both, which both takes gestures that were safe and misses the case that
+matters: a body that scrolls down while it fits sideways. `2:Contention` is
+that model. At 730 a vertical drag in it scrolled the premise and answered the
+item in one stroke.
+
+So the box is dead whatever the thumb does, and the body is judged by a rule
+that depends on the stroke. `scrollerMark()` records which scrollers the thumb
+landed in at `touchstart`, along with where each one stood.
+`scrollerDeclining(mark, axis)` asks at `touchend`, once `dx` and `dy` say what
+kind of stroke it was:
+
+| the stroke | the body is declined when |
+|---|---|
+| a horizontal swipe | `scrollWidth > clientWidth` |
+| a vertical swipe | `scrollHeight > clientHeight` |
+| a tap | the scroller's position moved |
+
+**Two rules, and that's a split rather than indecision.** Each one is right for
+the stroke it judges and wrong for the other, and I got both halves wrong once
+before landing here.
+
+A swipe can't use the movement, because the browser may legitimately have hit a
+limit. A tap can't use the capacity, because a tap is spelled "both deltas
+under `SWIPE_THRESHOLD`" and that's 55 pixels, while a deliberate small scroll
+of the model is 30 or 40. Both failures are below.
+
+The flaw in `tla-7xql.18` was never that it used capacity. It was that it used
+whole-box capacity and applied one rule to every stroke. Per axis keeps the
+thing that made it safe and drops the thing that made it wrong, and the three
+cases a reader meets come out right:
+
+- **Overflows sideways only**, 22 of 24 screens. A vertical swipe fires, so D4
+  above survives and you can still answer from the model. A horizontal swipe is
+  declined, which is unavoidable: a left swipe and a sideways scroll are one
+  gesture on one pixel.
+- **Overflows both**, which is `1:Shelves` at 730. Nothing fires inside the
+  body and the back button is the way out.
+- **Overflows neither.** Everything fires.
+
+#### Five rules, and three of them were wrong
+
+The table has now held five. Writing them down is worth more than the fix,
+because each wrong one looked like the obvious correction to the last.
+
+1. **`tla-7xql.15`, region, every stroke.** Declined every touch inside
+   `.swipe-screen-body`. Left the back button as the only way out of 22 screens.
+2. **`tla-7xql.18`, whole-box capacity, every stroke.** Wrong, and the one that
+   shipped. Either axis overflowing killed both.
+3. **This bead's first build, movement, every stroke.** Wrong, never shipped.
+4. **This bead's second build, per-axis capacity, every stroke.** Wrong, never
+   shipped.
+5. **As landed: per-axis capacity for a swipe, movement for a tap.**
+
+**Why 3 failed.** Record the position at `touchstart`, compare at `touchend`,
+decline when it moved. It asks "did the browser scroll" instead of "could it",
+which sounds strictly better. It can't answer a stroke at a scroll limit: the
+browser moves nothing, so the reading is zero and the stroke files. A reader at
+the bottom of `1:Shelves` dragging down files "not a claim", which is exactly
+what Frank reported, reached by a different route. Shipping it would have been
+shipping the bug with a smaller target.
+
+**Why 4 failed.** Capacity fixes the swipe and has nothing to say about a
+stroke with no axis, so a tap filed. The threshold is 55 pixels and a
+deliberate small scroll of the model is 30 or 40, so a short flick reads as a
+tap. The reader scrolls two lines and gets thrown out of the model. That isn't
+the wrong-verdict class, so it's a smaller bug, and it's the same family of
+surprise and would happen on every tall model.
+
+**So 5 keeps both and lets the stroke choose.** A tap has no limit case to
+worry about, which is exactly what makes movement the right question for it: if
+it moved the box it was a drag, and if it didn't it was a tap. A swipe does have
+one, which is what makes capacity the right question there. The gate carries a
+regression guard for 3 in both directions, since a swipe routed through the
+movement reading is the failure I'd already made once.
+
+**The rounding tolerance went with rule 2.** It allowed a box one pixel over
+its client size, on the grounds that it's a subpixel layout artifact rather
+than a scroll. The two failure directions aren't symmetric, which is what
+settles it for me. A box one pixel over and declined costs a gesture the reader
+sees fail and repeats. One pixel over and not declined scrolls under the thumb
+while a verdict is filed.
+
+**A tap that moved nothing files on all 24 screens, and that's a change from
+`tla-7xql.18`.** A tap writes no verdict, it steps back one, so the
+wrong-verdict class this bead closes doesn't reach it. Declining taps over a
+scrolling model is what left 22 of 24 screens with the back button as their
+only way out. The P1 region still declines a tap, since nothing that looks like
+the model is a gesture surface.
+
+#### 844 alone was never a measurement of a phone
+
+This is the part I'd carry forward past the bead. Every pixel figure in the
+three sections above was read at an innerHeight of 844, which is what a phone's
+spec sheet gives. A phone showing its URL bar hands the page 730, and that's
+the height Frank's screenshots show.
+
+The gate pinned 844 only, so it was green on the morning the defect was on his
+screen:
+
+| model body | screens that scroll vertically |
+|---|---|
+| 613.9, at 844 | 1 |
+| 500, at 730 | 4 |
+
+The four at 730 are `1:Shelves`, `1:Break`, `1:Ledger` and `2:Contention`. One
+of them is the conflict: `2:Contention` is one of only two screens narrow
+enough to fit the body sideways, so under the sideways-only decline it wasn't
+declined at all. At 844 it's one screen over and nothing conflicts, which is
+exactly why the suite had nothing to say.
+
+The gate pins both heights now, and the containment between them is the control
+rather than a second reading. A shorter body can't stop a screen overflowing,
+so every screen over at 613.9 has to be over at 500. That's a property of the
+scan rather than of this corpus, so it still fires when the payload changes
+under it. An assertion on the count alone would pass over a different four.
 
 ### The record is a file and the browser is a cache
 

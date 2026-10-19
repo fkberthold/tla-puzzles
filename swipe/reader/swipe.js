@@ -115,10 +115,11 @@
  * answered wrong, so the answers go dead and that is the one mode change.
  *
  * EVERY STEP DRAWS ITS OWN BACK BUTTON. Tap anywhere is the convenience and
- * the button is the guarantee, because touchstart declines a touch that
- * starts inside a model screen scrolling sideways, and at level 2 that is
- * most of the page. A tap surface with a hole in it where the reader's thumb
- * has just been is not a way out on its own.
+ * the button is the guarantee, because a touch over the model box is declined
+ * whatever it does and a touch inside the model body is declined when it
+ * scrolls the model. At level 2 that is most of the page. A tap surface with a
+ * hole in it where the reader's thumb has just been is not a way out on its
+ * own.
  *
  * ========================================================================
  * A STEP IS THE WHOLE PAGE, AND IT TOOK THREE BEADS TO GET HERE
@@ -292,6 +293,57 @@
  *       panel over a model is monospace over monospace, and a reader
  *       comparing a step against a claim is who can least afford it. You are
  *       reading one or the other and never both.
+ *
+ * ========================================================================
+ * THE DECLINE IS PER AXIS, AND THE WHOLE BOX IS DEAD
+ * ========================================================================
+ *
+ * Bead tla-7xql.21, and it is the third wrong-verdict defect in this rung.
+ * Frank, on his own phone on 2026-10-19: "Scrolling up and down in the model
+ * is being read as a navigation swipe." Down files "not a claim", so the
+ * reader was writing answers he never gave.
+ *
+ * Two things were wrong and both had to go.
+ *
+ *   P1  THE PARTS THAT LOOK LIKE THE MODEL ARE NOT THE SCROLLER. The model's
+ *       name row, the gaps inside its box and its bottom padding all sit
+ *       outside .swipe-screen-body, so a region test on the body could never
+ *       reach them. Central read 220 of 730 pixels taking a gesture with the
+ *       model step open, and 143 of those sat on or around the model box. The
+ *       whole box is dead now, whatever the thumb does.
+ *
+ *   P2  THE CAPACITY TEST WAS WHOLE-BOX, so either axis overflowing killed
+ *       both. The flaw was never that it used capacity. It was that it asked
+ *       the question of the box instead of the axis, which both takes
+ *       gestures that were safe and misses the case Frank hit: a body that
+ *       scrolls down while it fits sideways. 2:Contention is that model, and
+ *       at 730 a vertical drag in it scrolled the premise and answered the
+ *       item in one stroke.
+ *
+ * So a SWIPE is judged by capacity on the one axis it travelled. That keeps
+ * what made the original safe and drops what made it wrong.
+ *
+ * AND A TAP IS JUDGED BY WHETHER THE SCROLLER MOVED, which is the other half
+ * and took two wrong turns to find. The split is the point rather than a
+ * hedge: each rule is right for the stroke it judges and wrong for the other.
+ *
+ * A swipe cannot use the position, because the browser may legitimately have
+ * hit a limit. At the bottom of 1:Shelves a further drag down moves nothing,
+ * so a delta reads zero and files "not a claim", which is the reported defect
+ * by another route.
+ *
+ * A tap cannot use the capacity, because a tap is spelled "both deltas under
+ * SWIPE_THRESHOLD" and that is 55 pixels, while a deliberate small scroll of
+ * the model is 30 or 40. So a short flick reads as a tap. Judge it by capacity
+ * and it files, and the reader scrolls two lines and is thrown out of the
+ * model. A tap has no limit case to worry about: if it moved the box it was a
+ * drag, and if it did not it was a tap.
+ *
+ * ONE VIEWPORT HEIGHT WAS NEVER A MEASUREMENT OF A PHONE, and that is the
+ * part worth carrying past this bead. Every figure in the three beads above
+ * was read at an innerHeight of 844. A phone showing its URL bar gives 730,
+ * which is what Frank was holding. At 844 one model screen scrolls vertically
+ * and nothing conflicts. At 730 four do.
  *
  * ========================================================================
  * navigation.instant, AND WHY A PLAIN SCRIPT WOULD BE WRONG HERE
@@ -1992,67 +2044,106 @@
     return Boolean(node && node.closest && node.closest("a, button, label, input"));
   }
 
-  /* WHICH SCROLLER, IF ANY, SWALLOWS A TOUCH THAT STARTS ON THIS TARGET.
-     Returns the scroller's short name or null, and the name is what the gate
-     reads: a table that only answered yes or no could not tell a decline on
-     the right scroller from a decline on the wrong one.
+  /* WHICH SCROLLERS A TOUCH SITS INSIDE, TAKEN WHEN THE TOUCH BEGINS.
 
-     THE READING IS CONDITIONAL AND PER AXIS, which is R1 of bead tla-7xql.18.
-     Each scroller is declined on the axis it actually scrolls on, so a drag
-     that cannot scroll anything is a gesture and the whole surface stays
-     usable. The declines used to live inside the touchstart listener, where
-     nothing could drive them.
+     This is the half of the decline that is about WHERE, and bead tla-7xql.21
+     split it from the half that is about WHETHER so the pair can be driven
+     with no browser. The mark is taken at touchstart because a touch belongs
+     to where it began. Whether any of those scrollers takes the stroke is
+     asked at touchend, once the gesture has an axis.
 
-     The +1 is a rounding tolerance. A box one pixel over its own client size
-     is a subpixel artifact rather than a scroll. */
-  function scrollerDeclining(target) {
+     Returns { dead, chain } or null. `dead` names a region that declines
+     whatever the thumb does, and `chain` holds one scroller per box the touch
+     sits inside, innermost first. The name a scroller answers with is what the
+     gate reads, because a table answering only yes or no could not tell a
+     decline on the right scroller from one on the wrong scroller.
+
+     EACH ENTRY CARRIES AN ELEMENT AND A POSITION, AND THE POSITION IS NOT
+     DEAD WEIGHT. Do not delete it as unused. The two kinds of stroke ask
+     different questions of the same scroller, and only one of them is
+     answerable from the element alone. A swipe asks what the box CAN scroll,
+     which is a size and readable at any time. A tap asks whether the box DID
+     scroll, which is a comparison and needs a value from before the stroke.
+     scrollerDeclining() picks between them and says why. */
+  function scrollerMark(target) {
     if (!target || !target.closest) {
       return null;
     }
 
-    /* THE MODEL SCREEN, ON THE SIDEWAYS AXIS. The widest screen line is 73
-       characters, which does not fit 390 CSS pixels at any readable size, so
-       a wide model scrolls sideways and a left swipe and that scroll would be
-       one gesture on one pixel: the reader would answer "false" every time
-       they looked along a line.
+    var mark = { dead: null, chain: [] };
+    var screenBody = target.closest(".swipe-screen-body");
 
-       IT USED TO DECLINE WHATEVER THE MODEL WAS. That cost almost nothing
-       while the screen was 66 of 844 pixels, and a step is the whole page now,
-       so it would take tap and swipe away from most of the phone. Frank ruled
-       the conditional form.
+    /* P1 OF BEAD tla-7xql.21. THE PARTS THAT LOOK LIKE THE MODEL ARE NOT THE
+       SCROLLER. The model's own name row, the two gaps inside its box and its
+       bottom padding all sit outside .swipe-screen-body, so no region test on
+       the body ever reached them. A thumb landing on the name and dragging
+       down filed "not a claim".
 
-       AND IT FREES TWO SCREENS OF 24, which is worth stating here because the
-       prose around this decline used to imply most of them. The same browser
-       pass read the model body's client width at 318 pixels and the type at
-       10.825 pixels a character, so 29 characters fit across, and 22 of the 24
-       published screens are wider than that. Only 2:Contention at 25 and
-       1:Contention at 23 fit. On the other 22 this decline still fires over a
-       613.9-pixel body in an 844-pixel view, so the back button is the way out
-       rather than a second one.
+       Central read the step view in Chrome at 390 wide with an innerHeight of
+       730, model step open on 1:Fences. The box runs 93 to 669 and its body
+       153 to 653, which leaves the name row, the gap under it and the bottom
+       padding live. 220 of those 730 pixels took a gesture and 143 of them sat
+       on or around the model box.
 
-       A MODEL TALLER THAN THE ROOM IS NOT DECLINED, and that is the ruling
-       rather than an oversight: Frank named the sideways axis and only the
-       sideways axis.
+       THE DECLINE HERE IS A REGION RULE AND NOT A CAPACITY ONE, which is the
+       part worth reading twice. The name row fits its own content, so asking
+       it what it can scroll answers "nothing" and files a verdict. It has to
+       be dead because of what it LOOKS like, which is the one thing no
+       measurement of it can report.
 
-       THIS CORPUS DOES REACH IT, on one screen of 24. The paragraph here used
-       to say otherwise, off 660 pixels of room and 438 for the tallest model,
-       and both figures were wrong. The body is 613.9 measured, the tallest is
-       1:Shelves at 29 lines wanting 629.1, and the 438 was a correct reading
-       of 1:Alternation at 20 lines, which is 437.6 and was simply the model
-       on screen at the time. So 1:Shelves scrolls vertically and a drag in it
-       moves the stack in one stroke. Frank ruled it stays scrolling rather
-       than the type shrinking for one screen of 24. */
-    var screen = target.closest(".swipe-screen-body");
-    if (screen && screen.scrollWidth > screen.clientWidth + 1) {
-      return "screen";
+       THE NEGATION IS THE OTHER HALF. Declining .swipe-screen with no
+       exception for the part of it that scrolls would go the other way and
+       take every gesture over the model away, which is what tla-7xql.15 did
+       and what made the back button the only way out. */
+    if (!screenBody && target.closest(".swipe-screen")) {
+      mark.dead = "screen";
+      return mark;
+    }
+
+    /* THE MODEL BODY, WHICH IS THE ONE PART OF THE BOX THE BROWSER SCROLLS.
+       The widest screen line is 73 characters, which does not fit 390 CSS
+       pixels at any readable size, so a wide model scrolls sideways and that
+       scroll and a left swipe would be one gesture on one pixel.
+
+       EACH AXIS ON ITS OWN NOW, which supersedes tla-7xql.18's sideways-only
+       ruling. That ruling was right about the axis it named and silent about
+       the other one, and the other one is what Frank hit. Asking per axis
+       needs no ruling at all: the body takes the stroke when it can scroll the
+       way the thumb went, and keeps the other axis for the reader. That is
+       what D4 of that bead asks for and what a whole-box reading cannot give.
+
+       WHAT THE CORPUS DOES ON EACH AXIS, measured in the same browser pass.
+       The body's client width is 318 pixels and the type is 10.825 pixels a
+       character, so 29 characters fit across and 22 of the 24 published
+       screens are wider than that. Only 2:Contention at 25 and 1:Contention at
+       23 fit. On the vertical axis the body is 613.9 at an innerHeight of 844
+       and 500 at 730, so one screen runs past it at 844 and four do at 730.
+
+       SO THE THREE CASES A READER MEETS, and the gate drives all three. A body
+       that overflows sideways only, which is 22 of 24: a vertical swipe fires
+       and a horizontal one is declined. A body that overflows both, which is
+       1:Shelves at 730: nothing fires in here and the back button is the way
+       out. A body that overflows neither: everything fires.
+
+       THE HORIZONTAL DECLINE IS UNAVOIDABLE RATHER THAN CHOSEN. A left swipe
+       and a sideways scroll are one gesture on one pixel, so on a model wider
+       than its body the reader would answer "false" every time they read along
+       a line. That was tla-7xql.18's ruling and it was right. */
+    if (screenBody) {
+      mark.chain.push(scrollerAt("screen", screenBody));
     }
 
     /* R1 OF THE STACK DESIGN, bead tla-7xql.15. A step taller than the room
        scrolls inside itself, and a drag in there has to scroll rather than
-       move the stack. */
+       move the stack.
+
+       IT STAYS IN THE CHAIN BEHIND THE MODEL BODY, which is the fall-through
+       the rewrite could have lost. The model body can sit still while the step
+       under it scrolls, and that stroke is the step's. Stopping at the
+       innermost scroller found would let it move the stack as well. */
     var body = target.closest(".swipe-step-body");
-    if (body && body.scrollHeight > body.clientHeight + 1) {
-      return "step";
+    if (body) {
+      mark.chain.push(scrollerAt("step", body));
     }
 
     /* R1 AGAIN, ON THE FLASH, since bead tla-7xql.16. The page no longer
@@ -2061,19 +2152,107 @@
        rung: 39 of the 48 level 2 corrections run past the flash, by up to 111
        pixels, against 0 of 144 at level 1.
 
-       So the flash allows pan-y and a drag in an overflowing one scrolls it.
-       Without this line that stroke would scroll the correction and advance
-       off it at once.
+       So the flash allows pan-y and a vertical drag in one tall enough to
+       scroll files nothing. Without this the stroke would scroll the correction
+       and advance off it at once. A horizontal drag in a flash still fires,
+       since the flash has no sideways scroll to take it.
 
        TAP STILL ADVANCES EVERYWHERE IN HERE, which is what makes declining
        safe: renderFlash() owns a click handler on the box, and the browser
-       raises a click after a tap and suppresses it after a scroll. The
-       discrimination is the browser's rather than this file's. */
+       raises a click after a tap and suppresses it after a scroll. */
     var flash = target.closest(".swipe-flash");
-    if (flash && flash.scrollHeight > flash.clientHeight + 1) {
-      return "flash";
+    if (flash) {
+      mark.chain.push(scrollerAt("flash", flash));
     }
 
+    return mark;
+  }
+
+  /* ONE SCROLLER THE TOUCH SITS INSIDE, WITH WHERE IT STOOD WHEN THE TOUCH
+     BEGAN. Both facts are consumed, by different strokes. See the note in
+     scrollerMark() and the split in scrollerDeclining(). */
+  function scrollerAt(name, el) {
+    return { name: name, el: el, top: el.scrollTop, left: el.scrollLeft };
+  }
+
+  /* CAN THIS BOX SCROLL ON THIS AXIS. "x" is the sideways axis and anything
+     else is read as the vertical one, which keeps the caller honest: an axis
+     the caller never set cannot silently mean "neither".
+
+     NO ROUNDING TOLERANCE, AND THE +1 THAT USED TO BE HERE IS GONE. tla-7xql.18
+     allowed a box one pixel over its client size, on the grounds that it is a
+     subpixel layout artifact rather than a scroll. The two failure directions
+     are not symmetric, so the tolerance was buying the wrong one. A box that
+     is one pixel over and declined costs the reader a gesture they can see
+     fail and repeat. A box that is one pixel over and NOT declined scrolls
+     under the thumb while a verdict is filed, which is the silent wrong answer
+     this bead exists to close. */
+  function overflowsOn(el, axis) {
+    if (axis === "x") {
+      return el.scrollWidth > el.clientWidth;
+    }
+    return el.scrollHeight > el.clientHeight;
+  }
+
+  /* DID THIS BOX ACTUALLY SCROLL SINCE THE TOUCH BEGAN. Read against the
+     position the mark took at touchstart, and used for a TAP and nothing else.
+     Why only a tap is the paragraph below. */
+  function movedFrom(at) {
+    return at.el.scrollTop !== at.top || at.el.scrollLeft !== at.left;
+  }
+
+  /* WHETHER THAT TOUCH WAS THE SCROLLER'S RATHER THAN A GESTURE.
+
+     TWO RULES, AND THE STROKE DECIDES WHICH ONE ANSWERS. That is a split
+     rather than indecision, so here is the split written down:
+
+       a swipe, which has an axis   CAPACITY on that one axis
+       a tap, which has none        whether the position MOVED
+
+     Each rule is right for the stroke it judges and wrong for the other, and
+     both halves of that were learned the hard way in this one bead.
+
+     WHY A SWIPE CANNOT USE THE DELTA. The honest question for a directional
+     stroke is "could this have been a scroll", because the browser may
+     legitimately have hit a limit. At the bottom of 1:Shelves a further drag
+     down moves nothing, so a delta reads zero and files "not a claim", which
+     is the defect Frank reported reached by another route. Capacity never asks
+     whether the browser moved, so it has no limit case.
+
+     WHY A TAP CANNOT USE THE CAPACITY. A tap is spelled "both deltas under
+     SWIPE_THRESHOLD", which is 55 pixels, and a deliberate small scroll of the
+     model is 30 or 40. So a short flick reads as a tap. Judging it by capacity
+     means filing it, and the reader scrolls two lines and gets thrown out of
+     the model. Judging it by the delta is exact: a tap has no limit case,
+     because if it moved the box it was a drag and if it did not it was a tap.
+
+     A TAP THAT REALLY WAS A TAP STILL FILES, on all 24 screens. tla-7xql.18
+     declined every touch over a model that could scroll sideways, which left
+     the back button as the only way out of 22 of them. That change stands and
+     this only narrows it to taps that moved nothing.
+
+     THE CHAIN IS WALKED INNERMOST FIRST, under either rule. The model body can
+     fit on the axis while the step body under it overflows on the same axis,
+     and that stroke is the step's. Stopping at the innermost scroller found
+     would let it move the stack as well. */
+  function scrollerDeclining(mark, axis) {
+    if (!mark) {
+      return null;
+    }
+    if (mark.dead) {
+      return mark.dead;
+    }
+    if (!mark.chain) {
+      return null;
+    }
+    var i;
+    for (i = 0; i < mark.chain.length; i += 1) {
+      var at = mark.chain[i];
+      var takesIt = axis ? overflowsOn(at.el, axis) : movedFrom(at);
+      if (takesIt) {
+        return at.name;
+      }
+    }
     return null;
   }
 
@@ -2081,16 +2260,31 @@
     var startX = 0;
     var startY = 0;
     var tracking = false;
+    var mark = null;
 
+    /* THE DECLINE IS NOT DECIDED HERE. touchstart records which scrollers the
+       thumb landed in, and touchend asks whether any of them can scroll on the
+       axis the gesture turned out to be on. The listeners hold no reading of
+       their own, so the table in harness/test-swipe-reader.sh is the whole of
+       the rule.
+
+       THE ORDER IS FORCED: the axis has to exist before the decline can be
+       asked, so the decline sits AFTER dx and dy are read and before anything
+       is filed. A tap reaches scrollerDeclining() with a null axis rather than
+       skipping the call, and that null is load-bearing twice over. It is how
+       the dead region still declines a tap, and it is how the decline knows to
+       judge this stroke by what the scroller DID rather than by what it
+       could.
+
+       { passive: true } ON BOTH LISTENERS. Passive means this file cannot
+       cancel the browser's scroll, which is correct: the browser should scroll.
+       All that is decided here is whether to ALSO fire a gesture. */
     root.addEventListener("touchstart", function (ev) {
       if (ev.touches.length !== 1) {
         tracking = false;
         return;
       }
-      if (scrollerDeclining(ev.target)) {
-        tracking = false;
-        return;
-      }
+      mark = scrollerMark(ev.target);
       tracking = true;
       startX = ev.touches[0].clientX;
       startY = ev.touches[0].clientY;
@@ -2101,10 +2295,20 @@
         return;
       }
       tracking = false;
+      var at = mark;
+      mark = null;
       var t = ev.changedTouches[0];
       var dx = t.clientX - startX;
       var dy = t.clientY - startY;
-      if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+      var tap = Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD;
+      var axis = null;
+      if (!tap) {
+        axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (scrollerDeclining(at, axis)) {
+        return;
+      }
+      if (tap) {
         /* A TAP, WHICH MEANS ONE STEP BACK. It is handled here and nowhere
            else: a touch produces a touchend AND a synthesized click, and some
            browsers synthesize the click after a drag, so a second listener on
@@ -2123,7 +2327,7 @@
         gesture("tap");
         return;
       }
-      if (Math.abs(dx) > Math.abs(dy)) {
+      if (axis === "x") {
         gesture(dx > 0 ? "right" : "left");
       } else {
         gesture(dy > 0 ? "down" : "up");
@@ -2393,11 +2597,19 @@
       cardHint: cardHint,
       /* tla-7xql.18's two, and both are here because a text gate cannot see a
          table. chromeAt answers what a state draws, over 30 combinations, and
-         scrollerDeclining answers which scroller eats a touch, in BOTH
+         the decline pair answers which scroller eats a touch, in BOTH
          directions: a decline that always fires and a decline that never fires
          both pass a one-sided check, and the first of those is the defect that
-         bead removed. */
+         bead removed.
+
+         THE DECLINE IS TWO EXPORTS SINCE tla-7xql.21, because it is two
+         questions. scrollerMark answers WHICH scrollers the thumb landed in,
+         at touchstart. scrollerDeclining answers WHETHER one of them takes the
+         stroke, at touchend, once the gesture has an axis. The gate drives the
+         pair in that order over a table of (start element, per-axis overflow,
+         gesture axis), which is the real sequence rather than a stand-in. */
       chromeAt: chromeAt,
+      scrollerMark: scrollerMark,
       scrollerDeclining: scrollerDeclining,
       /* tla-7xql.16's two. applyViewport takes the document rather than
          reaching for a global precisely so it can be driven here, and the
