@@ -1,11 +1,49 @@
 /*
- * swipe.css -- the level 0 swipe reader's styles (bead tla-7xql.12, epic
- * tla-7xql).
+ * swipe.css -- the swipe reader's styles (beads tla-7xql.12 and tla-7xql.14,
+ * epic tla-7xql).
  *
  * THE PHONE IS THE ONLY TARGET. Frank, 2026-10-18: "this will only ever be
  * used on a phone browser." So this is not a desktop layout that also works
  * small. The default rules are the phone rules, and the one media query
  * widens the card on a big screen rather than the other way round.
+ *
+ * ==========================================================================
+ * THE HEIGHT BUDGET AT 390x844, AND THE TWO RULES THAT HOLD IT
+ * ==========================================================================
+ *
+ * A level 0 card is a claim and three buttons and fits with room to spare.
+ * The pinned rungs do not. Measured over the two corpora:
+ *
+ *   the tallest model screen           29 lines, 1:Shelves
+ *   the widest screen line             73 characters
+ *   the level 1 pin                    1 to 3 conjuncts
+ *   the level 2 pin                    4 to 7 rows, pre and post and binds
+ *   the longest claim                  80 characters
+ *
+ * 29 lines of monospace is about 480 pixels at a readable size, and 73
+ * characters does not fit 390 CSS pixels at any readable size at all. So the
+ * model, the pin, the claim and the three buttons cannot share one viewport,
+ * and a layout that lets them try puts the question below the fold.
+ *
+ * Two rules make the question's position independent of the model's length.
+ *
+ * ONE. .swipe-screen-body is capped in VIEWPORT units and scrolls inside
+ * itself, both ways. 30vh is 253 pixels at 844, which is 15 of Shelves's 29
+ * lines. The cap is the point: whatever the model is, the pin and the claim
+ * start at the same place. No wrapping, because an indented conjunction list
+ * that wraps loses the alignment that says which conjuncts belong to which
+ * action, so the body scrolls sideways instead. swipe.js declines a swipe
+ * that starts in there, since otherwise reading along a line would answer
+ * the item.
+ *
+ * TWO. .swipe-answers is STICKY to the bottom of the viewport. The three
+ * buttons are then reachable whatever is above them, and the whole class of
+ * "the buttons went below the fold" failures stops depending on arithmetic.
+ *
+ * The panel is collapsible on top of that, which is the reader's own lever
+ * rather than a rule: once the model has been read, collapsing it gives the
+ * stream the whole screen, and the bucketed stream means the next ten to
+ * twenty items are about the same model.
  *
  * COLOR COMES FROM THE THEME'S OWN VARIABLES, never from literals, so the
  * light and dark palettes in mkdocs.yml both work with no second set of
@@ -22,7 +60,7 @@
 #swipe-app {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.7rem;
   margin: 1rem 0 2rem;
   user-select: none;
   -webkit-user-select: none;
@@ -57,6 +95,59 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- the model screen, which is the premise ---- */
+
+.swipe-screen {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--md-code-bg-color);
+}
+
+/* The header is the collapse control and the model's name. It is a button so
+   it is reachable by keyboard and reads as a control to a screen reader. */
+.swipe-screen-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--md-typeset-color);
+  font-family: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 2.2rem;
+}
+
+.swipe-screen-name {
+  font-weight: 700;
+}
+
+.swipe-screen-toggle {
+  opacity: 0.6;
+}
+
+/* THE CAP AND THE SCROLL. See the height budget in the header. 30vh at 844
+   is 253 pixels, which is 15 lines at this size. `pre` rather than `pre-wrap`
+   because a wrapped conjunction list loses its alignment. */
+.swipe-screen-body {
+  margin: 0;
+  padding: 0 0.7rem 0.6rem;
+  max-height: 30vh;
+  overflow: auto;
+  font-family: var(--md-code-font-family, monospace);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  white-space: pre;
+  background: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ---- the card ---- */
 
 .swipe-card,
@@ -67,13 +158,23 @@
 .swipe-done {
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.5rem;
-  padding: 1.1rem 1rem;
+  padding: 0.9rem 1rem;
   background: var(--md-default-bg-color);
-  min-height: 11rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.7rem;
+  gap: 0.6rem;
+}
+
+/* A level 0 card is a claim on its own and looks lost without a floor under
+   it. A pinned card is never short, so the floor only ever applies to the
+   rung it was measured for. */
+.swipe-flash,
+.swipe-review,
+.swipe-stats,
+.swipe-message,
+.swipe-done {
+  min-height: 11rem;
 }
 
 .swipe-card,
@@ -89,26 +190,57 @@
   opacity: 0.7;
 }
 
-/* The claim is the whole item, so it gets the space. pre-wrap rather than
-   pre: a level 0 claim can run past a phone's width and a horizontal
-   scrollbar inside a card you are about to swipe is the wrong gesture in the
-   wrong place. */
-.swipe-claim {
+/* ---- the pin, which is the question's subject ---- */
+
+.swipe-pin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.swipe-pin-label {
   margin: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* The pin wraps where the model screen does not. A pin row is one conjunct
+   rather than part of an aligned list, so a wrapped row loses nothing, and
+   the longest measured 35 characters. */
+.swipe-pin-body {
+  margin: 0;
+  padding: 0.35rem 0.55rem;
   font-family: var(--md-code-font-family, monospace);
-  font-size: 1.05rem;
-  line-height: 1.55;
+  font-size: 0.8rem;
+  line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: break-word;
   background: var(--md-code-bg-color);
-  padding: 0.7rem 0.6rem;
+  border-radius: 0.25rem;
+}
+
+/* The claim is the whole question, so it gets the space. pre-wrap rather than
+   pre: a claim can run past a phone's width, and a horizontal scrollbar
+   inside a card you are about to swipe is the wrong gesture in the wrong
+   place. */
+.swipe-claim {
+  margin: 0;
+  font-family: var(--md-code-font-family, monospace);
+  font-size: 1.02rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  background: var(--md-code-bg-color);
+  padding: 0.6rem 0.6rem;
   border-radius: 0.3rem;
 }
 
 .swipe-hint {
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.5;
+  font-size: 0.68rem;
+  line-height: 1.45;
   opacity: 0.7;
 }
 
@@ -164,11 +296,22 @@
 
 /* Three answers across the bottom, equal width, tall enough to hit with a
    thumb without looking. 3rem is above the 44px floor every mobile platform
-   publishes for a touch target. */
+   publishes for a touch target.
+
+   STICKY IS THE SECOND OF THE TWO HEIGHT RULES. The buttons stay on the
+   viewport floor whatever is above them, so the model screen can be as tall
+   as its cap allows and the answer is still one thumb away. The background
+   is opaque on purpose: a transparent sticky row over a line of TLA+ reads
+   as neither. */
 .swipe-answers {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 0.4rem 0;
+  background: var(--md-default-bg-color);
 }
 
 .swipe-menu {
@@ -243,8 +386,8 @@
   border-bottom: 1px solid var(--md-default-fg-color--lightest);
 }
 
-.swipe-table td:nth-child(2),
-.swipe-table td:nth-child(3) {
+.swipe-table td:nth-child(3),
+.swipe-table td:nth-child(4) {
   font-variant-numeric: tabular-nums;
 }
 
@@ -252,10 +395,18 @@
 
 @media screen and (min-width: 45em) {
   #swipe-app {
-    max-width: 34rem;
+    max-width: 38rem;
   }
 
   .swipe-claim {
     font-size: 1.15rem;
+  }
+
+  /* A laptop has the height for the whole model, so the cap loosens rather
+     than disappearing. A screen with no cap at all is a page that jumps when
+     the model changes. */
+  .swipe-screen-body {
+    max-height: 48vh;
+    font-size: 0.82rem;
   }
 }
