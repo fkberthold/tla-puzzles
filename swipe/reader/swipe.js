@@ -782,6 +782,14 @@
         ? "Right. It is " + LABELS[v.flash.item.swipe] + "."
         : "No. You said " + LABELS[v.flash.given] + " and it is " +
           LABELS[v.flash.item.swipe] + "."));
+    /* THE PIN GOES WITH THE CORRECTION at the pinned rungs. A level 1
+       correction reads "the open count is 1, so Pop's first conjunct holds",
+       and that sentence is unreadable without the state it is about. The
+       model screen does NOT come along: it is 29 lines at worst and the
+       flash is the feedback L2 measured, so it gets the screen to itself. */
+    if (v.flash.item.level !== 0) {
+      box.appendChild(renderPin(v.flash.item));
+    }
     box.appendChild(el("pre", "swipe-claim", v.flash.item.claim));
     box.appendChild(el("p", "swipe-correction", v.flash.item.flash));
     box.appendChild(el("p", "swipe-hint", "Tap anywhere here for the next one."));
