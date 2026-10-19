@@ -111,12 +111,13 @@
 #   slow  10.0 s  harness/test-levels.sh                 (added, bead tla-7xql.3)
 #   slow  62.0 s  harness/test-swipe-level0.sh           (re-based, bead tla-7xql.7)
 #   slow  74.0 s  harness/test-swipe-enabled.sh          (added, bead tla-7xql.4)
+#   slow  81.0 s  harness/test-swipe-subscript.sh        (added, bead tla-7xql.5)
 #   ----  ------
 #         63.4 s  fast tier, 28 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#        894.9 s  slow tier, 16 suites
-#        957.3 s  whole registry
+#        975.9 s  slow tier, 17 suites
+#       1038.3 s  whole registry
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -1609,6 +1610,30 @@ SUITES=(
   # 83 s to 70. Quiet box, three back-to-back serial runs:
   # 69.055 / 69.189 / 70.223 s. 74.0 clears the slowest by 5%.
   "slow|74.0|level 1 ENABLED swipe corpus|./harness/test-swipe-enabled.sh"
+  # ADDED by bead tla-7xql.5, the level 2 subscript rung.
+  #
+  # FEWER JVMs THAN THE LEVEL 1 ROW AND A LONGER CLOCK, which is worth saying
+  # plainly because the obvious reading of the two numbers is wrong. The bake
+  # is 65 JVMs over the same 48 items where level 1 pays 100: the claim still
+  # cannot batch, one exit code being one answer, but the PIN check can,
+  # because items are authored in groups that share one pinned step and vary
+  # only the claim. 48 items cost 13 pin checks. That bake runs in 26 s
+  # against level 1's 37.
+  #
+  # The rest of the row is gate and not corpus. Eight TLC controls scoped to
+  # one item each, where level 1 has seven. Seven fixtures re-measuring the
+  # channel, where level 1 has five, because this rung has a {12, 13} pair to
+  # pin and a subscript lesson that is itself one of the measurements. And
+  # three stem-blind probe runs where level 1 has one, which is the
+  # subscript-alone control and its two plants.
+  #
+  # Quiet box, three back-to-back serial runs: 75.4 / 75.3 / 74.9 s, against
+  # 74.0 s for the first green standalone run. 81.0 clears the slowest by 7%.
+  # The
+  # margin is wider than level 1's 5% on purpose: three of the seven models
+  # here carry model values, so every pin run binds a constant, and the probe
+  # runs 1000 permutations three times rather than once.
+  "slow|81.0|level 2 subscript swipe corpus|./harness/test-swipe-subscript.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header
