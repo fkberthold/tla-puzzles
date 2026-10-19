@@ -593,6 +593,11 @@ The page is at `https://fkberthold.github.io/tla-puzzles/swipe/`. Frank ruled
 on 2026-10-18 that this channel is **published rather than delivered**, so it
 is the one rung that does not put files in `~/tla-practice`.
 
+**It's two pages since `tla-7xql.16`.** The reader owns the viewport on
+`/swipe/`, so the prose that used to sit under it lives at `/swipe/contract/`
+and the reader's menu links to it. One URL is the reader and one is the
+contract, so there's no mode to be in.
+
 `scripts/build-docs.sh` emits it beside the reading section. The reader is
 five files under `swipe/reader/`:
 
@@ -725,12 +730,17 @@ height is 638 pixels and a 7-row level 2 pin is about 278. 73 characters does
 not fit 390 CSS pixels at any readable monospace size. None of it shares one
 844-pixel viewport.
 
-**The page above the reader is not ours to measure.** mkdocs-material puts a
-2.4rem sticky header, an h1 and a lead-in above `#swipe-app`. Bead
-`tla-7xql.12` measured the level 0 answer row landing at 812 of 844, which
-works back to roughly 400 pixels of page, and that number is the theme's
-rather than ours. A layout that budgets against it is wrong after the next
-theme bump, with nothing in the repo to say so.
+**The page above the reader was not ours to measure, and now there isn't one.**
+mkdocs-material used to put a 2.4rem sticky header, an h1 and a lead-in above
+`#swipe-app`. Bead `tla-7xql.12` measured the level 0 answer row landing at 812
+of 844, which works back to roughly 400 pixels of page, and that number was the
+theme's rather than ours. A layout that budgets against it is wrong after the
+next theme bump, with nothing in the repo to say so.
+
+`tla-7xql.16` removed the budget instead of fixing it. The reader is fixed at
+`100dvh` and the document doesn't scroll, so the three rules below hold inside
+a box whose height we set. Rule 3 keeps a tighter form there, where flexbox
+divides the room and the viewport fractions are off.
 
 So the budget is three rules rather than a sum.
 
@@ -856,9 +866,129 @@ model and the model is step 2. The reader reads it once and then walks one
 step for the pin. Whether that holds up is a reading somebody has to take on
 a phone.
 
-**The stack has not been read in a browser.** The step heights above are
-arithmetic again, and arithmetic is what the reading on 2026-10-19 corrected
-twice.
+**The stack was read in a browser on 2026-10-19**, under `tla-7xql.16`, at a
+true 390x844 with touch emulation on. Every step fits. The lowest thing the
+reader draws is the menu, and it lands 10 pixels inside the bottom edge at
+every rung, at every step of the stack, and with the stats panel open. The step
+heights stopped being arithmetic because the room is divided by flexbox now,
+and a flex line knows what else is on screen where a viewport fraction can't.
+
+### The reader owns the viewport, and a scroll used to file a verdict
+
+Frank hit this on his own phone on 2026-10-19, minutes after the stack shipped.
+"I'm not sure whether a swipe is going to scroll through the page or send a
+message. I've now accidentally sent multiple responses." His record held
+verdicts he never gave.
+
+`bindGestures` binds `touchstart` and `touchend` with `{ passive: true }`, so
+the handler can't cancel a scroll. A vertical drag inside the reader scrolled
+the page and fired `gesture()` on the same stroke. Down is "not a claim", so a
+scroll filed a vacuity verdict on an item that is a claim. That's the failure
+the single-meaning gesture table exists to prevent, arriving through the page's
+own scroll rather than through a mode.
+
+**The surface matters, and the bead didn't name it.** `.swipe-card` already
+carried `touch-action: pinch-zoom`, so a drag starting on the dock never
+panned. What panned was everything else: the counts, the menu, a step's head,
+and the gaps between them. Driven as a real touch against the published page,
+with the document parked at 200 pixels, one downward stroke over the counts
+took it to 0 and wrote one row to the log. One finger, a scroll and a verdict.
+
+Frank ruled against taking the reader to the step with a scroll call, which was
+the one-line option and which he turned down. "The Design is deeply ambiguous."
+The page stops scrolling instead, and then a vertical drag has nothing to
+scroll.
+
+1. **The reader fills the viewport on its own page.**
+2. **The class that does it goes on at runtime, from `swipe.js`.**
+3. **The contract prose moved to a page of its own.**
+4. **`touch-action` is set per element, never on an ancestor of a scroller.**
+5. **The menu got a forget button.**
+
+`html` and `body` take `overflow: hidden` and `overscroll-behavior: none` under
+the class, and `#swipe-app` is fixed at `100dvh` over the top of the theme. The
+header, the footer, the h1 and the sidebars are hidden as well as covered, so
+the header can't take a touch meant for the reader.
+
+**`dvh` rather than `vh`, and `overscroll-behavior` rather than `overflow`
+alone.** `vh` is the large viewport, so a `100vh` reader on a phone runs taller
+than the screen by the height of the address bar and the menu goes under it.
+And Chrome Android's pull-to-refresh is a browser gesture on a downward drag
+near the top of the document, which beats ours. Stopping the scroll doesn't
+stop it. Refusing the overscroll does. Neither of those two is measurable
+headless, where there's no browser chrome and no pull-to-refresh, so I'm taking
+both from the specifications rather than from a reading.
+
+**The class has to come off again, and that's the half that breaks the site.**
+`mkdocs.yml` runs `navigation.instant`, which replaces the document's content
+without reloading, so the `html` element survives every navigation. A class
+left on it follows the reader to every other page and takes the header with it.
+`applyViewport()` is the whole rule and `boot()` is its only caller: the class
+is on exactly when the document carries `#swipe-app`.
+
+That was read both ways through a real instant navigation. Following the
+contract link off the reader left `html` with `js-focus-visible js`, put
+`.md-header` back to `display: block`, and a sentinel set on `window`
+beforehand survived, which is what says the document was never replaced. A link
+back to the reader put the class on again. `harness/test-swipe-reader.sh` drives
+the same rule with no browser, over one stub whose root comes and goes.
+
+**`touch-action` needed the care the previous bead gave it.** The property
+intersects up the ancestor chain, so a value on `#swipe-app` reaches the model
+screen's sideways scroll and kills it, and the widest screen line is 73
+characters against 390 pixels. So the property is set on the surfaces that are
+gestures and on nothing above a scroller: the counts, the dock, the done
+screen, a step's head, the menu. Measured on the model step, the chain from
+`.swipe-screen-body` up to `html` reads `auto` at all twelve elements, and a
+real horizontal touch drag moved `scrollLeft` from 0 to 234 in a 593-pixel
+screen. A vertical drag in the same place moved the screen body 234 pixels and
+left both the document and the open step where they were.
+
+#### The flash was the one thing this broke
+
+The flash is a gesture surface, so a drag on it means advance. With the page no
+longer scrolling, a correction taller than the flash had nowhere left to be
+read. Measured over every item of each pinned rung: 39 of the 48 at level 2 run
+past the flash, worst case 111 pixels, against 0 of 144 at level 1.
+
+**The first reading of this sampled, and the sample moved.** It answered 40
+items drawn from the 48, and the stream draws at random from what the browser
+has no answer for, so three runs of one tree gave 35, 31 and 29. I had it in
+four files at two values before anyone caught it. Answering until the done
+screen covers each item once, and then both numbers repeat exactly. Don't
+sample a rung you can exhaust in 48 answers.
+
+The worst case moved for a real reason and it's worth knowing which. The
+pre-fix reading was 93 pixels and the committed one is 111, a uniform 18 across
+the five tallest corrections, and 18 pixels is the flash's own
+`padding-bottom`. A box with `overflow: visible` leaves its bottom padding out
+of the scrollable region and a scroll container puts it in, so adding
+`overflow: auto` to the flash moved the number by exactly that. Measured both
+ways by taking the one rule back off.
+
+So the flash allows `pan-y` and `bindGestures` declines a touch that starts in
+an overflowing one. That's R1 of the stack design applied to one more scroller,
+and it changes where a gesture is read rather than what one means. A drag now
+scrolls the correction and stays on the item. A tap still advances, because the
+browser raises a click after a tap and suppresses it after a scroll, so the
+discrimination is the browser's rather than ours.
+
+I think this was already broken before the page stopped scrolling, and in a
+worse way. A reader dragging outside the flash to reach the tail of a long
+correction scrolled the page and advanced off the item in the same stroke.
+
+#### Forget
+
+There was no way to clear the record at all. Clearing site data was the only
+route and it takes the theme preference with it. The menu carries a forget
+button now, behind a confirm, and it drops both storage keys including the
+level 0 one `loadState()` still migrates.
+
+`forgetState()` returns the state it was given when the reader declines, and
+`doForget()` drops the keys only when it gets a different object back. So the
+decline path can't reach a write, and that's checkable without a browser. Both
+ways were driven in one anyway: declining left 87 rows and the key in place,
+accepting took it to 0 rows with the key removed.
 
 ### The record is a file and the browser is a cache
 
@@ -871,7 +1001,7 @@ order are fine, the merge never destroys what the browser already holds, and
 field 5 is recomputed from the swipe so correcting one by hand needs no second
 edit.
 
-### A local server cannot test the page
+### A local server cannot test the page, unless you take the port away
 
 The theme runs `navigation.instant`, so `swipe.js` subscribes to
 mkdocs-material's `document$` rather than running on load.
@@ -884,6 +1014,24 @@ document load. Three runs against a local server looked fine and said nothing.
 The reading that counts came from headless Chromium serving the real
 `site_url`, where a window sentinel survived the navigation and the reader
 booted anyway.
+
+**There is a route that does reproduce it, found under `tla-7xql.16`.** The
+port is the only thing the theme doesn't normalize, so take it out of the
+picture. Serve a mirror of the published site locally, then start the browser
+with `--host-resolver-rules=MAP fkberthold.github.io 127.0.0.1:<port>` and
+navigate to `http://fkberthold.github.io/tla-puzzles/swipe/`. `location.host`
+then carries no port, the sitemap entries match after the theme's own
+normalization, and instant navigation is live. A link the sitemap doesn't carry
+is still declined, so a page added since the mirror was taken needs a `loc`
+entry adding by hand.
+
+Two more things worth knowing before you drive it. `Input.synthesizeScrollGesture`
+with `gestureSourceType: "touch"` pans nothing at all on Chrome 154 headless,
+so it reports every `touch-action` as working and measures none of them.
+Dispatching the touch points one at a time with `Input.dispatchTouchEvent` does
+pan, and does respect `touch-action`. And `/json/version` hands back the
+browser-level socket, which carries no `Page` domain. Take the page target's
+own socket from `/json/list`.
 
 
 ## What a rendered item looks like

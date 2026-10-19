@@ -238,6 +238,22 @@
   /* Pixels of travel before a touch counts as a swipe rather than a tap. */
   var SWIPE_THRESHOLD = 55;
 
+  /* THE CLASS THAT GIVES THE READER THE VIEWPORT, bead tla-7xql.16. The
+     stylesheet hangs the whole no-scroll layout off it: the document stops
+     scrolling and stops overscrolling, the theme's chrome goes, and the reader
+     is fixed to 100dvh. See applyViewport() for why it is applied from here
+     rather than from a page template, and for why taking it off again is the
+     half that matters. */
+  var VIEWPORT_CLASS = "swipe-owns-viewport";
+
+  /* What forget asks before it writes anything. The record is a file, so the
+     question names the file: a reader whose browser is ahead of SWIPE.tsv
+     should export first and there is no way for this page to know. */
+  var FORGET_PROMPT =
+    "Forget every answer this browser holds? The record is " +
+    "~/tla-practice/swipe/SWIPE.tsv, so export first if this browser is " +
+    "ahead of it. There is no undo here.";
+
   var SWIPES = ["right", "left", "down"];
 
   var LABELS = {
@@ -308,6 +324,19 @@
     }
   }
 
+  /* Returns whether the key is gone, which is not the same as whether it was
+     there. A browser that refuses to store also refuses to remove, and the
+     caller has to say so on the page rather than claim a record was cleared
+     when it was not. */
+  function dropKey(key) {
+    try {
+      window.localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function loadState() {
     var raw = readKey(STORAGE_KEY);
     if (raw === undefined) {
@@ -335,6 +364,27 @@
       return { version: STATE_VERSION, log: [], storable: true, corrupt: true };
     }
     return { version: STATE_VERSION, log: parsed.log, storable: true, migrated: migrated };
+  }
+
+  /* THE STATE A FORGET LEAVES BEHIND, and it returns the state it was GIVEN
+     when the reader declines. That identity is the contract rather than a
+     shortcut: doForget() drops the keys only when it gets a different object
+     back, so the decline path cannot reach a write at all. Frank asked for a
+     forget that writes nothing if he says no, and this is what makes that
+     checkable without a browser.
+
+     storable carries over rather than being assumed true. A browser that will
+     not store will not remove either, and the page has to be able to say the
+     record is still there. */
+  function forgetState(state, confirmed) {
+    if (!confirmed) {
+      return state;
+    }
+    return {
+      version: STATE_VERSION,
+      log: [],
+      storable: state ? state.storable : true
+    };
   }
 
   function saveState(state) {
@@ -1256,6 +1306,18 @@
     label.appendChild(input);
     menu.appendChild(label);
 
+    /* THE CONTRACT IS A PAGE OF ITS OWN SINCE tla-7xql.16, so the menu is the
+       route to it. With no Material header on this page there is no nav, which
+       makes this link the only one. The URL comes off the root element the way
+       data-items already does, so scripts/build-docs.sh owns where the page
+       lives and this file does not write a path. No attribute, no button. */
+    if (v.contract) {
+      menu.appendChild(menuLink("the contract", v.contract));
+    }
+
+    /* LAST, BECAUSE IT IS THE ONE THAT DESTROYS SOMETHING. */
+    menu.appendChild(menuButton("forget", doForget));
+
     box.appendChild(menu);
     return box;
   }
@@ -1283,6 +1345,16 @@
     b.type = "button";
     b.addEventListener("click", fn);
     return b;
+  }
+
+  /* An anchor rather than a button that navigates, because leaving the page is
+     what a link is for and the browser's own affordances come free with it.
+     isControl() names the anchor for that reason: a tap on it must not step
+     the stack back on the way out. */
+  function menuLink(text, href) {
+    var a = el("a", "swipe-btn swipe-link", text);
+    a.href = href;
+    return a;
   }
 
   /* ------------------------------------------------------------------ */
@@ -1454,6 +1526,57 @@
     reader.readAsText(file);
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Forget                                                             */
+  /*                                                                    */
+  /* Decision D5 of bead tla-7xql.16. There was no reset path at all:    */
+  /* the record lives under one localStorage key and clearing site data   */
+  /* was the only route, which takes the theme preference with it. Frank  */
+  /* needed one on 2026-10-19 and had to clear the lot.                  */
+  /* ------------------------------------------------------------------ */
+
+  function doForget() {
+    var v = view;
+
+    /* THE QUESTION COMES FIRST AND NOTHING IS WRITTEN BEFORE IT ANSWERS. A
+       browser with no confirm at all counts as a decline, which is the safe
+       direction: the alternative is clearing a record nobody agreed to
+       clear. */
+    var confirmed = typeof window.confirm === "function" &&
+      window.confirm(FORGET_PROMPT) === true;
+    var next = forgetState(v.state, confirmed);
+    if (next === v.state) {
+      return;
+    }
+
+    /* BOTH KEYS, because loadState() still reads the level 0 one and migrates
+       it. Leaving that behind would have the next visit resume from a record
+       the reader just asked to be rid of. */
+    var dropped = dropKey(STORAGE_KEY);
+    var droppedLegacy = dropKey(LEGACY_STORAGE_KEY);
+    next.storable = next.storable && dropped && droppedLegacy;
+    v.state = next;
+
+    v.flash = null;
+    v.bucket = null;
+    v.depth = 0;
+    v.collapsed = {};
+    rebuildLastMiss();
+    nextItem();
+    v.panel = "message";
+    v.message = {
+      kind: "info",
+      title: "Forgotten.",
+      body: [
+        next.storable
+          ? "This browser holds no answers now. Import your SWIPE.tsv to come back."
+          : "This browser would not let the page remove its record, so it may " +
+            "still be there after a reload."
+      ]
+    };
+    render();
+  }
+
   /* After an import the review queue should point at something, so the last
      miss is recovered from the log rather than left at whatever this visit
      happened to produce. */
@@ -1480,7 +1603,7 @@
      step back out of the premise in the same motion, which is one touch doing
      two unrelated things. */
   function isControl(node) {
-    return Boolean(node && node.closest && node.closest("button, label, input"));
+    return Boolean(node && node.closest && node.closest("a, button, label, input"));
   }
 
   function bindGestures(root) {
@@ -1510,6 +1633,26 @@
            step that fits keeps the whole of its surface for tap and swipe. */
         var body = t.closest(".swipe-step-body");
         if (body && body.scrollHeight > body.clientHeight + 1) {
+          tracking = false;
+          return;
+        }
+        /* R1 AGAIN, ON THE FLASH, since bead tla-7xql.16. The page no longer
+           scrolls, so a correction taller than the flash has nowhere else to
+           be read. Measured at 390x844 on 2026-10-19 over EVERY item of each
+           pinned rung: 39 of the 48 level 2 corrections run past the flash, by
+           up to 111 pixels, against 0 of 144 at level 1.
+
+           So the flash allows pan-y and a drag in an overflowing one scrolls
+           it. Without this line that stroke would scroll the correction and
+           advance off it at once, which is this bead's own defect in a
+           smaller room.
+
+           TAP STILL ADVANCES EVERYWHERE IN HERE, which is what makes declining
+           safe: renderFlash() owns a click handler on the box, and the browser
+           raises a click after a tap and suppresses it after a scroll. The
+           discrimination is the browser's rather than this file's. */
+        var flash = t.closest(".swipe-flash");
+        if (flash && flash.scrollHeight > flash.clientHeight + 1) {
           tracking = false;
           return;
         }
@@ -1623,6 +1766,48 @@
   /* Boot                                                                */
   /* ------------------------------------------------------------------ */
 
+  /* THE READER OWNS THE VIEWPORT ON ITS PAGE, AND ONLY ON ITS PAGE.
+     Bead tla-7xql.16.
+
+     Before this, the reader was a widget in a scrolling page: 387 pixels of
+     theme above it, 1944 pixels of contract prose below it, 3266 pixels of
+     document on an 844 pixel viewport. The touch listeners are
+     { passive: true } and so cannot cancel a scroll, which means a vertical
+     drag inside the reader scrolled the page AND fired gesture(). Down is
+     "not a claim", so a scroll filed a vacuity verdict on a real claim. Frank
+     found answers in his own record that he never gave.
+
+     THE CLASS GOES ON FROM HERE RATHER THAN FROM A PAGE TEMPLATE, because
+     mkdocs.yml runs navigation.instant: the document's content is replaced
+     without a reload, so a per-page template is not known to apply when the
+     reader is reached from the nav. This file already boots off
+     window.document$ for that reason, so the class rides the same observable.
+
+     AND IT HAS TO COME OFF AGAIN. The html element SURVIVES an instant
+     navigation, so a class left on it follows the reader to every other page
+     of the site and takes the Material header with it. That removal is the one
+     thing in this bead that breaks the whole site if it is wrong, which is why
+     the rule is one function with one caller: the class is on exactly when
+     this document carries the reader's root.
+
+     Takes the document rather than reaching for a global, so
+     harness/test-swipe-reader.sh drives both directions against one stub whose
+     root comes and goes, which is what an instant navigation does. Returns
+     whether the class is on afterwards. */
+  function applyViewport(doc) {
+    var html = doc && doc.documentElement;
+    if (!html || !html.classList) {
+      return false;
+    }
+    var present = Boolean(doc.getElementById && doc.getElementById("swipe-app"));
+    if (present) {
+      html.classList.add(VIEWPORT_CLASS);
+    } else {
+      html.classList.remove(VIEWPORT_CLASS);
+    }
+    return present;
+  }
+
   function fail(root, title, detail) {
     clear(root);
     var box = el("div", "swipe-message swipe-message-error");
@@ -1643,6 +1828,10 @@
 
     view = {
       root: root,
+      /* Where the contract prose went, read off the page rather than written
+         here. Absent is a legitimate answer: a page that publishes no
+         contract draws no link to one. */
+      contract: root.getAttribute ? root.getAttribute("data-contract") : null,
       items: data.items,
       templates: data.templates || {},
       screens: data.screens || {},
@@ -1677,6 +1866,13 @@
   function boot(doc) {
     var d = doc || document;
     var root = d.getElementById("swipe-app");
+
+    /* FIRST, AND ON BOTH BRANCHES. Every return below it is a page that has
+       already been given or taken back the viewport, including the one where
+       the payload failed to load: that failure message is the reader's page
+       too, and a half-dressed layout is worse than either state. */
+    applyViewport(d);
+
     if (!root) {
       /* Any other page on the site. Drop the document-level key listener so
          it does not answer items from a page that has none. */
@@ -1762,6 +1958,13 @@
       depthAfter: depthAfter,
       answersLive: answersLive,
       cardHint: cardHint,
+      /* tla-7xql.16's two. applyViewport takes the document rather than
+         reaching for a global precisely so it can be driven here, and the
+         removal direction is the assertion worth having: a class left on the
+         html element follows the reader to every other page of the site. */
+      applyViewport: applyViewport,
+      forgetState: forgetState,
+      VIEWPORT_CLASS: VIEWPORT_CLASS,
       LOG_FORMAT: LOG_FORMAT,
       PAYLOAD_VERSION: PAYLOAD_VERSION
     };

@@ -1295,7 +1295,16 @@ fi
 # TWO, bead tla-9t76 is open: nothing in this repo runs `mkdocs build
 # --strict`, so a broken link ships green. This section therefore emits no
 # internal cross-links at all beyond the two GitHub source links, which are
-# absolute.
+# absolute. That still holds after bead tla-7xql.16 split the page in two:
+# the reader reaches its contract page through a data-contract attribute that
+# the browser resolves against the page URL, never through a markdown link, so
+# there is no internal link for a strict build to have caught.
+#
+# THE SECTION PUBLISHES TWO PAGES SINCE BEAD tla-7xql.16. The reader owns the
+# viewport on its own page, so the 1944 measured pixels of contract prose that
+# used to sit under it moved to a sibling. The reason is not tidiness: the page
+# scrolled, swipe.js cannot cancel a scroll from a passive listener, and a
+# downward drag therefore filed a vacuity verdict while it scrolled.
 #
 # THE SIX FIELDS THAT SHIP AND THE FOUR THAT DO NOT are decided and gated in
 # swipe/reader/emit-items.sh, which this section calls rather than reimplements.
@@ -1342,26 +1351,63 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
   SWIPE_COUNT=$(cat swipe/level*/ITEMS.tsv | awk '/^ITEM/ { n += 1 } END { print n + 0 }')
   SWIPE_LEVELS=$(find swipe -maxdepth 1 -type d -name 'level*' | wc -l | tr -d ' ')
 
+  # -------------------------------------------------------------------------
+  # TWO PAGES SINCE BEAD tla-7xql.16: THE READER AND THE CONTRACT.
+  #
+  # This used to be one page, and that is what the bead fixed. Measured in a
+  # real browser at a true 390x844 on 2026-10-19: 387 pixels of theme above
+  # the reader, 1944 pixels of this prose below the controls, a 3266-pixel
+  # document on an 844-pixel viewport. So there was always something to
+  # scroll, and swipe.js binds its touch listeners with { passive: true },
+  # which means the handler cannot cancel a scroll. A vertical drag inside the
+  # reader scrolled the page AND fired a gesture. Down is "not a claim", so a
+  # scroll filed a vacuity verdict on a real claim.
+  #
+  # The reader now owns the viewport on its own page, so the prose cannot live
+  # under it. One URL is the reader and one is the contract, and there is no
+  # mode to be in. The reader's page carries the root element, the no-script
+  # fallback and nothing else; the reader's own menu links to the contract,
+  # because with no Material header on the page there is no nav.
+  # -------------------------------------------------------------------------
   {
     echo "# Swipe"
     echo ""
-    # ONE LINE OF LEAD-IN, AND THE LENGTH IS A MEASUREMENT RATHER THAN A
-    # PREFERENCE. The first draft ran two paragraphs here and a phone
-    # screenshot at 390x844 put the answer buttons at 812 CSS pixels, which
-    # is 32 pixels inside the fold. The card's own hint already says what a
-    # swipe means, so the paragraph above it was saying it twice and costing
-    # the reader a scroll on every cold start.
-    echo "$SWIPE_COUNT lines of TLA+, one at a time, over $SWIPE_LEVELS rungs. The"
-    echo "buttons do what the gestures do."
-    echo ""
     # THE ROOT ELEMENT. swipe.js keys everything off this id: on any other
-    # page of the site it finds nothing and does nothing. data-items is
-    # resolved against the page URL, so the same file works under mkdocs
-    # serve at / and under GitHub Pages at /tla-puzzles/.
-    echo '<div id="swipe-app" data-items="items.json">'
-    echo '<p>This page needs JavaScript. Without it there is no stream, and'
-    echo 'the items themselves are in the repository link at the bottom.</p>'
+    # page of the site it finds nothing and does nothing. data-items and
+    # data-contract are both resolved against the page URL, so the same file
+    # works under mkdocs serve at / and under GitHub Pages at /tla-puzzles/.
+    #
+    # THE LEAD-IN PARAGRAPH IS GONE and the count moved inside the fallback.
+    # Under the viewport-owning class the h1 and anything beside it is hidden
+    # anyway, so a line there is a line nobody reads on a phone and a line
+    # that scrolls on anything that fails to apply the class.
+    echo '<div id="swipe-app" data-items="items.json" data-contract="contract/">'
+    echo "<p>This page needs JavaScript. Without it there is no stream."
+    echo "$SWIPE_COUNT lines of TLA+ over $SWIPE_LEVELS rungs are in the"
+    echo 'repository, and the contract page beside this one says how they are'
+    echo "built.</p>"
     echo '</div>'
+  } > "$DOCS/swipe/index.md"
+
+  {
+    echo "# The swipe contract"
+    echo ""
+    echo "$SWIPE_COUNT lines of TLA+, one at a time, over $SWIPE_LEVELS rungs."
+    echo "The buttons do what the gestures do. This page is what the reader"
+    echo "does not have room to say."
+    echo ""
+    echo "## The gestures, and why each one means one thing"
+    echo ""
+    echo "Right is true, left is false and down is not a claim. Up is one step"
+    echo "deeper into the premise and a tap is one step back out."
+    echo ""
+    echo "Every gesture keeps that meaning in every state, which is the"
+    echo "property the reader turns on rather than a nicety. A reader who is"
+    echo "wrong about which mode they are in would otherwise file a verdict"
+    echo "they did not mean, and the record cannot tell that from one they did."
+    echo ""
+    echo "The page does not scroll, for the same reason. A vertical drag has"
+    echo "nothing to scroll, so it is a gesture and nothing else."
     echo ""
     echo "## The three rungs, and why two of them show a model"
     echo ""
@@ -1406,6 +1452,11 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
     echo "export carries a version marker, and an import that cannot read a"
     echo "file refuses and says why rather than quietly starting over."
     echo ""
+    echo "The reader's menu also carries a forget button, which clears the"
+    echo "cache and nothing else. It asks first and writes nothing if you say"
+    echo "no. Export before you use it: the file is the record and the browser"
+    echo "is not."
+    echo ""
     echo "## Working on the corpus"
     echo ""
     echo "[\`swipe/README.md\`]($GH_BLOB/swipe/README.md) carries the contract:"
@@ -1420,12 +1471,13 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
       echo "[\`swipe/level$lvl/ITEMS.tsv\`]($GH_BLOB/swipe/level$lvl/ITEMS.tsv)"
       echo ""
     done
-  } > "$DOCS/swipe/index.md"
+  } > "$DOCS/swipe/contract.md"
 
   {
     echo "title: Swipe"
     echo "nav:"
     echo "  - index.md"
+    echo "  - contract.md"
   } > "$DOCS/swipe/.pages"
 fi
 

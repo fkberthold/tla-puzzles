@@ -22,6 +22,14 @@
 #   every depth, and the three answers are live on every step about the item in
 #   the dock and dead on the one that is not.
 #
+# and tla-7xql.16's:
+#
+#   INVARIANT: the reader owns the viewport on its own page and gives it back
+#   on every other page of the site, the document does not scroll under it, no
+#   touch-action sits above either scroller, the contract prose is a page of
+#   its own that the reader links to, and forget writes nothing when the reader
+#   declines.
+#
 # ===========================================================================
 # WHY THIS SUITE EXISTS, AND IT IS NOT "A FILE IS MISSING"
 # ===========================================================================
@@ -121,10 +129,16 @@
 #   and the pin 327px against 575px of room, so 198px of pin sat BEHIND the
 #   dock when the item was drawn. Scrolling reached it, and the reader was not
 #   told to. Filed and fixed as tla-7xql.15, which took the premise out of the
-#   resting view altogether. THAT FIX HAS NOT BEEN READ IN A BROWSER. It is
-#   sound by construction, since nothing but the question is drawn at rest, but
-#   the step heights above the dock are arithmetic again and arithmetic is what
-#   the first reading corrected twice.
+#   resting view altogether.
+#
+# AND THE SCROLL THAT REACHED IT WAS THE NEXT BUG. tla-7xql.16: the listeners
+# are { passive: true }, so a vertical drag inside the reader scrolled the page
+# AND fired gesture(). Down is "not a claim", so a scroll filed a vacuity
+# verdict on a real claim. Driven as a real touch against the published page
+# with the document parked at 200px, one downward stroke over the counts took it
+# to 0 and wrote one row to the log. The reader owns the viewport now and the
+# document has 0px of scroll room, which is read in a browser rather than
+# argued, and the numbers are in swipe/README.md.
 #
 # The dock itself is what survived. It is sticky at the bottom, so where the
 # question lands does not depend on anything above it, and that held at every
@@ -1072,6 +1086,65 @@ else
   nope "the page carries no data-items attribute"
 fi
 
+# ---------------------------------------------------------------------------
+# THE CONTRACT PROSE IS A PAGE OF ITS OWN, bead tla-7xql.16 decision D3.
+#
+# A browser measured 1944 pixels of it under the controls on 2026-10-19, in a
+# 3266-pixel document on an 844-pixel viewport. That prose is why the page
+# scrolled, and a reader that owns the viewport cannot carry it. So one URL is
+# the reader and one is the contract, and there is no mode to be in.
+#
+# The two halves are checked against each other rather than separately: the
+# reader's page must NOT carry a heading the contract page does, or the split
+# would pass over a generator that published the prose twice.
+# ---------------------------------------------------------------------------
+CONTRACT="$MINI/docs/swipe/contract.md"
+if [ -f "$CONTRACT" ]; then
+  ok "docs/swipe/contract.md is published beside the reader"
+else
+  nope "docs/swipe/contract.md was not published, so the prose has nowhere to go"
+fi
+
+if [ -f "$CONTRACT" ] && grep -q 'Where the answer comes from' "$CONTRACT"; then
+  ok "the contract page carries the prose that used to sit under the reader"
+else
+  nope "the contract page does not carry the prose, so the split lost it rather than moving it"
+fi
+
+if [ -f "$PAGE" ] && grep -q 'Where the answer comes from' "$PAGE"; then
+  nope "the reader's own page still carries the contract prose, which is what made the page scroll"
+else
+  ok "the reader's page carries none of the contract prose"
+fi
+
+# THE READER HAS TO BE ABLE TO REACH IT. With no Material header on the page
+# there is no nav, so the menu link is the only route and the generator owns
+# the URL.
+if [ -f "$PAGE" ] && grep -q 'data-contract="contract/"' "$PAGE"; then
+  ok "the page hands the reader the contract's URL, so the menu can link to it"
+else
+  nope "the page carries no data-contract attribute, so the contract page is unreachable from the reader"
+fi
+
+if [ -f "$MINI/docs/swipe/.pages" ] && grep -q '^  - contract\.md$' "$MINI/docs/swipe/.pages"; then
+  ok "the contract page reaches the section nav"
+else
+  nope "docs/swipe/.pages does not list contract.md, so the page is unreachable from the site nav"
+fi
+
+# THE READER'S PAGE STAYS SHORT, and this is the measurement the bead turns on
+# rather than a tidiness check. 1944 pixels of prose is what put the reader
+# inside a 3266-pixel document. Markdown lines are not pixels, so the bound is
+# deliberately loose: it catches a section coming back, not a sentence.
+if [ -f "$PAGE" ]; then
+  page_lines=$(grep -cE '[^[:space:]]' "$PAGE")
+  if [ "$page_lines" -lt 20 ]; then
+    ok "the reader's page is $page_lines lines of content, so there is nothing under it to scroll to"
+  else
+    nope "the reader's page is $page_lines lines, so prose has come back under a reader that owns the viewport"
+  fi
+fi
+
 # THE PAGE MUST NOT NAME AN ITEM ID, at any level. swipe/README.md records
 # that ids ran in kind order inside each template, so an id on the page is an
 # answer on the page.
@@ -1136,10 +1209,44 @@ echo "Part 5: the reader's wiring"
 # was deleted from the code and the suite stayed green, because this file's
 # header explains at length what document$ is for. A text gate over a
 # well-commented file measures the comments.
-CODE="$TMP_ROOT/swipe.code.js"
-sed 's#//.*##' "$READER_JS" | grep -vE '^[[:space:]]*(\*|/\*)' > "$CODE"
+#
+# THE STRIP IS A REAL ONE SINCE BEAD tla-7xql.16. It used to be
+# `sed 's#//.*##' | grep -v '^ *\*'`, which drops the opening line of a block
+# comment and every continuation line that starts with a star, and keeps every
+# continuation line that does not. So a sentence of prose still reached the
+# patterns below, and this part's own notes said so. tla-7xql.16 had to grep
+# for a property name that its CSS also writes in prose, which is the first
+# time that hole cost anything. strip_comments() walks the file character by
+# character and removes exactly the comments.
+#
+# strip_comments <file> [1 to treat // as a line comment]
+strip_comments() {
+  awk -v lc="${2:-}" '
+    {
+      line = $0
+      out = ""
+      i = 1
+      n = length(line)
+      while (i <= n) {
+        two = substr(line, i, 2)
+        if (block) {
+          if (two == "*/") { block = 0; i += 2 } else { i += 1 }
+          continue
+        }
+        if (two == "/*") { block = 1; i += 2; continue }
+        if (lc != "" && two == "//") { break }
+        out = out substr(line, i, 1)
+        i += 1
+      }
+      print out
+    }
+  ' "$1"
+}
 
-code_lines=$(wc -l < "$CODE")
+CODE="$TMP_ROOT/swipe.code.js"
+strip_comments "$READER_JS" 1 > "$CODE"
+
+code_lines=$(grep -cE '[^[:space:]]' "$CODE")
 if [ "$code_lines" -gt 200 ]; then
   ok "the comment strip left $code_lines lines of code to read"
 else
@@ -1147,13 +1254,36 @@ else
 fi
 
 CSSCODE="$TMP_ROOT/swipe.code.css"
-sed 's#/\*.*\*/##' "$READER_CSS" | grep -vE '^[[:space:]]*(\*|/\*)' > "$CSSCODE"
-css_lines=$(wc -l < "$CSSCODE")
+strip_comments "$READER_CSS" > "$CSSCODE"
+css_lines=$(grep -cE '[^[:space:]]' "$CSSCODE")
 if [ "$css_lines" -gt 120 ]; then
   ok "the comment strip left $css_lines lines of style to read"
 else
   nope "stripping comments left only $css_lines lines of CSS, so the checks below read almost nothing"
 fi
+
+# THE STRIP IS ITS OWN NEGATIVE CONTROL, and the two phrases are chosen rather
+# than picked. Each one sits on a block-comment CONTINUATION LINE that does not
+# open with a star, which is exactly the shape the old strip kept: a line
+# beginning `/*` or `*` was dropped and every other line of the same comment
+# survived. A phrase from a starred line would pass under both strips and prove
+# nothing.
+if grep -q 'the property the whole design turns on' "$CODE"; then
+  nope "the comment strip left the reader's comment prose in the code, so every pattern below can be answered by a sentence"
+else
+  ok "the comment strip removed the reader's comment prose, so the patterns below read code only"
+fi
+if grep -q 'is 219 pixels, which is 9 lines' "$CSSCODE"; then
+  nope "the comment strip left the stylesheet's comment prose in the style, so a property can be matched out of a sentence about it"
+else
+  ok "the comment strip removed the stylesheet's comment prose"
+fi
+
+# One rule per line, as "SELECTOR { PROPERTIES", so a property check reads ONE
+# rule rather than the whole file. @media wrappers are dropped so a rule
+# inside one is read like any other.
+CSSRULES="$TMP_ROOT/swipe.rules.css"
+tr '\n' ' ' < "$CSSCODE" | sed 's/@media[^{]*{/ /g' | tr '}' '\n' > "$CSSRULES"
 
 # THE navigation.instant SUBSCRIPTION IS NOT OPTIONAL. mkdocs.yml turns on
 # SPA-style page loading, so a reader that ran on load would be dead for
@@ -1369,10 +1499,23 @@ fi
 # THE TAP TARGET EXCLUSION. A tap on a button inside the card bubbles to the
 # root listener, so at depth 1 a tap on "true" would answer the item AND step
 # back out of the premise on one touch.
-if grep -q '"button, label, input"' "$CODE"; then
-  ok "a tap whose target is a control is declined, so answering does not also close the stack"
+#
+# THE SELECTOR IS READ RATHER THAN MATCHED WHOLE, since bead tla-7xql.16 added
+# a fourth element to it. The anchor is the contract link in the menu, which is
+# a control on the way out of the page like any other.
+control_sel=$(sed -n 's/.*closest("\([a-z, ]*\)").*/\1/p' "$CODE")
+control_missing=""
+for e in a button label input; do
+  if ! grep -qE "(^|[, ])$e([,]|$)" <<<"$control_sel"; then
+    control_missing="$control_missing $e"
+  fi
+done
+if [ -z "$control_sel" ]; then
+  nope "isControl()'s selector was not found, so the tap-exclusion check read nothing"
+elif [ -z "$control_missing" ]; then
+  ok "a tap on a control is declined, over all four of a, button, label and input"
 else
-  nope "a tap on an answer button would also step the stack back"
+  nope "isControl() does not name:$control_missing, so a tap on one would answer or navigate AND step the stack back"
 fi
 
 # TAP IS HANDLED IN touchend AND NOWHERE ELSE. A touch produces a touchend and
@@ -1430,6 +1573,164 @@ if grep -q 'swipe-step-body' "$CODE" && grep -qE 'scrollHeight' "$CODE"; then
   ok "a drag inside an overflowing step scrolls rather than moving the stack, which is R1"
 else
   nope "a drag inside a scrolling step would move the stack instead of scrolling it"
+fi
+
+# ---------------------------------------------------------------------------
+# THE READER OWNS THE VIEWPORT, bead tla-7xql.16.
+#
+# Frank hit the defect on his own phone on 2026-10-19, minutes after the stack
+# shipped: "I'm not sure whether a swipe is going to scroll through the page or
+# send a message. I've now accidentally sent multiple responses." The listeners
+# are { passive: true } and so cannot cancel a scroll, which means a vertical
+# drag inside the reader scrolled the page AND fired gesture(). Down is "not a
+# claim", so a scroll filed a vacuity verdict on a real claim. His record holds
+# answers he never gave.
+#
+# The fix is not a flag on the listener. The page stops scrolling: the reader
+# fills the viewport on its own page and the prose that used to sit under it
+# moved to a page of its own. A vertical drag then has nothing to scroll and
+# the gesture is unambiguous at the root.
+#
+# THE CLASS DECISION IS A FUNCTION AND PART 6 DRIVES IT. What is left for text
+# is the stylesheet, which is not a function, and the two call sites.
+# ---------------------------------------------------------------------------
+VIEWPORT_CLASS=$(sed -n 's/^[[:space:]]*var VIEWPORT_CLASS = "\([^"]*\)".*/\1/p' "$CODE")
+if [ -n "$VIEWPORT_CLASS" ]; then
+  ok "the reader names the class that gives it the viewport: $VIEWPORT_CLASS"
+else
+  nope "the reader declares no VIEWPORT_CLASS, so the stylesheet checks below have no selector to look for"
+fi
+
+# THE CLASS IS APPLIED FROM THE OBSERVABLE AND NOWHERE ELSE. A per-page
+# template is not known to apply under navigation.instant, which replaces the
+# document's content without reloading it. boot() is what the observable calls.
+boot_body=$(awk '/^  function boot\(doc\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$boot_body" | tr -d '[:space:]')" ]; then
+  nope "boot() was not found, so the viewport-class call site read nothing"
+elif grep -qE 'applyViewport\(' <<<"$boot_body"; then
+  ok "boot() drives the viewport class, so it rides the same observable the reader boots from"
+else
+  nope "boot() never applies the viewport class, so arriving from the nav would leave the reader inside a scrolling page"
+fi
+
+if [ -n "$VIEWPORT_CLASS" ]; then
+  vp_scroll=$(grep -F "html.$VIEWPORT_CLASS" "$CSSRULES" | grep -F "body" || true)
+  if [ -z "$vp_scroll" ]; then
+    nope "no rule styles html.$VIEWPORT_CLASS together with body, so the document would still scroll under the reader"
+  elif grep -qE 'overflow:[[:space:]]*hidden' <<<"$vp_scroll" &&
+       grep -qE 'overscroll-behavior:[[:space:]]*none' <<<"$vp_scroll"; then
+    ok "html and body stop scrolling and stop overscrolling under the class"
+  else
+    nope "the html and body rule under the class is missing overflow hidden or the overscroll ban, and the overscroll half is what kills Chrome Android's pull-to-refresh"
+  fi
+
+  vp_app=$(grep -F "html.$VIEWPORT_CLASS" "$CSSRULES" | grep -F "#swipe-app" || true)
+  if [ -z "$vp_app" ]; then
+    nope "no rule sizes #swipe-app under the class, so the reader is still a widget in a page"
+  elif grep -qE 'position:[[:space:]]*fixed' <<<"$vp_app" && grep -qE '[0-9]dvh' <<<"$vp_app"; then
+    ok "the reader is fixed to the viewport and measured in dvh, which is what accounts for mobile browser chrome"
+  else
+    nope "the reader is not fixed to a dvh-measured viewport; vh is the wrong unit here because it ignores the browser's own chrome"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# touch-action, AND THE ONE VALUE THAT WOULD BE A REGRESSION.
+#
+# The property INTERSECTS up the ancestor chain, so a value on an ancestor
+# takes panning away from every descendant. The widest model screen line is 73
+# characters, which does not fit 390 CSS pixels at any readable monospace size,
+# so .swipe-screen-body scrolls sideways and that scroll is shipped behavior.
+# Forbidding pan-x anywhere above it kills it.
+#
+# So the rule is: set the property on the surfaces that are gestures, and never
+# on #swipe-app or on either scroller.
+# ---------------------------------------------------------------------------
+for sel in '#swipe-app' '.swipe-screen-body'; do
+  rule=$(grep -F "$sel " "$CSSRULES" | grep -F 'touch-action' || true)
+  if [ -z "$rule" ]; then
+    ok "$sel sets no touch-action, so it cannot take the sideways scroll away from the model screen"
+  else
+    nope "$sel sets touch-action, which intersects down the chain and would kill the model screen's sideways scroll: $rule"
+  fi
+done
+
+ta_card=$(grep -F '.swipe-card' "$CSSRULES" | grep -F 'touch-action' || true)
+if grep -qE 'touch-action:[[:space:]]*pinch-zoom' <<<"$ta_card"; then
+  ok "the dock declares touch-action pinch-zoom, so a drag on it pans nothing and a reader can still zoom a line of TLA+"
+else
+  nope "the dock sets no touch-action, so a drag on the question is a pan before it is a gesture"
+fi
+
+# THE FLASH HAS TO KEEP pan-y, AND THAT IS A MEASUREMENT RATHER THAN A
+# PREFERENCE. Measured in a real browser at 390x844 on 2026-10-19, over EVERY
+# item of each pinned rung: 39 of the 48 level 2 corrections run past the
+# flash's own height, worst case 111 pixels, against 0 of 144 at level 1. With
+# the page no longer scrolling there is nowhere else for those pixels to be
+# read, and touch-action pinch-zoom alone means touch cannot pan the flash to
+# reach them.
+#
+# THE RUNG RATHER THAN A SAMPLE. An earlier reading answered 40 items drawn
+# from the 48, and since the stream draws at random, three runs of one tree
+# gave 35, 31 and 29. Nothing was changing but the draw. Answering until the
+# done screen covers each item once and repeats exactly.
+#
+# Allowing pan-y is only half: the gesture handler has to decline a drag that
+# starts in an OVERFLOWING flash, or the drag scrolls the correction and
+# advances past it in the same stroke. That is R1 of the stack design applied
+# to one more scroller, and the next check is the other half.
+ta_flash=$(grep -F '.swipe-flash' "$CSSRULES" | grep -F 'touch-action' || true)
+if [ -z "$ta_flash" ]; then
+  nope ".swipe-flash sets no touch-action, so a drag on a correction pans whatever is behind it"
+elif grep -qE 'pan-y' <<<"$ta_flash" && grep -qE 'pinch-zoom' <<<"$ta_flash"; then
+  ok "the flash keeps pan-y, so a correction taller than the flash can still be read, and keeps pinch-zoom"
+else
+  nope "the flash refuses pan-y, and 39 of the 48 level 2 corrections are taller than it: $ta_flash"
+fi
+
+start_body=$(awk '/addEventListener\("touchstart"/, /^    \}, \{ passive: true \}\);$/' "$CODE")
+if [ -z "$(printf '%s' "$start_body" | tr -d '[:space:]')" ]; then
+  nope "the touchstart listener was not found, so the overflowing-flash check read nothing"
+elif grep -qE 'swipe-flash' <<<"$start_body" && grep -qE 'scrollHeight' <<<"$start_body"; then
+  ok "a drag inside an overflowing flash scrolls the correction instead of advancing past it"
+else
+  nope "touchstart does not decline an overflowing flash, so one stroke would scroll the correction AND advance off it"
+fi
+
+# THE STEP BODY HAS TO KEEP BOTH AXES. The model screen is inside it, so a
+# value here that drops pan-x reaches the screen through the intersection.
+ta_step=$(grep -F '.swipe-step-body' "$CSSRULES" | grep -F 'touch-action' || true)
+if [ -z "$ta_step" ]; then
+  ok ".swipe-step-body sets no touch-action, so the model screen inside it keeps both axes"
+elif grep -qE 'pan-x' <<<"$ta_step" && grep -qE 'pan-y' <<<"$ta_step"; then
+  ok ".swipe-step-body keeps both axes, so the model screen inside it still scrolls sideways"
+else
+  nope ".swipe-step-body restricts panning without naming both axes, and the model screen is inside it: $ta_step"
+fi
+
+# THE MENU REACHES THE CONTRACT, which is now a page of its own rather than
+# 1944 pixels of prose under a reader that owns the viewport. The URL comes off
+# the root element the way data-items already does, so the generator owns where
+# the page lives and this file does not write a path.
+if grep -q 'data-contract' "$CODE"; then
+  ok "the reader reads the contract page's URL off its own root element"
+else
+  nope "the reader hardcodes or omits the contract link, so the prose it replaced is unreachable from the reader"
+fi
+
+# THE FORGET BUTTON, decision D5. There was no way to clear the record at all:
+# clearing site data was the only route and it takes the theme preference with
+# it. The confirm and the two keys are what part 6 cannot see, since the state
+# transition is pure and the removal is not.
+forget_body=$(awk '/^  function doForget\(\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$forget_body" | tr -d '[:space:]')" ]; then
+  nope "doForget() was not found, so there is still no way to clear the record"
+elif grep -qE 'window\.confirm\(FORGET_PROMPT\)' <<<"$forget_body" &&
+     grep -qE 'dropKey\(STORAGE_KEY\)' <<<"$forget_body" &&
+     grep -qE 'dropKey\(LEGACY_STORAGE_KEY\)' <<<"$forget_body"; then
+  ok "forget asks first and then drops both keys, the current one and the level 0 one it migrated from"
+else
+  nope "doForget() does not ask before it writes, or leaves one of the two storage keys behind"
 fi
 
 echo ""
@@ -1629,6 +1930,101 @@ for (const [name, item, want] of pinCases) {
   const got = labelsOf(item);
   console.log(name + " " + (got === want ? "OK" : "BAD") + " [" + got + "]");
 }
+
+// ===========================================================================
+// THE VIEWPORT CLASS, bead tla-7xql.16, AND THE REMOVAL IS THE HALF THAT CAN
+// BREAK THE WHOLE SITE.
+//
+// mkdocs.yml runs navigation.instant, so the document's content is replaced
+// without a reload and the html element SURVIVES every navigation. A class
+// left on it follows the reader to every other page of the site and takes the
+// Material header with it. That is why the one stub below keeps a single html
+// element and flips only whether the root is findable: that is exactly what an
+// instant navigation does, and a stub with two documents would not reproduce
+// it.
+// ===========================================================================
+function stubDoc() {
+  const classes = new Set();
+  const d = {
+    hasRoot: true,
+    documentElement: {
+      classList: {
+        add: function (c) { classes.add(c); },
+        remove: function (c) { classes.delete(c); },
+        contains: function (c) { return classes.has(c); }
+      }
+    },
+    getElementById: function (id) {
+      return (d.hasRoot && id === "swipe-app") ? { id: id } : null;
+    },
+    classes: classes
+  };
+  return d;
+}
+const VP = mod.VIEWPORT_CLASS;
+console.log("viewport-name " + (typeof VP === "string" && VP.length > 0 ? "OK" : "BAD") +
+  " " + String(VP));
+const doc = stubDoc();
+mod.applyViewport(doc);
+console.log("viewport-on " + (doc.classes.has(VP) ? "OK" : "BAD") +
+  " [" + Array.from(doc.classes).join(" ") + "]");
+// Idempotent, because the observable can fire more than once over one page's
+// life and boot() is already written for that.
+mod.applyViewport(doc);
+console.log("viewport-on-twice " + (doc.classes.size === 1 && doc.classes.has(VP) ? "OK" : "BAD") +
+  " size=" + doc.classes.size);
+// THE ONE THAT MATTERS. An instant navigation to any other page of the site
+// replaces the content, so the root is gone and the class has to go with it.
+doc.hasRoot = false;
+mod.applyViewport(doc);
+console.log("viewport-off " + (!doc.classes.has(VP) ? "OK" : "BAD") +
+  " [" + Array.from(doc.classes).join(" ") + "]");
+mod.applyViewport(doc);
+console.log("viewport-off-twice " + (doc.classes.size === 0 ? "OK" : "BAD") +
+  " size=" + doc.classes.size);
+// And back again, because the nav reaches the reader from both directions.
+doc.hasRoot = true;
+mod.applyViewport(doc);
+console.log("viewport-back " + (doc.classes.has(VP) ? "OK" : "BAD") +
+  " [" + Array.from(doc.classes).join(" ") + "]");
+// A class the reader did not put there is left alone, so the theme's own
+// classes on html survive the removal.
+const keep = stubDoc();
+keep.classes.add("md-something");
+keep.hasRoot = false;
+mod.applyViewport(keep);
+console.log("viewport-keeps-others " +
+  (keep.classes.has("md-something") && !keep.classes.has(VP) ? "OK" : "BAD") +
+  " [" + Array.from(keep.classes).join(" ") + "]");
+// A document with no html element is not a crash. The observable is the
+// theme's and this file does not get to assume what it hands over.
+console.log("viewport-no-html " +
+  (mod.applyViewport({ getElementById: function () { return null; } }) === false ? "OK" : "BAD"));
+console.log("viewport-no-doc " + (mod.applyViewport(null) === false ? "OK" : "BAD"));
+
+// ===========================================================================
+// FORGET, decision D5. Frank needed it on 2026-10-19 and there was no reset
+// path at all: the record lives under one localStorage key and clearing site
+// data was the only route, which takes the theme preference with it.
+//
+// "WRITES NOTHING IF THE READER DECLINES" IS AN IDENTITY. forgetState returns
+// the state it was GIVEN on a decline, and doForget() drops the keys only when
+// it gets a different object back, so the decline path cannot reach a write.
+// ===========================================================================
+const held = { version: 1, log: [{ i: "L0-T1-01", t: "2026-01-01T00:00:00Z", s: "right", v: "hit" }],
+               storable: true };
+const declined = mod.forgetState(held, false);
+console.log("forget-declined " + (declined === held && held.log.length === 1 ? "OK" : "BAD") +
+  " same=" + (declined === held) + " rows=" + held.log.length);
+const taken = mod.forgetState(held, true);
+console.log("forget-taken " +
+  (taken !== held && taken.log.length === 0 && held.log.length === 1 ? "OK" : "BAD") +
+  " rows=" + taken.log.length + " original=" + held.log.length);
+console.log("forget-keeps-storable " + (taken.storable === true ? "OK" : "BAD") +
+  " storable=" + String(taken.storable));
+const unstorable = mod.forgetState({ version: 1, log: [], storable: false }, true);
+console.log("forget-unstorable " + (unstorable.storable === false ? "OK" : "BAD") +
+  " storable=" + String(unstorable.storable));
 DRIVER_EOF
 
   if "$JS_RUNTIME" "$DRIVER" "$READER_JS" > "$TMP_ROOT/drive.out" 2> "$TMP_ROOT/drive.err"; then
@@ -1725,14 +2121,22 @@ note "against the published site, and the dock held at every item measured:"
 note "298px at level 1, 269px at level 2, 384px worst case, never off screen."
 note "That reading also found 70 of 432 claims wrapping to four lines or more"
 note "and 198px of level 2 pin sitting behind the dock, which was tla-7xql.15."
-note "THE STACK THAT FIXED IT HAS NOT BEEN READ IN A BROWSER. Nothing but the"
-note "question is drawn at rest, so the occlusion is gone by construction, but"
-note "every step height above the dock is arithmetic again and arithmetic is"
-note "what the first reading corrected twice. Part 6 drives the stack's rule"
-note "and no part of this suite can see where a step lands."
-note "A localhost run cannot reproduce the instant-navigation hazard: the"
-note "theme normalizes its sitemap by protocol and hostname and never by"
-note "port, so instant navigation declines every link on a local server."
+note "THE STACK AND THE VIEWPORT WERE READ IN A BROWSER on 2026-10-19 under"
+note "tla-7xql.16, at a true 390x844 with touch emulation on, against a mirror"
+note "of the published site carrying this tree's swipe.js and swipe.css. The"
+note "document has 0px of scroll room at every rung, and the lowest element"
+note "the reader draws lands 10px inside the bottom edge at every step and"
+note "with the stats panel open. The touch-action chain from the model screen"
+note "up to html reads auto at all 12 elements, and a real horizontal touch"
+note "drag moved it 234px in a 593px screen. Nothing in THIS suite sees any"
+note "of that: it is read as text here and the reading is in swipe/README.md."
+note "A localhost run cannot reproduce the instant-navigation hazard on its"
+note "own: the theme normalizes its sitemap by protocol and hostname and"
+note "never by port, so instant navigation declines every link on a local"
+note "server. Mapping the real hostname to the local port does reproduce it,"
+note "and swipe/README.md carries the invocation. That is how the class"
+note "removal was read, with a window sentinel saying the document was never"
+note "replaced. Part 6 drives the same rule here with no browser at all."
 note "The shown-roots rule itself is gated by harness/test-swipe-enabled.sh"
 note "and harness/test-swipe-subscript.sh. This suite checks the obligations"
 note "and the machine from each model's .cfg, and part 7 ties the committed"

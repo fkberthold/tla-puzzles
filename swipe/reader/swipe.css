@@ -26,12 +26,14 @@
  * level 2 pin adds 7 rows and three labels on top of that. So the model, the
  * pin, the claim and three buttons cannot share one viewport.
  *
- * AND THE PAGE AROUND THE READER IS NOT MEASURABLE FROM HERE. mkdocs-material
- * puts a 2.4rem sticky header, an h1 and a lead-in paragraph above
- * #swipe-app. Bead tla-7xql.12 measured the level 0 answer row landing at
- * 812 pixels of 844, which works back to roughly 400 pixels of page above the
- * app, but that number is the theme's and it moves with the theme. A layout
- * that budgets against it is a layout that is wrong after the next bump.
+ * THERE IS NO PAGE AROUND THE READER ANY MORE, since bead tla-7xql.16. It
+ * used to be mkdocs-material's 2.4rem sticky header, an h1 and a lead-in
+ * above #swipe-app and 1944 measured pixels of contract prose below the
+ * controls, none of it measurable from here because it is the theme's. Now the
+ * reader fills the viewport on its own page and the document does not scroll.
+ * See THE READER OWNS THE VIEWPORT at the foot of this file for why that is a
+ * correctness fix rather than a layout preference: the page's own scroll was
+ * filing verdicts.
  *
  * So the budget is not arithmetic. It is three rules.
  *
@@ -68,9 +70,16 @@
  * rules here. --md-default-bg-color and friends are set by mkdocs-material
  * per scheme.
  *
- * touch-action IS pinch-zoom ON THE GESTURE SURFACES rather than none. The
- * swipe needs the browser to stop panning, and a reader still has to be able
- * to zoom a line of TLA+. Setting none would take both away.
+ * THREE now has a tighter form under the viewport-owning class, where the
+ * room is divided by flexbox rather than by a viewport fraction. A fraction
+ * cannot know what else is on screen; a flex line can.
+ *
+ * touch-action IS pinch-zoom ON THE GESTURE SURFACES rather than none, and it
+ * is set per element rather than on the root. The swipe needs the browser to
+ * stop panning and a reader still has to be able to zoom a line of TLA+, so
+ * none would take both away. Per element, because the property intersects up
+ * the ancestor chain: a value on #swipe-app reaches the model screen's
+ * sideways scroll and kills it.
  *
  * Published by scripts/build-docs.sh to docs/stylesheets/swipe.css.
  */
@@ -216,9 +225,56 @@
   min-height: 11rem;
 }
 
+/* touch-action IS SET PER ELEMENT AND NEVER ON AN ANCESTOR OF A SCROLLER.
+   The property intersects up the chain, so a value here takes panning away
+   from every descendant, and the widest model screen line is 73 characters
+   against 390 CSS pixels: that sideways scroll is shipped behavior. Which is
+   why there is no rule for #swipe-app, for .swipe-step-body or for
+   .swipe-screen-body anywhere in this file, and why bead tla-7xql.15 set the
+   property nowhere at all rather than risk it.
+
+   What is listed here is the surfaces that are gestures and nothing else.
+   Each one is short and none of them scrolls, so refusing to pan them costs
+   the reader nothing and buys the gesture its one meaning. pinch-zoom rather
+   than none, because a reader still has to be able to zoom a line of TLA+ and
+   none would take that away with the pan.
+
+   .swipe-stats and .swipe-message are NOT here on purpose. A stats table runs
+   past the screen and has to be readable, and gesture() answers nothing but
+   tap while a panel is open, so a pan there is unambiguous already. */
+.swipe-status,
 .swipe-card,
-.swipe-flash {
+.swipe-done,
+.swipe-step-head,
+.swipe-controls {
   touch-action: pinch-zoom;
+}
+
+/* THE FLASH IS THE ONE GESTURE SURFACE THAT ALSO HAS TO SCROLL, and the pan-y
+   here is a measurement rather than a preference. Measured in a real browser
+   at 390x844 on 2026-10-19 over EVERY item of each pinned rung: 39 of the 48
+   level 2 corrections run past the flash's own height, worst case 111 pixels,
+   against 0 of 144 at level 1. The page no longer scrolls, so those pixels
+   have nowhere else to be read, and refusing the pan would put the correction
+   out of reach on four fifths of the rung.
+
+   THE RUNG RATHER THAN A SAMPLE, and that is why the number is here at all. An
+   earlier reading answered 40 items drawn from the 48, which is the stream's
+   own random draw, and three runs of one tree gave 35, 31 and 29. The count
+   was a property of the draw. Answering until the done screen covers each item
+   once and gives the same two numbers every run.
+
+   pan-y rather than auto, because the flash has no horizontal scroll and a
+   sideways pan on it could only be the page's, which is now nobody's.
+
+   This half is useless on its own. bindGestures() declines a touch that starts
+   in an OVERFLOWING flash, which is R1 of the stack design applied to one more
+   scroller: without it one stroke would scroll the correction and advance off
+   it at the same time. A tap still advances, because the browser suppresses
+   the click after a scroll and raises it after a tap, so the discrimination is
+   the browser's rather than ours. */
+.swipe-flash {
+  touch-action: pan-y pinch-zoom;
 }
 
 /* The tag and the ask share one row, so the rung is on screen before the
@@ -425,6 +481,24 @@
   cursor: default;
 }
 
+/* The contract link, which is an anchor rather than a button because leaving
+   the page is what a link is for. It has to read as one of the menu buttons
+   beside it, so the only work here is undoing what the theme does to a link
+   inside its own typeset content. */
+a.swipe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--md-typeset-color);
+}
+
+a.swipe-btn:hover,
+a.swipe-btn:focus {
+  text-decoration: none;
+  color: var(--md-typeset-color);
+}
+
 .swipe-answer {
   min-height: 3rem;
   font-weight: 600;
@@ -500,4 +574,165 @@
   .swipe-step-body {
     max-height: 60vh;
   }
+}
+
+/* ==========================================================================
+ * THE READER OWNS THE VIEWPORT, bead tla-7xql.16
+ * ==========================================================================
+ *
+ * Frank hit this on his own phone on 2026-10-19, minutes after the stack
+ * shipped: "I'm not sure whether a swipe is going to scroll through the page
+ * or send a message. I've now accidentally sent multiple responses." His
+ * record holds verdicts he never gave.
+ *
+ * THE MECHANISM. swipe.js binds touchstart and touchend with
+ * { passive: true }, so the handler cannot cancel a scroll. A vertical drag
+ * that started inside the reader scrolled the page AND fired gesture(). Down
+ * is "not a claim", so a scroll filed a vacuity verdict on a real claim. That
+ * is the failure the single-meaning gesture table was built to prevent,
+ * arriving through the page's own scroll rather than through a mode.
+ *
+ * Measured in a real browser at a true 390x844 on 2026-10-19: 387 pixels of
+ * theme above the reader, 1944 pixels of contract prose below the controls, a
+ * 3266-pixel document on an 844-pixel viewport. So there was always something
+ * to scroll.
+ *
+ * Frank ruled against taking the reader to the step with a scroll call, which
+ * was the one-line option. "The Design is deeply ambiguous." The page stops
+ * scrolling instead, and then a vertical drag has nothing to scroll and the
+ * gesture is unambiguous at the root rather than by a flag on a listener.
+ *
+ * THE CLASS IS APPLIED BY swipe.js, NOT BY A PAGE TEMPLATE. mkdocs.yml runs
+ * navigation.instant, which replaces the document's content without reloading,
+ * so a per-page template is not known to apply when the reader arrives from
+ * the nav. swipe.js subscribes to window.document$ for exactly that reason and
+ * the class rides the same observable. It comes off again on any page without
+ * the reader's root, because the html element survives a navigation and a
+ * class left on it would take every other page's header away.
+ *
+ * dvh RATHER THAN vh. vh is the large viewport: it ignores the browser's own
+ * chrome, so a 100vh reader on a phone is taller than the screen by the height
+ * of the address bar, and the menu goes under it. dvh tracks the chrome.
+ *
+ * overscroll-behavior IS THE OTHER HALF OF overflow. Chrome Android's
+ * pull-to-refresh is a browser gesture on a downward drag near the top of the
+ * document, and it beats ours. Stopping the scroll does not stop it; refusing
+ * the overscroll does.
+ *
+ * NOTHING HERE SETS touch-action. See the rule above the gesture surfaces for
+ * why: the property intersects down the chain and the model screen's sideways
+ * scroll is on the other end of it.
+ */
+
+html.swipe-owns-viewport,
+html.swipe-owns-viewport body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  height: 100%;
+}
+
+/* The theme's own furniture, which is the 387 pixels above the reader and the
+   footer below it. The reader is fixed over the top of all of it anyway, so
+   this is the second of two reasons it cannot be reached: hiding it also stops
+   the header taking a touch meant for the reader. */
+html.swipe-owns-viewport .md-header,
+html.swipe-owns-viewport .md-footer,
+html.swipe-owns-viewport .md-sidebar,
+html.swipe-owns-viewport .md-dialog,
+html.swipe-owns-viewport .md-top,
+html.swipe-owns-viewport .md-content__inner > *:not(#swipe-app) {
+  display: none;
+}
+
+/* z-index 5 clears the theme's header at 4 and its dialog at 4. The
+   background is opaque for the same reason the dock's is: a translucent
+   reader over an h1 reads as neither. */
+html.swipe-owns-viewport #swipe-app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100dvh;
+  z-index: 5;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  overflow: hidden;
+  background: var(--md-default-bg-color);
+}
+
+/* THE DIVISION OF THE ROOM IS FLEXBOX RATHER THAN ARITHMETIC, and that is the
+   point. The caps in the rules above are viewport fractions, which cannot know
+   what else is on screen: 40vh plus a 269-pixel dock plus a two-row menu does
+   not fit 844 and no number in a stylesheet notices. Here the dock and the
+   menu take their own height, the premise takes the rest, and the rest is
+   whatever it is. */
+html.swipe-owns-viewport .swipe-status,
+html.swipe-owns-viewport .swipe-card,
+html.swipe-owns-viewport .swipe-controls {
+  flex: 0 0 auto;
+}
+
+/* Only ever load-bearing at rest, where the card is the one thing between the
+   counts and the menu. With a step open there is no free space to claim. */
+html.swipe-owns-viewport .swipe-card {
+  margin-top: auto;
+}
+
+html.swipe-owns-viewport .swipe-step,
+html.swipe-owns-viewport .swipe-flash,
+html.swipe-owns-viewport .swipe-stats,
+html.swipe-owns-viewport .swipe-message,
+html.swipe-owns-viewport .swipe-done {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* A panel is the whole screen for a moment and a stats table runs past it, so
+   these scroll. The done screen does not: it is a gesture surface and it fits,
+   measured at 844 with the menu 10 pixels inside the bottom edge. The flash is
+   in here because 39 of the 48 level 2 corrections do not fit, and the rule
+   above it is the half that makes the scroll reachable. */
+html.swipe-owns-viewport .swipe-stats,
+html.swipe-owns-viewport .swipe-message,
+html.swipe-owns-viewport .swipe-flash {
+  overflow: auto;
+}
+
+/* The cap goes because the room is now measured rather than guessed. The step
+   body gets what is left over and scrolls when its content wants more, which
+   is the same rule as before and a tighter bound on it. */
+html.swipe-owns-viewport .swipe-step-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+html.swipe-owns-viewport .swipe-step-body > * {
+  min-height: 0;
+}
+
+/* The model screen is the biggest thing a step holds, 29 lines at worst, so it
+   takes the whole step rather than 26vh of it. Its own body keeps the sideways
+   scroll, which is the one scroll in the reader that no layout can remove. */
+html.swipe-owns-viewport .swipe-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+html.swipe-owns-viewport .swipe-screen-body {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+/* The pin and the explanation sit at the top of the step rather than being
+   stretched down it. */
+html.swipe-owns-viewport .swipe-pin,
+html.swipe-owns-viewport .swipe-step-body > .swipe-review {
+  flex: 0 0 auto;
 }
