@@ -824,11 +824,13 @@ name a model and carry a pin, and `SCREENS.tsv` holds no `EMPTY` row. So the
 branch is defensive, and the gate drives it against two items the corpus does
 not have.
 
-**The dock stays while the stack is open.** The dock is the claim and the three
-answers, so reading the premise with the claim hidden is the working-memory
-test the dock was built to prevent. Each step fits above it alone where the two
-together did not: 327px for the tallest pin and 296px for the screen, against
-575px of room.
+**The dock used to stay while the stack was open, and `tla-7xql.18` took it
+away.** The argument for keeping it was that reading the premise with the claim
+hidden is the working-memory test the dock exists to prevent. That argument was
+right and the arithmetic under it wasn't. The dock, the menu and the counts
+left the step 276 pixels of 844 and the model screen inside it 66. One line of
+the claim comes up with the step now, and nothing else of the dock does. See
+"A step is the whole page" below.
 
 **The answers go dead at the last step and nowhere else.** Steps 1 and 2 are
 the item in the dock. The last step is the last item you answered wrong, which
@@ -836,10 +838,11 @@ is a different item, so the three buttons grey out there. That is the one
 visible mode change in the reader.
 
 **Every step draws its own back button.** `touchstart` declines a touch that
-starts inside the model screen body, and that body is 296 of the 575 pixels
-above the dock. So tap anywhere is the convenience and the button is the
-guarantee. A tap surface with a hole in it where the reader's thumb has just
-been is not a way out on its own. Escape does the same job from a keyboard.
+starts inside a model screen scrolling sideways, and that screen is most of
+the page since `tla-7xql.18`. So tap anywhere is the convenience and the button
+is the guarantee. A tap surface with a hole in it where the reader's thumb has
+just been is not a way out on its own. Escape does the same job from a
+keyboard.
 
 **The tags are `constant`, `state` and `action`.** Frank asked for an English
 name on each item, and that is TLA+'s own level calculus, so the tag teaches
@@ -989,6 +992,117 @@ level 0 one `loadState()` still migrates.
 decline path can't reach a write, and that's checkable without a browser. Both
 ways were driven in one anyway: declining left 87 rows and the key in place,
 accepting took it to 0 rows with the key removed.
+
+### A step is the whole page
+
+Frank, on his phone on 2026-10-19: "It isn't showing the model."
+
+It was showing the model. It gave it 66 of the 438 pixels its content wanted,
+which is about one line of a 29-line module. Read in Chrome at a true 390x844
+against the published build, with a record in the browser and the model step
+open:
+
+| element | pixels |
+|---|---|
+| the counts | 29.6 |
+| the step | 276.4 |
+| the card | 304 |
+| the menu | 172 |
+| padding and gaps | 62 |
+| | 844 exactly |
+
+Every child of `#swipe-app` is `flex: 0 0 auto` except `.swipe-step`. So the
+step is the only shrinkable thing on the page, and it absorbs whatever the
+other four leave. Hiding the menu alone took the step to 462.4 and the screen
+inside it to 252.3.
+
+Dividing the room by flexbox was `tla-7xql.16`'s answer to a viewport fraction
+that couldn't know what else was on screen. It works, and it only works when
+everything asking for room has a claim on it. Three of those four had no claim
+at the model step.
+
+The payload was checked first and cleared: 24 screen keys against 24 non-zero
+bucket keys, `2:Handover` among them at 222 characters. Nothing an item needs
+was missing from the screens map.
+
+**Frank's ruling: a step is the whole page.** Swiping up replaces the view with
+the premise rather than stacking a panel above the card. At depth the counts,
+the card and the menu aren't drawn at all, and the step gets 824 of the 844.
+
+- **D1**: at depth the counts, the card and the menu aren't drawn.
+- **D2**: one line of the claim stays, at the foot of the step.
+- **D3**: the menu collapses behind one control at rest too.
+- **D4**: the gesture table doesn't move.
+
+`chromeAt()` is the whole of D1, and it's one pure function rather than three
+conditions inside `render()`. D1 has to hold over every state the reader can be
+in, and no pattern over `render()`'s source can read a table. So the gate drives
+all 24 combinations of depth, panel and flash, and holds `render()` to obeying
+every slot the answer carries.
+
+D2 is the half I'd watch. One line of the claim comes along on the dock's own
+`.swipe-claim` type, with no tag, no ask prompt and no buttons. It's drawn
+where `answersLive()` is true, which is every step about the item in hand. The
+explanation step is about a different item and already carries that item's
+claim, so a second one there would put two claims from two items on one screen.
+
+D3 is 120 pixels, and the arithmetic is worth writing down since no browser
+read it. `.swipe-btn` is 2.6rem tall, `.swipe-menu`'s gap is 0.4rem, and the
+theme sets a rem to 20px. Three rows are then 52 times 3 plus 8 times 2, which
+is exactly the 172 that was measured. One row is 52.
+
+Those 120 pixels are free space at the resting card. The dock has
+`margin-top: auto`, so the room above it was already room nobody was using. The
+120 go to every view that flexes with the menu still drawn, which is the flash
+and the three panels. I think the flash is where it pays: it goes from 594.4
+pixels to 714.4, and 39 of the 48 level 2 corrections used to run past it by up
+to 111. That last figure is arithmetic on measured parts rather than a second
+reading, so somebody should check it on a phone.
+
+D4 is the one this bead could have broken without anybody noticing. A swipe
+right at the model step still files "true" with no button on screen.
+`answersLive()` is untouched, and the buttons going away removes the affordance
+rather than the answer. The gate pins the two halves against each other in one
+line, because a table saying "live" and a table saying "no card" sit on
+different pages otherwise.
+
+#### R1, which this change created
+
+`bindGestures()` declined every touch starting inside `.swipe-screen-body`,
+whatever the model looked like. At 66 of 844 pixels that cost almost nothing.
+Full-page it's most of the phone, and the back button would be the only way out
+of a view filling the screen.
+
+Frank ruled the conditional form: decline only when the line actually overflows
+sideways. The pattern already sat twelve lines below it, where the
+`.swipe-step-body` decline reads `scrollHeight` against `clientHeight`. The
+screen body takes the sideways form of the same test.
+
+The room says most models now keep the whole page for tap and swipe. 824 less
+the step's own head, claim and hint leaves about 660 for the model body against
+the 438 the worst one wants.
+
+`scrollerDeclining()` holds all three declines so the table can be driven with
+no browser, in both directions. That matters more than it sounds. A decline
+that always fires and a decline that never fires both pass a one-sided check,
+and the first of those is what this bead removed. Both directions were driven:
+making the screen decline unconditional reddened five cases, and taking it out
+reddened two others.
+
+A model taller than the room isn't declined, and that's the ruling rather than
+an oversight. The sideways axis is the one Frank named. This corpus doesn't
+reach vertical overflow of the screen at 844, since 660 beats the 438 the
+tallest model wants. A shorter viewport is where I'd expect it to start costing
+something, and there a vertical drag would scroll the model and move the stack
+in one stroke.
+
+#### The card hint closed itself
+
+The hint on the card names the first step of the item's own stack, so at the
+model step it read "up for the pinned state" with the pinned state one step
+below. D1 takes the card away at depth, so the line can't be reached from a
+step at all. `renderStep()` writes its own hint, and the gate drives the
+unreachability rather than leaving it to inference.
 
 ### The record is a file and the browser is a cache
 

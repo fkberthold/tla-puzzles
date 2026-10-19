@@ -30,6 +30,26 @@
 #   its own that the reader links to, and forget writes nothing when the reader
 #   declines.
 #
+# and tla-7xql.18's:
+#
+#   INVARIANT: with v.depth > 0 the rendered root holds exactly one .swipe-step
+#   and one .swipe-claim, and no .swipe-card, no .swipe-controls and no
+#   .swipe-status.
+#
+# THAT ONE IS PINNED AS A PREDICATE RATHER THAN AS A COUNT OF ELEMENTS, and the
+# difference is worth stating because the predicate is the stronger reading. No
+# browser runs here, so nothing can count the elements a state renders. What
+# can be driven is the decision: chromeAt() answers which of the three chrome
+# slots a state draws, part 6 drives all 24 combinations of depth, panel and
+# flash, and part 5 holds render() to obeying every slot the predicate answers.
+#
+# The claim half is read as text, because which element renderStep() appends is
+# not a function. The one claim at depth is renderStep()'s own, drawn where
+# answersLive() is true, so the explanation step carries the MISSED item's
+# claim and no second one. Two claims from two items on one screen is what
+# that condition avoids, and it is why "exactly one" holds at every depth
+# rather than only at the one the invariant was written about.
+#
 # ===========================================================================
 # WHY THIS SUITE EXISTS, AND IT IS NOT "A FILE IS MISSING"
 # ===========================================================================
@@ -1454,6 +1474,44 @@ else
   nope "render() does not go through stepsFor(), so the stack is not what decides the premise"
 fi
 
+# ---------------------------------------------------------------------------
+# A STEP IS THE WHOLE PAGE, bead tla-7xql.18. The step was the only shrinkable
+# child of #swipe-app, so it absorbed the whole deficit and the model got 66 of
+# the 438 pixels its content wanted. Frank, on his phone: "It isn't showing the
+# model."
+#
+# THE CHROME DECISION IS A FUNCTION AND PART 6 DRIVES IT over all 24 states.
+# What is left here is that render() ASKS it, because three inline conditions
+# would pass every assertion in part 6 while answering a different question.
+# ---------------------------------------------------------------------------
+if grep -qE 'chromeAt\(' <<<"$render_body"; then
+  ok "render() asks one predicate what chrome this state draws, which is what part 6 can drive"
+else
+  nope "render() decides the chrome inline, so part 6's table is not what the reader obeys"
+fi
+
+# EVERY SLOT THE PREDICATE ANSWERS HAS TO BE READ. A render() that computes
+# the table and then ignores one of its three answers passes every assertion
+# in part 6 and draws the menu over the model anyway.
+for slot in status card controls; do
+  if grep -qE "chrome\.$slot" <<<"$render_body"; then
+    ok "render() obeys the chrome predicate's $slot slot"
+  else
+    nope "render() ignores the predicate's $slot slot, so the table part 6 drives is not what the reader draws"
+  fi
+done
+
+# AND NOTHING IS APPENDED OUTSIDE A BRANCH. This is the defect in its exact
+# shape: the counts, the card and the menu each sat at render()'s own statement
+# level, so a step got whatever the three of them left over, which was 276 of
+# 844 pixels and 66 of them for the model.
+bare=$(grep -nE '^    v\.root\.appendChild\(' <<<"$render_body" || true)
+if [ -z "$bare" ]; then
+  ok "render() appends nothing outside a branch, so no element is drawn whatever the state"
+else
+  nope "render() appends at its own statement level, so that element is drawn at every depth: $bare"
+fi
+
 step_body=$(awk '/^  function renderStep\(/, /^  }$/' "$CODE")
 if [ -z "$(printf '%s' "$step_body" | tr -d '[:space:]')" ]; then
   nope "renderStep() was not found, so the back-button check read nothing"
@@ -1461,6 +1519,61 @@ elif grep -q 'swipe-step-back' <<<"$step_body"; then
   ok "every stack step draws its own back button, which is the way out tap cannot guarantee"
 else
   nope "a stack step draws no back button, and tap does not reach inside the model screen body"
+fi
+
+# DECISION D2. One line of the claim stays, at the foot of the step view, and
+# it reuses .swipe-claim so the type and the gate are one thing rather than
+# two. At level 2 the reader is checking a one-line claim against a step in
+# front of them, and holding it in their head is friction rather than the
+# exercise.
+if grep -qE '"swipe-claim swipe-step-claim"' <<<"$step_body"; then
+  ok "the step view carries the claim at its foot, on the dock's own type"
+else
+  nope "renderStep() draws no claim, so a reader at the model step is holding the question in their head"
+fi
+
+# AND IT IS THE CLAIM AND NOTHING ELSE. The dock's other three parts are what
+# make the dock 304 pixels, and a step that grew them back would be the card
+# under another name.
+if grep -qE 'swipe-answers|swipe-tag|swipe-ask' <<<"$step_body"; then
+  nope "renderStep() draws the tag, the ask or the answer buttons, which is the dock arriving in the step view"
+else
+  ok "the step view carries no tag, no ask prompt and no answer buttons"
+fi
+
+# THE THIRD DEFECT IN THIS FOOTPRINT. cardHint() names the FIRST step of the
+# item's stack, so at the model step it read "up for the pinned state" with the
+# pinned state one step below. D1 removes the card at depth, and the hint has
+# to stay in the card rather than being carried into the step.
+if grep -qE 'cardHint\(' <<<"$step_body"; then
+  nope "renderStep() writes the resting card's hint, which names a step the reader has already passed"
+else
+  ok "the depth-0 hint stays in the card, so no step promises a step below it"
+fi
+
+# DECISION D3. Eight controls touched once a session against one touched every
+# item. The third panel value is the cheap route and it inherits the rule that
+# swipes are declined while a panel is open.
+controls_body=$(awk '/^  function renderControls\(\)/, /^  }$/' "$CODE")
+menu_body=$(awk '/^  function renderMenu\(\)/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$controls_body" | tr -d '[:space:]')" ]; then
+  nope "renderControls() was not found, so the menu-collapse check read nothing"
+elif [ -z "$(printf '%s' "$menu_body" | tr -d '[:space:]')" ]; then
+  nope "renderMenu() was not found, so the eight controls are still in the resting view"
+else
+  resting=$(grep -cE 'menuButton\(|menuLink\(' <<<"$controls_body")
+  behind=$(grep -cE 'menuButton\(|menuLink\(' <<<"$menu_body")
+  if [ "$resting" = "1" ] && [ "$behind" -gt 5 ]; then
+    ok "the resting view carries one control and the other $behind are behind it"
+  else
+    nope "the resting view carries $resting controls and the panel $behind, where the ruling is one at rest"
+  fi
+fi
+
+if grep -qE 'panel = "menu"' <<<"$controls_body"; then
+  ok "the one control opens the menu through v.panel, so it inherits the panel rules rather than inventing a mechanism"
+else
+  nope "the menu control does not set v.panel, so a swipe with the menu open would answer the item behind it"
 fi
 
 if grep -q '"swipe-tag"' <<<"$card_body" && grep -q 'TAGS\[item.level\]' <<<"$card_body"; then
@@ -1573,6 +1686,34 @@ if grep -q 'swipe-step-body' "$CODE" && grep -qE 'scrollHeight' "$CODE"; then
   ok "a drag inside an overflowing step scrolls rather than moving the stack, which is R1"
 else
   nope "a drag inside a scrolling step would move the stack instead of scrolling it"
+fi
+
+# THE CLAIM AT THE FOOT OF A STEP MUST NOT BE SHRINKABLE, bead tla-7xql.18.
+# The step body is the one thing in the step that gives up room, which is the
+# same rule #swipe-app follows one level up: everything else takes its own
+# height and the premise takes the rest. A claim that could shrink would be
+# the 66-pixel model screen one level down.
+claim_rule=$(grep -F '.swipe-step-claim' "$CSSRULES" || true)
+if [ -z "$claim_rule" ]; then
+  nope "no rule styles .swipe-step-claim, so the claim at the foot of a step can be squeezed to nothing"
+elif grep -qE 'flex:[[:space:]]*0 0 auto' <<<"$claim_rule"; then
+  ok "the claim at the foot of a step takes its own height, so the model body is what gives up room"
+else
+  nope ".swipe-step-claim does not take its own height, so the step body and the claim would fight over the deficit: $claim_rule"
+fi
+
+# THE MENU PANEL GETS THE PANEL FRAME. It is the third value of v.panel, so it
+# has to be in the four places the other two are, or it draws as bare buttons
+# floating in the viewport.
+menu_panel_missing=""
+for rule in 'border-radius' 'min-height' 'overflow:' 'flex:'; do
+  hit=$(grep -F '.swipe-menu-panel' "$CSSRULES" | grep -F "$rule" || true)
+  [ -n "$hit" ] || menu_panel_missing="$menu_panel_missing $rule"
+done
+if [ -z "$menu_panel_missing" ]; then
+  ok "the menu panel is framed, floored, scrollable and flexed like the other two panels"
+else
+  nope "the menu panel is missing:$menu_panel_missing, so it draws differently from stats and the messages"
 fi
 
 # ---------------------------------------------------------------------------
@@ -1688,13 +1829,41 @@ else
   nope "the flash refuses pan-y, and 39 of the 48 level 2 corrections are taller than it: $ta_flash"
 fi
 
-start_body=$(awk '/addEventListener\("touchstart"/, /^    \}, \{ passive: true \}\);$/' "$CODE")
-if [ -z "$(printf '%s' "$start_body" | tr -d '[:space:]')" ]; then
-  nope "the touchstart listener was not found, so the overflowing-flash check read nothing"
-elif grep -qE 'swipe-flash' <<<"$start_body" && grep -qE 'scrollHeight' <<<"$start_body"; then
+# THE THREE DECLINES MOVED OUT OF THE LISTENER IN BEAD tla-7xql.18, so part 6
+# can drive the table in both directions. What is left here is the half a
+# driver cannot see: that the listener goes through the one function rather
+# than carrying a fourth condition of its own.
+decline_body=$(awk '/^  function scrollerDeclining\(/, /^  }$/' "$CODE")
+if [ -z "$(printf '%s' "$decline_body" | tr -d '[:space:]')" ]; then
+  nope "scrollerDeclining() was not found, so the scroller declines are back inside the listener where no driver reaches them"
+elif grep -qE 'swipe-flash' <<<"$decline_body" && grep -qE 'scrollHeight' <<<"$decline_body"; then
   ok "a drag inside an overflowing flash scrolls the correction instead of advancing past it"
 else
-  nope "touchstart does not decline an overflowing flash, so one stroke would scroll the correction AND advance off it"
+  nope "the decline table does not refuse an overflowing flash, so one stroke would scroll the correction AND advance off it"
+fi
+
+# R1 OF THIS BEAD. The screen-body decline was UNCONDITIONAL, which was almost
+# free at 66 of 844 pixels and is most of the phone once a step is the whole
+# page. The horizontal reading is what makes it conditional, and scrollWidth is
+# the word that says so: scrollHeight on the screen body would be the wrong
+# axis and would read as a fix.
+screen_decline=$(grep -A2 -F 'swipe-screen-body' <<<"$decline_body" || true)
+if [ -z "$(printf '%s' "$screen_decline" | tr -d '[:space:]')" ]; then
+  nope "nothing in scrollerDeclining() names the model screen body, so a sideways scroll of the model is a left swipe again"
+elif grep -qE 'scrollWidth' <<<"$screen_decline" && grep -qE 'clientWidth' <<<"$screen_decline"; then
+  ok "the model screen is declined on the sideways axis only, so a model that fits keeps the whole page for tap and swipe"
+else
+  nope "the model screen decline does not read scrollWidth against clientWidth, so it is either unconditional or on the wrong axis: $screen_decline"
+fi
+
+start_body=$(awk '/addEventListener\("touchstart"/, /^    \}, \{ passive: true \}\);$/' "$CODE")
+if [ -z "$(printf '%s' "$start_body" | tr -d '[:space:]')" ]; then
+  nope "the touchstart listener was not found, so the one-route check read nothing"
+elif grep -qE 'scrollerDeclining\(' <<<"$start_body" &&
+     ! grep -qE 'scrollHeight|scrollWidth' <<<"$start_body"; then
+  ok "touchstart asks the decline table and holds no scroll reading of its own"
+else
+  nope "touchstart reads a scroller directly, so part 6's table is not the whole rule any more"
 fi
 
 # THE STEP BODY HAS TO KEEP BOTH AXES. The model screen is inside it, so a
@@ -1932,6 +2101,172 @@ for (const [name, item, want] of pinCases) {
 }
 
 // ===========================================================================
+// A STEP IS THE WHOLE PAGE, bead tla-7xql.18.
+//
+// Read by central in Chrome at a true 390x844 against the published build,
+// with a record present and the model step open. Every child of #swipe-app is
+// flex: 0 0 auto except .swipe-step, so the step is the only shrinkable thing
+// and absorbs the whole deficit: the counts took 29.6 pixels, the card 304,
+// the menu 172 and the padding and gaps 62, which left the step 276.4 of 844
+// and the model screen inside it 66.3 against the 438 its content wanted.
+// Frank, on his phone: "It isn't showing the model." The model was there.
+//
+// So at depth the counts, the card and the menu are not drawn at all, and
+// THAT DECISION IS ONE PURE FUNCTION rather than three conditions inside
+// render(). What has to be true is a table over every state the reader can be
+// in, and a pattern over render()'s source cannot see a table.
+// ===========================================================================
+function chromeOf(depth, panel, flash) {
+  const c = mod.chromeAt(depth, panel, flash);
+  return [c.status ? "status" : "-", c.card ? "card" : "-",
+          c.controls ? "controls" : "-"].join(",");
+}
+const flashOn = { verdict: "hit", item: l1, given: "left" };
+// EVERY COMBINATION: three depths by four panel values by two flash values.
+// The depths are rest, one step in, and the top of a three-step stack.
+//
+// Half of these 24 are unreachable through the reader today, because answer()
+// closes the stack before it sets the flash and the menu is only reachable
+// from the resting view. They are driven anyway: the function is total, and a
+// later bead that makes one of them reachable should find it already answered
+// rather than discover render() had no opinion.
+const REST = "status,card,controls";
+const PANEL = "status,-,controls";
+const MENU = "status,-,-";
+const STEPPED = "-,-,-";
+const chromeCases = [
+  ["chrome-rest", 0, null, null, REST],
+  ["chrome-rest-flash", 0, null, flashOn, PANEL],
+  ["chrome-rest-stats", 0, "stats", null, PANEL],
+  ["chrome-rest-stats-flash", 0, "stats", flashOn, PANEL],
+  ["chrome-rest-message", 0, "message", null, PANEL],
+  ["chrome-rest-message-flash", 0, "message", flashOn, PANEL],
+  ["chrome-rest-menu", 0, "menu", null, MENU],
+  ["chrome-rest-menu-flash", 0, "menu", flashOn, MENU],
+  ["chrome-step1", 1, null, null, STEPPED],
+  ["chrome-step1-flash", 1, null, flashOn, PANEL],
+  ["chrome-step1-stats", 1, "stats", null, PANEL],
+  ["chrome-step1-stats-flash", 1, "stats", flashOn, PANEL],
+  ["chrome-step1-message", 1, "message", null, PANEL],
+  ["chrome-step1-message-flash", 1, "message", flashOn, PANEL],
+  ["chrome-step1-menu", 1, "menu", null, MENU],
+  ["chrome-step1-menu-flash", 1, "menu", flashOn, MENU],
+  ["chrome-top", 3, null, null, STEPPED],
+  ["chrome-top-flash", 3, null, flashOn, PANEL],
+  ["chrome-top-stats", 3, "stats", null, PANEL],
+  ["chrome-top-stats-flash", 3, "stats", flashOn, PANEL],
+  ["chrome-top-message", 3, "message", null, PANEL],
+  ["chrome-top-message-flash", 3, "message", flashOn, PANEL],
+  ["chrome-top-menu", 3, "menu", null, MENU],
+  ["chrome-top-menu-flash", 3, "menu", flashOn, MENU]
+];
+for (const [name, depth, panel, flash, want] of chromeCases) {
+  const got = chromeOf(depth, panel, flash);
+  console.log(name + " " + (got === want ? "OK" : "BAD") + " " + got +
+    " (wanted " + want + ")");
+}
+
+// DECISION D4, AND IT IS THE ONE THIS BEAD COULD BREAK WITHOUT NOTICING. The
+// buttons go away at the model step and the ANSWER does not: a swipe right
+// there still files "true". So the two functions have to disagree, and this
+// line is where that is written down rather than inferred from two tables on
+// different pages.
+const s3d4 = mod.stepsFor(l2);
+const d4live = mod.answersLive(2, s3d4);
+const d4card = mod.chromeAt(2, null, null).card;
+console.log("d4-answer-without-button " + (d4live && !d4card ? "OK" : "BAD") +
+  " live=" + d4live + " card=" + d4card);
+
+// THE CARD HINT DEFECT, which is the third one in this bead's footprint. The
+// hint is renderCard()'s and it reads "up for the pinned state" at the model
+// step, where the pinned state is one step BELOW. D1 removes the card at
+// depth, so the defect closes itself, and this is the line that says so
+// rather than leaving it to inference.
+let hintReach = "";
+for (const d of [1, 2, 3]) {
+  if (mod.chromeAt(d, null, null).card) { hintReach += " " + d; }
+}
+console.log("card-hint-unreachable-at-depth " + (hintReach === "" ? "OK" : "BAD") +
+  " card drawn at depth:" + (hintReach || " none"));
+
+// ===========================================================================
+// R1, WHICH THIS BEAD CREATES AND HAS TO SOLVE.
+//
+// bindGestures() declined every touch starting inside .swipe-screen-body,
+// unconditionally. At 66 of 844 pixels that was almost nothing. Full-page it
+// is most of the screen, and the back button would be the only way out of a
+// view filling the phone.
+//
+// Frank's mitigation: decline only when the line ACTUALLY overflows sideways.
+// The pattern was already twelve lines below it, where the .swipe-step-body
+// decline reads scrollHeight against clientHeight, so the screen body takes
+// the horizontal form of the same reading.
+//
+// THE TABLE MATTERS IN BOTH DIRECTIONS. A decline that always fires and a
+// decline that never fires both pass a one-sided check, and the first of those
+// is the defect being removed here.
+// ===========================================================================
+function scroller(sel, overX, overY) {
+  return { sel: sel,
+           scrollWidth: 300 + overX, clientWidth: 300,
+           scrollHeight: 400 + overY, clientHeight: 400 };
+}
+// closest() walks a declared chain, which is the only thing the function under
+// test reads off the DOM.
+function touchIn(chain) {
+  return {
+    closest: function (sel) {
+      for (const n of chain) { if (n.sel === sel) { return n; } }
+      return null;
+    }
+  };
+}
+const SCREEN = ".swipe-screen-body";
+const STEPBODY = ".swipe-step-body";
+const FLASHBOX = ".swipe-flash";
+const declineCases = [
+  // The screen body, on the sideways axis and nothing else.
+  ["decline-screen-wide", [scroller(SCREEN, 120, 0)], "screen"],
+  ["decline-screen-narrow", [scroller(SCREEN, 0, 0)], null],
+  // The +1 is the same tolerance the step body has carried since tla-7xql.15.
+  // A box one pixel over is a rounding artifact, not a scroll.
+  ["decline-screen-by-one", [scroller(SCREEN, 1, 0)], null],
+  // A MODEL TALLER THAN THE ROOM DOES NOT DECLINE, and that is the ruling
+  // rather than an oversight. Frank ruled the sideways form only. The step
+  // leaves roughly 660 pixels for the model body against the 438 the worst
+  // one wants, so vertical overflow of the screen is out of reach for this
+  // corpus at 844, and a shorter viewport is where it would start to cost
+  // something.
+  ["decline-screen-tall-only", [scroller(SCREEN, 0, 200)], null],
+  // The step body keeps the vertical form it already had, unchanged.
+  ["decline-step-tall", [scroller(STEPBODY, 0, 50)], "step"],
+  ["decline-step-fits", [scroller(STEPBODY, 0, 0)], null],
+  ["decline-step-wide-only", [scroller(STEPBODY, 200, 0)], null],
+  // And the flash keeps its own, which is what makes a tall correction
+  // readable instead of advancing off it in one stroke.
+  ["decline-flash-tall", [scroller(FLASHBOX, 0, 50)], "flash"],
+  ["decline-flash-fits", [scroller(FLASHBOX, 0, 0)], null],
+  // The real chain: the screen body is INSIDE the step body, so both answer
+  // closest() and the screen is the one that has to be read first.
+  ["decline-nested-wide", [scroller(SCREEN, 120, 0), scroller(STEPBODY, 0, 0)], "screen"],
+  ["decline-nested-narrow", [scroller(SCREEN, 0, 0), scroller(STEPBODY, 0, 0)], null],
+  ["decline-nested-step-scrolls", [scroller(SCREEN, 0, 0), scroller(STEPBODY, 0, 90)], "step"],
+  // The dock, the counts and the menu are in no scroller at all.
+  ["decline-bare-target", [], null]
+];
+for (const [name, chain, want] of declineCases) {
+  const got = mod.scrollerDeclining(touchIn(chain));
+  console.log(name + " " + (got === want ? "OK" : "BAD") + " " + String(got) +
+    " (wanted " + String(want) + ")");
+}
+// The observable is the theme's and a touch target is the browser's, so
+// neither is assumed to have what this function reads.
+console.log("decline-no-target " +
+  (mod.scrollerDeclining(null) === null ? "OK" : "BAD"));
+console.log("decline-no-closest " +
+  (mod.scrollerDeclining({}) === null ? "OK" : "BAD"));
+
+// ===========================================================================
 // THE VIEWPORT CLASS, bead tla-7xql.16, AND THE REMOVAL IS THE HALF THAT CAN
 // BREAK THE WHOLE SITE.
 //
@@ -2137,6 +2472,15 @@ note "server. Mapping the real hostname to the local port does reproduce it,"
 note "and swipe/README.md carries the invocation. That is how the class"
 note "removal was read, with a window sentinel saying the document was never"
 note "replaced. Part 6 drives the same rule here with no browser at all."
+note "A STEP IS THE WHOLE PAGE since tla-7xql.18, and the reading that forced"
+note "it is central's rather than this suite's: Chrome at a true 390x844"
+note "against the published build, model step open, where the counts took 29.6"
+note "pixels, the card 304, the menu 172 and the padding and gaps 62, leaving"
+note "the step 276.4 and the model screen inside it 66.3 against the 438 its"
+note "content wanted. Nothing here can see a pixel. What IS driven is the"
+note "chrome decision over all 24 states and the scroller-decline table in"
+note "both directions, and the 120 pixels the menu collapse returns at rest is"
+note "arithmetic off the stylesheet rather than a second browser reading."
 note "The shown-roots rule itself is gated by harness/test-swipe-enabled.sh"
 note "and harness/test-swipe-subscript.sh. This suite checks the obligations"
 note "and the machine from each model's .cfg, and part 7 ties the committed"
