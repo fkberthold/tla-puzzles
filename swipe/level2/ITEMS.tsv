@@ -1,0 +1,159 @@
+# The level 2 swipe corpus (bead tla-7xql.5, epic tla-7xql).
+#
+# 48 items in one template, the pilot described in swipe/level2/TEMPLATES.tsv.
+# Every item pins a STEP and asks whether a step formula holds across it, so
+# the model screen carries two states rather than one.
+# swipe/level2/render.sh builds that screen and swipe/level2/bake.sh measures
+# the verdict.
+#
+# Rows are tab-delimited and carry the literal marker ITEM in field 1, so
+# prose in this file can never be read as data. Read rows with awk -F'\t' or
+# cut, never with IFS=$'\t' read: tab is IFS whitespace, so a run of tabs
+# collapses and an empty field vanishes.
+#
+# AN ITEM ROW. Fifteen fields, in order. Fields 1 to 11 keep their level 0 and
+# level 1 meanings so harness/swipe/stemblind.sh reads this table with --items
+# and no code change, 12 and 13 keep level 1's, and 14 and 15 are what a
+# pinned STEP adds:
+#
+#    1  marker      the literal ITEM
+#    2  id          L2-<template>-<nn>, stable, never renumbered
+#    3  template    S1, resolving to a TEMPLATES.tsv row
+#    4  ask         the tag shown WITH the question: step or always. It names
+#                   which of the epic's question kinds the line is and it does
+#                   NOT determine the answer
+#    5  kind        the item's own kind: true, false, vacuous, illformed,
+#                   wronglevel or unparsed. The reader never sees it
+#    6  swipe       right, left or down. Derived from field 5 by the bake
+#    7  rc          the exit code of the PROPERTY run. Written by the bake
+#    8  pin_states  how many distinct states the pin admits. Always 2 at this
+#                   rung, and the bake's postcondition is what says so
+#    9  claim       the single line the reader answers
+#   10  vacuity     a witness that the claim is vacuous, or -
+#   11  flash       the one line shown after the swipe, always present. On a
+#                   false, vacuous, illformed, wronglevel or unparsed item it
+#                   is the correction. On a true item it is the reason the
+#                   claim holds, because there is nothing to correct about a
+#                   true statement. Frank ruled on 2026-10-18
+#   12  model       the reading/ module the item is about
+#   13  pre         the pinned state the step starts from, a TLA+ conjunction
+#   14  post        the step's own formula, a TLA+ conjunction over primes
+#   15  binds       the pin's own constants, as assignments, or -
+#
+#   awk -F'\t' '$1 == "ITEM" && $12 == "Tickets"' swipe/level2/ITEMS.tsv
+#   grep '^ITEM' swipe/level2/ITEMS.tsv | cut -f5,12 | sort | uniq -c
+#
+# FIELDS 6, 7 AND 8 ARE OWNED BY swipe/level2/bake.sh. Do not hand-edit them.
+# Field 5 is the author's PREDICTION and the bake is there to contradict it.
+#
+# THE REFUTED KIND MAPS TO TWO EXIT CODES AND FIELD 7 HOLDS THE MEASURED ONE.
+# Hazard H1 on the epic says to read {12, 13} as one answer and never to
+# predict which, so the bake checks membership in a set rather than equality
+# against a number. Every refutation at this rung measured 13, because a step
+# formula is checked in the temporal pass rather than lifted to an invariant,
+# and the channel still accepts 12 because H1 is about what a generator may
+# assume rather than about what one build printed.
+#
+# FIELD 8 IS A CONSTANT HERE AND IT WAS A VARIABLE AT LEVEL 1. A pinned step
+# is one initial state and one successor, so TLCGet("distinct") is 2, and
+# hazard H3 on the epic is exactly the statement that it had better be. One
+# number catches a Pre that admits two states and a Post that admits a branch,
+# both of which mean a SET of behaviors was pinned. Measured: a Post of
+# next' \in {1, 2} reads 10 against 2 and 0 against 3.
+#
+# A PIN CONSTANT IS HOW A MODEL VALUE GETS NAMED, and field 15 carries it.
+# Ini == holder = s1 fails at rc 150 with a semantic error, because s1 is a
+# .cfg model value and not an identifier the module can name. The pin module
+# declares CONSTANT H1 and the .cfg assigns H1 = s1. Four of the seven models
+# here carry model values, so this is the common case rather than the corner.
+#
+# A CLAIM MAY ONLY NAME A DEFINITION THE SCREEN SHOWS, plus vars and the pin
+# constants. Decision D7 withholds Init, Next and Spec, so no claim names one.
+# vars is the exception this rung adds: it is the subscript 77 percent of the
+# published corpus writes, the level 1 strip removes it because no action
+# reaches it, and swipe/level2/render.sh puts it back for exactly that reason.
+#
+# NO CLAIM USES <>, WF_ OR SF_, AND THAT IS A CORRECTNESS RULE. A pinned
+# behavior carries no fairness, so the behavior that stutters at the pre-state
+# forever is admitted and every liveness claim is refuted whatever it says.
+# Measured: []<>(next = 1) reads 13 on a step that does set next to 1. An item
+# built on one of those is false for a reason the pin never had an opinion
+# about. The gate bans the three operators outright.
+#
+# ITEMS ARE AUTHORED IN MATCHED GROUPS, which is what keeps the stem-blind
+# gate green. The unit is either a four, one item of each of four kinds built
+# from one pinned step, or a pair, a true and a false built from one pinned
+# step. Six fours and twelve pairs is 48, and it lands the mix at 18 true, 18
+# false and 12 down without anybody counting. That arithmetic is level 1's.
+#
+# THE SWIPE MIX IS LEVEL 0'S AND SO IS THE KIND MIX UNDER down. Right is 18 of
+# 48, so the base rate is 0.3750 and the power table in swipe/README.md
+# transfers unchanged. Under down this rung splits 12 the same way level 1
+# does, 4 vacuous, 3 illformed, 3 wronglevel and 2 unparsed, because the
+# channel has the same six kinds even though two of them read different exit
+# codes here.
+#
+# THE SUBSCRIPT IS BALANCED ACROSS THE LABELS ON PURPOSE. Four items share one
+# pinned step and differ only in the subscript, so if the subscript alone
+# predicted the label the corpus would measure nothing. Every variable that
+# stutters in a vacuous item also carries a true item and a false item on
+# another step, and the two Nim units ship the SAME claim text over two pins
+# with opposite labels. harness/test-swipe-subscript.sh runs the stem-blind
+# probe at the full surface and again over the subscript alone.
+#
+# NO ITEM DEPENDS ON \div. TLC 2026.07.31.184830 breaks the contract its own
+# Naturals.tla states for a negative dividend, bead tla-7n7e is open on it,
+# and \div 0 inside a step formula reads rc 255 rather than the 75 every other
+# evaluation failure here reads. No claim or pin uses \div at all.
+#
+# FIELD 11 IS NOT OPTIONAL. L2 on the epic: a falsehood is reproduced later at
+# .19 with no feedback, .15 with a bare verdict and .04 with the verdict plus
+# the correction. The gate rejects a blank one and a stub.
+ITEM	L2-S1-01	S1	step	true	right	0	2	[][Take(P1)]_vars	-	Every variable moves or is named by the step, so the subscript puts Take on the hook, and Take holds: the ticket went from Nil to next, next went up by one, and serving stayed put.	Tickets	ticket = [q \in Player |-> Nil] /\ next = 0 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = 0] /\ next' = 1 /\ UNCHANGED serving	P1 = a
+ITEM	L2-S1-02	S1	step	false	left	13	2	[][Leave(P1)]_<<ticket>>	-	The ticket does move across this step, so the subscript cannot excuse the action, and Leave wants the ticket set back to Nil rather than to a fresh number.	Tickets	ticket = [q \in Player |-> Nil] /\ next = 0 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = 0] /\ next' = 1 /\ UNCHANGED serving	P1 = a
+ITEM	L2-S1-03	S1	step	vacuous	down	0	2	[][Leave(P1)]_<<serving>>	[][FALSE]_<<serving>>	Serving never moves across this step, so the subscript is satisfied by stuttering and the line would be true with any action at all in the brackets.	Tickets	ticket = [q \in Player |-> Nil] /\ next = 0 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = 0] /\ next' = 1 /\ UNCHANGED serving	P1 = a
+ITEM	L2-S1-04	S1	step	wronglevel	down	151	2	[Take(P1)]_vars	-	This is an action and not a formula about a behavior. Put the box in front of it, which is what turns one step into a claim about every step.	Tickets	ticket = [q \in Player |-> Nil] /\ next = 0 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = 0] /\ next' = 1 /\ UNCHANGED serving	P1 = a
+ITEM	L2-S1-05	S1	step	true	right	0	2	[][Leave(P1)]_<<serving>>	-	Serving moves from 0 to 1 here, so the subscript tests the action, and Leave is what moves it: the ticket matched serving and goes back to Nil.	Tickets	ticket = [q \in Player |-> IF q = P1 THEN 0 ELSE Nil] /\ next = 1 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = Nil] /\ serving' = 1 /\ UNCHANGED next	P1 = a
+ITEM	L2-S1-06	S1	step	false	left	13	2	[][Take(P1)]_<<serving>>	-	Serving moves here, so the stutter escape is closed and Take has to hold. It does not, because Take leaves serving alone and takes a fresh ticket instead.	Tickets	ticket = [q \in Player |-> IF q = P1 THEN 0 ELSE Nil] /\ next = 1 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = Nil] /\ serving' = 1 /\ UNCHANGED next	P1 = a
+ITEM	L2-S1-07	S1	step	true	right	0	2	[][Leave(P1)]_<<ticket, serving>>	-	Both named variables move, so the action is tested, and Leave is exactly the step: the ticket goes back to Nil and serving advances.	Tickets	ticket = [q \in Player |-> IF q = P1 THEN 0 ELSE Nil] /\ next = 1 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = Nil] /\ serving' = 1 /\ UNCHANGED next	P1 = a
+ITEM	L2-S1-08	S1	step	false	left	13	2	[][Take(P1)]_<<ticket>>	-	The ticket moves, so Take has to hold across this step. Take needs the ticket to start at Nil and this one starts at 0.	Tickets	ticket = [q \in Player |-> IF q = P1 THEN 0 ELSE Nil] /\ next = 1 /\ serving = 0	ticket' = [ticket EXCEPT ![P1] = Nil] /\ serving' = 1 /\ UNCHANGED next	P1 = a
+ITEM	L2-S1-09	S1	step	true	right	0	2	[][Take]_<<a>>	-	Heap a drops from 7 to 5, so the subscript tests the action, and Take's first arm is that step with k equal to 2.	Nim	a = 7 /\ b = 7 /\ c = 7	a' = 5 /\ UNCHANGED <<b, c>>	-
+ITEM	L2-S1-10	S1	step	false	left	13	2	[][UNCHANGED <<a, c>>]_vars	-	The whole tuple moves, so the bracketed action has to hold, and it says a does not change. a changes.	Nim	a = 7 /\ b = 7 /\ c = 7	a' = 5 /\ UNCHANGED <<b, c>>	-
+ITEM	L2-S1-11	S1	step	vacuous	down	0	2	[][Take]_<<b, c>>	[][FALSE]_<<b, c>>	Neither b nor c moves on this step, so the pair stutters and the line holds whatever is in the brackets. It says nothing about Take.	Nim	a = 7 /\ b = 7 /\ c = 7	a' = 5 /\ UNCHANGED <<b, c>>	-
+ITEM	L2-S1-12	S1	always	unparsed	down	150	2	[]Take	-	A box in front of an action is not TLA+, and SANY says so. An action needs a subscript to become a formula, so write it as [][Take]_vars.	Nim	a = 7 /\ b = 7 /\ c = 7	a' = 5 /\ UNCHANGED <<b, c>>	-
+ITEM	L2-S1-13	S1	step	true	right	0	2	[][UNCHANGED <<a, c>>]_vars	-	The tuple moves, so the bracketed action is tested, and here it holds: this step takes from b and leaves a and c alone.	Nim	a = 7 /\ b = 7 /\ c = 7	b' = 4 /\ UNCHANGED <<a, c>>	-
+ITEM	L2-S1-14	S1	step	false	left	13	2	[][b' = b - 1]_<<b>>	-	b moves, so the subscript tests the action, and b drops by three rather than by one.	Nim	a = 7 /\ b = 7 /\ c = 7	b' = 4 /\ UNCHANGED <<a, c>>	-
+ITEM	L2-S1-15	S1	step	true	right	0	2	[][Cast(Q1, "yes")]_<<vote>>	-	The vote function moves, so the action is tested, and casting a yes for Q1 is what moved it.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}	vote' = [vote EXCEPT ![Q1] = "yes"] /\ UNCHANGED outcomes	Q1 = p1
+ITEM	L2-S1-16	S1	step	false	left	13	2	[][Cast(Q1, "no")]_<<vote>>	-	The vote function moves, so the subscript closes the stutter escape, and the ballot recorded is yes rather than no.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}	vote' = [vote EXCEPT ![Q1] = "yes"] /\ UNCHANGED outcomes	Q1 = p1
+ITEM	L2-S1-17	S1	step	vacuous	down	0	2	[][Cast(Q1, "no")]_<<outcomes>>	[][FALSE]_<<outcomes>>	Outcomes is still empty after the step, so the subscript stutters and the line is true no matter what the brackets hold. The same action under the vote subscript is false.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}	vote' = [vote EXCEPT ![Q1] = "yes"] /\ UNCHANGED outcomes	Q1 = p1
+ITEM	L2-S1-18	S1	step	illformed	down	75	2	[][Cast("zz", "yes")]_vars	-	The vote function has no value at "zz", because Proc holds model values and not strings, so the bracketed action does not denote and TLC stops rather than answering.	Quorums	vote = [p \in Proc |-> "-"] /\ outcomes = {}	vote' = [vote EXCEPT ![Q1] = "yes"] /\ UNCHANGED outcomes	Q1 = p1
+ITEM	L2-S1-19	S1	step	true	right	0	2	[][Decide("yes")]_<<outcomes>>	-	Outcomes gains a member on this step, so the subscript tests the action, and every process voted yes, which is a quorum.	Quorums	vote = [p \in Proc |-> "yes"] /\ outcomes = {}	outcomes' = {"yes"} /\ UNCHANGED vote	Q1 = p1
+ITEM	L2-S1-20	S1	step	false	left	13	2	[][Decide("no")]_<<outcomes>>	-	Outcomes moves, so the action has to hold, and no quorum voted no. The set that was recorded is the yes one.	Quorums	vote = [p \in Proc |-> "yes"] /\ outcomes = {}	outcomes' = {"yes"} /\ UNCHANGED vote	Q1 = p1
+ITEM	L2-S1-21	S1	step	true	right	0	2	[][Decide("yes")]_vars	-	The whole tuple moves because outcomes does, so the action is tested, and Decide of yes is the step: a quorum voted yes and the vote function is left alone.	Quorums	vote = [p \in Proc |-> "yes"] /\ outcomes = {}	outcomes' = {"yes"} /\ UNCHANGED vote	Q1 = p1
+ITEM	L2-S1-22	S1	step	false	left	13	2	[][UNCHANGED outcomes]_vars	-	The tuple moves, so the bracketed action is on the hook, and outcomes is the variable that moved.	Quorums	vote = [p \in Proc |-> "yes"] /\ outcomes = {}	outcomes' = {"yes"} /\ UNCHANGED vote	Q1 = p1
+ITEM	L2-S1-23	S1	step	true	right	0	2	[][PollTake]_<<owner>>	-	Owner moves from none to poller, so the subscript tests the action, and that is what PollTake does.	Contention	owner = "none" /\ served = FALSE	owner' = "poller" /\ UNCHANGED served	-
+ITEM	L2-S1-24	S1	step	false	left	13	2	[][TaskTake]_<<owner>>	-	Owner moves, so the action has to hold, and TaskTake would have set owner to task and served to TRUE.	Contention	owner = "none" /\ served = FALSE	owner' = "poller" /\ UNCHANGED served	-
+ITEM	L2-S1-25	S1	step	vacuous	down	0	2	[][TaskTake]_<<served>>	[][FALSE]_<<served>>	Served stays FALSE across the step, so the subscript stutters and the claim holds without anybody looking at TaskTake.	Contention	owner = "none" /\ served = FALSE	owner' = "poller" /\ UNCHANGED served	-
+ITEM	L2-S1-26	S1	step	illformed	down	75	2	[][PollTake]_<<owner["poller"]>>	-	A subscript has to be a state function and owner is a string, so applying it to an argument does not denote and TLC stops rather than answering.	Contention	owner = "none" /\ served = FALSE	owner' = "poller" /\ UNCHANGED served	-
+ITEM	L2-S1-27	S1	step	true	right	0	2	[][TaskTake]_<<served>>	-	Served moves from FALSE to TRUE, so the subscript tests the action, and TaskTake is the only action that sets it.	Contention	owner = "none" /\ served = FALSE	owner' = "task" /\ served' = TRUE	-
+ITEM	L2-S1-28	S1	step	false	left	13	2	[][PollTake]_<<served>>	-	Served moves, so the stutter escape is closed and PollTake has to hold. PollTake leaves served alone and hands the lock to the poller.	Contention	owner = "none" /\ served = FALSE	owner' = "task" /\ served' = TRUE	-
+ITEM	L2-S1-29	S1	always	true	right	0	2	[](owner # "task")	-	A box over a state predicate needs no subscript, because a predicate is already a claim about a state. Owner reads none and then poller, and neither is task.	Contention	owner = "none" /\ served = FALSE	owner' = "poller" /\ UNCHANGED served	-
+ITEM	L2-S1-30	S1	always	false	left	12	2	[](owner = "none")	-	This is a well formed claim about every state of the behavior and the second state breaks it, because owner is poller there.	Contention	owner = "none" /\ served = FALSE	owner' = "poller" /\ UNCHANGED served	-
+ITEM	L2-S1-31	S1	step	true	right	0	2	[][Request]_<<want>>	-	Want moves from FALSE to TRUE, so the subscript tests the action, and Request is the action that raises it while leaving the holder alone.	Handover	holder = H1 /\ want = FALSE	want' = TRUE /\ UNCHANGED holder	H1 = s1
+ITEM	L2-S1-32	S1	step	false	left	13	2	[][Grant]_<<want>>	-	Want moves, so Grant has to hold across the step, and Grant lowers want rather than raising it.	Handover	holder = H1 /\ want = FALSE	want' = TRUE /\ UNCHANGED holder	H1 = s1
+ITEM	L2-S1-33	S1	step	wronglevel	down	151	2	[Request]_vars	-	Without the box this is one step rather than a claim about the behavior, and TLC refuses it under PROPERTY. Write [][Request]_vars.	Handover	holder = H1 /\ want = FALSE	want' = TRUE /\ UNCHANGED holder	H1 = s1
+ITEM	L2-S1-34	S1	step	illformed	down	75	2	[][Request]_<<want[1]>>	-	Want is a boolean and this subscript applies it to an argument, so the state function does not denote and the run stops before any answer.	Handover	holder = H1 /\ want = FALSE	want' = TRUE /\ UNCHANGED holder	H1 = s1
+ITEM	L2-S1-35	S1	step	true	right	0	2	[][Grant]_vars	-	Both variables move, so the action is tested, and Grant is the step: the holder moves to another site and want goes back down.	Handover	holder = H1 /\ want = TRUE	holder' = H2 /\ want' = FALSE	H1 = s1, H2 = s2
+ITEM	L2-S1-36	S1	step	false	left	13	2	[][Request]_<<holder>>	-	The holder moves, so the subscript closes the stutter escape, and Request is the action that leaves the holder exactly where it was.	Handover	holder = H1 /\ want = TRUE	holder' = H2 /\ want' = FALSE	H1 = s1, H2 = s2
+ITEM	L2-S1-37	S1	step	true	right	0	2	[][Ask(A1)]_<<st>>	-	The state function st moves, so the action is tested, and Ask is what moves A1 from idle to hungry while turn stays where it is.	Alternation	st = [p \in Proc |-> "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "hungry"] /\ UNCHANGED turn	A1 = p1
+ITEM	L2-S1-38	S1	step	false	left	13	2	[][Enter(A1)]_<<st>>	-	st moves, so Enter has to hold, and Enter needs A1 to start hungry. It starts idle.	Alternation	st = [p \in Proc |-> "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "hungry"] /\ UNCHANGED turn	A1 = p1
+ITEM	L2-S1-39	S1	step	wronglevel	down	151	2	<<Ask(A1)>>_vars	-	Angle brackets need a box in front of them too. On its own this is an action, and TLC refuses an action under PROPERTY.	Alternation	st = [p \in Proc |-> "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "hungry"] /\ UNCHANGED turn	A1 = p1
+ITEM	L2-S1-40	S1	always	unparsed	down	150	2	[]Ask(A1)	-	SANY refuses a box in front of an action. The subscript is what makes it a formula, so write [][Ask(A1)]_vars.	Alternation	st = [p \in Proc |-> "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "hungry"] /\ UNCHANGED turn	A1 = p1
+ITEM	L2-S1-41	S1	step	true	right	0	2	[][Leave(A1)]_<<turn>>	-	Turn moves to the other process, so the subscript tests the action, and handing the turn over is what Leave does.	Alternation	st = [p \in Proc |-> IF p = A1 THEN "busy" ELSE "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "idle"] /\ turn' = Other(A1)	A1 = p1
+ITEM	L2-S1-42	S1	step	false	left	13	2	[][Ask(A1)]_<<turn>>	-	Turn moves, so the stutter escape is closed and Ask has to hold. Ask leaves turn alone, which is the one thing this step does not do.	Alternation	st = [p \in Proc |-> IF p = A1 THEN "busy" ELSE "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "idle"] /\ turn' = Other(A1)	A1 = p1
+ITEM	L2-S1-43	S1	always	true	right	0	2	[](turn = A1)	-	Turn is a state predicate so the box needs no subscript, and turn is A1 in both states of this behavior.	Alternation	st = [p \in Proc |-> "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "hungry"] /\ UNCHANGED turn	A1 = p1
+ITEM	L2-S1-44	S1	always	false	left	12	2	[](st[A1] = "idle")	-	The predicate holds in the first state and not in the second, where A1 has gone hungry, and a box asks about every state.	Alternation	st = [p \in Proc |-> "idle"] /\ turn = A1	st' = [st EXCEPT ![A1] = "hungry"] /\ UNCHANGED turn	A1 = p1
+ITEM	L2-S1-45	S1	step	true	right	0	2	[][MoveA]_<<a>>	-	Gate a moves from 1 to 4, so the subscript tests the action, and 4 is inside the range MoveA allows while b stays put.	Fences	a = 1 /\ b = 7	a' = 4 /\ UNCHANGED b	-
+ITEM	L2-S1-46	S1	step	false	left	13	2	[][MoveB]_<<a>>	-	Gate a moves, so the subscript closes the stutter escape, and MoveB is the action that leaves a alone.	Fences	a = 1 /\ b = 7	a' = 4 /\ UNCHANGED b	-
+ITEM	L2-S1-47	S1	always	true	right	0	2	[](a <= b)	-	No subscript is needed because this is a predicate about one state rather than about a step, and it holds at 1 and 7 and again at 4 and 7.	Fences	a = 1 /\ b = 7	a' = 4 /\ UNCHANGED b	-
+ITEM	L2-S1-48	S1	always	false	left	12	2	[](a = 1)	-	A box asks about every state of the behavior, and a is 4 in the second one.	Fences	a = 1 /\ b = 7	a' = 4 /\ UNCHANGED b	-

@@ -1,0 +1,35 @@
+# The level 2 template table (bead tla-7xql.5, epic tla-7xql).
+#
+# A template is a named family of items with one generating idea. The grouping
+# matters because bead tla-7xql.1, the stem-blind gate, runs PER TEMPLATE: the
+# artifact it hunts is template-local, and a pooled number hides a bad template
+# behind good ones. So the template is a column in swipe/level2/ITEMS.tsv and
+# not a comment.
+#
+# Rows are tab-delimited and carry the literal marker TPL in field 1, so prose
+# in this file can never be read as data. Read rows with awk -F'\t' or cut,
+# never with IFS=$'\t' read: tab is IFS whitespace, so a run of tabs collapses
+# and an empty field vanishes.
+#
+# A TPL ROW. Five fields, in order, and they are level 0's and level 1's five:
+#
+#   1  marker      the literal TPL
+#   2  id          S1 and up, stable, never renumbered
+#   3  name        three or four words
+#   4  idea        the generating idea, one sentence
+#   5  calibration the reading/ models the family was shaped against
+#
+#   awk -F'\t' '$1 == "TPL" && $2 == "S1"' swipe/level2/TEMPLATES.tsv
+#   grep '^TPL' swipe/level2/TEMPLATES.tsv | cut -f2,3
+#
+# THE IDS ARE S-PREFIXED. Level 0's five are T1 to T5 and level 1's pilot is
+# E1. A level 2 template sharing one of those ids would make a pooled reading
+# of the corpora silently merge families that have nothing to do with each
+# other. The stem-blind instrument takes --items, so pointing it at the wrong
+# table is one flag away and the id is what catches it.
+#
+# ONE TEMPLATE SHIPS HERE, ON PURPOSE. Bead tla-7xql.5 scopes this rung to
+# machinery, a gate and one complete template as a pilot, the same scope level
+# 1 had. How many templates level 2 wants is a decision the pilot informs
+# rather than takes, and swipe/README.md carries the proposal.
+TPL	S1	which subscript tests the action	Ask whether a step formula holds across the pinned step, where the trap is that the subscript decides whether the action is tested at all: a subscript that does not move satisfies the claim by stuttering whatever the action says, a subscript that moves puts the action on the hook, and dropping the box or the subscript stops the line being a formula.	reading/state-space/02-tickets/Tickets.tla Take and Leave, reading/core/01-nim/Nim.tla Take, reading/state-space/01-quorums/Quorums.tla Cast and Decide, reading/temporal/04-contention/Contention.tla the four owner actions, reading/temporal/01-handover/Handover.tla Request and Grant, reading/modules/03-fences/Fences.tla MoveA and MoveB, reading/temporal/03-alternation/Alternation.tla Ask Enter and Leave

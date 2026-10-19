@@ -878,3 +878,421 @@ one run for the claim and one for the auxiliary check, and a vacuous item
 costs a third for its witness. Level 0 batches 210 of its 240 claims into three
 modules. That is the one place this rung is dearer than level 0 and it is
 linear in items, so a second template of 48 doubles it.
+
+# Level 2: the subscript rung
+
+Bead `tla-7xql.5`, and everything above this line is about level 0 and level
+1. A level 2 item **pins a step** and asks whether a step formula holds across
+it, so the screen carries two states where level 1 carried one.
+
+```
+swipe/level2/TEMPLATES.tsv   one template, the pilot
+swipe/level2/ITEMS.tsv       48 items
+swipe/level2/bake.sh         the verdict channel: --check, --write, --stats
+swipe/level2/render.sh       the two-state screen, over level 1's strip
+harness/test-swipe-subscript.sh  the gate
+```
+
+```bash
+swipe/level2/bake.sh --stats
+swipe/level2/bake.sh --check
+swipe/level2/render.sh --item L2-S1-03
+harness/swipe/stemblind.sh probe --items swipe/level2/ITEMS.tsv --surface 9,13,14,15
+harness/test-swipe-subscript.sh
+```
+
+## Why this rung is worth more than the other two
+
+`.claude/rules/tla-practice.md` section 2 counted 1,182 subscript sites across
+334 published modules and found **906 of them, 77 percent, are the bare token
+`vars`**. Only 16 box sites in the whole corpus use a proper subset. The rule
+that makes a narrow one sound is *Specifying Systems* p.123: it is sound when
+`v` covers every variable the action mentions.
+
+So almost everybody writes the safe default, almost nobody writes the narrow
+one, and the reason the narrow one is usually wrong is a rule most people have
+never had to state. Nothing else in this project drills it.
+
+## Four readings of rc 0 with three reasons behind them
+
+One pinned `Take` step on `Tickets`, from the initial state, with the
+subscript as the only thing that changes:
+
+| claim | rc | why |
+|---|---|---|
+| `[][Take(P1)]_vars` | 0 | the whole tuple moved and `Take` holds |
+| `[][Take(P1)]_<<next>>` | 0 | `next` moved and `Take` holds |
+| `[][Take(P1)]_<<serving>>` | 0 | `serving` never moved, so it is a stutter |
+| `[][Leave(P1)]_<<serving>>` | 0 | the same stutter, and `Leave` is false |
+| `[][Leave(P1)]_<<ticket>>` | 13 | `ticket` moved and `Leave` is false |
+| `[][Leave(P1)]_<<next>>` | 13 | `next` moved and `Leave` is false |
+
+The reader cannot tell the first four apart from the verdict, and that is the
+lesson rather than a defect in the measurement.
+
+**The bead's own worked example cannot ship, and finding out why is worth more
+than the example was.** `tla-7xql.5` works the lesson on `Nim` over a step
+from `(7, 7, 7)` to `(9, 7, 7)`, where a heap GREW so `Take` is false. `Nim`
+types its heaps as `0..Heap` and the `.cfg` sets `Heap = 7`, so the post state
+is outside the model's own type invariant and the auxiliary run reads 12. The
+TypeOK rule that rejects it is central's and Frank has not ruled on it, and
+this is the first item it has actually cost anybody.
+
+Four of that table's five rows reproduce exactly on that pin. The fifth,
+`[][Take]_<<a, b, c>>` at rc 0, reads **13** there: it is the same subscript as
+the first row, so it has to be a different step, and the table does not say
+so. Measured on the one step, both read 13. Nothing was wrong with the
+measurement and the layout implies a step the rows do not share.
+
+## The stuttering reading is the `vacuous` kind, and that is a ruling Frank has not taken
+
+**Central's read was that it is a `true` item whose flash explains the
+stutter.** This ships the other way, and the argument is three things.
+
+`[A]_v` is `A \/ UNCHANGED v`, so a claim whose subscript does not move is an
+implication with a false antecedent. That is the same shape level 1 already
+calls vacuous: `Len(text) = 6 => ENABLED Pop` at a text of length 3. Calling
+the same structure `true` here and `vacuous` there would be two names for one
+thing.
+
+It has a witness, which decision D3's own successor demands. The epic's note
+of 2026-10-18 says every item carries a per-item vacuity witness "so the
+vacuous label has a TLC run behind it rather than an author's word". Here the
+witness is `[][FALSE]_v`: replace the action with FALSE and see whether the
+truth value survives, which is the textbook vacuity test. Measured on the
+`Take` step above, `[][FALSE]_<<serving>>` reads 0 and `[][FALSE]_<<next>>`
+reads 13.
+
+And the lesson argument runs the other way from central's. The bead's own
+words are that two of the four are "true for a reason the reader has to find".
+If a stutter and a genuine hold both swipe right, the reader never has to find
+it: the item becomes a free right swipe on a formula that looks hard. The
+discrimination goes into the one gesture that already carries it at the other
+two rungs.
+
+**What it costs.** Four items of 48 carry the stutter, because `down` holds 12
+and three other kinds share it. The flash is what has to do the rest of the
+work on the 30 narrow-subscript items that are plainly right or left.
+
+## The verdict channel at level 2
+
+One PROPERTY run per item. Level 1 declares INVARIANT because it asks a state
+predicate, and a step formula is not one.
+
+<!-- KIND TABLE L2: harness/test-swipe-subscript.sh section 12 reads the rows below. Column 3 is a dash when the kind ships and a reason when it does not. -->
+
+| kind | swipe | deliberately unshipped, and why |
+|---|---|---|
+| `true` | right | - |
+| `false` | left | - |
+| `vacuous` | down | - |
+| `illformed` | down | - |
+| `wronglevel` | down | - |
+| `unparsed` | down | - |
+
+| rc | kind | what TLC says |
+|---|---|---|
+| 0 | `true`, or `vacuous` with its witness | nothing, the property held |
+| 12 or 13 | `false` | the property is violated |
+| 75 | `illformed` | the evaluation error, against the spec |
+| 150 | `unparsed` | `[] followed by action not of form [A]_v` |
+| 151 | `wronglevel` | `is an action-level formula ... Only temporal-level (or state-level) formulas are allowed under PROPERTY` |
+
+**The refuted row is a PAIR and the bake treats it as one.** Hazard H1 on the
+epic says to read `{12, 13}` as one answer and never to predict which, and
+until now that has been a rule in prose. Here it is `rc_set_for()`, which
+returns a set and is tested for membership. It is load-bearing rather than
+precautionary: **the shipped corpus carries both codes.** 15 refuted items
+read 13, because a step formula is checked in the temporal pass, and 3 read
+12, because `[]P` over a state predicate is lifted to an invariant and the
+invariant channel reports. Same kind, same swipe, two numbers.
+
+**Row 151 is this rung's own lesson and level 1 says it does not exist.** The
+level 1 section above reads "Row 151 does not appear here and that is the
+level 0 difference", and it comes back at level 2 for a completely unrelated
+reason. TLC's message is worth quoting because it does the teaching:
+
+> The formula Claim ... is an action-level formula (i.e., it contains no
+> temporal operators). Only temporal-level (or state-level) formulas are
+> allowed under PROPERTY or PROPERTIES. To check that action Claim holds in
+> \*every\* step of the behavior, define a temporal property: ... rewrite A as
+> `[][A]_v`, where v is a state function (typically the tuple of variables)
+> (compare page 90 of Specifying Systems ...)
+
+`[Take(P1)]_vars` reads 151 and `[][Take(P1)]_vars` reads 0. The whole
+difference is the dropped box, and TLC names the fix and cites the page. All
+three `wronglevel` items here are shapes a careful reader actually writes: the
+dropped box, bare angle brackets, and a bare `UNCHANGED`.
+
+**Row 150 is the subscript's own parse trap, and it settles a corpus
+question.** SANY says `[] followed by action not of form [A]_v` for `[]Take`
+and for `[][Take(P1)]_ticket[P1]` alike. Section 2 of
+`.claude/rules/tla-practice.md` reports that an indexed element as a subscript
+"matches zero times" over 666 published modules and lists it under "not
+attested". It is not merely unattested. **It does not parse.** A record
+literal as a subscript is the other half of that list and it does parse:
+`[][Take(P1)]_[t |-> ticket]` reads 0. So of the two shapes the survey found
+zero of, one is illegal and the other is legal and unfashionable, and the
+survey could not tell them apart because it never ran anything.
+
+**Row 75 is one row here and it was two at level 1.** Every evaluation failure
+measured lands on 75, whether it sits in the action, in the subscript or in an
+argument: `[][Take("zz")]_vars`, `[][Take(P1)]_<<ticket["zz"]>>` and
+`[][ticket["zz"] = 0]_vars` all read 75. Level 1 splits 75 from 76 by where
+the failure happens, and at this rung 76 moves to the auxiliary run instead.
+
+## The pin, and what one number measures about it
+
+```
+Ini == Pre
+Nxt == IF Pre THEN Post ELSE UNCHANGED vars
+```
+
+One real step and then a stuttering tail. The tail is harmless for a safety
+property, because every subscript is unchanged across a stuttering step, so
+`[A]_v` holds there by construction whatever `A` says.
+
+**`TLCGet("distinct") = 2` is hazard H3, and it is the whole of it.** H3 says
+a pinned behavior needs exactly one V-changing successor per state, because a
+real branch means a SET of behaviors was pinned and TLC finds the member that
+refutes you. Two distinct states means one initial state and one successor and
+nothing else does. Measured: a `Pre` of `next \in {0, 1}` reads 10 against 2,
+and a `Post` of `next' \in {1, 2}` reads 10 against 2 and 0 against 3. Level 1
+had to carry the count as an authored per-item field. Here it is a constant of
+the rung and field 8 reads 2 on every row.
+
+**The type check is free at this rung and it was not at level 1.** TLC checks
+an invariant at every reachable state and both pinned states are reachable, so
+one `INVARIANT TypeOK` line covers the before and the after.
+
+The auxiliary run reads 0 when the pin is one type-correct step, 12 when a
+state breaks the model's own type invariant, 10 when the pin is not one step,
+and 75 or 76 when the type invariant cannot be *evaluated* at the pre or the
+post state. Those last two are real: `Tickets` types `next \in Nat`, and TLC
+cannot decide whether a string is in an infinite set, so a pin that puts a
+string there fails to evaluate rather than failing. The bake's report names
+which.
+
+**The pin check is per STEP and not per item, which is where this rung is
+cheaper than level 1.** Items are authored in groups that share one pinned
+step and vary only the claim, so 48 items cost 13 pin checks. Level 1 runs it
+per item, and its own corpus repeats pins too, so the saving was available
+there and nobody took it.
+
+## A model value needs a declared constant, and field 15 carries it
+
+`Ini == holder = s1` fails at rc 150 with a semantic error, because `s1` is a
+`.cfg` model value and not an identifier the module can name. So the pin
+module declares `CONSTANT H1` and the `.cfg` assigns `H1 = s1`. Four of the
+seven pilot models carry model values, so this is the common case rather than
+a corner, and central's correction at commit 8148330 is what the field is
+built on.
+
+The binds are shown to the reader, under a `where` rule on the pin. A reader
+shown `holder' = H2` and not shown `H2 = s2` has a name they cannot evaluate.
+
+## `vars` has to be on the screen, and level 1's strip takes it off
+
+The level 1 kept set is every level 2 definition except `Next` and the
+SPECIFICATION formula, plus their transitive closure. `vars` is a state
+function, so it is level 1 and never a shown root, and an action reaches it
+only when the action happens to name the tuple. **Measured over all seven
+pilot models: not one of them keeps `vars`**, because every action writes
+`UNCHANGED <x>` rather than naming the tuple.
+
+That is right at level 1, where no claim can name `vars`. At level 2 the
+subscript is the subject matter and `vars` is the subscript 77 percent of the
+published corpus writes, so either the screen shows it or the corpus cannot
+drill the one habit it exists for. The kept set here is level 1's plus `vars`,
+and `swipe/level2/render.sh` is twelve lines of splice over
+`swipe/level1/render.sh --screen` rather than a second copy of the strip.
+
+It breaks neither decision. D2 strips the obligations and `vars` is not one.
+D7 withholds `Init`, `Next` and `Spec` and `vars` is not one of those either.
+Level 1 strips it for a reason that stops being true one rung up.
+
+## What a rendered item looks like
+
+This is `L2-S1-03`, the stutter item on the `Tickets` `Take` step.
+
+```
+   CONSTANTS
+     Player = {a, b, c}
+     Nil = Nil
+     Limit = 6
+   VARIABLES ticket, next, serving
+   vars == <<ticket, next, serving>>
+
+   Take(p) ==
+     /\ ticket[p] = Nil
+     /\ ticket' = [ticket EXCEPT ![p] = next]
+     /\ next' = next + 1
+     /\ UNCHANGED serving
+
+   Leave(p) ==
+     /\ ticket[p] = serving
+     /\ ticket' = [ticket EXCEPT ![p] = Nil]
+     /\ serving' = serving + 1
+     /\ UNCHANGED next
+
+   ------------------------------ from
+   ticket = [q \in Player |-> Nil]
+   next = 0
+   serving = 0
+   ---------- steps to
+   ticket' = [ticket EXCEPT ![P1] = 0]
+   next' = 1
+   UNCHANGED serving
+   ---------- where
+   P1 = a
+   ------------------------------
+
+   does this hold across the step
+
+      [][Leave(P1)]_<<serving>>
+```
+
+**The post is shown as a formula over primes rather than as concrete values,
+and that was a choice.** `UNCHANGED serving` says the thing every subscript
+item turns on, and `serving' = 0` would make the reader derive it.
+
+**Model screens, measured over all 33 `reading/` models**: 0 at the shortest,
+which is Ring, and 23 at the longest, which is Collatz and Shelves. The seven
+the pilot uses read Fences 5, Nim 7, Handover 11, Quorums 13, Tickets 16,
+Alternation 17 and Contention 19. Each is exactly one line longer than level
+1's reading of the same model, which is `vars` and nothing else.
+
+**Count those lines with `grep -c '[^[:space:]]'` and not with `grep -c .`.**
+The screen is indented and its block separators are three spaces and nothing
+else, so `grep -c .` counts every separator as content. Measured the wrong way
+it reads about four lines high per model, which is one line per block, and I
+spent a round believing the level 1 numbers above were stale before finding
+that they reproduce exactly under the right predicate.
+
+## The mix, and what carries from level 0
+
+The **swipe** mix is level 0's: 18 right, 18 left, 12 down, so the base rate is
+0.3750 and the power table above transfers unchanged.
+
+The **kind** mix under `down` is level 1's too, which it was not obliged to be:
+
+| kind | level 0 | level 1 | level 2 |
+|---|---|---|---|
+| `vacuous` | 6 | 4 | 4 |
+| `illformed` | 6, then 5 | 3 | 3 |
+| `wronglevel` | not a kind | 3 | 3 |
+| `unparsed` | 1 | 2 | 2 |
+
+Six fours and twelve pairs is 48 and it lands 18/18/12 without anybody
+counting, which is level 1's arithmetic. A four here is one pinned step with
+four claims on it, which is the bead's own framing of the lesson rather than a
+packaging convenience.
+
+## The two asks, and neither of them predicts anything
+
+`step` is a formula over the pinned step and `always` is a box over a state
+predicate. The second one exists because the boundary between them is the
+subscript: `[](a <= b)` is a formula and `[]Take` is not, and the only
+difference is whether a subscript was needed.
+
+The split is 40 `step` and 8 `always`, and the `always` eight are 3 right, 3
+left and 2 down. That is a base rate of 0.3750 and a down rate of 25 percent,
+which are the corpus figures exactly, so the tag the reader is shown carries
+no information about the answer.
+
+## No claim uses `<>`, `WF_` or `SF_`, and that is a correctness rule
+
+A pinned behavior carries no fairness, so `Ini /\ [][Nxt]_vars` admits the
+behavior that stutters at the pre-state forever, and **every liveness claim is
+refuted whatever it says.** Measured: `[]<>(next = 1)` reads 13 on a step that
+does set `next` to 1, and `WF_vars(Take(P1))` reads 13 on a step that takes
+it.
+
+An author who writes one of those gets a 13, writes `false` in field 5, and
+ships an item that is false for a reason the pin never had an opinion about.
+That is hazard H2's shape one rung along, and the gate bans the three
+operators outright rather than noting them.
+
+## What the stem-blind probe reads here, and the control it needed
+
+The surface is **the claim, both halves of the step, and the binds**, which is
+`--surface 9,13,14,15`. Level 1 uses the claim and the pin, and this rung's
+pin is two states. Both halves belong: the question is whether the action
+describes *that* step, and a judge handed only the pre-state has half a
+question. The model stays withheld, because it is the premise.
+
+```
+PROBE  S1  n=48  features=74  base=0.3750  best=0.4167  feature=has:<<  null95=0.5417  p=1.0000  clear
+```
+
+**The probe alone would not have been enough here**, and that is the one
+instrument question this rung raised. Four items share a pinned step and
+differ only in the subscript, so if the subscript alone predicted the label
+the four would be one item with four spellings. So the gate also cuts every
+claim down to its subscript and runs the probe over that:
+
+```
+PROBE  S1  n=48  features=24  base=0.3750  best=0.3438  feature=has:<<  null95=0.5000  p=0.9970  clear
+```
+
+**The best single-feature rule over the subscript alone scores below the base
+rate.** Not one bit, and a bit the wrong way. That is not luck: the corpus is
+authored so that every variable that stutters in a vacuous item also carries a
+true item and a false item on another step, and `<<serving>>`, `<<served>>`
+and `<<outcomes>>` each appear once as vacuous, once as true and once as
+false.
+
+### The probe cannot see a four-item tell, and that is not a bug in it
+
+The first version of the subscript control gave the four vacuous items a
+subscript nothing else used. A perfectly pure rule for the down swipe, and
+**the probe came back clear at p=0.9950.** The probe is scored by leave-one-out
+accuracy over the whole template, so a rule covering 4 of 48 items moves that
+number by almost nothing however pure it is.
+
+`harness/swipe/stemblind.sh` says this in its own header, where it separates
+"could a judge beat the base rate" from "does this template have a tell". The
+two questions have different answers and the probe only answers the first.
+
+So the gate's section 14 asks the second one directly, in text and at no cost:
+**no subscript carried by three or more items may be pure in one swipe.** The
+floor is three because at two a pure subscript is a matched pair built from one
+idea, which is how this corpus is authored, and `<<ticket>>` really is two
+refuted items and nothing else. Measured over the shipped corpus, every
+subscript on three or more items carries two or three different swipes.
+
+Four controls are watched failing. A token planted on every false item's
+pre-state is called at the full surface and invisible at level 0's default
+surface. A subscript given to all 18 refuted items is called by the
+subscript-only run. The same plant on 4 vacuous items is called by the purity
+check and **not** by the probe, which is the pairing written down as an
+assertion. And the one pure pair the shipped corpus does carry is checked to
+be still allowed, so the floor is tested from both sides.
+
+## What one template of 48 cost, so the next author can size the rest
+
+The bake is **65 JVMs and runs in 26 s**: 48 claims, 13 pinned steps and 4
+witnesses. Level 1 is 100 JVMs and 37 s for the same 48 items.
+
+**A level 2 claim does not batch, for level 1's reason.** The exit code is one
+number per run and the claim is the thing being measured, so a `.cfg` naming
+four PROPERTYs answers for all four at once and says nothing about any of
+them. What does batch is the pin check, because the step is shared and the
+claim is not.
+
+**Proposed for the rest, and Frank sizes it.** Three templates at 48 and stop,
+which is 144 items:
+
+- **S1**, shipped. Which subscript tests the action, on named actions.
+- **S2**, the subscript as a state function rather than a tuple. A bare
+  variable, a tuple of tuples, a record literal and a derived expression all
+  parse, an indexed element does not, and section 2 of the practice file has
+  corpus counts for every one of those shapes to calibrate against.
+- **S3**, the step formula's own shape. `[][A => B]_v`, implication under the
+  box, which is the shape seven of `braf`'s nine published properties use and
+  the one a refinement mapping is written in.
+
+Against a fourth: the item space is large, 439 distinct action-and-subscript
+pairs across the 33 models, and the gate is linear in items. At 26 s a
+template the three would be about 80 s of bake, which is already a large row
+in the registry.
