@@ -11,20 +11,42 @@
 # rest do not.
 #
 # WHAT RUNS TLC AND WHAT DOES NOT. The structural half is text and costs no
-# JVM. swipe/level1/bake.sh --check costs 100 JVMs over the 48 items: a level
-# 1 claim cannot batch, because every item carries its own pin, so each item
-# pays one run for its claim and one for the auxiliary type-and-count check,
-# and the four vacuous ones pay a third for their witness. The strip sections
-# cost one levels.sh parse per model, seven of them, plus two over a fixture.
-# The TLC controls are scoped to one item each. Section 10 re-measures the
-# five rows of the channel on five one-line fixtures.
+# JVM. swipe/level1/bake.sh --check costs about 100 JVMs per 48-item template:
+# a level 1 claim cannot batch, because every item carries its own pin, so
+# each item pays one run for its claim and one for the auxiliary
+# type-and-count check, and each vacuous one pays a third for its witness. The
+# strip sections cost one levels.sh parse per model. The TLC controls are
+# scoped to one item each. Section 12 re-measures the five rows of the channel
+# on five one-line fixtures.
 #
 # That count tracks the item total and not a batch count, which is the one
 # place this rung is more expensive than level 0: there is nothing to batch.
 # A run is the only authority on the number and this paragraph is a
 # description rather than a check.
 #
-# Lineage: bead tla-7xql.4.
+# ===========================================================================
+# THE RUN SPLITS IN TWO, AND THAT IS WHAT KEEPS A REGISTRY ROW READABLE
+# ===========================================================================
+#
+# Linear cost in items means one row over three templates is the second
+# largest in the registry, and it also means a template's growth moves a
+# budget that has nothing to do with it. So the sections divide:
+#
+#   --machinery      everything that is about the CHANNEL rather than about a
+#                    template: the structural checker and its controls, the
+#                    strip fixture in both directions, the TLC controls, the
+#                    five channel rows, and the kind vocabulary. Run once.
+#   --template ID    everything that is about ONE template's items: the
+#                    structural pass over its rows, its mix, the strip over
+#                    its own models, its claim-leak pass, its bake and its
+#                    stem-blind probe. One row per template.
+#
+# With neither flag the whole thing runs, which is what a human wants and what
+# any caller outside scripts/test gets by default. The two modes PARTITION the
+# sections rather than overlapping, so the four registry rows together assert
+# exactly what one unsplit run asserted and no section runs twice.
+#
+# Lineage: beads tla-7xql.4 and tla-7xql.13.
 
 set -euo pipefail
 
@@ -41,6 +63,29 @@ README="$REPO_ROOT/swipe/README.md"
 # pin, which is what varies per item. The model is the premise and is
 # withheld. See the --surface block in harness/swipe/stemblind.sh.
 SURFACE="9,13"
+
+# Which half of the gate to run. See THE RUN SPLITS IN TWO above.
+MODE="all"
+TEMPLATE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --machinery) MODE="machinery"; shift ;;
+    --template)  MODE="template"; TEMPLATE="${2:-}"; shift 2 ;;
+    -h|--help)
+      printf 'usage: harness/test-swipe-enabled.sh [--machinery | --template ID]\n'
+      exit 0 ;;
+    *) printf 'test-swipe-enabled.sh: unknown option: %s\n' "$1" >&2; exit 2 ;;
+  esac
+done
+if [ "$MODE" = "template" ] && [ -z "$TEMPLATE" ]; then
+  printf 'test-swipe-enabled.sh: --template needs a template id\n' >&2
+  exit 2
+fi
+
+# True when the section about a template's own items should run.
+want_corpus() { [ "$MODE" != "machinery" ]; }
+# True when the section about the channel itself should run.
+want_machinery() { [ "$MODE" != "template" ]; }
 
 PASS=0
 FAIL=0
@@ -59,7 +104,11 @@ trap cleanup EXIT
 
 nonblank() { grep -c . <<<"$1" || true; }
 
-printf 'swipe level 1 ENABLED corpus\n'
+case "$MODE" in
+  machinery) printf 'swipe level 1 channel machinery\n' ;;
+  template)  printf 'swipe level 1 corpus, template %s\n' "$TEMPLATE" ;;
+  *)         printf 'swipe level 1 ENABLED corpus\n' ;;
+esac
 
 # ---------------------------------------------------------------------------
 # 1. The files are there.
@@ -81,6 +130,30 @@ done
 if [ ! -f "$ITEMS" ] || [ ! -f "$TEMPLATES" ]; then
   printf '\n%s passed, %s failed, %s skipped\n' "$PASS" "$FAIL" "$SKIP"
   exit 1
+fi
+
+# The rows this run is about. In --template mode every corpus section reads
+# this file rather than ITEMS, and the comment header is carried over so the
+# structural pass sees exactly the shape it sees in the real table. ITEMS
+# itself stays whole, because the controls damage a copy of the real corpus
+# and a scoped one would make several of them no-ops.
+SCOPED="$SCRATCH/scoped.tsv"
+if [ "$MODE" = "template" ]; then
+  awk -F'\t' -v t="$TEMPLATE" '$1 != "ITEM" || $3 == t' "$ITEMS" > "$SCOPED"
+  if [ "$(awk -F'\t' '$1 == "ITEM"' "$SCOPED" | grep -c . || true)" -eq 0 ]; then
+    bad "no item carries template $TEMPLATE, and an empty selection confirms nothing"
+    printf '\n%s passed, %s failed, %s skipped\n' "$PASS" "$FAIL" "$SKIP"
+    exit 1
+  fi
+else
+  cp "$ITEMS" "$SCOPED"
+fi
+
+# The template ids this run reports on, one per line.
+if [ "$MODE" = "template" ]; then
+  SEL_TPL="$TEMPLATE"
+else
+  SEL_TPL="$(awk -F'\t' '$1 == "TPL" { print $2 }' "$TEMPLATES")"
 fi
 
 # ---------------------------------------------------------------------------
@@ -177,20 +250,35 @@ structural_defects() {
       defects=$((defects+1))
     fi
 
-    # CLAUSE: the item needs its model. A claim that mentions no variable and
-    # no ENABLED is a level 0 claim wearing a model screen, and it belongs in
+    # CLAUSE: the item needs its model. A claim that names nothing the model
+    # declares is a level 0 claim wearing a model screen, and it belongs in
     # swipe/level0 where it costs one shared JVM instead of two of its own.
+    #
+    # THREE THINGS COUNT AS NAMING THE MODEL, and the third was missing until
+    # bead tla-7xql.13: ENABLED, a declared variable, or a definition the
+    # module declares. A wronglevel item is the case that forced it. Its whole
+    # point is to write a bare action where a state predicate was meant, so
+    # ~(Meet(1, 2) \/ Meet(2, 3)) names no variable and no ENABLED and is as
+    # level 1 as anything here. A claim naming a definition the screen
+    # WITHHOLDS is caught separately, in section 9, so the two compose.
+    #
+    # THE MATCH IS WORD-BOUNDED NOW, AND IT WAS A SUBSTRING TEST BEFORE. That
+    # is why E1 passed without the definition clause: L1-E1-43's claim is the
+    # single word Take, which contains the letter a, and Nim declares a
+    # variable called a. The item was accepted for a reason that had nothing
+    # to do with it being a level 1 claim.
     case "$claim" in
       *ENABLED*) ;;
       *) local names
-         names="$(awk -F'\t' -v m="$model" '$1 == "VARS" && $2 == m { print $3 }' "$SCRATCH/vars.tsv" 2>/dev/null || true)"
+         names="$(awk -F'\t' -v m="$model" '($1 == "VARS" || $1 == "DEF") && $2 == m { print $3 }' \
+                  "$SCRATCH/vars.tsv" 2>/dev/null || true)"
          local touched=0 v
          while IFS= read -r v; do
            [ -n "$v" ] || continue
-           case "$claim" in *"$v"*) touched=1 ;; esac
+           case " $claim " in *[^A-Za-z0-9_]"$v"[^A-Za-z0-9_]*) touched=1 ;; esac
          done <<<"$names"
          if [ "$touched" -eq 0 ]; then
-           printf '%s: the claim names neither ENABLED nor a variable, so it is level 0\n' "$id" >&2
+           printf '%s: the claim names no variable, no definition and no ENABLED, so it is level 0\n' "$id" >&2
            defects=$((defects+1))
          fi ;;
     esac
@@ -219,29 +307,50 @@ structural_defects() {
   printf '%s\n' "$defects"
 }
 
-# The variable list per model, written once so the structural half can read it
-# without a parse per row. render.sh resolves the module name to a path, which
-# is the lookup that must not be duplicated here.
+# The variable and definition names per model, written once so the structural
+# half can read them without a parse per row. render.sh resolves the module
+# name to a path, which is the lookup that must not be duplicated here.
+#
+# This is a TEXT scan and not a levels.sh run, on purpose: it costs no JVM and
+# it only has to answer whether the module declares the name at all. Which
+# names reach the screen is section 7's question and it pays a JVM for it.
 : > "$SCRATCH/vars.tsv"
-MODELS="$(awk -F'\t' '$1 == "ITEM" { print $12 }' "$ITEMS" | LC_ALL=C sort -u)"
+MODELS="$(awk -F'\t' '$1 == "ITEM" { print $12 }' "$SCOPED" | LC_ALL=C sort -u)"
 while IFS= read -r m; do
   [ -n "$m" ] || continue
   p="$("$RENDER" --model-path "$m" 2>/dev/null || true)"
   [ -n "$p" ] || continue
   awk -v m="$m" '
-    /^VARIABLES?[ \t]/ {
+    # CONSTANTS too, added 2026-10-18. The premise-leak check below needs the
+    # full declared vocabulary, and Key is a CONSTANT of two models while also
+    # being a module name, so a scan that knew only variables called it a leak.
+    /^CONSTANTS?[ \t]/ {
+      line = $0
+      sub(/^CONSTANTS?[ \t]+/, "", line)
+      n = split(line, c, /[ \t,]+/)
+      for (i = 1; i <= n; i++) if (c[i] != "") printf("CONST\t%s\t%s\n", m, c[i])
+      next
+    }
+    /^VARIABLES?[ \t]/ && !seenv {
+      seenv = 1
       line = $0
       sub(/^VARIABLES?[ \t]+/, "", line)
       n = split(line, v, /[ \t,]+/)
       for (i = 1; i <= n; i++) if (v[i] != "") printf("VARS\t%s\t%s\n", m, v[i])
-      exit
+      next
+    }
+    /^[A-Za-z_][A-Za-z0-9_]*[ \t]*(\([^)]*\))?[ \t]*==/ {
+      name = $0
+      sub(/[ \t]*(\([^)]*\))?[ \t]*==.*$/, "", name)
+      printf("DEF\t%s\t%s\n", m, name)
     }' "$p" >> "$SCRATCH/vars.tsv"
 done <<<"$MODELS"
 
 N_VARS="$(grep -c '^VARS' "$SCRATCH/vars.tsv" || true)"
+N_DEFS="$(grep -c '^DEF' "$SCRATCH/vars.tsv" || true)"
 N_MODELS="$(nonblank "$MODELS")"
 if [ "$N_VARS" -ge "$N_MODELS" ] && [ "$N_MODELS" -gt 0 ]; then
-  ok "$N_MODELS models resolved, $N_VARS variables read off their declarations"
+  ok "$N_MODELS models resolved, $N_VARS variables and $N_DEFS definitions read off their declarations"
 else
   bad "$N_MODELS models and $N_VARS variables, so a model did not resolve"
 fi
@@ -256,18 +365,25 @@ fi
 #    and cannot be called, and at 32 it sits below. This rung ships 48, where
 #    mindetect is 0.5705.
 # ---------------------------------------------------------------------------
-N_ITEMS="$(awk -F'\t' '$1 == "ITEM"' "$ITEMS" | grep -c . || true)"
+N_ITEMS="$(awk -F'\t' '$1 == "ITEM"' "$SCOPED" | grep -c . || true)"
 N_TPL="$(awk -F'\t' '$1 == "TPL"' "$TEMPLATES" | grep -c . || true)"
-SMALLEST_TPL="$(awk -F'\t' '$1 == "ITEM" { n[$3]++ } END { m = -1; for (t in n) if (m < 0 || n[t] < m) m = n[t]; print m }' "$ITEMS")"
-if [ "$SMALLEST_TPL" -ge 32 ]; then
-  ok "every template carries at least 32 items, the thinnest $SMALLEST_TPL and $N_ITEMS in all"
-else
-  bad "the thinnest template carries $SMALLEST_TPL items, under the 32 that makes a 0.67 artifact detectable"
+SMALLEST_TPL="$(awk -F'\t' '$1 == "ITEM" { n[$3]++ } END { m = -1; for (t in n) if (m < 0 || n[t] < m) m = n[t]; print m }' "$SCOPED")"
+if want_corpus; then
+  if [ "$SMALLEST_TPL" -ge 32 ]; then
+    ok "every template in scope carries at least 32 items, the thinnest $SMALLEST_TPL and $N_ITEMS in all"
+  else
+    bad "the thinnest template carries $SMALLEST_TPL items, under the 32 that makes a 0.67 artifact detectable"
+  fi
 fi
-if [ "$N_TPL" -ge 1 ]; then
-  ok "$N_TPL template, which is the pilot bead tla-7xql.4 scopes"
-else
-  bad "no template row at all"
+# THE COUNT IS A FLOOR AND NOT AN EQUALITY, deliberately. Frank sized the rung
+# at three on 2026-10-18 and a fourth would be a decision rather than a bug, so
+# this asserts that the table is populated and leaves the number to the bead.
+if want_machinery; then
+  if [ "$N_TPL" -ge 3 ]; then
+    ok "$N_TPL templates, which is the full set bead tla-7xql.13 ships"
+  else
+    bad "$N_TPL template rows, and the rung ships three"
+  fi
 fi
 
 TPL_DEFECTS=0
@@ -281,9 +397,9 @@ while IFS= read -r t; do
   if [ "${#idea}" -lt 40 ]; then
     printf '       template %s states no generating idea\n' "$t"; TPL_DEFECTS=$((TPL_DEFECTS+1))
   fi
-done < <(awk -F'\t' '$1 == "TPL" {print $2}' "$TEMPLATES")
+done <<<"$SEL_TPL"
 if [ "$TPL_DEFECTS" -eq 0 ]; then
-  ok "every template carries items and states its generating idea"
+  ok "every template in scope carries items and states its generating idea"
 else
   bad "$TPL_DEFECTS templates carry no items or state no idea"
 fi
@@ -291,12 +407,14 @@ fi
 # ---------------------------------------------------------------------------
 # 4. The structural half over the real corpus.
 # ---------------------------------------------------------------------------
-REAL_DEFECTS="$(structural_defects "$ITEMS" 2>"$SCRATCH/real.err")"
-if [ "$REAL_DEFECTS" = "0" ]; then
-  ok "every item carries a baked verdict, both tags, a pin and a state count"
-else
-  bad "$REAL_DEFECTS structural defects"
-  sed -n '1,20p' "$SCRATCH/real.err" | sed 's/^/       /'
+REAL_DEFECTS="$(structural_defects "$SCOPED" 2>"$SCRATCH/real.err")"
+if want_corpus; then
+  if [ "$REAL_DEFECTS" = "0" ]; then
+    ok "every item carries a baked verdict, both tags, a pin and a state count"
+  else
+    bad "$REAL_DEFECTS structural defects"
+    sed -n '1,20p' "$SCRATCH/real.err" | sed 's/^/       /'
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -312,7 +430,7 @@ while IFS= read -r t; do
       for (k in s) if (s[k] > top) top = s[k]
       printf "%d %d %d %d %.1f", n, s["right"], s["left"], s["down"],
         (n > 0) ? 100 * top / n : 0
-    }' "$ITEMS")"
+    }' "$SCOPED")"
   printf '       %s  %s items  right %s  left %s  down %s  base rate %s%%\n' \
     "$t" "$n" "$n_right" "$n_left" "$n_down" "$rate"
   if [ "$n_right" -lt 3 ] || [ "$n_left" -lt 3 ]; then
@@ -325,11 +443,13 @@ while IFS= read -r t; do
     printf '       %s has a base rate of %s%%, so one label carries the template\n' "$t" "$rate"
     MIX_DEFECTS=$((MIX_DEFECTS+1))
   fi
-done < <(awk -F'\t' '$1 == "TPL" {print $2}' "$TEMPLATES")
-if [ "$MIX_DEFECTS" -eq 0 ]; then
-  ok "every template carries right and left substantively, none above a 60% base rate"
-else
-  bad "$MIX_DEFECTS templates carry a degenerate mix"
+done <<<"$SEL_TPL"
+if want_corpus; then
+  if [ "$MIX_DEFECTS" -eq 0 ]; then
+    ok "every template in scope carries right and left substantively, none above a 60% base rate"
+  else
+    bad "$MIX_DEFECTS templates carry a degenerate mix"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -341,9 +461,15 @@ fi
 #    and $9 as a shell expansion that forgot its quotes. No line of this
 #    comment may START with the word shellcheck: a continuation line beginning
 #    with that word parses as a second directive.
+#
+#    MACHINERY. These damage a copy of the WHOLE corpus rather than of one
+#    template, because several of them target the first matching row and a
+#    scoped copy would silently move which row that is.
 # ---------------------------------------------------------------------------
 CTRL="$SCRATCH/ctrl"
 mkdir -p "$CTRL"
+
+if want_machinery; then
 
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && $5 == "true" && !d { $6 = "left"; d = 1 } { print }' \
   "$ITEMS" > "$CTRL/swipe-flip.tsv"
@@ -409,6 +535,35 @@ if [ "$d" = "$REAL_DEFECTS" ]; then
 else
   bad "control accept-state-predicate: added a defect ($(sed -n '1p' "$CTRL/accept.err"))"
 fi
+
+# A claim that names a DEFINITION and nothing else has to be accepted too.
+# That is the clause bead tla-7xql.13 added, and without a control on it the
+# clause is just a wider hole. ~(Push \/ Pop) names no variable and no
+# ENABLED, and it is exactly what a wronglevel item on Overlay looks like.
+awk -F'\t' -v OFS='\t' -v c='~(Push \\/ Pop)' \
+  '$1 == "ITEM" && $12 == "Overlay" && !d { $9 = c; d = 1 } { print }' \
+  "$ITEMS" > "$CTRL/accept-definition-only.tsv"
+d="$(structural_defects "$CTRL/accept-definition-only.tsv" 2>"$CTRL/accept-def.err")"
+if [ "$d" = "$REAL_DEFECTS" ]; then
+  ok "control accept-definition-only: accepted, so a bare action still reads as level 1"
+else
+  bad "control accept-definition-only: added a defect ($(sed -n '1p' "$CTRL/accept-def.err"))"
+fi
+
+# And the other end of the same clause. A claim naming a word that is neither
+# a variable nor a definition of ITS OWN model must still be rejected, so the
+# widening did not turn the check into an allowlist of every identifier.
+awk -F'\t' -v OFS='\t' -v c='~(Eliminate \\/ Push)' \
+  '$1 == "ITEM" && $12 == "Chameleons" && !d { $9 = c; d = 1 } { print }' \
+  "$ITEMS" > "$CTRL/claim-foreign-name.tsv"
+d="$(structural_defects "$CTRL/claim-foreign-name.tsv" 2>"$CTRL/foreign.err")"
+if [ "$d" != "$REAL_DEFECTS" ]; then
+  ok "control claim-foreign-name: rejected ($(sed -n '1p' "$CTRL/foreign.err"))"
+else
+  bad "control claim-foreign-name: accepted, so the definition clause reads another model's names"
+fi
+
+fi  # want_machinery, section 6
 
 # ---------------------------------------------------------------------------
 # 7. THE TRANSITIVE STRIP, which is the rule rendering one item exposed.
@@ -476,6 +631,17 @@ strip_defects() {
   printf '%s\n' "$defects"
 }
 
+# WHICH MODELS GET CACHED, AND WHY MACHINERY CACHES ONLY TWO. Each cached
+# model costs three levels.sh parses, which is three JVMs. A corpus row pays
+# for its own template's models and is the only mode that asserts anything
+# about them. The machinery row still needs a cache, because section 9's two
+# controls name a model each, so it caches exactly those and nothing else.
+if want_corpus; then
+  CACHE_MODELS="$MODELS"
+else
+  CACHE_MODELS="$(printf 'Brackets\nContention\n')"
+fi
+
 STRIP_DEFECTS=0
 while IFS= read -r m; do
   [ -n "$m" ] || continue
@@ -487,12 +653,14 @@ while IFS= read -r m; do
   lines="$(grep -cE '[^[:space:]]' "$SCRATCH/screen.$m" || true)"
   printf '       %-12s shown %-3s stripped %-3s screen %s nonblank lines\n' \
     "$m" "$sh_n" "$st_n" "$lines"
-done <<<"$MODELS"
-if [ "$STRIP_DEFECTS" -eq 0 ]; then
-  ok "every model screen is closed under use: no shown definition names a stripped one"
-else
-  bad "$STRIP_DEFECTS shown definitions name a stripped one"
-  cat "$SCRATCH"/err.* 2>/dev/null | sed -n '1,10p' | sed 's/^/       /'
+done <<<"$CACHE_MODELS"
+if want_corpus; then
+  if [ "$STRIP_DEFECTS" -eq 0 ]; then
+    ok "every model screen is closed under use: no shown definition names a stripped one"
+  else
+    bad "$STRIP_DEFECTS shown definitions name a stripped one"
+    cat "$SCRATCH"/err.* 2>/dev/null | sed -n '1,10p' | sed 's/^/       /'
+  fi
 fi
 
 # No obligation, and none of Init, Next or Spec, may be on a screen. That is
@@ -520,15 +688,17 @@ while IFS= read -r m; do
         D27_DEFECTS=$((D27_DEFECTS+1)) ;;
     esac
   done
-done <<<"$MODELS"
-if [ "$D27_DEFECTS" -eq 0 ]; then
-  ok "no screen shows an obligation, an Init, a Next or a Spec"
-else
-  bad "$D27_DEFECTS screens show something D2 or D7 withholds"
+done <<<"$CACHE_MODELS"
+if want_corpus; then
+  if [ "$D27_DEFECTS" -eq 0 ]; then
+    ok "no screen shows an obligation, an Init, a Next or a Spec"
+  else
+    bad "$D27_DEFECTS screens show something D2 or D7 withholds"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
-# 8. The strip, controlled on a fixture, in both directions.
+# 8. The strip, controlled on a fixture, in both directions. MACHINERY.
 #
 #    A model whose helper only an obligation uses, and a model whose helper an
 #    action uses. The first must be stripped and the second kept, and the two
@@ -538,6 +708,8 @@ fi
 # ---------------------------------------------------------------------------
 FX="$SCRATCH/fx"
 mkdir -p "$FX"
+
+if want_machinery; then
 
 cat > "$FX/StripA.tla" <<'TLA'
 ---- MODULE StripA ----
@@ -613,6 +785,8 @@ case " $A_SHOWN$B_SHOWN " in
   *) ok "Dead is shown nowhere: a definition no action reaches is not on the screen" ;;
 esac
 
+fi  # want_machinery, section 8
+
 # ---------------------------------------------------------------------------
 # 9. A CLAIM MAY ONLY NAME A DEFINITION THE SCREEN SHOWS.
 #
@@ -645,13 +819,20 @@ claim_leaks() {
   printf '%s\n' "$leaks"
 }
 
-LEAKS="$(claim_leaks "$ITEMS" 2>"$SCRATCH/leak.err")"
+if want_corpus; then
+LEAKS="$(claim_leaks "$SCOPED" 2>"$SCRATCH/leak.err")"
 if [ "$LEAKS" = "0" ]; then
   ok "no claim names a definition the screen withholds"
 else
   bad "$LEAKS claims name a withheld definition"
   sed -n '1,8p' "$SCRATCH/leak.err" | sed 's/^/       /'
 fi
+fi
+
+# The two controls below name a model each, which is why the machinery run
+# caches Brackets and Contention and nothing else. claim_leaks skips a row
+# whose model has no cached strip list, so the other rows cost nothing here.
+if want_machinery; then
 
 awk -F'\t' -v OFS='\t' '$1 == "ITEM" && $12 == "Brackets" && !d { $9 = "~ENABLED Next"; d = 1 } { print }' \
   "$ITEMS" > "$CTRL/claim-names-next.tsv"
@@ -671,16 +852,26 @@ else
   bad "control claim-names-shown: a shown action was read as a leak"
 fi
 
+fi  # want_machinery, section 9 controls
+
 # ---------------------------------------------------------------------------
 # 10. The TLC half. bake.sh --check confirms every stored verdict against the
 #     exit-code channel, and it is the only thing here that decides whether a
 #     verdict is right.
+#
+#     THIS IS WHERE THE ROW'S WALL CLOCK GOES, and it is the reason the run
+#     splits. The bake is scoped to the template in --template mode, so each
+#     registry row pays for its own 48 items and for nobody else's.
 # ---------------------------------------------------------------------------
-if out="$("$BAKE" --check 2>&1)"; then
-  ok "bake.sh --check confirms every stored verdict, every pin's type and every state count"
-else
-  bad "bake.sh --check rejected the stored verdicts"
-  sed -n '1,20p' <<<"$out" | sed 's/^/       /'
+if want_corpus; then
+  BAKE_ARGS=(--check)
+  if [ "$MODE" = "template" ]; then BAKE_ARGS+=(--template "$TEMPLATE"); fi
+  if out="$("$BAKE" "${BAKE_ARGS[@]}" 2>&1)"; then
+    ok "bake.sh --check confirms every stored verdict, every pin's type and every state count"
+  else
+    bad "bake.sh --check rejected the stored verdicts"
+    sed -n '1,20p' <<<"$out" | sed 's/^/       /'
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -690,7 +881,14 @@ fi
 #     pin or the witness, so the structural half passes and only the TLC half
 #     can catch it. A control that reddens the structural half first proves
 #     nothing about TLC, which is the trap the bead warns about.
+#
+#     MACHINERY, and every control names an E1 item. That is deliberate: the
+#     controls assert that the CHANNEL decides, not that any one template is
+#     right, so pinning them to one template keeps them stable while the
+#     corpus grows.
 # ---------------------------------------------------------------------------
+if want_machinery; then
+
 # A claim labeled true that is in fact false.
 awk -F'\t' -v OFS='\t' -v c='open > 99' \
   '$1 == "ITEM" && $2 == "L1-E1-01" { $9 = c } { print }' \
@@ -772,15 +970,19 @@ else
   ok "bake.sh --check refuses a selection that matched no item"
 fi
 
+fi  # want_machinery, section 11
+
 # ---------------------------------------------------------------------------
 # 12. THE CHANNEL ITSELF, re-measured. Five fixtures, one per row, driven
 #     through verdict.sh without going near bake.sh.
 #
 #     The five numbers are what every stored verdict in the corpus means, so a
 #     TLC that renumbers one of them has to turn this red rather than quietly
-#     relabel 48 items. That is the same job the \div tripwire does for level
-#     0 and the toolchain pin does for the registry.
+#     relabel 144 items. That is the same job the \div tripwire does for level
+#     0 and the toolchain pin does for the registry. MACHINERY.
 # ---------------------------------------------------------------------------
+if want_machinery; then
+
 cat > "$FX/Chan.tla" <<'TLA'
 ---- MODULE Chan ----
 EXTENDS Integers
@@ -853,6 +1055,8 @@ else
   bad "ENABLED Step = TRUE came back rc $rc rather than 150, so the unparsed items no longer test one"
 fi
 
+fi  # want_machinery, section 12
+
 # ---------------------------------------------------------------------------
 # 13. Every kind the channel names is shipped, or recorded as unshipped.
 #
@@ -860,7 +1064,13 @@ fi
 #     written here. A list written here would allowlist whatever it already
 #     knows. A seventh kind added to the bake reddens this until the table and
 #     the corpus both catch up.
+#
+#     MACHINERY, because "shipped" is a statement about the whole corpus. A
+#     per-template run would read every kind the OTHER templates carry as
+#     unshipped, and the three rungs do not each have to carry all six.
 # ---------------------------------------------------------------------------
+if want_machinery; then
+
 KIND_DEFECTS=0
 BAKE_KINDS="$(awk '
   /^swipe_for\(\) \{/ { inb = 1; next }
@@ -929,6 +1139,8 @@ else
   bad "$KIND_DEFECTS kinds are neither shipped nor recorded"
 fi
 
+fi  # want_machinery, section 13
+
 # ---------------------------------------------------------------------------
 # 14. THE STEM-BLIND INSTRUMENT REACHES THIS RUNG.
 #
@@ -941,9 +1153,16 @@ fi
 #     The surface here is the claim AND the pin, which is what varies per
 #     item. ENABLED Pop says nothing without the pin under it, and the model
 #     is the premise Gururangan's hypothesis-only classifier withholds.
+#
+#     THE PROBE IS PER TEMPLATE AND ALWAYS WAS, inside stemblind.sh's own awk.
+#     What the --template flag changes here is only which templates a row
+#     reports on, so the three corpus rows together print the three PROBE
+#     lines one unsplit run printed.
 # ---------------------------------------------------------------------------
+if want_corpus; then
+
 STEMS="$SCRATCH/stems.tsv"
-if "$SB" emit --items "$ITEMS" --surface "$SURFACE" --out "$STEMS" 2>"$SCRATCH/emit.err"; then
+if "$SB" emit --items "$SCOPED" --surface "$SURFACE" --out "$STEMS" 2>"$SCRATCH/emit.err"; then
   ok "stemblind emit writes a stem file for the level 1 corpus"
 else
   bad "stemblind emit refused the level 1 corpus: $(cat "$SCRATCH/emit.err")"
@@ -966,7 +1185,9 @@ else
   bad "STEM rows with the wrong field count: $wrongwidth"
 fi
 
-idleak="$(grep -oE 'L1-E1-[0-9]+' "$STEMS" || true)"
+# The pattern reads every template rather than E1, so a fourth one is covered
+# the day it lands instead of the day somebody remembers this line.
+idleak="$(grep -oE 'L1-E[0-9]+-[0-9]+' "$STEMS" || true)"
 if [ -z "$idleak" ]; then
   ok "no item id appears anywhere in the stem file"
 else
@@ -1027,15 +1248,40 @@ else
   bad "the stem file carries the flash of:$flashleak"
 fi
 
+# A MODEL NAME THAT IS ALSO SOMEBODY'S DECLARED IDENTIFIER CANNOT BE SCANNED
+# FOR, and this check reported a leak that was not one until 2026-10-18.
+#
+# The corpus holds reading/state-space/04-key/Key.tla, so Key is a module
+# name. It is ALSO a CONSTANT declared by Overlay.tla and by Ledger.tla, and
+# seven E2 and E3 items quantify over it: \A k \in Key : ~ENABLED Hit(k).
+# A fixed-string scan for "Key" matches that and calls it a premise leak.
+#
+# It is not one. A level 1 claim cannot be written without naming its own
+# model's vocabulary, so an identifier appearing in a stem is necessary rather
+# than gratuitous. Key.tla declares CONSTANT Staff and no constant of its own
+# name, so nothing about Key.tla reaches a judge here.
+#
+# So the scan skips a model name that any corpus model DECLARES, and PRINTS
+# the names it skipped. A silent exclusion is how this check would stop
+# covering the one thing it is for.
+declared_ids="$(awk -F'\t' '{ print $3 }' "$SCRATCH/vars.tsv" | LC_ALL=C sort -u)"
 modelleak=""
+modelskip=""
 while IFS= read -r m; do
   [ -n "$m" ] || continue
+  if grep -qx -- "$m" <<<"$declared_ids"; then
+    modelskip="$modelskip $m"
+    continue
+  fi
   if grep -Fq -- "$m" "$STEMS"; then modelleak="$modelleak $m"; fi
 done <<<"$MODELS"
 if [ -z "$modelleak" ]; then
   ok "no model name reaches the stem file, so the premise really is withheld"
 else
   bad "the stem file names the model, which is the premise:$modelleak"
+fi
+if [ -n "$modelskip" ]; then
+  printf '  NOTE  not scanned, the name is a declared identifier of some model:%s\n' "$modelskip"
 fi
 
 # The probe itself. It runs on every full gate, which is what makes this a
@@ -1072,6 +1318,8 @@ if "$SB" probe --items "$CTRL/planted.tsv" >/dev/null 2>&1; then
 else
   bad "the default surface flagged a plant that only sits in field 13"
 fi
+
+fi  # want_corpus, section 14
 
 printf '\n%s passed, %s failed, %s skipped\n' "$PASS" "$FAIL" "$SKIP"
 [ "$FAIL" -eq 0 ]
