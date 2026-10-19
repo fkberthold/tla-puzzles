@@ -93,7 +93,7 @@
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
 #   fast   0.5 s  harness/test-deliver-verify.sh          (added, bead tla-mjvx)
 #   fast  12.0 s  harness/test-swipe-stemblind.sh         (re-based, bead tla-7xql.7)
-#   fast   1.0 s  harness/test-swipe-reader.sh            (added, bead tla-7xql.12)
+#   fast   3.0 s  harness/test-swipe-reader.sh --static  (split, bead tla-7xql.14)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
@@ -112,12 +112,20 @@
 #   slow  62.0 s  harness/test-swipe-level0.sh           (re-based, bead tla-7xql.7)
 #   slow  74.0 s  harness/test-swipe-enabled.sh          (added, bead tla-7xql.4)
 #   slow  81.0 s  harness/test-swipe-subscript.sh        (added, bead tla-7xql.5)
+#   slow  22.0 s  harness/test-swipe-reader.sh           (split, bead tla-7xql.14)
 #   ----  ------
-#         82.1 s  fast tier, 30 suites   (measured --fast totals: 26.9 s at 18,
+#         84.1 s  fast tier, 30 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
-#       1122.8 s  slow tier, 18 suites
-#       1038.3 s  whole registry
+#       1144.8 s  slow tier, 19 suites
+#       1228.9 s  budgeted whole registry
+#
+# THE TWO TIER FIGURES ARE SUMS OF THE BUDGETS BELOW AND THE OLD THIRD LINE
+# WAS NOT. It read "1038.3 s whole registry" against a fast plus slow of
+# 1204.9, so it was a measured wall clock sitting in a column of budgets and
+# nothing said which. Relabeled rather than corrected, because both numbers
+# are true about different things: a budget carries a margin and a run does
+# not. The measured whole-registry readings are in the notes further down.
 #
 # THE TWO RECALL ROWS are bead tla-1sh7.4's, 2026-10-16, and together they are
 # 130.4 s on top of the 479.4 this table read the day before. That is the
@@ -977,21 +985,32 @@ SUITES=(
   "fast|12.0|swipe stem-blind gate|./harness/test-swipe-stemblind.sh"
   # THE SWIPE READER GATE, bead tla-7xql.12, 2026-10-18. The corpus shipped
   # with no interface, which was tla-rrwl's shape a second time. This row
-  # holds the published page honest: 240 items reach it, the four withheld
-  # fields do not, every claim round-trips byte for byte, and the generator
-  # really publishes the page rather than this suite agreeing with itself.
-  # FAST, and for the registry's stated reason rather than the clock: it
-  # starts no JVM. Sampled for a running tla2tools.jar at 200 ms through a
-  # whole run, 0 hits.
-  # 383 / 396 / 377 ms at load 1.5 to 2.2, so 1.0 is 2.5x the slowest. The
-  # margin is deliberate rather than lazy: the suite runs scripts/build-docs.sh
-  # twice in a mini-repo and a slow disk moves that more than the box does.
-  # IT CAN SKIP 11 ASSERTIONS. Part 5 needs a JavaScript runtime to drive the
-  # import refusals. Frank's box has one and so does the CI runner, so it runs
-  # in both. Where it does not, the row prints SKIP and part 6 reports how
-  # many, which is the pass-over-skipped-work rule this project already has a
-  # bead open on at tla-x5vl.
-  "fast|1.0|swipe reader and its payload|./harness/test-swipe-reader.sh"
+  # holds the published page honest: every shipped item reaches it, the
+  # withheld fields do not, every claim round-trips byte for byte, and the
+  # generator really publishes the page rather than this suite agreeing with
+  # itself.
+  #
+  # IT SPLIT IN TWO ON 2026-10-19, bead tla-7xql.14, and the split is the one
+  # harness/test-drill.sh and harness/test-completion-gate.sh already use.
+  # The reader now serves all three rungs, and the pinned rungs put a MODEL
+  # SCREEN on the page. Those screens are baked into
+  # swipe/reader/SCREENS.tsv, and tying the committed file to the renderers
+  # that wrote it means running swipe/level1/render.sh over 24 models, which
+  # is 24 JVMs. So the freshness pass is its own slow row below and --static
+  # is everything else.
+  #
+  # FAST, and for the registry's stated reason rather than the clock: under
+  # --static it starts no JVM. 1.15 / 1.17 / 1.25 s at load 0.4, so 3.0 is
+  # 2.4x the slowest. It read 383 ms at level 0 alone; the payload went from
+  # 52 KB to 139 KB and the suite from 43 assertions to 83. The margin is
+  # deliberate rather than lazy: the suite runs scripts/build-docs.sh three
+  # times in a mini-repo and a slow disk moves that more than the box does.
+  # IT CAN SKIP 14 ASSERTIONS. Part 6 needs a JavaScript runtime to drive the
+  # import refusals and the bucket split. Frank's box has one and so does the
+  # CI runner, so it runs in both. Where it does not, the row prints SKIP and
+  # part 8 reports how many, which is the pass-over-skipped-work rule this
+  # project already has a bead open on at tla-x5vl.
+  "fast|3.0|swipe reader and its payload|./harness/test-swipe-reader.sh --static"
   # THE FAST HALF OF THE DRILL GATE, added by bead tla-0eis.3. It asks ONE
   # question of the real drill/ tree — is the corpus STRUCTURALLY sound — by
   # running harness/drill-gate.sh --static-only, which runs check 1, check 3
@@ -1666,6 +1685,34 @@ SUITES=(
   # here carry model values, so every pin run binds a constant, and the probe
   # runs 1000 permutations three times rather than once.
   "slow|81.0|level 2 subscript swipe corpus|./harness/test-swipe-subscript.sh"
+  # THE SWIPE READER'S SCREEN FRESHNESS, bead tla-7xql.14, 2026-10-19. The
+  # slow half of the row above. It re-renders every model screen the two
+  # pinned corpora reach and requires swipe/reader/SCREENS.tsv to match byte
+  # for byte.
+  #
+  # WHY THE COMMITTED FILE EXISTS AT ALL, since a committed derived artifact
+  # is a drift surface and this row is the cost of having one.
+  # .github/workflows/pages.yml installs Python and mkdocs-material and
+  # nothing else. There is no Java on the deploy runner, so a
+  # scripts/build-docs.sh that rendered a screen would fail on the DEPLOY and
+  # scripts/cibuild would never see it, because cibuild does install the
+  # toolchain. Baking the screens moves the JVM from the deploy to here.
+  #
+  # SLOW, because 24 models is 24 JVMs: swipe/level1/render.sh drives
+  # harness/levels/levels.sh, which reads SANY's semantic tree. 0.49 s per
+  # model measured on its own.
+  #
+  # Quiet box at load 0.4, two back-to-back runs of the whole suite:
+  # 13.18 / 13.06 s, against 1.2 s for the same suite under --static. So the
+  # render is 12 s of it and 22.0 clears the slowest by 67%. The margin is
+  # wider than the other swipe rows because a JVM start is the thing that
+  # moves most under load, and there are 24 of them in series.
+  #
+  # IT RUNS THE STATIC HALF AGAIN, which is 1.2 s of duplicated work rather
+  # than a flag to turn it off. A freshness pass whose payload assertions did
+  # not run would report a current SCREENS.tsv against a payload nobody
+  # checked, and that is 1.2 s to not have to think about.
+  "slow|22.0|swipe reader screen freshness|./harness/test-swipe-reader.sh"
 )
 
 # Budget-drift nudge. See "WHY A WARNING AND NOT A FAILURE" in the header

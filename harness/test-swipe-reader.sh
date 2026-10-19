@@ -200,6 +200,23 @@ fi
 # already looks right is the defect this suite exists to catch, wearing the
 # uniform of its own fix.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# find_one <name>
+#
+# The first path a find turns up, by parameter expansion rather than through
+# `| head -1`. A producer piped into an early-exiting consumer returns 141
+# under pipefail: head closes the pipe after one line, sort takes SIGPIPE, and
+# inside an `if` that reads as a clean false rather than as an error.
+# harness/test-pipefail.sh bans the idiom across the tree and caught four
+# sites in this file.
+# ---------------------------------------------------------------------------
+find_one() {
+  local hits
+  hits="$(find reading -name "$1" -type f | LC_ALL=C sort)"
+  [ -n "$hits" ] || return 0
+  printf '%s\n' "${hits%%$'\n'*}"
+}
+
 item_lines() {
   awk '
     /^[[:space:]]*"items": \[/ { inside = 1; next }
@@ -813,7 +830,8 @@ if diff -q "$want_keys_file" "$got_keys_file" > /dev/null 2>&1; then
   ok "the payload publishes exactly the $screen_count screens the corpora reach"
 else
   nope "the published screens do not match the models the corpora name:"
-  diff "$want_keys_file" "$got_keys_file" | head -6 | sed 's/^/          /'
+  diff "$want_keys_file" "$got_keys_file" > "$TMP_ROOT/screens.diff" 2>&1 || true
+  sed -n "1,6p" "$TMP_ROOT/screens.diff" | sed "s/^/          /"
 fi
 
 blank_screens=$(awk -F'\t' '$2 + 0 < 1 { n += 1 } END { print n + 0 }' <<<"$screen_rows")
@@ -837,7 +855,7 @@ d2_out="$TMP_ROOT/d2.out"
 while IFS=$'\t' read -r key _; do
   [ -n "$key" ] || continue
   model="${key#*:}"
-  cfg="$(find reading -name "$model.cfg" -type f | LC_ALL=C sort | head -1)"
+  cfg="$(find_one "$model.cfg")"
   if [ -z "$cfg" ]; then
     printf '%s: no .cfg beside the module, so its obligations could not be read\n' "$key" >> "$d2_out"
     continue
@@ -887,7 +905,7 @@ ctrl_hits=0
 while IFS=$'\t' read -r key _; do
   [ -n "$key" ] || continue
   model="${key#*:}"
-  tla="$(find reading -name "$model.tla" -type f | LC_ALL=C sort | head -1)"
+  tla="$(find_one "$model.tla")"
   cfg="${tla%.tla}.cfg"
   if [ ! -f "$tla" ] || [ ! -f "$cfg" ]; then
     continue
@@ -1369,7 +1387,8 @@ else
     ok "swipe/reader/SCREENS.tsv is byte for byte what the renderers produce ($(grep -c '^SCREEN' "$FRESH") lines)"
   else
     nope "swipe/reader/SCREENS.tsv is stale. Run swipe/reader/render-screens.sh:"
-    diff "$COMMITTED" "$FRESH" | head -8 | sed 's/^/          /'
+    diff "$COMMITTED" "$FRESH" > "$TMP_ROOT/screens-fresh.diff" 2>&1 || true
+    sed -n "1,8p" "$TMP_ROOT/screens-fresh.diff" | sed "s/^/          /"
   fi
 fi
 
