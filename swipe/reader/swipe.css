@@ -20,25 +20,35 @@
  *   the level 2 pin                    4 to 7 rows, pre and post and binds
  *   the longest claim                  80 characters
  *
- * 29 lines of monospace is about 480 pixels at a readable size, and 73
- * characters does not fit 390 CSS pixels at any readable size at all. So the
- * model, the pin, the claim and the three buttons cannot share one viewport,
- * and a layout that lets them try puts the question below the fold.
+ * The theme sets 1rem to 20px, so a rem here is 20 pixels and not 16. 29
+ * lines of monospace at 0.76rem and a 1.45 line height is 638 pixels, and 73
+ * characters does not fit 390 CSS pixels at any readable size at all. The
+ * level 2 pin adds 7 rows and three labels on top of that. So the model, the
+ * pin, the claim and three buttons cannot share one viewport.
  *
- * Two rules make the question's position independent of the model's length.
+ * AND THE PAGE AROUND THE READER IS NOT MEASURABLE FROM HERE. mkdocs-material
+ * puts a 2.4rem sticky header, an h1 and a lead-in paragraph above
+ * #swipe-app. Bead tla-7xql.12 measured the level 0 answer row landing at
+ * 812 pixels of 844, which works back to roughly 400 pixels of page above the
+ * app, but that number is the theme's and it moves with the theme. A layout
+ * that budgets against it is a layout that is wrong after the next bump.
  *
- * ONE. .swipe-screen-body is capped in VIEWPORT units and scrolls inside
- * itself, both ways. 30vh is 253 pixels at 844, which is 15 of Shelves's 29
- * lines. The cap is the point: whatever the model is, the pin and the claim
- * start at the same place. No wrapping, because an indented conjunction list
- * that wraps loses the alignment that says which conjuncts belong to which
- * action, so the body scrolls sideways instead. swipe.js declines a swipe
- * that starts in there, since otherwise reading along a line would answer
- * the item.
+ * So the budget is not arithmetic. It is two rules.
  *
- * TWO. .swipe-answers is STICKY to the bottom of the viewport. The three
- * buttons are then reachable whatever is above them, and the whole class of
- * "the buttons went below the fold" failures stops depending on arithmetic.
+ * ONE. THE QUESTION IS DOCKED. .swipe-card holds the ask, the claim and the
+ * three answer buttons, and it is stuck to the bottom of the viewport.
+ * Whatever sits above it, and however tall that is, the reader can read the
+ * question and answer it without scrolling. The pin is deliberately NOT in
+ * there: it is premise, and a 7-row level 2 pin would make the dock taller
+ * than half the screen.
+ *
+ * TWO. THE PREMISE SCROLLS, and one model cannot push another layout around.
+ * .swipe-screen-body is capped in VIEWPORT units and scrolls inside itself
+ * both ways. 26vh is 219 pixels at 844, which is 9 of Shelves's 29 lines. No
+ * wrapping, because an indented conjunction list that wraps loses the
+ * alignment that says which conjuncts belong to which action, so the body
+ * scrolls sideways instead. swipe.js declines a swipe that starts in there,
+ * since otherwise reading along a line would answer the item.
  *
  * The panel is collapsible on top of that, which is the reader's own lever
  * rather than a rule: once the model has been read, collapsing it gives the
@@ -132,13 +142,14 @@
   opacity: 0.6;
 }
 
-/* THE CAP AND THE SCROLL. See the height budget in the header. 30vh at 844
-   is 253 pixels, which is 15 lines at this size. `pre` rather than `pre-wrap`
-   because a wrapped conjunction list loses its alignment. */
+/* THE CAP AND THE SCROLL. See the height budget in the header. 26vh at 844
+   is 219 pixels, which is 9 lines at this size and a line height of 1.45.
+   `pre` rather than `pre-wrap` because a wrapped conjunction list loses its
+   alignment. */
 .swipe-screen-body {
   margin: 0;
   padding: 0 0.7rem 0.6rem;
-  max-height: 30vh;
+  max-height: 26vh;
   overflow: auto;
   font-family: var(--md-code-font-family, monospace);
   font-size: 0.76rem;
@@ -148,7 +159,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* ---- the card ---- */
+/* ---- the card, which is the question dock ---- */
 
 .swipe-card,
 .swipe-flash,
@@ -166,9 +177,18 @@
   gap: 0.6rem;
 }
 
-/* A level 0 card is a claim on its own and looks lost without a floor under
-   it. A pinned card is never short, so the floor only ever applies to the
-   rung it was measured for. */
+/* RULE ONE OF THE HEIGHT BUDGET. The ask, the claim and the three buttons
+   stay on the viewport floor whatever is above them, so the question is
+   never the thing a reader has to scroll to find. The background is opaque
+   on purpose: a translucent dock over a line of TLA+ reads as neither. */
+.swipe-card {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+/* A flash or a panel is the whole screen for a moment, so it gets a floor.
+   The dock does not: its height is the question and nothing else. */
 .swipe-flash,
 .swipe-review,
 .swipe-stats,
@@ -294,24 +314,15 @@
   gap: 0.6rem;
 }
 
-/* Three answers across the bottom, equal width, tall enough to hit with a
-   thumb without looking. 3rem is above the 44px floor every mobile platform
-   publishes for a touch target.
-
-   STICKY IS THE SECOND OF THE TWO HEIGHT RULES. The buttons stay on the
-   viewport floor whatever is above them, so the model screen can be as tall
-   as its cap allows and the answer is still one thumb away. The background
-   is opaque on purpose: a transparent sticky row over a line of TLA+ reads
-   as neither. */
+/* Three answers across the bottom of the dock, equal width, tall enough to
+   hit with a thumb without looking. 3rem is 60 pixels at this theme's root
+   size, well above the 44 pixel floor every mobile platform publishes for a
+   touch target. The dock is what makes them reachable, so nothing here
+   positions them. */
 .swipe-answers {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  padding: 0.4rem 0;
-  background: var(--md-default-bg-color);
 }
 
 .swipe-menu {

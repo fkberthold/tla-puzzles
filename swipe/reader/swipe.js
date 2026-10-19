@@ -48,16 +48,24 @@
  * reader does not need both halves at once either: the epic's mechanic is
  * "a model, then a stream of single lines", ten to twenty lines per model.
  *
- * So three things, and swipe.css carries the numbers:
+ * THE PAGE AROUND THE READER IS NOT MEASURABLE FROM HERE. mkdocs-material
+ * puts a sticky header, an h1 and a lead-in paragraph above #swipe-app, and
+ * how tall that is depends on the theme version, the font and the viewport.
+ * A layout that budgets for it is a layout that is wrong after the next
+ * theme bump. So the design does not budget for it:
  *
- *   The model screen is a COLLAPSIBLE panel, capped in viewport units and
- *   scrolling inside itself both ways. Its height does not depend on how
- *   long the model is, so the question below it never moves.
+ *   THE QUESTION IS DOCKED. The ask, the claim and the three answer buttons
+ *   sit in one block stuck to the bottom of the viewport. Whatever is above
+ *   them, and however tall it is, the reader can read the question and
+ *   answer it without scrolling. That is an invariant rather than an
+ *   arithmetic result, which is the only kind worth having here.
  *
- *   The answer row is STICKY to the bottom of the viewport, so the three
- *   buttons are reachable whatever is above them.
+ *   THE PREMISE SCROLLS. The model screen and the pin sit above the dock and
+ *   move with the page. The screen is a collapsible panel, capped in
+ *   viewport units and scrolling inside itself both ways, so one model can
+ *   never push another layout around.
  *
- *   The stream is served in BUCKETS, one per level and model, so the screen
+ *   THE STREAM IS SERVED IN BUCKETS, one per level and model, so the screen
  *   stays put across a run of items and the reader reads it once.
  *
  * A sideways scroll of the model and a left swipe are then two gestures on
@@ -605,11 +613,15 @@
     } else if (v.flash) {
       v.root.appendChild(renderFlash());
     } else if (v.current) {
-      /* The premise above the question, in that order, because a reader who
-         meets the claim first has to scroll back up to evaluate it. */
+      /* The premise first and the question last, which is both the reading
+         order and the stacking order: the premise scrolls and the question
+         is docked to the bottom of the viewport. */
       var screen = renderScreen(v.current);
       if (screen) {
         v.root.appendChild(screen);
+      }
+      if (v.current.level !== 0) {
+        v.root.appendChild(renderPin(v.current));
       }
       v.root.appendChild(renderCard());
     } else {
@@ -731,26 +743,32 @@
     return g;
   }
 
-  /* THE CARD WRITES THE ASK TAG, THE PIN AND THE CLAIM AND NOTHING ELSE. No
-     item id, for the reason in this file's header, and no template name
-     either: the claim already says what family it is in and the tag is the
-     only label decision D5 asks for. */
+  /* THE CARD IS THE DOCK, and it writes the ask tag, the claim and the three
+     answer buttons and nothing else. No item id, for the reason in this
+     file's header, and no template name either: the claim already says what
+     family it is in and the tag is the only label decision D5 asks for.
+
+     The pin is NOT in here. It is premise, it scrolls, and a 7-row level 2
+     pin inside the dock would be a dock taller than half the viewport. */
   function renderCard() {
     var v = view;
     var item = v.current;
     var card = el("div", "swipe-card");
     card.setAttribute("data-swipe-card", "1");
 
-    if (item.level !== 0) {
-      card.appendChild(renderPin(item));
-    }
     card.appendChild(el("p", "swipe-ask", PROMPTS[item.ask] || item.ask));
     card.appendChild(el("pre", "swipe-claim", item.claim));
-    card.appendChild(el("p", "swipe-hint",
-      item.level === 0
-        ? "Swipe right if it holds, left if it is false, down if it is not a " +
-          "true-or-false claim at all. Swipe up for the last one you got wrong."
-        : "Right holds, left false, down not a claim. Up for the last miss."));
+
+    var answers = el("div", "swipe-answers");
+    for (var i = 0; i < SWIPES.length; i++) {
+      answers.appendChild(answerButton(SWIPES[i]));
+    }
+    card.appendChild(answers);
+
+    /* One line, and short, because every pixel here is a pixel of premise
+       the reader does not get. The long form is on the page itself and in
+       the status block on a cold start. */
+    card.appendChild(el("p", "swipe-hint", "up for the last one you got wrong"));
     return card;
   }
 
@@ -919,15 +937,12 @@
     return box;
   }
 
+  /* The menu, which is everything that is not an answer. The three answer
+     buttons live in the dock with the claim, so they cannot be scrolled away
+     from the question they answer. */
   function renderControls() {
     var v = view;
     var box = el("div", "swipe-controls");
-
-    var answers = el("div", "swipe-answers");
-    for (var i = 0; i < SWIPES.length; i++) {
-      answers.appendChild(answerButton(SWIPES[i]));
-    }
-    box.appendChild(answers);
 
     var menu = el("div", "swipe-menu");
 

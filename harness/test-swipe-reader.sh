@@ -1191,15 +1191,19 @@ fi
 #
 # No browser runs here, so these are text checks over the CSS. They are worth
 # having anyway, because the regression they catch is the one that makes the
-# channel unusable while every other check stays green: a 29-line model screen
-# that is allowed to grow pushes the claim and the answer buttons past the
-# fold of a 390x844 phone, and the reader then scrolls to find the question on
-# every single item.
+# channel unusable while every other check stays green: a reader who has to
+# scroll to find the question does it on every single item.
 #
-# Two rules hold the budget. The screen box is capped in viewport units and
-# scrolls inside itself, so its height does not depend on how long the model
-# is. The answer row is sticky to the bottom, so the three buttons are
-# reachable whatever is above them.
+# Two rules hold the budget, and neither is arithmetic. THE QUESTION IS
+# DOCKED: .swipe-card carries the ask, the claim and the three buttons and is
+# stuck to the bottom of the viewport, so its position does not depend on the
+# theme's header, the h1, the lead-in or the model. THE PREMISE SCROLLS: the
+# screen box is capped in viewport units and scrolls inside itself, so one
+# long model cannot push another layout around.
+#
+# The dock is the reason the arithmetic is not here. mkdocs-material puts
+# about 400 pixels of page above #swipe-app on a 390x844 phone, and that
+# number is the theme's rather than ours.
 # ---------------------------------------------------------------------------
 screen_rule=$(awk '/^\.swipe-screen-body/, /^\}/' "$CSSCODE")
 if grep -qE 'max-height:[^;]*vh' <<<"$screen_rule" && grep -qE 'overflow' <<<"$screen_rule"; then
@@ -1208,11 +1212,27 @@ else
   nope "the model screen has no viewport-relative cap, so a long model pushes the question past the fold"
 fi
 
-answers_rule=$(awk '/^\.swipe-answers/, /^\}/' "$CSSCODE")
-if grep -q 'position: sticky' <<<"$answers_rule"; then
-  ok "the answer row is sticky, so the three buttons cannot go below the fold"
+dock_rule=$(awk '/^\.swipe-card \{/, /^\}/' "$CSSCODE")
+if grep -q 'position: sticky' <<<"$dock_rule" && grep -q 'bottom: 0' <<<"$dock_rule"; then
+  ok "the question is docked to the bottom of the viewport"
 else
-  nope "the answer row is not sticky, so the buttons move with the content above them"
+  nope "the card is not docked, so the claim and the buttons move with whatever is above them"
+fi
+
+# THE PIN MUST NOT BE IN THE DOCK. A level 2 pin is up to 7 rows under three
+# labels, which is more than half the dock's own height, and a dock that tall
+# is a dock that has eaten the premise it exists to leave room for.
+card_body=$(awk '/^  function renderCard\(\)/, /^  }$/' "$CODE")
+if grep -qE 'renderPin\(' <<<"$card_body"; then
+  nope "renderCard() puts the pin in the dock, which makes the dock taller than the premise"
+else
+  ok "renderCard() keeps the pin out of the dock, so the dock is the question and nothing else"
+fi
+
+if grep -qE 'swipe-answers' <<<"$card_body"; then
+  ok "the three answer buttons are inside the dock, beside the claim they answer"
+else
+  nope "the answer buttons are outside the dock, so they can be scrolled away from the claim"
 fi
 
 if grep -qE 'white-space:[[:space:]]*pre[^-]' <<<"$screen_rule"; then
