@@ -64,6 +64,7 @@
 #   a prompt on argv     the prompt goes positional instead of on stdin
 #   a styled half-run    the register gate drops out and it ships anyway
 #   a hinted half-run    the sheet gate drops out and it ships anyway
+#   a sheet in a check   the hint-only gate falls open and --check ships it
 #
 # A mutant that passes means the row above it is vacuous. That is a stronger
 # control than a planted fixture, because it exercises the real code path with
@@ -2225,13 +2226,17 @@ if mutate pointer-escapes 's|^POINTER="\$HERE/LAST-SERVED"$|POINTER="$HERE/../LA
   fi
 fi
 
-# M5 AND M6 EXIST FOR A REASON THE OTHER FOUR DO NOT HAVE. Two of part 4b's
+# M5 AND M6 EXIST FOR A REASON THE OTHERS DO NOT HAVE. Two of part 4b's
 # rows are NEGATIVE: a failed creation still exits 0, and a serve over an
 # existing directory does not claim to have created it. Both of those hold
 # over a runner with no study directory at all, which is exactly what they
 # held over the day before this feature landed. A negative row needs a runner
 # that gets it wrong, or it is green over nothing for the rest of the file's
 # life.
+#
+# That first line read "the other four" until 2026-10-20, written when six of
+# these existed. A count in a comment is one mutant away from being wrong and
+# no row reads it, so it names the set instead of sizing it.
 #
 # M5. a creation that fails takes the serve down with it.
 # shellcheck disable=SC2016
