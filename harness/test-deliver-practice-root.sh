@@ -5,20 +5,32 @@
 # Exit:   0 if every assertion holds, 1 otherwise.
 #
 # ---------------------------------------------------------------------------
-# THE TWO HALVES OF THE INVARIANT
+# THE THREE HALVES OF THE INVARIANT, and the third arrived with bead tla-azwl.
 #
-# The bead states it as one line and it is two claims:
+# Bead tla-xbbb stated it as one line and it was two claims:
 #
 #   every claim ~/tla-practice/README.md makes about a directory name
 #   resolves against the delivered tree, and the file has a source in this
 #   repo that the spelling gate reads.
 #
-# The second half is a structural check and it is cheap: part 5 asserts that
-# practice/README.md is tracked and that harness/test-spelling.sh walks the
-# root it sits under. Before this bead the file had no source at all, so that
-# assertion was red by construction.
+# Bead tla-azwl added the reverse of the first, and it reads as a second line
+# rather than a restatement:
 #
-# The first half is the real work and part 3 does it. The source README names
+#   every directory the delivered tree can hold is either described in
+#   practice/README.md or recorded there as having its own entry point.
+#
+# The two directions say nothing about each other. A README naming only
+# problems/ satisfies the first and fails the second. One naming every
+# directory in the tree and spelling one of them wrong does the opposite. So
+# each gets its own assertion, in part 3 and part 4, and a green run on one is
+# not evidence about the other.
+#
+# The structural claim is a cheap check and part 6 does it: practice/README.md
+# is tracked and harness/test-spelling.sh walks the root it sits under. Before
+# tla-xbbb the file had no source at all, so that assertion was red by
+# construction.
+#
+# The first direction is the older work and part 3 does it. The source README names
 # directories in the practice tree, and a reader acts on those names. When the
 # tree moves and the prose does not, the file lies to the one person using it.
 # One read on 2026-10-18 found three stale claims at once, and the live batch
@@ -50,18 +62,31 @@
 # prose. Same shape as the conflict counts in the never-overwrite channels:
 # counted, named on every run, out of the exit code.
 #
-# THE DIRECTORIES THE README NEVER NAMES ARE A NUDGE, NOT A GATE. The
-# delivered tree holds drill, recall, exercises and completion and the README
-# explains none of them. Whether it should is Frank's call, so this prints the
-# list on every run and does not fail. Loom's conventions draw that line at
-# "is a human supposed to weigh in".
+# THE DIRECTORIES THE README NEVER NAMES WERE A NUDGE AND ARE NOW A GATE. For
+# two days this printed drill, recall, exercises and completion on every run
+# and stayed green, because whether a channel belonged in this document was an
+# editorial call nobody had made. Loom's conventions draw the line at "is a
+# human supposed to weigh in", and that was the right side to sit on while the
+# question was open.
+#
+# Frank answered it on 2026-10-20, in bead tla-azwl. The README stays the
+# instructions for working a problem rather than the map of the whole tree, and
+# it carries one line per other channel pointing at that channel's own entry
+# point. Four lines, four channels, nothing explained twice. With the question
+# settled there is nobody left to weigh in, so the reading became an assertion.
+#
+# PART 4 DERIVES ITS LIST AND PART 5 READS THE TREE, and both are needed. Part
+# 4 reads the default destination out of each scripts/deliver-*.sh, so a new
+# channel reddens it the day it lands and it works on a box with no delivered
+# tree. Part 5 walks the real tree, which is the only place attempts/ and
+# released/ are checked, because no delivery script creates those two.
 #
 # ---------------------------------------------------------------------------
 # NOTHING IN THIS SUITE MAY EVER WRITE TO ~/tla-practice
 #
 # It is not a git repo and it holds the only copy of the work done in it.
-# Every delivery here goes into a mktemp fixture root, and the two parts that
-# read the real tree read it and nothing else. Parts that invoke a delivery
+# Every delivery here goes into a mktemp fixture root, and part 5, the one part
+# that touches the real tree, reads it and nothing else. Parts that invoke a delivery
 # sandbox HOME as well as passing an explicit root, so a script that dropped
 # its argument still cannot reach the real tree.
 
@@ -409,15 +434,32 @@ mkdir -p "$FIX/attempts/withdrawn-2026-09-04"
 mkdir -p "$FIX/released"
 : >"$FIX/problems/ORDER"
 
+# The four channels the README points at rather than explains, added for bead
+# tla-azwl. Each one gets the file the prose names as its entry point, plus one
+# instance under the chapter and item placeholders, so the glob below has
+# something to count and the fixture satisfies the README as written.
+mkdir -p "$FIX/drill"
+mkdir -p "$FIX/recall"
+mkdir -p "$FIX/exercises/ch02"
+mkdir -p "$FIX/completion/core/01-shutters"
+: >"$FIX/drill/README.md"
+: >"$FIX/recall/README.md"
+: >"$FIX/recall/recall.sh"
+: >"$FIX/exercises/ch02/EXERCISES.md"
+: >"$FIX/completion/core/01-shutters/PROMPT.md"
+
 check_claims "$SRC_README" "$FIX"
 
 # The floor. A selection rule that quietly stops matching would leave every
 # assertion below green over an empty set, which is how a gate gets switched
-# off by a typo. 8 sits under the 11 the source carried on 2026-10-18.
-if [ "$CLAIM_TOKENS" -ge 8 ]; then
-  ok "the extractor found $CLAIM_TOKENS path claims in $SRC_README (floor 8)"
+# off by a typo. 8 sat under the 11 the source carried on 2026-10-18. 16 sits
+# under the 20 it carries since tla-azwl, where the section pointing at the
+# four other channels added 9: four directory labels, four entry-point briefs,
+# and the recall runner.
+if [ "$CLAIM_TOKENS" -ge 16 ]; then
+  ok "the extractor found $CLAIM_TOKENS path claims in $SRC_README (floor 16)"
 else
-  nope "the extractor found only $CLAIM_TOKENS path claims (floor 8), so it is not reading the file"
+  nope "the extractor found only $CLAIM_TOKENS path claims (floor 16), so it is not reading the file"
 fi
 
 if [ -z "$CLAIM_UNRESOLVED" ]; then
@@ -442,7 +484,16 @@ done
 
 # And the positive half of the same rule. Without this a selection that took
 # nothing at all would pass every row above except the floor.
-for want in "problems/<NN_name>/" "attempts/<batch>/<NN_name>/" "problems/ORDER"; do
+#
+# The last four are the entry points bead tla-azwl added, and they are pinned
+# here rather than left to the floor for a reason. A directory label like
+# `drill/` and the brief a reader has to open are different claims, and part 4
+# below is satisfied by the label alone. If the brief stopped being read, the
+# channel-named check would stay green while the one path a learner acts on
+# went unchecked.
+for want in "problems/<NN_name>/" "attempts/<batch>/<NN_name>/" "problems/ORDER" \
+            "drill/README.md" "recall/recall.sh" "exercises/<chNN>/EXERCISES.md" \
+            "completion/<family>/<item>/PROMPT.md"; do
   if grep -qxF -- "$want" <<<"$SELECTED_CLAIMS"; then
     ok "the extractor takes '$want'"
   else
@@ -506,11 +557,134 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# THE OTHER DIRECTION, and it is a gate since bead tla-azwl.
+#
+# Part 3 asks whether every name the README uses resolves. This part asks the
+# reverse, whether every directory the tree can hold is named, and the two say
+# nothing about each other. A README naming only problems/ passes part 3
+# perfectly.
+#
+# THE LIST IS DERIVED, NEVER SPELLED. Each delivery channel already records
+# where it lands, in the default it falls back to when nobody passes a root, so
+# that assignment is the authority and this file reads it. Spelling the seven
+# directories here would make a new channel's absence from the prose invisible
+# until somebody edited two files in step, and the whole bead is about a
+# document that drifted from a tree nobody diffed.
+#
+# TWO ASSERTIONS, BECAUSE THE DERIVATION CAN GO QUIET. The first reads the
+# channel roots and asks the README about each. The second asks every
+# scripts/deliver-*.sh to account for itself: one channel root, or the root
+# channel that lands at the top of the tree and names no subdirectory. A new
+# channel that spelled its default some other way would contribute nothing to
+# the first assertion and pass it by being absent, which is the failure this
+# file keeps finding in other gates.
+#
+# WHAT IT STILL CANNOT SEE, since this gate has a habit of saying so. attempts/
+# and released/ are not delivered by anything. A learner's own work creates
+# them, no script in the repo knows their names, and part 5 below is the only
+# place they are checked at all. So the derivation covers the five channels and
+# the real-tree scan covers all seven, and neither one covers the other's gap.
+# ---------------------------------------------------------------------------
 echo
-echo "== part 4: the real delivered tree, which is the whole point =="
+echo "== part 4: every channel directory is named in the prose =="
 # ---------------------------------------------------------------------------
 
-# Parts 1 to 3 prove the instrument. This part is the measurement. It reads
+# channel_root_of <delivery script>: the practice-tree subdirectory it lands
+# in, read off the default it uses when no destination root is passed. Prints
+# nothing for a channel that lands at the root of the tree, which is this one.
+channel_root_of() {
+  # The pattern hunts for the four characters $HOME in another script's source,
+  # so it has to stay literal. Expanding it here would search for this box's
+  # home directory, which never appears in the text being read. Single quotes
+  # are what keeps it literal, which is the thing SC2016 is asking about.
+  # shellcheck disable=SC2016
+  sed -n 's|^[^#]*DEST_ROOT=.*\$HOME/tla-practice/\([A-Za-z0-9_-]\{1,\}\).*|\1|p' "$1" \
+    | LC_ALL=C sort -u
+}
+
+CHANNEL_DIRS=()
+CHANNEL_SILENT=()
+for f in scripts/deliver-*.sh; do
+  found=0
+  while IFS= read -r seg; do
+    [ -n "$seg" ] || continue
+    CHANNEL_DIRS+=("$seg")
+    found=1
+  done <<<"$(channel_root_of "$f")"
+  if [ "$found" -eq 0 ] && [ "$f" != "$DELIVER" ]; then
+    CHANNEL_SILENT+=("$f")
+  fi
+done
+
+# channels_unnamed <readme>: the channel directories that README never names.
+# The test is the bare `<name>/` substring, the same loose one part 5 uses on
+# the real tree, so a mention anywhere in the prose counts.
+channels_unnamed() {
+  local readme="$1" text d out=""
+  # An empty list would expand to an unbound variable under set -u on bash
+  # before 4.4, and on anything newer it would quietly report that every
+  # channel is named, over no channels at all. The caller fails on the count
+  # rather than reading this answer, so returning nothing here is safe.
+  [ "${#CHANNEL_DIRS[@]}" -gt 0 ] || { printf '%s' "$out"; return 0; }
+  text=$(cat "$readme")
+  for d in "${CHANNEL_DIRS[@]}"; do
+    if ! grep -qF -- "$d/" <<<"$text"; then
+      out="$out $d"
+    fi
+  done
+  printf '%s' "$out"
+}
+
+# The floor, for the same reason part 3 carries one. A derivation that stopped
+# matching would report every channel named, over no channels at all. 5 is what
+# the six scripts yield today: drill, recall, exercises, completion, problems,
+# and the root channel contributing none.
+if [ "${#CHANNEL_DIRS[@]}" -ge 5 ]; then
+  ok "the channel roots derived from scripts/deliver-*.sh: ${CHANNEL_DIRS[*]} (floor 5)"
+else
+  nope "only ${#CHANNEL_DIRS[@]} channel root(s) derived (floor 5), so the derivation is not reading the scripts"
+fi
+
+if [ "${#CHANNEL_SILENT[@]}" -eq 0 ]; then
+  ok "every delivery script names a channel root or lands at the tree root"
+else
+  nope "delivery script(s) whose destination this check could not read: ${CHANNEL_SILENT[*]}"
+fi
+
+UNNAMED_CHANNELS=$(channels_unnamed "$SRC_README")
+if [ "${#CHANNEL_DIRS[@]}" -eq 0 ]; then
+  nope "no channel root was derived, so this row would report success over an empty list"
+elif [ -z "$UNNAMED_CHANNELS" ]; then
+  ok "every derived channel directory is named in $SRC_README"
+else
+  nope "CHANNELS THE README NEVER NAMES, so a learner meets a directory it has not heard of:$UNNAMED_CHANNELS"
+fi
+
+# The RED proof. Take the same README, take one channel's name out of it, and
+# the check has to name that channel. Without this row the control above could
+# be green because the comparison never ran.
+NOCHAN="$WORK/no-drill-README.md"
+sed 's|drill/|withdrawn/|g' "$SRC_README" >"$NOCHAN"
+if grep -qF "drill" <<<"$(channels_unnamed "$NOCHAN")"; then
+  ok "a README that stopped naming drill/ is caught naming no channel for it"
+else
+  nope "drill/ was taken out of the prose and the check still reported every channel named"
+fi
+
+# And the reverse mutation, so the row above is not passing on a check that
+# calls everything unnamed. The source itself has to come back clean.
+if [ -z "$(channels_unnamed "$SRC_README")" ]; then
+  ok "and the unedited source comes back with no unnamed channel"
+else
+  nope "the unedited source reported an unnamed channel, so the mutation above proves nothing"
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "== part 5: the real delivered tree, which is the whole point =="
+# ---------------------------------------------------------------------------
+
+# Parts 1 to 4 prove the instrument. This part is the measurement. It reads
 # and compares and it writes nothing, because ~/tla-practice is not a git repo
 # and has no backup of its own.
 
@@ -528,10 +702,19 @@ else
     echo "        no instance yet, reported and not failed on:$CLAIM_NO_INSTANCE"
   fi
 
-  # The other direction, and it is a nudge rather than a gate. A delivered
-  # directory the README never names is a name a learner has to guess at,
-  # which is the opposite of what this file is for. Whether each one belongs
-  # in the prose is Frank's call, so it prints and never fails.
+  # The other direction against the tree that exists, and it is a GATE since
+  # bead tla-azwl. It printed and never failed for two days, because whether a
+  # channel belonged in this document was an editorial call nobody had made.
+  # Frank made it on 2026-10-20: the README stays the instructions for working
+  # a problem, and it carries one line per other channel pointing at that
+  # channel's own entry point. Four such lines landed, so the question this
+  # nudge was holding open is answered and the reading can be asserted.
+  #
+  # This is the only check that reads attempts/ and released/, which no
+  # delivery script creates, so it covers the gap part 4 names.
+  #
+  # The remedy when it reddens is one line of prose, not a fourth section. A
+  # directory here that nothing explains is a name a learner has to guess at.
   unnamed=""
   readme_text=$(cat "$SRC_README")
   for d in "$REAL_ROOT"/*/; do
@@ -542,10 +725,11 @@ else
       unnamed="$unnamed $name"
     fi
   done
-  if [ -n "$unnamed" ]; then
-    echo "        delivered director(ies) the README never names, which is a nudge and not a failure:$unnamed"
+  if [ -z "$unnamed" ]; then
+    ok "every directory in $REAL_ROOT is named in $SRC_README"
+  else
+    nope "DELIVERED DIRECTOR(IES) THE README NEVER NAMES, so a learner meets a name this document has not heard of:$unnamed"
   fi
-  ok "the unnamed-directory report ran over $REAL_ROOT"
 
   # And the delivered copy against the source, through the script's own
   # verify. Exit 3 here is Frank's copy being behind the repo.
@@ -563,7 +747,7 @@ fi
 
 # ---------------------------------------------------------------------------
 echo
-echo "== part 5: the source is tracked and the prose gates reach it =="
+echo "== part 6: the source is tracked and the prose gates reach it =="
 # ---------------------------------------------------------------------------
 
 # This is the half of the invariant that is structural. Before bead tla-xbbb

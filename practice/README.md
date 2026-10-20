@@ -64,7 +64,7 @@ Practical notes, learned the hard way so you don't have to:
   check never ran, not that it failed.
 - `tlc -deadlock <Module>` turns deadlock checking OFF, despite the name. The statements
   say when to use it. A system that legitimately comes to rest is not an error.
-- You do not need PlusCal. Raw TLA+ or PlusCal both work; the statements fix the system
+- You do not need PlusCal. Raw TLA+ or PlusCal both work. The statements fix the system
   and leave the representation entirely to you.
 - After each attempt we talk: your log drives revision of the problems you have not
   reached yet. That loop is the standing agreement, and the log's stuck question is
@@ -74,6 +74,19 @@ Step 3 is not bookkeeping. §7.0's whole reason for working in batches is that y
 the ~48 problems after this one. Without the log, batch 2 is authored on anecdote, and §7.1 cites
 Kornell and Bjork: 78% of participants preferred the format that taught them worst, so your
 impressions alone are a reliable signal about ambiguity and an unreliable one about difficulty.
+
+## The other directories in this tree
+
+Four more channels land here, and none of them is problem machinery. Each one carries its
+own instructions, so this section names the directory and the file to open first.
+
+- **`drill/`**: blank-page drills. Read `drill/README.md`, then run `./drill` in it.
+- **`recall/`**: typed-notation reps. Read `recall/README.md`, then run `recall/recall.sh --session`.
+- **`exercises/`**: chapter exercise sets. Each chapter's brief is `exercises/<chNN>/EXERCISES.md`.
+- **`completion/`**: fill in the missing claims. Each item's brief is `completion/<family>/<item>/PROMPT.md`.
+
+The last two ship no README of their own. The brief in each chapter or item is the entry
+point, and there is nothing above it to read.
 
 ## The one question that matters most
 
