@@ -159,12 +159,20 @@
 # moves, and no delivery-time check can see that coming.
 #
 # WHY THIS SCRIPT DOES NOT JUST DELIVER IT. The sheet is a drill-root
-# reference file and all three of them are withheld by design today:
-# harness/test-deliver-drill.sh:937-938 asserts that drill/INVENTORY.md and
-# drill/COLD-LIST.md never land. Delivering the sheet from here would put two
-# scripts in charge of one destination directory, and deciding it properly
-# means deciding about all three and inverting two assertions in a suite this
-# bead does not own. It is filed rather than guessed.
+# reference file, and scripts/deliver-drill.sh owns that directory.
+# harness/test-deliver-drill.sh holds the shape, which is not one rule for all
+# three: drill/INVENTORY.md is never delivered, and drill/COLD-LIST.md lands
+# once and is never overwritten afterward, because the reader's ticks are in
+# it. Delivering the sheet from here would put two scripts in charge of one
+# destination directory, and deciding it properly means deciding about all
+# three. It is filed rather than guessed.
+#
+# THE BEHAVIOR IS NAMED HERE AND THE LINE NUMBER IS NOT, on purpose. This
+# cross-reference carried one and it was wrong twice: stale the day it was
+# written, because a bead had already inverted both assertions, and wrong
+# again afterward in the other direction, because the cold list now lands.
+# A line number in another suite is a fact with a shelf life and nothing
+# watches it.
 #
 # ---------------------------------------------------------------------------
 # WHY THERE IS NO SELECTOR
