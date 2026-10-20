@@ -188,6 +188,30 @@ fi
 # invokes a bare `pcal`. Without it that resolves to whatever other tlaplus
 # build happens to be on PATH — translating PlusCal with one build and
 # model-checking it with another is exactly the drift this pin exists to close.
+#
+# `-repl` was added 2026-10-20 (bead tla-tyqy). tlc2.REPL has been in the
+# pinned jar all along and the wrapper did not reach it. Three constraints on
+# the body below, and each one has already been hit:
+#
+#   1. THE BODY CANNOT CONTAIN A SINGLE QUOTE. It is a single-quoted string,
+#      which is what keeps $HOME and $@ unexpanded until the wrapper runs. So
+#      the usage text spells out "does not" and "cannot" rather than
+#      contracting them, and names a primed variable in words.
+#   2. BARE `tlc` MUST STILL REACH tlc2.TLC. The pin assertion below runs the
+#      wrapper with no arguments and reads the version line out of it, so a
+#      usage-on-no-arguments branch here breaks the assertion 40 lines down.
+#   3. `-h` AND `-help` MUST STILL REACH TLC. Both print TLC's own option
+#      list, measured on this build. The wrapper only intercepts them after
+#      `-repl`, where tlc2.REPL would otherwise evaluate `-h` as an expression
+#      and report `Unknown operator: h`.
+#
+# WHY THE USAGE TEXT SAYS "LEVEL 0" OUT LOUD. tlc2.REPL splits three ways on
+# this build, and only two of the three are loud. A variable or a prime
+# reports `Unknown operator`. A temporal operator reports a parse error.
+# `ENABLED (1 = 1)` and `UNCHANGED 1` both return TRUE, because a constant
+# expression is trivially enabled and trivially unchanged. That third case is
+# a false TRUE handed to the exact reader this curriculum teaches, so the
+# limit is printed rather than left to be discovered.
 install_wrapper() {
   local path="$1" body="$2"
   if [ -f "$path" ] && ! grep -qF "tla-puzzles pinned wrapper" "$path"; then
@@ -207,9 +231,64 @@ install_wrapper "${BIN_DIR}/tlc" '#!/usr/bin/env bash
 # tla-puzzles pinned wrapper — written by scripts/setup. Do not hand-edit.
 JAR="$HOME/lib/tla2tools.jar"
 JVM_OPTS="-XX:+UseParallelGC"
+
+repl_usage() {
+    cat >&2 <<"USAGE"
+tlc -repl: a prompt for level 0 TLA+ expressions, and nothing above level 0.
+
+  tlc -repl             start the prompt
+  tlc -repl "1 + 1"     evaluate one expression, print the value, exit
+
+WHAT IT REACHES
+
+Arithmetic, sets, functions, records, tuples and CHOOSE, plus every operator
+in the standard modules. Cardinality and Len need no EXTENDS line. LET binds
+an operator for the one expression: LET D(n) == n * 2 IN D(21).
+
+WHAT IT REFUSES
+
+A level 0 expression has no variable, no prime and no temporal operator. A
+bare x reports "Unknown operator", and so does a primed variable. A temporal
+operator reports a parse error. The state level and the action level are both
+above this prompt, so no invariant over a variable can be evaluated here.
+
+WHAT IT ANSWERS VACUOUSLY
+
+ENABLED (1 = 1) returns TRUE, and so does UNCHANGED 1. A constant expression
+is trivially enabled and trivially unchanged, so the prompt answers rather
+than refuses. The answer says nothing about any action. The two refusals
+above are loud. This one is silent, so do not read it as a check.
+
+IT CANNOT SEE A MODULE IN THE WORKING DIRECTORY
+
+The prompt builds its own module with a fixed EXTENDS list and no hook to add
+to it. An operator from your own module reports "Unknown operator". Model
+check the module with tlc to evaluate one.
+USAGE
+}
+
 if [ "$1" = "-pcal" ]; then
     shift
     exec java $JVM_OPTS -cp "$JAR" pcal.trans "$@"
+elif [ "$1" = "-repl" ]; then
+    shift
+    case "${1:-}" in
+        -h|-help|--help)
+            repl_usage
+            exit 0
+            ;;
+    esac
+    if [ "$#" -gt 1 ]; then
+        echo "tlc -repl: quote the expression as one argument, or pass none." >&2
+        echo "  tlc -repl \"1 + 1\"" >&2
+        exit 2
+    fi
+    if [ "$#" -eq 0 ]; then
+        echo "tlc -repl: LEVEL 0 ONLY. No variable, no prime, no temporal operator." >&2
+        echo "  ENABLED and UNCHANGED return TRUE over any constant, which is vacuous." >&2
+        echo "  Run \"tlc -repl -h\" before you trust an answer from either." >&2
+    fi
+    exec java $JVM_OPTS -cp "$JAR" tlc2.REPL "$@"
 else
     exec java $JVM_OPTS -cp "$JAR" tlc2.TLC "$@"
 fi'
