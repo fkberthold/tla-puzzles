@@ -2534,6 +2534,85 @@ else
   nope "touchstart declares passive $passive_start times and touchend $passive_end, where both of them must, so this file can cancel the scroll it is trying to measure"
 fi
 
+# ---------------------------------------------------------------------------
+# THE GHOST CLICK IS SWALLOWED IN THE CAPTURE PHASE, bead tla-7xql.22.
+#
+# A tap at depth filed a verdict. The tap is handled at touchend, render() runs
+# inside that handler, clear() removes every child the touch began on, and the
+# card comes back with .swipe-answers near the bottom edge because .swipe-card
+# carries margin-top: auto. The browser dispatches the synthesized click after
+# all of that and hit-tests the page as it stands then, so it lands on a button
+# that did not exist when the thumb went down.
+#
+# Part 6 drives clickIsTail() in both directions. What is left here is the
+# wiring, which is four facts a driver cannot reach: the phase, the two cancels
+# and where the arm is taken and cleared.
+#
+# CAPTURE IS NOT A DETAIL. A bubbling listener arrives after the button's own
+# handler has already filed the answer, so the swallow has to be on the way
+# down. And preventDefault() is needed as well as stopPropagation(), because
+# menuLink() draws an <a> and a ghost click on that navigates.
+#
+# THE CAPTURE ARGUMENT IS READ AS ONE OF THE FOUR PATTERNS, which is a
+# correction to the first build of this check rather than belt and braces. That
+# build ended the awk range on the listener's own closing `}, true);` line, so
+# deleting the argument deleted the terminator, the range ran to the end of the
+# file and the body still carried every other pattern. The mutation passed. A
+# range that ends on the enclosing function's brace cannot be switched off that
+# way, so the terminator here is bindGestures() closing.
+# ---------------------------------------------------------------------------
+click_body=$(awk '/root\.addEventListener\("click"/, /^  \}$/' "$CODE")
+if [ -z "$(printf '%s' "$click_body" | tr -d '[:space:]')" ]; then
+  nope "no click listener is bound on root, so a synthesized click still reaches the answer buttons the render just drew"
+elif grep -qE 'clickIsTail\(' <<<"$click_body" &&
+     grep -qE 'preventDefault\(\)' <<<"$click_body" &&
+     grep -qE 'stopPropagation\(\)' <<<"$click_body" &&
+     grep -qF '}, true);' <<<"$click_body"; then
+  ok "the click listener on root captures, asks clickIsTail() and then cancels both the default and the propagation"
+else
+  nope "the click listener on root does not capture, or does not ask clickIsTail() and cancel both ways, so a ghost click either reaches a button's handler or navigates: $(grep -oE 'clickIsTail\(|preventDefault\(\)|stopPropagation\(\)|\}, true\);' <<<"$click_body" | LC_ALL=C sort -u | tr '\n' ' ')"
+fi
+
+# THE ARM IS CLEARED AT touchstart, and that is the whole reason this rule
+# needs no window, no timer and no timestamp. A deliberate press begins with a
+# touchstart of its own, so clearing here means a real press can never be
+# eaten. A timing constant here would be a second rule nobody could drive.
+if [ -z "$(printf '%s' "$start_body" | tr -d '[:space:]')" ]; then
+  nope "the touchstart listener was not found, so the arm-clearing check read nothing"
+elif grep -qE '^[[:space:]]*arm = null;' <<<"$start_body"; then
+  ok "touchstart clears the arm, so a deliberate press can never be swallowed and no timing constant is needed"
+else
+  nope "touchstart does not clear the arm, so an arm left over from an earlier gesture can eat a real press on the next touch"
+fi
+
+# AND THE ARM IS TAKEN AFTER BOTH GUARDS INSIDE touchend, which part 6 cannot
+# see because the driver is handed an arm rather than a listener. The flash owns
+# a click handler of its own and that is how a reader advances to the next
+# item, so an arm taken above the flash guard would swallow the advance. A press
+# that starts on a button is the control's own business, so an arm taken above
+# the isControl guard would swallow the press. Both are reachable by moving one
+# line up two lines.
+if [ -z "$(printf '%s' "$end_body" | tr -d '[:space:]')" ]; then
+  nope "the touchend listener was not found, so the arm ordering check read nothing"
+else
+  # First match only, and NOT through `| head -1`: an early-exiting consumer
+  # takes the producer down with SIGPIPE and the pipeline returns 141 under
+  # pipefail, so a present pattern reports as absent. harness/test-pipefail.sh
+  # bans it. Parameter expansion needs no pipe at all: cut to the first line,
+  # then to the first colon, which is where grep -n puts the line number.
+  ctrl_hits=$(grep -nE 'isControl\(ev\.target\)' <<<"$end_body" || true)
+  arm_hits=$(grep -nE '^[[:space:]]*arm = ev\.target;' <<<"$end_body" || true)
+  ctrl_line=${ctrl_hits%%$'\n'*}; ctrl_line=${ctrl_line%%:*}
+  arm_line=${arm_hits%%$'\n'*}; arm_line=${arm_line%%:*}
+  if [ -z "$ctrl_line" ] || [ -z "$arm_line" ]; then
+    nope "touchend does not both guard on isControl and take an arm, so the ordering could not be read: isControl=[$ctrl_line] arm=[$arm_line]"
+  elif [ "$ctrl_line" -lt "$arm_line" ]; then
+    ok "touchend takes the arm after the isControl guard, so a press that started on a control is left to the control"
+  else
+    nope "touchend takes the arm at line $arm_line before the isControl guard at line $ctrl_line, so a tap on a button arms the swallow and the press is eaten"
+  fi
+fi
+
 # THE STEP BODY HAS TO KEEP BOTH AXES. The model screen is inside it, so a
 # value here that drops pan-x reaches the screen through the intersection.
 ta_step=$(grep -F '.swipe-step-body' "$CSSRULES" | grep -F 'touch-action' || true)
@@ -3210,6 +3289,45 @@ console.log("decline-bare-mark-files " +
 console.log("decline-unknown-axis-reads-vertical " +
   (mod.scrollerDeclining(mod.scrollerMark(touchIn([scroller(SCREEN, 0, 200), scroller(SCREENBOX, 0, 0)])),
     "vertical") === "screen" ? "OK" : "BAD"));
+
+// ===========================================================================
+// THE GHOST CLICK, bead tla-7xql.22. Frank, on his phone: "when we're in the
+// state screen, the buttons are still getting clicks. I've had several Falses
+// when I was tapping to go back."
+//
+// The three answer buttons are not on screen at depth, so this is not a chrome
+// defect. One touch produces a touchend AND a synthesized click. The tap is
+// handled at touchend, render() runs inside that handler, clear() removes every
+// child the touch began on, and the card comes back with .swipe-answers near
+// the bottom edge because .swipe-card carries margin-top: auto. The click is
+// dispatched after all of that and hit-tests the page as it stands then, so it
+// lands on a button that did not exist when the thumb went down. SWIPES reads
+// ["right", "left", "down"] over a 3-column grid, so false is the middle
+// column, which is where a thumb tapping the lower middle of a model screen
+// comes down. That is why the symptom reads as several Falses rather than as a
+// scatter across the three.
+//
+// BOTH DIRECTIONS, which is why this is driven rather than read as text. A
+// guard that always swallows and one that never swallows both pass a one-sided
+// check, and the first of those eats every real press on the page.
+//
+// NO ARM IS THE RESTING STATE and it has to be honest. The arm is taken only on
+// the touchend paths that file a gesture, so most clicks arrive with none.
+//
+// AN ELEMENT STILL IN THE PAGE MEANS THE CLICK IS HONEST, whatever else
+// happened, which is what buys a rule with no timing constant in it. A tap that
+// changes no depth renders nothing at all, so it must not swallow.
+// ===========================================================================
+const tailCases = [
+  ["tail-no-arm", null, false],
+  ["tail-still-in-page", { isConnected: true }, false],
+  ["tail-removed-by-render", { isConnected: false }, true]
+];
+for (const [name, arm, want] of tailCases) {
+  const got = mod.clickIsTail(arm);
+  console.log(name + " " + (got === want ? "OK" : "BAD") +
+    " " + String(got) + " (wanted " + String(want) + ")");
+}
 
 // ===========================================================================
 // THE VIEWPORT CLASS, bead tla-7xql.16, AND THE REMOVAL IS THE HALF THAT CAN

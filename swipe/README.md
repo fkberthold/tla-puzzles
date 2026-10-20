@@ -1465,6 +1465,79 @@ so every screen over at 613.9 has to be over at 500. That's a property of the
 scan rather than of this corpus, so it still fires when the payload changes
 under it. An assertion on the count alone would pass over a different four.
 
+### A tap at depth files a verdict, because the click lands after the card is back
+
+Frank, on his phone on 2026-10-20: "I think we have an issue where, when we're
+in the state screen, the buttons are still getting clicks. I've had several
+Falses when I was tapping to go back." That's the fourth wrong-verdict defect in
+this epic, and I think the first that isn't about the decline at all.
+
+The three answer buttons aren't on screen at depth, so this isn't a chrome
+defect and `chromeAt()` needed no change. One touch produces a `touchend` AND a
+synthesized click. The tap is handled at `touchend`, `render()` runs inside that
+handler, `clear()` removes every child the touch began on, and the card comes
+back with `.swipe-answers` near the bottom edge because `.swipe-card` carries
+`margin-top: auto`. Only then does the browser dispatch the click. It hit-tests
+the page as it stands by then and lands on a button that didn't exist when the
+thumb went down.
+
+`SWIPES` reads `["right", "left", "down"]` over a 3-column grid, so false is the
+middle column. That's where a thumb tapping the lower middle of a model screen
+comes down. I think that's why the symptom reads as several Falses rather than
+as a scatter across the three.
+
+**`tla-7xql.18` introduced it.** Before the step was the whole page the dock
+stayed on screen underneath. Nothing moved under the thumb, so the ghost click
+landed on what it started on. The chrome change that made the step the whole
+page is what put a button where the thumb had just been.
+
+**`isControl()` can't catch it, and that's the part worth reading twice.** It
+reads the touch's own target, which is the model and not a button. A touch
+sequence keeps one target from `touchstart` to `touchend`, and the synthesized
+click is dispatched separately with a target of its own.
+
+So the rule is about the gesture rather than about the click. **A click whose
+touch began on an element the render removed is the tail of that gesture, not a
+press.** `clickIsTail(arm)` is `Boolean(arm) && arm.isConnected === false`, where
+`arm` is the element the touch began on, held only when that touch filed a
+gesture.
+
+**There's no timer in it, and I think that's the design rather than luck.**
+Three properties carry it, and all three are load-bearing:
+
+- The arm is taken only on the `touchend` paths that call `gesture()`.
+- The arm is cleared at `touchstart`.
+- `isConnected` is the whole test, and it needs no number.
+
+The first two guards matter in opposite directions. The flash owns a click
+handler of its own, and that's how a reader advances to the next item. An arm
+taken above the flash guard would swallow the advance. A press that starts on a
+button is the control's own business, so an arm taken above the `isControl`
+guard would swallow the press.
+
+Clearing at `touchstart` is what makes the whole rule need no window and no
+timestamp. A deliberate press begins with a `touchstart` of its own, so the
+swallow can only ever reach a click that has no touch of its own between it and
+the gesture that moved the page.
+
+`isConnected` is what buys the rest for free. If the element the thumb came down
+on is still in the page then nothing moved under it, so the click is honest
+whatever else happened. A tap that changes no depth renders nothing at all, so
+it has to let the click through.
+
+The listener sits on `root` in the capture phase and calls both
+`preventDefault()` and `stopPropagation()`. Capture is what stops the button's
+own handler running at all, since a bubbling listener would arrive after the
+verdict was filed. `preventDefault()` is for `menuLink()`, which draws an `<a>`.
+A ghost click there would navigate to the contract page, and stopping
+propagation says nothing about the browser's own default.
+
+**Both touch listeners stay passive.** The alternative was dropping passive and
+canceling the click at source, with `preventDefault()` on the `touchend`. That
+has fewer moving parts and I'd take it if a gate on this box could drive it. It
+rests on the browser honoring a cancel, and nothing here can read whether it
+did.
+
 ### The record is a file and the browser is a cache
 
 The browser resumes where you left off. The record is `SWIPE.tsv`, which

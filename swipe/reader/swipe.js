@@ -2044,6 +2044,33 @@
     return Boolean(node && node.closest && node.closest("a, button, label, input"));
   }
 
+  /* THE TAIL OF A GESTURE RATHER THAN A PRESS, bead tla-7xql.22.
+
+     One touch produces a touchend AND a synthesized click. The tap is handled
+     at touchend, render() runs inside that handler, clear() removes every
+     child the touch began on, and the card comes back with .swipe-answers near
+     the bottom edge because .swipe-card carries margin-top: auto. Only THEN
+     does the browser dispatch the click. It hit-tests the page as it stands
+     now and lands on a button that did not exist when the thumb went down.
+     SWIPES reads ["right", "left", "down"] over a 3-column grid, so false is
+     the middle column, which is where a thumb tapping the lower middle of a
+     model screen comes down. Frank filed several of those by hand.
+
+     isControl() cannot catch it, and that is worth saying because it looks
+     like the guard for this. It reads the touch's own target, which is the
+     model and not a button. A touch sequence keeps one target throughout and
+     the synthesized click does not.
+
+     `arm` is the element the touch began on, held only when that touch filed a
+     gesture. isConnected IS THE WHOLE TEST, and it buys a rule with no window,
+     no timer and no timestamp in it. If the element the thumb came down on is
+     still in the page then nothing moved under it and the click is honest,
+     whatever else happened. A tap that changes no depth renders nothing, so it
+     has to let the click through. */
+  function clickIsTail(arm) {
+    return Boolean(arm) && arm.isConnected === false;
+  }
+
   /* WHICH SCROLLERS A TOUCH SITS INSIDE, TAKEN WHEN THE TOUCH BEGINS.
 
      This is the half of the decline that is about WHERE, and bead tla-7xql.21
@@ -2261,6 +2288,9 @@
     var startY = 0;
     var tracking = false;
     var mark = null;
+    /* The element the last gesture-filing touch began on. clickIsTail() reads
+       it, and the comment there is the whole of the rule. */
+    var arm = null;
 
     /* THE DECLINE IS NOT DECIDED HERE. touchstart records which scrollers the
        thumb landed in, and touchend asks whether any of them can scroll on the
@@ -2285,6 +2315,11 @@
         return;
       }
       mark = scrollerMark(ev.target);
+      /* A DELIBERATE PRESS BEGINS WITH A TOUCHSTART, which is what makes the
+         ghost-click rule need no timing constant. Clearing the arm here means
+         the swallow can only ever reach a click with no touchstart of its own
+         between it and the gesture that moved the page. */
+      arm = null;
       tracking = true;
       startX = ev.touches[0].clientX;
       startY = ev.touches[0].clientY;
@@ -2324,15 +2359,46 @@
         if (isControl(ev.target)) {
           return;
         }
+        /* THE ARM IS TAKEN HERE AND NOT HIGHER UP, and both guards above it
+           are the reason. The flash owns a click handler of its own, which is
+           how a reader advances to the next item, so arming before that guard
+           would swallow the advance. A press that starts on a button is the
+           control's own business, so arming before that guard would swallow
+           the press. */
+        arm = ev.target;
         gesture("tap");
         return;
       }
+      /* A swipe arms too. Some browsers synthesize a click after a drag, and
+         an answer re-renders the page the same way a step back does. */
+      arm = ev.target;
       if (axis === "x") {
         gesture(dx > 0 ? "right" : "left");
       } else {
         gesture(dy > 0 ? "down" : "up");
       }
     }, { passive: true });
+
+    /* THE SWALLOW, IN THE CAPTURE PHASE, which is what stops the button's own
+       handler running at all. A bubbling listener would arrive after the
+       verdict was already filed.
+
+       preventDefault() AS WELL AS stopPropagation(), because menuLink() draws
+       an <a>: a ghost click on that navigates to the contract page, and
+       stopping propagation says nothing about the browser's own default.
+
+       The arm is cleared on every click this sees, whether it swallowed or
+       not, so one gesture can only ever eat one click. The touch listeners
+       stay passive: canceling the click here rests on nothing the browser has
+       to honor, where preventDefault() on the touch would. */
+    root.addEventListener("click", function (ev) {
+      var tail = clickIsTail(arm);
+      arm = null;
+      if (tail) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }, true);
   }
 
   /* THE FIVE GESTURES, EACH WITH ONE MEANING IN EVERY STATE. right, left and
@@ -2611,6 +2677,12 @@
       chromeAt: chromeAt,
       scrollerMark: scrollerMark,
       scrollerDeclining: scrollerDeclining,
+      /* tla-7xql.22's one, and a text gate cannot see the thing that matters
+         about it: which way it answers. A guard that always swallows and one
+         that never swallows both pass a one-sided check, and the first of
+         those eats every real press. So the gate drives it over all three
+         arms, no arm at all and an element on either side of isConnected. */
+      clickIsTail: clickIsTail,
       /* tla-7xql.16's two. applyViewport takes the document rather than
          reaching for a global precisely so it can be driven here, and the
          removal direction is the assertion worth having: a class left on the
