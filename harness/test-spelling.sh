@@ -431,13 +431,11 @@ EXEMPT_FILES=(
   "harness/fixtures/vacuity/ModelledFloor.tla|2"
   "harness/fixtures/vacuity/ModelledFloor.cfg|1"
   ".claude/rules/dispatched-agents.md|2"
-  "swipe/reader/swipe.js|1"
 )
 FILE_WHY=(
   "renaming the module means renaming the file and the V2-PLAN.md:977 reference with it. The 2 counted here are the bare operator Modelled at line 28 and the word modelled in the line 7 comment"
   "the .cfg half of the same module, where INVARIANT Modelled names that operator"
   "a quotation rather than a deferral. Both sites are this file QUOTING the British spelling a hazard section is about: mislabelled, the word the tla-z4f3 author wrote into a manifest reason, and neighbouring, the word the tla-7xql.1 author's own comment carried. Americanizing either would misquote the measurement it records"
-  "a deferral, and the one live site the closure rule turned up across 2333 tracked files. swipe/reader/swipe.js:323 reads 'the one axis it travelled' in comment prose, and two tla-7xql workers held that file the hour this landed, so a one-word edit there would have conflicted with theirs. Whoever lands the swipe work writes traveled and deletes this entry"
 )
 
 TOKEN_HITS=()

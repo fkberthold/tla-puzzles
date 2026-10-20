@@ -436,6 +436,16 @@ correct swipe at all. `unparsed` is Frank's ruling of 2026-10-18, taken on the
 same reading. The cost is that a down swipe stops telling the three apart, and
 `kind` is where that discrimination went.
 
+**The sentence above about a vacuous item having no correct swipe is wrong,
+and bead tla-7xql.23 is the correction.** It has one. All 30 level 0 vacuous
+items measure `(0, 0)` and this file's own verdict table reads that pair as
+"the claim holds, swipe right". The merge survived the ruling anyway, for a
+reason the old sentence did not have: the question is what the line says
+rather than whether it holds, and a line that holds for a reason that leaves
+it empty says nothing. The paragraph stays as written because it is the
+record of a 2026-10-18 reading, and this note is what keeps it from being
+read as a current one. See "Vacuous is not the same as not a claim" below.
+
 `implies` is worth its own tag because the vacuous-antecedent trap lives
 there. A reader who checks the consequent of `P => Q` and ignores a false `P`
 gets it wrong, and 15 of the 30 vacuous items are that shape.

@@ -322,7 +322,7 @@
  *       at 730 a vertical drag in it scrolled the premise and answered the
  *       item in one stroke.
  *
- * So a SWIPE is judged by capacity on the one axis it travelled. That keeps
+ * So a SWIPE is judged by capacity on the one axis it traveled. That keeps
  * what made the original safe and drops what made it wrong.
  *
  * AND A TAP IS JUDGED BY WHETHER THE SCROLLER MOVED, which is the other half
@@ -1425,15 +1425,17 @@
     var box = el("div", "swipe-flash swipe-flash-" + v.flash.verdict);
     box.setAttribute("data-swipe-flash", "1");
 
-    /* THE BUTTON WORD FOR WHAT THE READER DID AND THE CLAUSE FOR WHAT THE
-       ITEM IS, bead tla-7xql.23. "You said true" names the button they
-       pressed, and the half after it has to assert rather than label, or a
+    /* BOTH HALVES ARE CLAUSES, bead tla-7xql.23 and central's correction to
+       it. The half about the item has to assert rather than label, or a
        vacuous item gets told it is not a claim while its own correction
-       argues that it holds. */
+       argues that it holds. The half about the reader was the button word
+       for one round, and the button word for down is "nothing", which made
+       a down answer read "You said nothing" as though they had been silent.
+       A clause on both sides costs four words and cannot be misread. */
     box.appendChild(el("p", "swipe-verdict",
       v.flash.verdict === "hit"
         ? "Right. " + upperFirst(VERDICT[v.flash.item.swipe]) + "."
-        : "No. You said " + LABELS[v.flash.given] + " and " +
+        : "No. You said " + VERDICT[v.flash.given] + " and " +
           VERDICT[v.flash.item.swipe] + "."));
     /* THE PIN GOES WITH THE CORRECTION at the pinned rungs. A level 1
        correction reads "the open count is 1, so Pop's first conjunct holds",
@@ -1471,10 +1473,9 @@
     }
     var item = v.lastMiss.item;
     /* THE LINE FRANK PHOTOGRAPHED, and the reason bead tla-7xql.23 exists.
-       Same split as the flash: the button word for the answer given, the
-       VERDICT clause for the item. */
+       A clause on both sides, for the reason the flash gives. */
     box.appendChild(el("p", "swipe-verdict",
-      "You said " + LABELS[v.lastMiss.given] + ". " +
+      "You said " + VERDICT[v.lastMiss.given] + ". " +
       upperFirst(VERDICT[item.swipe]) + "."));
     if (pinBlocks(item).length > 0) {
       box.appendChild(el("p", "swipe-hint", item.model));
