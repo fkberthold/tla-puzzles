@@ -20,9 +20,14 @@
 # WHY THE DEFAULT IS "EVERYTHING", UNLIKE THE SIBLING liza_base/scripts/test
 #
 # liza_base defaults to a fast tier because its full suite is ~16 min serial.
-# Here the full run is 730.6 s wall, measured 2026-10-17, against the ~957 s
-# the budgets below sum to, and the fast tier is 25 of the 39 suites but only
-# about 6% of the wall clock. Those are two different numbers and the
+# Here the full run is 730.6 s wall, measured 2026-10-17, against the 1229.2 s
+# the budgets below sum to, and the fast tier is 31 of the 50 suites but only
+# about 6% of the wall clock. The two counts and the budget sum were 25, 39
+# and ~957 until 2026-10-20, all three stale before bead tla-tyqy added a row
+# and made them one staler. They're re-read off the row literals now. The
+# 730.6 s and the 6% are still the 2026-10-17 reading against a smaller
+# registry, since both want a full run on a quiet box. Those are two different
+# numbers and the
 # sentence used to blur them: a budget is a per-suite ceiling with headroom
 # in it, so the sum is always the larger. It skips every
 # TLC-heavy gate: the verdict channel, the grader, the vacuity probes, the
@@ -94,6 +99,7 @@
 #   fast   0.5 s  harness/test-deliver-verify.sh          (added, bead tla-mjvx)
 #   fast  12.0 s  harness/test-swipe-stemblind.sh         (re-based, bead tla-7xql.7)
 #   fast   3.0 s  harness/test-swipe-reader.sh --static  (split, bead tla-7xql.14)
+#   fast   0.3 s  harness/test-tlc-wrapper.sh             (added, bead tla-tyqy)
 #   slow   8.9 s  harness/test-drill-check.sh          (re-based, bead tla-9y5h)
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
@@ -114,11 +120,11 @@
 #   slow  81.0 s  harness/test-swipe-subscript.sh        (added, bead tla-7xql.5)
 #   slow  22.0 s  harness/test-swipe-reader.sh           (split, bead tla-7xql.14)
 #   ----  ------
-#         84.1 s  fast tier, 30 suites   (measured --fast totals: 26.9 s at 18,
+#         84.4 s  fast tier, 31 suites   (measured --fast totals: 26.9 s at 18,
 #                                         then 41.2 s at 19, then 32.6 s at 20
 #                                         — see below)
 #       1144.8 s  slow tier, 19 suites
-#       1228.9 s  budgeted whole registry
+#       1229.2 s  budgeted whole registry
 #
 # THE TWO TIER FIGURES ARE SUMS OF THE BUDGETS BELOW AND THE OLD THIRD LINE
 # WAS NOT. It read "1038.3 s whole registry" against a fast plus slow of
@@ -830,6 +836,25 @@ SUITES=(
   # full gate runs: 0.3 / 0.3 / 0.3 s, so 0.3 and down from 0.4. The digest
   # check the note below anticipated has landed, and it did not cost 0.2 s.
   "fast|0.3|toolchain pin|./harness/test-toolchain-pin.sh"
+  # Added 2026-10-20, bead tla-tyqy. Placed next to the toolchain pin row
+  # because the two read the same file: that one checks what scripts/setup
+  # installs, this one checks what it generates. ~/bin/tlc is the generated
+  # wrapper, and until this row nothing read its dispatch table at all.
+  #
+  # Measured standalone over three back-to-back serial runs once this row was
+  # in place: 0.109 / 0.147 / 0.135 s, so 0.3 is the slowest rounded up on the
+  # same scale the spelling row uses. Three earlier runs against the
+  # unregistered suite read 0.132 / 0.120 / 0.134, so the registration check
+  # costs nothing measurable. Load was 0.79 to 1.32 on 16 cores with two
+  # sibling workers in flight, which I read as a quiet box rather than a
+  # contended one.
+  #
+  # IT STARTS NO JVM AND READS NO JAR, which is the reason it is this cheap.
+  # The wrapper body is extracted out of scripts/setup and run against a java
+  # shim on PATH that prints its own arguments, so each assertion reads the
+  # class the wrapper chose rather than grepping for the name. 12 invariants
+  # and 6 controls.
+  "fast|0.3|tlc wrapper dispatch|./harness/test-tlc-wrapper.sh"
   # Re-measured on the green tree 2026-09-05: 0.42 / 0.43 / 0.44 s over three
   # serial runs, up from 0.26 on the red tree where part 1 stopped at "missing
   # file" for every package. Reading and parsing seven records is the gap.
