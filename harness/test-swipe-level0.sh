@@ -464,29 +464,70 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. The \div tripwire.
+# 6. The \div tripwire, on the divergence that is real.
 #
-#    The jar's own Naturals.tla says a = b * (a \div b) + (a % b) holds for any
-#    integers with b > 0. TLC 2026.07.31.184830 breaks it on a negative
-#    dividend: the remainder follows the contract and the quotient truncates
-#    toward zero instead of rounding down. No item depends on that, and this
-#    assertion is what tells somebody the constraint can be lifted: a TLC that
-#    fixes \div turns this line red on purpose.
+#    THE OLD TRIPWIRE COULD NEVER FIRE, and that is worth reading before you
+#    trust this one. It asserted that TLC breaks the identity its own bundled
+#    Naturals.tla states, a = b * (a \div b) + (a % b) for b > 0, and it wrote
+#    the assertion as 5 * (-17 \div 5) + (-17 % 5) # -17. Nothing is broken.
+#    Prefix minus sits at 12-12, \div at 13-13 and % at 10-11, so -17 \div 5
+#    parses as -(17 \div 5) and comes back -3, while -17 % 5 parses as
+#    (-17) % 5 and comes back 3. The two halves of one identity were grouped
+#    different ways, and 5 * (-3) + 3 is -12. Parenthesize and the identity
+#    holds: on TLC 2026.07.31.184830, (-17) \div 5 is -4, (-17) % 5 is 3, and
+#    5 * ((-17) \div 5) + ((-17) % 5) is -17. So the old line evaluated
+#    -12 # -17, which is true, the suite passed, and no fix was ever coming for
+#    it to catch. Bead tla-mv4b, and module-docs/Integers.md has the long form.
+#
+#    THE DIVERGENCE IS THE OTHER OPERAND. Naturals.tla defines the pair through
+#    a witness in 0..(b-1), and that interval is empty once b goes negative, so
+#    the module says nothing about a negative divisor and TLC answers anyway:
+#    5 \div (-2) is -3, and 5 % (-2) raises. Filed upstream as tlaplus#721,
+#    open since 2022. I don't know which way they would close it, so both
+#    halves are pinned. The \div half reddens if it stops answering, and the %
+#    half reddens if it starts.
+#
+#    WHY TWO MODULES, AND WHY \in Int. The verdict channel reports
+#    ASSUMPTION_FAILED at rc 10 whether the assumption came out FALSE or blew
+#    up mid-evaluation, so a raise and a false claim are the same number here.
+#    Measured: ASSUME 5 % (-2) = 0 and ASSUME 1 = 2 both come back 10. Writing
+#    the % half as an equation would therefore sit at 10 whatever upstream did,
+#    which is the dead tripwire above wearing a new operand. ASSUME
+#    5 % (-2) \in Int reads 10 today because the raise aborts it, and goes to 0
+#    the day % answers any integer at all. The two halves want opposite codes,
+#    and one module's first evaluation error hides every assumption after it,
+#    so they are two runs.
 # ---------------------------------------------------------------------------
-cat > "$SCRATCH/DivTrip.tla" <<'TLA'
----- MODULE DivTrip ----
+cat > "$SCRATCH/DivNegDivisor.tla" <<'TLA'
+---- MODULE DivNegDivisor ----
 EXTENDS Integers
 
-ASSUME 5 * (-17 \div 5) + (-17 % 5) # -17
+ASSUME 5 \div (-2) = -3
 ====
 TLA
-printf '\\* no keywords needed\n' > "$SCRATCH/DivTrip.cfg"
+printf '\\* no keywords needed\n' > "$SCRATCH/DivNegDivisor.cfg"
 rc=0
-"$VERDICT" -q -c "$SCRATCH/DivTrip.cfg" "$SCRATCH/DivTrip.tla" >/dev/null 2>&1 || rc=$?
+"$VERDICT" -q -c "$SCRATCH/DivNegDivisor.cfg" "$SCRATCH/DivNegDivisor.tla" >/dev/null 2>&1 || rc=$?
 if [ "$rc" = "0" ]; then
-  ok "TLC still breaks a = b * (a \\div b) + (a % b) on a negative dividend"
+  ok "TLC still answers 5 \\div (-2) = -3, past what Naturals.tla defines"
 else
-  bad "the \\div identity now holds (rc $rc). Re-read the note in ITEMS.tsv: the constraint on \\div items can be lifted"
+  bad "5 \\div (-2) no longer answers -3 (rc $rc). Read tlaplus#721. If upstream closed it, the negative-divisor note in swipe/level0/ITEMS.tsv can go"
+fi
+
+cat > "$SCRATCH/ModNegDivisor.tla" <<'TLA'
+---- MODULE ModNegDivisor ----
+EXTENDS Integers
+
+ASSUME 5 % (-2) \in Int
+====
+TLA
+printf '\\* no keywords needed\n' > "$SCRATCH/ModNegDivisor.cfg"
+rc=0
+"$VERDICT" -q -c "$SCRATCH/ModNegDivisor.cfg" "$SCRATCH/ModNegDivisor.tla" >/dev/null 2>&1 || rc=$?
+if [ "$rc" = "10" ]; then
+  ok "TLC still refuses 5 % (-2), and the raise reaches the channel as rc 10"
+else
+  bad "5 % (-2) no longer raises (rc $rc). Read tlaplus#721. An rc of 0 means % now answers for a negative divisor"
 fi
 
 # ---------------------------------------------------------------------------
