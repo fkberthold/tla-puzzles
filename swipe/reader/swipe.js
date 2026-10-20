@@ -100,7 +100,7 @@
  * EVERY GESTURE KEEPS ONE MEANING IN EVERY STATE, and that is the point
  * rather than a nicety:
  *
- *   right, left, down   true, false, not a claim
+ *   right, left, down   it is true, it is false, it says nothing
  *   up                  one step deeper
  *   tap                 one step back
  *
@@ -260,11 +260,13 @@
  *       with discoverability that is.
  *
  *   D2  THE i CONTROL CARRIES THE FIVE GESTURES. Nothing on screen has ever
- *       said what down means, and "not a claim" is the one meaning a reader
- *       cannot reconstruct from what is in front of them. The control sits in
- *       the step head beside the back button and in the counts row at rest,
- *       which is the same corner of the page in both. Those two slots are
- *       never drawn together, so there is exactly one of it on screen.
+ *       said what down means, and "it says nothing" is the one meaning a
+ *       reader cannot reconstruct from what is in front of them. The panel's
+ *       wording moved with bead tla-7xql.23 and its reason did not. The
+ *       control sits in the step head beside the back button and in the
+ *       counts row at rest, which is the same corner of the page in both.
+ *       Those two slots are never drawn together, so there is exactly one of
+ *       it on screen.
  *
  *       The panel's words are the contract page's own, down to the sentence
  *       about what down covers. Two readings of one gesture is worse than
@@ -479,10 +481,31 @@
 
   var SWIPES = ["right", "left", "down"];
 
+  /* THE BUTTON TEXT, and the left column of the help panel's table. One word
+     each, because that is what a third of the dock's width holds. */
   var LABELS = {
     right: "true",
     left: "false",
-    down: "not a claim"
+    down: "nothing"
+  };
+
+  /* THE SAME THREE ANSWERS AS CLAUSES, bead tla-7xql.23. A button is a noun
+     and a verdict is a sentence, so one map cannot do both jobs: "It is "
+     plus a down label that reads "says nothing" gives "It is says nothing".
+
+     DOWN NOW SAYS WHAT IT ASSERTS INSTEAD OF NAMING A CATEGORY. It read "not
+     a claim" until 2026-10-20. On L0-T1-14, whose claim is
+     Cardinality({1, 2, 3}) = 4 => Cardinality({}) = 1, the frame then read
+     "You said true. It is not a claim." over a correction arguing the line
+     holds. Frank, from his phone: "this feels flawed, while it is vacuously
+     true, it is still a true assertion. (and all the elephants in my pocket
+     are pink)" He is right. A vacuously true line is true, and it still says
+     nothing, so the second half is the part that holds for all four kinds
+     under down. swipe/README.md carries the ruling and what it cost. */
+  var VERDICT = {
+    right: "it is true",
+    left: "it is false",
+    down: "it says nothing"
   };
 
   /* THE ENGLISH NAME OF EACH RUNG, which is TLA+'s own level calculus. A
@@ -505,16 +528,24 @@
     explain: "the last one you got wrong"
   };
 
-  /* What the ask tag means as a question, per rung. A tag with no entry is
-     shown as itself, which is what a new question kind does until somebody
-     writes its line. */
+  /* What the ask tag means, per rung. A tag with no entry is shown as itself,
+     which is what a new question kind does until somebody writes its line.
+
+     NOT ONE OF THEM IS YES/NO SHAPED, bead tla-7xql.23, and this is the half
+     of the same defect a screenshot cannot show. Three answers sit under the
+     ask and a yes/no question takes two, so "does this hold" is a question
+     the honest answer may not fit. A noun phrase takes all three.
+
+     THEY ARE ALSO SHORTER THAN THE QUESTION FORMS, which the dock cares
+     about: the ask shares its line with the level tag, and every pixel here
+     is a pixel of premise the reader does not get. */
   var PROMPTS = {
-    holds: "does this hold",
-    implies: "does this follow here",
-    enabled: "does this fire here",
-    terminal: "is this where it stops",
-    step: "does this hold across the step",
-    always: "does this hold all the way"
+    holds: "what this line says",
+    implies: "what this implication says",
+    enabled: "what this says about firing here",
+    terminal: "what this says about stopping here",
+    step: "what this says across the step",
+    always: "what this says all the way"
   };
 
   /* Cached across instant navigations so leaving the page and coming back
@@ -1084,6 +1115,12 @@
     }
   }
 
+  /* A VERDICT CLAUSE AT THE HEAD OF A SENTENCE. VERDICT holds clauses, so the
+     sites that open a sentence with one have to raise the first letter. */
+  function upperFirst(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   function pct(hits, total) {
     if (total === 0) {
       return "--";
@@ -1388,11 +1425,16 @@
     var box = el("div", "swipe-flash swipe-flash-" + v.flash.verdict);
     box.setAttribute("data-swipe-flash", "1");
 
+    /* THE BUTTON WORD FOR WHAT THE READER DID AND THE CLAUSE FOR WHAT THE
+       ITEM IS, bead tla-7xql.23. "You said true" names the button they
+       pressed, and the half after it has to assert rather than label, or a
+       vacuous item gets told it is not a claim while its own correction
+       argues that it holds. */
     box.appendChild(el("p", "swipe-verdict",
       v.flash.verdict === "hit"
-        ? "Right. It is " + LABELS[v.flash.item.swipe] + "."
-        : "No. You said " + LABELS[v.flash.given] + " and it is " +
-          LABELS[v.flash.item.swipe] + "."));
+        ? "Right. " + upperFirst(VERDICT[v.flash.item.swipe]) + "."
+        : "No. You said " + LABELS[v.flash.given] + " and " +
+          VERDICT[v.flash.item.swipe] + "."));
     /* THE PIN GOES WITH THE CORRECTION at the pinned rungs. A level 1
        correction reads "the open count is 1, so Pop's first conjunct holds",
        and that sentence is unreadable without the state it is about. The
@@ -1428,9 +1470,12 @@
       return box;
     }
     var item = v.lastMiss.item;
+    /* THE LINE FRANK PHOTOGRAPHED, and the reason bead tla-7xql.23 exists.
+       Same split as the flash: the button word for the answer given, the
+       VERDICT clause for the item. */
     box.appendChild(el("p", "swipe-verdict",
-      "You said " + LABELS[v.lastMiss.given] + ". It is " +
-      LABELS[item.swipe] + "."));
+      "You said " + LABELS[v.lastMiss.given] + ". " +
+      upperFirst(VERDICT[item.swipe]) + "."));
     if (pinBlocks(item).length > 0) {
       box.appendChild(el("p", "swipe-hint", item.model));
       box.appendChild(renderPin(item));
@@ -1698,17 +1743,22 @@
 
     var rows = el("div", "swipe-help-rows");
     var i;
+    /* THE ROWS READ VERDICT RATHER THAN LABELS, bead tla-7xql.23. This table
+       says what each gesture asserts, and a one-word button label beside
+       "one step deeper into the premise" was naming the answer instead. */
     for (i = 0; i < SWIPES.length; i++) {
-      helpRow(rows, "swipe " + SWIPES[i], LABELS[SWIPES[i]]);
+      helpRow(rows, "swipe " + SWIPES[i], VERDICT[SWIPES[i]]);
     }
     helpRow(rows, "swipe up", "one step deeper into the premise");
     helpRow(rows, "tap", "one step back out");
     box.appendChild(rows);
 
     box.appendChild(el("p", null,
-      "Down is the answer for a line that is not a true-or-false claim here. " +
-      "It can fail to mean anything, it can be vacuously true in a way that " +
-      "makes the claim empty, or it can fail to parse at all."));
+      "Down covers four shapes of line. It can fail to parse, it can fail " +
+      "to mean anything, it can be about the wrong rung for the question, " +
+      "or it can hold for a reason that leaves it empty. A vacuously true " +
+      "line is true and it still says nothing. That is why the ask is what " +
+      "the line says rather than whether it holds."));
 
     box.appendChild(el("p", null,
       "Nothing in here answers an item. A swipe does nothing while a panel is " +

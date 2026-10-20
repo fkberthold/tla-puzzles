@@ -1360,8 +1360,8 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
   # document on an 844-pixel viewport. So there was always something to
   # scroll, and swipe.js binds its touch listeners with { passive: true },
   # which means the handler cannot cancel a scroll. A vertical drag inside the
-  # reader scrolled the page AND fired a gesture. Down is "not a claim", so a
-  # scroll filed a vacuity verdict on a real claim.
+  # reader scrolled the page AND fired a gesture. Down is the vacuity answer,
+  # so a scroll filed a vacuity verdict on a real claim.
   #
   # The reader now owns the viewport on its own page, so the prose cannot live
   # under it. One URL is the reader and one is the contract, and there is no
@@ -1398,8 +1398,9 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
     echo ""
     echo "## The gestures, and why each one means one thing"
     echo ""
-    echo "Right is true, left is false and down is not a claim. Up is one step"
-    echo "deeper into the premise and a tap is one step back out."
+    echo "Right means the line is true, left means it is false and down means"
+    echo "it says nothing. Up is one step deeper into the premise and a tap is"
+    echo "one step back out."
     echo ""
     echo "Every gesture keeps that meaning in every state, which is the"
     echo "property the reader turns on rather than a nicety. A reader who is"
@@ -1432,12 +1433,29 @@ if [ -d swipe/level0 ] && [ -x swipe/reader/emit-items.sh ]; then
     echo "and this page reads that table. So the grading needs no server and"
     echo "works offline once the page has loaded."
     echo ""
-    echo "A down swipe covers three different things, and the corpus keeps"
-    echo "them apart even though the gesture does not. An item can fail to"
-    echo "mean anything, it can be vacuously true in a way that makes the"
-    echo "claim empty, or it can fail to parse at all. Merging them is forced"
-    echo "rather than chosen: without the merge a vacuous item has no correct"
-    echo "swipe."
+    # THE DOWN ANSWER IS ARGUED HERE, and bead tla-7xql.23 rewrote the
+    # argument rather than extending it. This paragraph used to say the merge
+    # was forced, "without the merge a vacuous item has no correct swipe".
+    # That premise is false and the corpus says so: all 30 level 0 vacuous
+    # items read the exit pair (0, 0), which swipe/README.md's own verdict
+    # table calls "the claim holds, swipe right". So the correct swipe did
+    # exist, and the frame was asserting something false about its own item.
+    echo "A down swipe covers four shapes of line, and the corpus keeps them"
+    echo "apart even though the gesture does not. A line can fail to parse. It"
+    echo "can parse and fail to mean anything. It can be about the wrong rung"
+    echo "for the question. Or it can hold for a reason that leaves it empty."
+    echo ""
+    echo "That fourth one is worth saying out loud, because it reads like a"
+    echo "contradiction and is not one. A vacuously true line IS true."
+    echo "\`Cardinality({1, 2, 3}) = 4 => Cardinality({}) = 1\` holds, and it"
+    echo "holds because the left side is false. All the elephants in my pocket"
+    echo "are pink. Both of those are true and neither tells you a thing."
+    echo ""
+    echo "So the reader is asked what the line SAYS, not whether it holds."
+    echo "Three answers need a question that takes three, and \"does this"
+    echo "hold\" takes two. Down is the answer for a line that says nothing,"
+    echo "which is true of all four shapes above and contradicts no truth"
+    echo "value."
     echo ""
     echo "## Your record lives in a file, not in this browser"
     echo ""
