@@ -31,6 +31,10 @@
 # match on `analys` was tried first and returned garbage. Add a pair only
 # after checking it the same way.
 #
+# Shape 3 came back on 2026-10-20 with `cancelling`, and answering it one word
+# at a time is what put it on this list twice. The closure rule beside the
+# pair list answers it for the whole list instead.
+#
 # Usage:  harness/test-spelling.sh
 # Exit:   0 if every assertion holds, 1 otherwise.
 
@@ -56,6 +60,26 @@ nope() { printf "  FAIL  %s\n" "$1"; fail_count=$((fail_count + 1)); }
 # Longest first within a family, because POSIX ERE is leftmost-longest and
 # the report should name `neighbours` rather than `neighbour` when both could
 # match at one position.
+#
+# THE CLOSURE RULE, added 2026-10-20 (bead tla-fkqs). Every entry carries the
+# inflections of its own stem: the -s, -ed and -ing forms, and the agent noun.
+# A form goes in when the British spelling differs from the American one and
+# no entry already reaches it as a substring.
+#
+# Before this the list was closed under nothing. It carried `modelling`,
+# `labelling` and `travelling` but not `cancelling`, and `recognising` but not
+# `organising`. That is what a list grown one rediscovery at a time looks
+# like, and the header above records the same hole class twice already.
+#
+# `cancelling` is the word that exposed it. The tla-7xql.22 author wrote it
+# into swipe/README.md and a code comment, staged both, ran this gate, and
+# passed 20 assertions. It caught the slip by hand-scanning its own diff.
+#
+# 13 entries closed the rule: organising, analysing, centring, cancelling,
+# travelled, and the agent nouns canceller(s), labeller(s), modeller(s) and
+# traveller(s). All 13 went into one tracked file first and the gate read it
+# green, which is the measurement that says they were holes rather than
+# spares. Part 2's control pair plants all 13 from now on.
 # ---------------------------------------------------------------------------
 PAIRS=(
   "neighbouring:neighboring"
@@ -66,6 +90,7 @@ PAIRS=(
   "recognised:recognized"
   "recognise:recognize"
   "organisation:organization"
+  "organising:organizing"
   "organised:organized"
   "organise:organize"
   "behaviours:behaviors"
@@ -76,18 +101,81 @@ PAIRS=(
   "favours:favors"
   "favour:favor"
   "labour:labor"
+  "centring:centering"
   "centres:centers"
   "centre:center"
+  "analysing:analyzing"
   "analysed:analyzed"
   "analyse:analyze"
+  "modellers:modelers"
   "modelling:modeling"
   "modelled:modeled"
+  "modeller:modeler"
+  "cancellers:cancelers"
+  "cancelling:canceling"
   "cancelled:canceled"
+  "canceller:canceler"
   "unlabelled:unlabeled"
+  "labellers:labelers"
   "labelling:labeling"
   "labelled:labeled"
+  "labeller:labeler"
+  "travellers:travelers"
   "travelling:traveling"
+  "travelled:traveled"
+  "traveller:traveler"
 )
+
+# ---------------------------------------------------------------------------
+# WHAT THE CLOSURE RULE LEAVES OUT, with the sites each class carries under
+# SCAN_ROOTS on 2026-10-20, measured over the 2333 tracked files the gate
+# selects. A list this size can't be complete, so the classes are named here
+# rather than left for the next reader to find one word at a time.
+#
+# REACHED BY SUBSTRING, so no entry is needed. `colouring`, `neighbourhood`,
+# `behavioural`, `organisations` and `favourite` all contain an entry above.
+# The report then names the stem rather than the word, so a `colouring` site
+# reads `colour -> color` and the reader writes `coloring`. That is a hint and
+# not the fix, which I think is the right trade for a flat pair list.
+#
+# NOT AN INFLECTION. `recognisably` and `recognisability` come off
+# `recognisable`, and an adverb and an abstract noun sit outside the rule. 0
+# sites either way.
+#
+# THE SUBSTRING READING CANNOT CARRY THESE AT ALL, which I think is a stronger
+# reason than a deferral. Each British form here sits inside a longer American
+# word or a name in this tree:
+#
+#   learnt      95 sites, every one `learntla`, the website
+#   kerb        26 sites, every one `LockerBank`
+#   programme    4 sites, every one `programmer`
+#   enrol       2 sites, 1 of them the American `enroll`
+#   distil      1 site, and it is `distilled`
+#
+# `fulfil`, `appal` and `annul` are the same shape, where the British spelling
+# is a prefix of the American one. Carrying any of them needs a different
+# matcher, and the header above says why this one reads substrings.
+#
+# CLEAN PAIRS WITH LIVE SITES, 61 in all, out because the fix is the site
+# rather than the list: licence 31, litre(s) 10, judgement(s) 8, levelled 4,
+# analogue 3, defence 2, grey 2, theatre 1.
+#
+# Two of those carry a trap for whoever picks them up. 29 of the 31 `licence`
+# sites are a column name in harness/test-corpus-manifest.sh. The other 2 are
+# in .claude/rules/dispatched-agents.md, which holds an exact exemption of 2
+# for different words. Adding `licence` reddens that entry until somebody
+# raises its count. And all 4 `levelled` sites are the shell function
+# `levelled_items` in swipe/reader/emit-items.sh, which is a name rather than
+# a word and belongs in EXEMPT_TOKENS.
+#
+# -ise FAMILIES WITH NO ENTRY, 75 sites. `normalise` alone is 22, and 7 of the
+# 75 are `normalising`, which no `-ise` entry reaches for the same reason
+# `organising` was a hole. The closure rule only closes the families already
+# here, so these are a bead of their own.
+#
+# NOT A DIALECT PAIR. `aesthetic` reads 1 site and both dialects spell it that
+# way.
+# ---------------------------------------------------------------------------
 
 # Derived, never hand-maintained. A literal pattern written out beside the
 # array is the shape that drifts out of step with it.
@@ -343,11 +431,13 @@ EXEMPT_FILES=(
   "harness/fixtures/vacuity/ModelledFloor.tla|2"
   "harness/fixtures/vacuity/ModelledFloor.cfg|1"
   ".claude/rules/dispatched-agents.md|2"
+  "swipe/reader/swipe.js|1"
 )
 FILE_WHY=(
   "renaming the module means renaming the file and the V2-PLAN.md:977 reference with it. The 2 counted here are the bare operator Modelled at line 28 and the word modelled in the line 7 comment"
   "the .cfg half of the same module, where INVARIANT Modelled names that operator"
   "a quotation rather than a deferral. Both sites are this file QUOTING the British spelling a hazard section is about: mislabelled, the word the tla-z4f3 author wrote into a manifest reason, and neighbouring, the word the tla-7xql.1 author's own comment carried. Americanizing either would misquote the measurement it records"
+  "a deferral, and the one live site the closure rule turned up across 2333 tracked files. swipe/reader/swipe.js:323 reads 'the one axis it travelled' in comment prose, and two tla-7xql workers held that file the hour this landed, so a one-word edit there would have conflicted with theirs. Whoever lands the swipe work writes traveled and deletes this entry"
 )
 
 TOKEN_HITS=()
@@ -482,14 +572,20 @@ trap 'rm -rf "$CONTROL_DIR"' EXIT
 # The negative control first, because without it the whole suite can pass by
 # matching nothing at all.
 #
-# The two files are a MATCHED PAIR, 13 sites each, one dialect apiece. Reading
+# The two files are a MATCHED PAIR, 26 sites each, one dialect apiece. Reading
 # them side by side is what makes the pair list auditable: a word that appears
 # in one and not the other is a pair somebody half-added.
+#
+# The fourth line carries the 13 forms bead tla-fkqs added, so each one has a
+# planted site that outlives the session that measured it. A pair exercised
+# only by a hand mutation in some worker's shell is a pair nothing has ever
+# caught.
 AMERICAN_FILE="$CONTROL_DIR/american.md"
 {
   printf 'The color of the behavior is the neighbor of the center.\n'
   printf 'We organize, recognize and analyze the modeled labels.\n'
   printf 'An unlabeled canceled traveling favor, analyzed.\n'
+  printf 'Organizing and analyzing while centering, canceling and traveled: a canceler, labeler, modeler and traveler, with cancelers, labelers, modelers and travelers.\n'
 } >"$AMERICAN_FILE"
 
 collect_findings "$AMERICAN_FILE"
@@ -504,13 +600,14 @@ BRITISH_FILE="$CONTROL_DIR/british.md"
   printf 'The colour of the behaviour is the neighbour of the centre.\n'
   printf 'We organise, recognise and analyse the modelled labels.\n'
   printf 'An unlabelled cancelled travelling favour, analysed.\n'
+  printf 'Organising and analysing while centring, cancelling and travelled: a canceller, labeller, modeller and traveller, with cancellers, labellers, modellers and travellers.\n'
 } >"$BRITISH_FILE"
 
 collect_findings "$BRITISH_FILE"
-if [ "$FINDING_COUNT" -eq 13 ]; then
-  ok "control: a planted BRITISH file yields all 13 planted sites"
+if [ "$FINDING_COUNT" -eq 26 ]; then
+  ok "control: a planted BRITISH file yields all 26 planted sites"
 else
-  nope "control: a planted British file yielded $FINDING_COUNT of 13 planted sites — PAT is under-matching:$FINDINGS"
+  nope "control: a planted British file yielded $FINDING_COUNT of 26 planted sites — PAT is under-matching:$FINDINGS"
 fi
 
 # Shapes 1 and 2 from the header, pinned as their own controls. A whole-word
