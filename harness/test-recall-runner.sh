@@ -16,8 +16,10 @@
 #   A wrong answer prints BOTH values. A value that is not a set prints ONCE
 #   and says nothing further: the count probe failed, but the probe is the
 #   runner's own and the value it refused is perfectly good. A value that
-#   never evaluated keeps TLC's sentence about why, because there the
-#   sentence is the whole of what the reader is told.
+#   never evaluated keeps TLC's sentence about why and gets nothing appended
+#   to it, because there the sentence is the whole of what the reader is told
+#   and a closing note would be a claim about a value that never existed
+#   (bead tla-q7l3).
 #
 #   A parse error is its own report rather than a wrong answer, because
 #   telling somebody their answer is wrong when nothing was graded is a false
@@ -53,12 +55,16 @@
 #   an inferred code     the reported code stops being verdict.sh's
 #   a parse called wrong rc 150 is reported as a wrong answer
 #   a lost value block   the canonical value is never shown
-#   a count claimed      the skipped-count note never prints
+#   a count explained    the skipped-count note comes back
 #   the drop always on   TLC's text goes even where it is the explanation
 #   the drop never on    the refused count's noise comes back
 #
 # The last two are one clause read in both directions, and the comment above
 # them says why one mutant could not cover it.
+#
+# The fourth one ADDS a line where every other mutant takes one away, and
+# that is bead tla-q7l3. The row it controls says the note is absent, and
+# nothing you delete from the runner can refute that.
 #
 # A mutant that passes means the row above it is vacuous. The mutant runs
 # against a MIRROR ROOT under the temp tree -- recall/ holding the mutant and
@@ -313,6 +319,12 @@ echo "== part 4: the cardinality probe, whose failure is the runner's own =="
 # evaluated, which the block below part 4's own rows pins. Those are the
 # three shapes tla-1sh7.3 measured, and on each one the sentence is the
 # whole of what the reader is told.
+#
+# AND THE RUNNER'S OWN NOTE SURVIVED NEITHER (bead tla-q7l3). tla-1sh7.8
+# withheld it where the value printed and left it on the one branch its
+# wording did not fit, which is a value that never evaluated. Both branches
+# are silent about the count now, so every row in this part that names the
+# note reads 0.
 # ---------------------------------------------------------------------------
 
 if has "$WRONG_OUT" 'Attempted to compute cardinality of the value'; then
@@ -404,10 +416,22 @@ if has "$NOVALUE_OUT" 'Cannot cast .*StringValue to .*IntValue'; then
 else
   nope "an answer adding a string to a number keeps TLC's explanation"
 fi
-# The one place the skipped-count note still prints, and M4's control below
-# is the row that depends on it.
-assert_eq "and the note about the skipped count, which is the last row that has one" "1" \
-  "$(grep -c 'no count' <<<"$NOVALUE_OUT")"
+# THIS ROW USED TO ASSERT THE NOTE PRINTED, AND BEAD tla-q7l3 TURNED IT ROUND.
+#
+# The skipped-count note was the last line of this block, and the reading was
+# that a count nobody got wants a word of explanation. Under a value that
+# never evaluated there is no value to explain. The cast or the CASE produced
+# nothing, so "that value" named nothing and "it is not a set" described
+# nothing, one line under TLC's own sentence saying what actually happened.
+# tla-1sh7.8 cut the note where the value printed, which left it firing on
+# the one shape it did not fit. It is gone from both now, and this is the
+# bead's RED line.
+#
+# M4 BELOW CONTROLS THIS ROW AND RUNS IN THE OTHER DIRECTION. The mutants
+# either side of it take something away. M4 puts the note back, because a row
+# asserting a line is absent can only be refuted by a runner that prints it.
+assert_eq "and no note about the skipped count, which is this bead's red line" "0" \
+  "$(grep -cE 'no count|so it is not a set' <<<"$NOVALUE_OUT")"
 run_runner "$RUNNER" R001 'Tracks[9]'
 if has "$RUN_OUT" 'non-function .* was applied as a function'; then
   ok "and so does one that indexes something that is not a function"
@@ -420,6 +444,10 @@ if has "$RUN_OUT" 'CASE with no conditions true'; then
 else
   nope "and so does one whose CASE has no true arm"
 fi
+# The CASE is the block the bead pasted, so it gets the absence row of its own
+# rather than resting on the cast above it.
+assert_eq "and the CASE with no true arm carries no note either" "0" \
+  "$(grep -cE 'no count|so it is not a set' <<<"$RUN_OUT")"
 
 # IsFiniteSet against Cardinality, on one value, measured here.
 GUARD_DIR="$TMPROOT/guard"
@@ -592,27 +620,41 @@ if mutate lost-value-block 's|^show_value "the answer" "Canon" "\$CANON"$|:|'; t
   fi
 fi
 
-# M4. the skipped-count note never prints, so a refused count passes silently.
+# M4. the skipped-count note comes back, so a value that never evaluated gets
+# a closing line about a set nobody asked about.
 #
-# AMENDED 2026-10-17 (bead tla-1sh7.8), AND THE INPUT MOVED RATHER THAN THE
-# MUTATION. The note used to print on every value whose count was refused,
-# which was most of them, so a function was the natural input. It now prints
-# only where the value itself never evaluated, so the input is an answer that
-# does not evaluate and the second row reads TLC's own sentence instead of
-# the cardinality one, which no longer appears anywhere.
+# REWRITTEN 2026-10-20 (bead tla-q7l3), AND IT NOW RUNS THE OTHER WAY. It
+# used to force the note's guard to `if false`, which proved that part 4's
+# row asserting the note printed was not vacuous. That row is gone and its
+# negation stands in its place, so the old mutation has nothing left to turn
+# red. A runner that never prints the note is the shipped runner.
+#
+# AMENDED 2026-10-17 (bead tla-1sh7.8) BEFORE THAT, and the input moved
+# rather than the mutation. The note used to print on every value whose count
+# was refused, which was most of them, so a function was the natural input.
+# That history is worth keeping, because it is the second time this one
+# mutant has had to follow the note around.
+#
+# THE ONLY MUTANT THAT CAN REFUTE AN ABSENCE ROW IS ONE THAT PRINTS THE LINE,
+# so this one appends rather than substitutes. `a\` is the sed command for
+# it, and the address is the print line's own text with `.` standing in for
+# each single quote, since the script around it is single-quoted. The address
+# has to carry the here-string as well: three lines of the runner start
+# `  sed -n ` and an address matching all three is three mutations.
+#
+# Both rows below read the restored note, one on each side of the block. The
+# second is tla-1sh7.8's own complaint coming back, a note about a set under
+# the canonical answer, which is a correct and counted value.
 # shellcheck disable=SC2016
-if mutate count-claimed 's|^  if \[ "\$VERDICT_RC" != "0" \] && \[ "\$value_printed" = "0" \]; then$|  if false; then|'; then
+if mutate count-explained '\|^  sed -n .s/\^/  /p. <<<"\$region"$|a\  echo "  (no count: TLC will not count that value, so it is not a set)"'; then
   run_runner "$MUTANT" R001 '1 + "a"'
   if has "$RUN_OUT" 'no count'; then
-    nope "control: a runner silent about a refused count is DETECTED by part 4"
+    ok "control: a runner that still notes a refused count is DETECTED by part 4"
   else
-    ok "control: a runner silent about a refused count is DETECTED by part 4"
+    nope "control: a runner that still notes a refused count is DETECTED by part 4"
   fi
-  if has "$RUN_OUT" 'Cannot cast .*StringValue to .*IntValue'; then
-    ok "and it fails the way the mutation says, TLC's own sentence still shows"
-  else
-    nope "and it fails the way the mutation says, TLC's own sentence still shows"
-  fi
+  assert_eq "and it fails the way the mutation says, the note under both values" "2" \
+    "$(grep -c 'no count' <<<"$RUN_OUT")"
 fi
 
 # ---------------------------------------------------------------------------
