@@ -1556,26 +1556,6 @@ printed_region() {
   ' "$1"
 }
 
-# The same discriminator, answered rather than applied: 0 when the value
-# printed before TLC's first Error line, 1 when it did not.
-#
-# A SECOND PASS OVER THE LOG RATHER THAN A FLAG OUT OF THE FIRST, because
-# printed_region runs in a command substitution and a subshell cannot hand a
-# variable back. The log is a few dozen lines.
-#
-# show_value needs this and not just the trimmed region, because the note it
-# prints about the skipped count sits outside the region and has to go with
-# it. A note saying a value is not a set, under a value nobody doubted, is
-# the same complaint one line further down.
-value_evaluated() {
-  awk -v sentinel="$SENTINEL" '
-    $0 == sentinel { on = 1; next }
-    on && /^Error: / { exit }
-    on && NF { shown = 1; exit }
-    END { exit (shown ? 0 : 1) }
-  ' "$1"
-}
-
 # ---------------------------------------------------------------------------
 # SANY's own sentences about what it rejected, for the parse-error report.
 # Display only, the way printed_region is: the grade came from the exit code
@@ -2130,8 +2110,7 @@ show_value() {
   run_verdict "${SCRATCH}/${name}.tla" "${SCRATCH}/${name}.cfg" "${SCRATCH}/${name}.log"
   echo
   printf '%-11s %s\n' "$label" "$expr"
-  local region value_printed=0
-  if value_evaluated "${SCRATCH}/${name}.log"; then value_printed=1; fi
+  local region
   region="$(printed_region "${SCRATCH}/${name}.log")"
   if [ -z "$region" ]; then
     echo "  that value could not be evaluated at all, so there is nothing to show."
@@ -2139,18 +2118,21 @@ show_value() {
   fi
   region="$(cap_region "$region")"
   sed -n 's/^/  /p' <<<"$region"
-  # The count is skipped whenever the probe exited nonzero, and that half is
-  # keyed on the code rather than on the error text above it.
+  # THE REGION IS THE WHOLE REPORT, AND A SKIPPED COUNT IS NEVER ANNOUNCED.
   #
-  # THE NOTE IS WITHHELD WHEN THE VALUE PRINTED (bead tla-1sh7.8). There the only
-  # thing that failed is this script's own count probe, so the note is a
-  # complaint about a value nobody doubted, and 84 of the 120 shipped
-  # canonical answers would carry it. What is left is the value alone, which
-  # is what the reader came for. The note survives on a value that never
-  # evaluated, where printed_region keeps TLC's own sentence too.
-  if [ "$VERDICT_RC" != "0" ] && [ "$value_printed" = "0" ]; then
-    echo "  (no count: TLC will not count that value, so it is not a set)"
-  fi
+  # A note used to close this block when the count was refused: "no count,
+  # TLC will not count that value, so it is not a set". Bead tla-1sh7.8 cut
+  # it where the value printed, because there the only thing that failed is
+  # this script's own count probe and 84 of the 120 shipped canonicals would
+  # have carried the complaint. That left it firing on the one shape it did
+  # not fit, a value that never evaluated at all. There the CASE or the cast
+  # produced no value, so "that value" named nothing and "it is not a set"
+  # described nothing, and TLC's own sentence just above had already said what
+  # happened. Bead tla-q7l3 dropped the note on that branch too, which took
+  # its last caller and the value_evaluated helper with it.
+  #
+  # So nothing here speaks about the count. A set gets counted and the number
+  # prints, and anything else prints the value and stops.
 }
 
 show_value "you typed" "Yours" "$ANSWER"
