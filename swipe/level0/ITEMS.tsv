@@ -92,31 +92,49 @@
 # than anything in the body. Varying the sentinel per template would be five
 # rules in place of one, not a fix.
 #
-# NO ITEM MAY DEPEND ON \div WITH A NEGATIVE DIVIDEND, and that is a finding
-# rather than a taste. The jar's own Naturals.tla states the contract:
+# PARENTHESIZE EVERY NEGATIVE LITERAL, and that is a finding rather than a
+# taste. The jar's own Naturals.tla states the contract:
 #
 #   a % b  and  a \div b  are defined so that for any integers  a  and  b
 #   with  b > 0 , the following formula is true:
 #
 #      a  =  b * (a \div b) + (a % b)
 #
-# TLC 2026.07.31.184830 breaks it. Measured with PrintT on 2026-10-17:
-# -17 \div 5 = -3 and -17 % 5 = 3, so 5 * -3 + 3 = -12 rather than -17. The
-# remainder follows the contract and sits in 0..4, so it is the quotient that
-# is wrong: it truncates toward zero where the contract forces it to round
-# down. -9 \div 4 = -2 and -7 \div 3 = -2 the same way.
+# TLC 2026.07.31.184830 holds to it. Measured through tlc2.REPL on 2026-10-20:
+# (-17) \div 5 = -4, (-17) % 5 = 3, and 5 * ((-17) \div 5) + ((-17) % 5) = -17.
+# The quotient rounds down, which is what the contract asks for.
 #
-# TLC is the authority the bake reads, so an item on -17 \div 5 would ship
-# TLC's answer as the truth and teach a falsehood. Three authored items hit
-# this and were replaced rather than re-labeled. harness/test-swipe-level0.sh
-# carries a tripwire on the broken identity, so a TLC that fixes it turns the
-# suite red and whoever reads this can lift the constraint.
+# WHAT BITES IS PRECEDENCE. Prefix minus sits at 12-12, \div at 13-13 and % at
+# 10-11, so \div binds tighter than the minus sign and % binds looser. Drop the
+# parentheses and the two halves of one identity group different ways:
+# -17 \div 5 parses as -(17 \div 5) and reads -3, while -17 % 5 parses as
+# (-17) % 5 and reads 3. Then 5 * -3 + 3 is -12 and the contract looks broken.
+# -9 \div 4 = -2 against (-9) \div 4 = -3 goes the same way, as does
+# -7 \div 3 = -2 against (-7) \div 3 = -3. Exponent carries it too: -2 ^ 2 is
+# -4 and (-2) ^ 2 is 4. So the rule covers ^ as well as \div, and an item
+# written without the parentheses teaches a precedence trap while claiming to
+# be about division.
+#
+# THIS HEADER USED TO READ "NO ITEM MAY DEPEND ON \div WITH A NEGATIVE
+# DIVIDEND", on the reading that TLC broke the identity and an item over
+# -17 \div 5 would ship a falsehood. The conclusion was right and the premise
+# was not. Three authored items were replaced rather than re-labeled on that
+# premise, which nobody needs to undo, and the constraint relaxes to the
+# parenthesizing rule above. Whoever reads the old reading somewhere else
+# should not take it for a live measurement. Bead tla-mv4b settled it and
+# module-docs/Integers.md has the long form.
+#
+# THE REAL DIVERGENCE IS A NEGATIVE DIVISOR, and no item goes near it.
+# Naturals.tla defines the pair through a witness in 0..(b-1), and that
+# interval is empty once b goes negative, so the module says nothing and TLC
+# answers anyway: 5 \div (-2) is -3, and 5 % (-2) raises. Upstream tlaplus#721,
+# open since 2022. harness/test-swipe-level0.sh pins both halves, so the day
+# upstream closes it that suite goes red and this note can go.
 #
 # T5's declared trap IS a negative operand, so growing it runs at this. Every
-# dividend here is non-negative. The negative operands sit on %, which obeys
-# the contract, on + and -, on intervals like -3..3, on \in Int, and on one
-# illformed -17 % 0. No item depends on the truncation, so no field 11 says it
-# does. Bead tla-7n7e is open on the divergence.
+# dividend here is non-negative and every divisor is positive. The negative
+# operands sit on %, on + and -, on intervals like -3..3, on \in Int, and on
+# one illformed -17 % 0.
 #
 # A CLAIM SANY REFUSES COMES BACK (150, 150), AND IT IS THE FOURTH ROW IN THE
 # CHANNEL. Six of the items authored for tla-7xql.7 landed there, and the

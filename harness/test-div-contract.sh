@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 # test-div-contract.sh — the reviewed-set gate for `\div`, bead tla-7n7e.
 #
-# THE BUG. tla2tools v1.8.0 ships a Naturals.tla that states its own contract:
-# for any integers a and b with b > 0, `a = b * (a \div b) + (a % b)`. TLC
-# 2026.07.31.184830 breaks it. Measured with PrintT, `-17 \div 5` comes back
-# -3 and `-17 % 5` comes back 3, so `5 * -3 + 3` is -12 rather than -17. The
-# remainder half holds, sitting in 0..4 as the contract requires. The quotient
-# is the half that is wrong: it truncates toward zero where the contract
-# forces it to round down.
+# THE TRAP. tla2tools v1.8.0 ships a Naturals.tla that states its own
+# contract: for any integers a and b with b > 0, `a = b * (a \div b) + (a % b)`.
+# TLC 2026.07.31.184830 keeps it. Measured through tlc2.REPL on 2026-10-20,
+# `(-17) \div 5` is -4, `(-17) % 5` is 3, and the identity comes out at -17.
+# What bites is precedence: prefix minus sits at 12-12, `\div` at 13-13 and
+# `%` at 10-11, so `-17 \div 5` parses as `-(17 \div 5)` and reads -3 while
+# `-17 % 5` parses as `(-17) % 5` and reads 3. Group one identity two ways and
+# `5 * -3 + 3` is -12.
+#
+# THIS HEADER USED TO CALL THAT A BUG IN TLC, from 2026-10-17 to 2026-10-20.
+# Bead tla-mv4b settled it and module-docs/Integers.md has the long form.
 #
 # WHY IT MATTERS HERE. This corpus takes its verdicts from TLC's exit codes,
-# so an item written over a negative dividend gets a baked answer that is
-# TLC's bug rather than the truth. It caught three of the first 80 level 0
-# swipe items, and those three were replaced rather than relabeled.
+# so an item written over an unparenthesized negative literal ships a grouping
+# trap while claiming to be about division. It caught three of the first 80
+# level 0 swipe items, and those three were replaced rather than relabeled. The
+# rule is to parenthesize every negative literal, which covers `^` as well,
+# where `-2 ^ 2` is -4 against `(-2) ^ 2` of 4.
 #
 # WHAT THIS GATE IS, AND WHAT IT IS NOT. "The dividend can never be negative"
 # is a semantic property and no scan decides it, so this suite does not try.
@@ -31,14 +37,17 @@
 # inventory to quiet the gate. A row nobody read is worth nothing.
 #
 # THIS IS NOT THE TOOLCHAIN TRIPWIRE, and the two should not be confused.
-# harness/test-swipe-level0.sh asserts that the identity is STILL broken, so a
-# TLC that fixes `\div` turns that suite red on purpose. That one watches the
-# jar. This one watches what authors write.
+# harness/test-swipe-level0.sh pins the one place TLC does go past the module,
+# a negative DIVISOR, where `5 \div (-2)` answers -3 and `5 % (-2)` raises
+# although the module's witness interval `0..(b-1)` is empty. Upstream
+# tlaplus#721, open since 2022. That suite watches the jar and reddens the day
+# upstream moves. This one watches what authors write.
 #
-# `%` IS DELIBERATELY OUT. The remainder obeys the contract, so a `%` site
-# carries no wrong answer, and the character cannot be told from a percentage
-# or a printf format without a TLA+ parser. The inventory header has the
-# measurement behind that call.
+# `%` IS DELIBERATELY OUT. The remainder keeps the contract for b > 0, and for
+# a negative divisor it raises rather than answering, so a `%` site cannot bake
+# a wrong verdict either way. The character also cannot be told from a
+# percentage or a printf format without a TLA+ parser. The inventory header has
+# the measurement behind that call.
 #
 # Usage:  harness/test-div-contract.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -92,27 +101,51 @@ ROOT_FLOORS=(
 )
 
 # ---------------------------------------------------------------------------
-# WHAT IS DELIBERATELY NOT A ROOT, with the count each carried on 2026-10-18.
+# WHAT IS DELIBERATELY NOT A ROOT, with the count each carried on 2026-10-20.
 # A gate that passes by being narrow is worth less than no gate, so these are
 # named rather than left for somebody to rediscover. This file and
 # harness/div-sites.tsv are left out of the census, since a gate counting its
 # own prose says nothing about the corpus.
 #
-#   harness/ above fixtures  16  gate code, 12 of it the tripwire in
+#   harness/ above fixtures  28  gate code, 18 of it the tripwire in
 #                                test-swipe-level0.sh. A gate author reading a
 #                                gate is a different reader from an item
 #                                author
+#   module-docs/             11  Integers.md and Naturals.md document the
+#                                operator. See the next paragraph, which is a
+#                                decision rather than an omission
 #   puzzles/                  8  v1, out of scope by era, as everywhere else
 #   scripts/test              5  this suite's registry row and its note
-#   .beads/issues.jsonl       3  the tracker export, which is generated
-#   module-docs/              2  Integers.md and Naturals.md document the
-#                                operator. Integers.md:16 already reads
-#                                "truncates toward zero", which is TLC's
-#                                behavior rather than Naturals.tla's contract
+#   .beads/issues.jsonl       4  the tracker export, which is generated
 #   top-level .md             2  SCAFFOLDING_MAP.md, PLAN-reading-expansion.md
 #
-# That is 36 occurrences. Clear one and move its root up into SCAN_ROOTS with
+# That is 58 occurrences. Clear one and move its root up into SCAN_ROOTS with
 # a floor, which is a two-line change and the point of the layout.
+#
+# MODULE-DOCS/ STAYS OUT, and this entry used to argue the other way by
+# quoting Integers.md:16 as reading "truncates toward zero". That quote was
+# the most interesting line in the block and it went stale on 2026-10-20, when
+# bead tla-mv4b rewrote the page. A line number and a quotation in a comment
+# are an assertion with no gate behind them, which is the failure this block
+# exists to avoid, so the reasoning is structural now and names no line.
+#
+# Three reasons, and I think the second is the one that decides it.
+#
+# The enforcement here is friction on an author who writes `\div` without
+# reading its operands. On the page that documents the operator, the operands
+# are the subject, so there is no author to stop.
+#
+# Adding the root would not have caught the defect that produced tla-mv4b.
+# Part 2 checks that a row carries a NON-EMPTY reason, never that the reason is
+# true. A row reading "prose documenting the operator" is true, and it sits
+# happily beside a page that has the arithmetic backwards. Widening the scan
+# would have bought a green run on a wrong page, which is worse than no row.
+#
+# Eleven rows carrying one reason is the shape the inventory header already
+# rejects for `%`: an inventory that is mostly noise rots into a waiver.
+#
+# What would change the call is a check on whether a reason is true, or a
+# second page under module-docs/ that a learner is graded on rather than reads.
 # ---------------------------------------------------------------------------
 
 # Every tracked file under the roots.

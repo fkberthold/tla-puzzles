@@ -1,19 +1,26 @@
 # div-sites.tsv — the reviewed set of `\div` sites in the authored corpus.
 #
 # Read harness/test-div-contract.sh before you edit this file. It is the gate
-# that holds the tree to this inventory, and its header carries the bug.
+# that holds the tree to this inventory, and its header carries the reasoning.
 #
-# THE SHORT VERSION. TLC 2026.07.31.184830 breaks the contract its own bundled
-# Naturals.tla states. `-17 \div 5` comes back -3, so `5 * -3 + 3` is -12 and
-# not -17. The quotient truncates toward zero where the contract forces it to
-# round down. A corpus that takes its answers from TLC's exit codes will
-# therefore bake TLC's bug as the answer, and an item over a negative dividend
-# ships a falsehood. Bead tla-7n7e.
+# THE SHORT VERSION. TLC 2026.07.31.184830 keeps the contract its own bundled
+# Naturals.tla states, `a = b * (a \div b) + (a % b)` for `b > 0`. Measured
+# through tlc2.REPL on 2026-10-20: `(-17) \div 5` is -4, `(-17) % 5` is 3, and
+# `5 * ((-17) \div 5) + ((-17) % 5)` is -17. What bites is precedence. Prefix
+# minus sits at 12-12 and `\div` at 13-13, so `-17 \div 5` parses as
+# `-(17 \div 5)` and reads -3, and an unparenthesized negative literal teaches
+# a grouping trap while claiming to be about division. Bead tla-mv4b, and
+# module-docs/Integers.md has the long form.
+#
+# THIS HEADER USED TO SAY TLC BROKE THE CONTRACT, on the -3 above read as
+# arithmetic rather than as grouping. It stood from 2026-10-17 to 2026-10-20.
+# Nothing in the corpus was wrong, because the rule it produced, parenthesize
+# or stay non-negative, is the right rule for the other reason.
 #
 # "The dividend can never be negative" is not something a scan can decide, so
 # this file does not try. It records the sites somebody has read, and the gate
 # fails on a site that is not here and on an entry whose site has gone. That
-# is enough to make a new `\div` stop an author and ask about its dividend.
+# is enough to make a new `\div` stop an author and ask about its operands.
 #
 # WHEN THE GATE GOES RED, GO AND READ THE DIVIDEND. Never add a row here to
 # quiet the gate. The row is worth nothing unless somebody looked first.
@@ -42,18 +49,20 @@
 #
 # PROSE SITES ARE IN, and some of their dividends are negative. The comment
 # block in swipe/level0/ITEMS.tsv and the section in swipe/README.md both
-# document this bug and both quote `-17 \div 5`. They are here with that as
-# their reason. A gate that stripped comments would be a gate over executed
-# code, and a wrong quotient stated in an ANSWER.md is read by a learner just
-# the same.
+# document the precedence trap and both quote `-17 \div 5`. They are here with
+# that as their reason. A gate that stripped comments would be a gate over
+# executed code, and a wrong quotient stated in an ANSWER.md is read by a
+# learner just the same.
 #
 # `%` IS NOT IN THIS FILE, and that is a decision rather than an oversight.
-# The remainder half of the contract holds: `-17 % 5` is 3, inside `0..4` as
-# Naturals.tla requires, and swipe item L0-T5-44 depends on `-5 % 3` being 1.
-# So a `%` site carries no wrong answer, while the character itself cannot be
-# told from a percentage or a printf format without a TLA+ parser. 506 tracked
-# lines under these roots carry a `%` against 83 `\div` occurrences, so an
-# inventory over it would be mostly noise and would rot into a waiver.
+# The remainder keeps the contract for `b > 0`: `(-17) % 5` is 3, inside
+# `0..4` as Naturals.tla requires, and swipe item L0-T5-44 depends on
+# `(-5) % 3` being 1. A negative divisor is the one case where `%` goes past
+# the module, and there it raises rather than answering, so it cannot bake a
+# wrong verdict either. Meanwhile the character cannot be told from a
+# percentage or a printf format without a TLA+ parser. 683 tracked lines under
+# these roots carry a `%` against 96 `\div` occurrences, so an inventory over
+# it would be mostly noise and would rot into a waiver.
 #
 # WHAT WAS SEARCHED, per the CLAUDE.md rule that a claim of completeness names
 # its search. Every tracked file under drill/ reading/ recall/ completion/
@@ -61,10 +70,17 @@
 # `git ls-files` and matched with GNU grep from a script. chapter/ carries no
 # site today and is in the roots so that the first one is caught.
 #
-# 76 rows, 83 occurrences over 70 lines, 2222 tracked files, measured
-# 2026-10-18. Three of those rows are the last three in the file, and the gate
-# found them rather than the author: they landed on main while this bead was
-# in flight, and the first run after the rebase named all three.
+# 89 rows, 96 occurrences over 80 lines, 2235 tracked files under the roots,
+# measured 2026-10-20.
+#
+# A COUNT IN THIS PARAGRAPH HAS NOTHING BEHIND IT, which is worth saying where
+# somebody will read it. The gate asserts the rows and the occurrences, because
+# it computes both, so those two cannot rot without a red run. The file count
+# and the line count are hand-measured and nothing checks them. This paragraph
+# read 76 rows and 83 occurrences for two days while the gate was reporting 80
+# and 87, and the same rot is in the NOT-A-ROOT block of
+# harness/test-div-contract.sh, where four of six counts had moved. Treat a
+# number here as a description with a date on it rather than as a check.
 
 # --- completion/ -----------------------------------------------------------
 SITE	completion/core/01-shutters/ANSWER.md	1	`(pulls \div 2)	pulls starts at 0 and only rises. work/Claims.tla:16 pins pulls \in 0..Limit
@@ -132,12 +148,21 @@ SITE	swipe/level0/ITEMS.tsv	1	~(17 \div 5	the guard field of item L0-T5-42, same
 SITE	swipe/level0/ITEMS.tsv	2	(12 \div 5)	items L0-T5-25 and L0-T5-37. The dividend is the literal 12
 SITE	swipe/level0/ITEMS.tsv	2	5 \div 0	items L0-T5-14 and L0-T5-15, both on the divisor. The dividend is 5
 SITE	swipe/level0/ITEMS.tsv	1	1 \div 0	item L0-T5-44, never evaluated behind a false antecedent. The dividend is 1
-SITE	swipe/level0/ITEMS.tsv	1	ON \div WITH	the heading of the comment block that records this bug
+SITE	swipe/level0/ITEMS.tsv	1	ON \div WITH	the comment block quoting the heading it used to carry, now withdrawn
 SITE	swipe/level0/ITEMS.tsv	1	a \div b	the quoted Naturals.tla contract, in that comment block
 SITE	swipe/level0/ITEMS.tsv	1	(a \div b)	the quoted identity from the same contract
-SITE	swipe/level0/ITEMS.tsv	2	-17 \div 5	the comment block documenting this bug. No item depends on it
-SITE	swipe/level0/ITEMS.tsv	1	-9 \div 4	the same comment block, second measured case
-SITE	swipe/level0/ITEMS.tsv	1	-7 \div 3	the same comment block, third measured case
+SITE	swipe/level0/ITEMS.tsv	2	-17 \div 5	the comment block documenting the precedence trap. No item depends on it
+SITE	swipe/level0/ITEMS.tsv	1	-9 \div 4	the same comment block, second unparenthesized case
+SITE	swipe/level0/ITEMS.tsv	1	-7 \div 3	the same comment block, third unparenthesized case
+SITE	swipe/level0/ITEMS.tsv	1	-(17 \div 5)	the same block, showing the grouping that -17 \div 5 actually takes. The dividend is the literal 17
+SITE	swipe/level0/ITEMS.tsv	1	(-17) \div 5	the same block, the parenthesized quotient that keeps the contract
+SITE	swipe/level0/ITEMS.tsv	1	((-17) \div 5)	the same block, that quotient inside the rebuilt identity
+SITE	swipe/level0/ITEMS.tsv	1	(-9) \div 4	the same block, second parenthesized case
+SITE	swipe/level0/ITEMS.tsv	1	(-7) \div 3	the same block, third parenthesized case
+SITE	swipe/level0/ITEMS.tsv	1	5 \div (-2)	the same block, the negative-divisor divergence. The dividend is 5 and no item goes near it
+SITE	swipe/level0/ITEMS.tsv	1	12-12, \div at	the same block, prose naming the precedence bands. It has no dividend
+SITE	swipe/level0/ITEMS.tsv	1	so \div binds	the same block, prose on which way the bands bind. It has no dividend
+SITE	swipe/level0/ITEMS.tsv	1	as \div, and	the same block, prose saying the rule covers ^ too. It has no dividend
 SITE	swipe/level0/ITEMS.tsv	1	12 \div 2	the comment block's parse-failure example. The dividend is 12
 SITE	swipe/level0/ITEMS.tsv	1	12 \div 5.	the second parse-failure example in that block. The dividend is 12
 SITE	swipe/level1/ITEMS.tsv	1	ON \div WITH	the heading of the comment block that carries the level 0 rule forward
