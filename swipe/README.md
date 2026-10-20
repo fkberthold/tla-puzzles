@@ -190,6 +190,10 @@ a distinguished value in a vacuous body, the thing to know is that the body is
 the part the reader must not need.** The lesson of a vacuous universal is the
 empty range, so the body should look like a claim worth evaluating.
 
+The frame had a second way to teach the wrong thing about these same items,
+and it told the reader a vacuous line was not a claim. See "Vacuous is not the
+same as not a claim" in the reader's part of this file.
+
 ### The universal quantifier is not a down-swipe marker either
 
 `\A` sat on five items in the first 80, every one of them vacuous. It now
@@ -1538,6 +1542,78 @@ has fewer moving parts and I'd take it if a gate on this box could drive it. It
 rests on the browser honoring a cancel, and nothing here can read whether it
 did.
 
+### Vacuous is not the same as not a claim, and the frame said it was
+
+Frank, on `L0-T1-14` on his phone on 2026-10-20: "this feels flawed, while it
+is vacuously true, it is still a true assertion. (and all the elephants in my
+pocket are pink)"
+
+That item's claim is `Cardinality({1, 2, 3}) = 4 => Cardinality({}) = 1`. The
+explanation under it reads "The left side is false, so the implication holds
+whatever the right side says", which is an argument for true. The verdict line
+above it read "You said true. It is not a claim." So one screen carried both,
+and the correction was the honest half.
+
+**The corpus agrees with him in its own numbers.** All 30 level 0 vacuous
+items carry the exit pair `(0, 0)`, and the verdict table above reads that
+pair as "the claim holds, swipe right". `bake.sh` then overwrites it, because
+field 6 comes off the authored kind in field 5 and `vacuous` maps to down. So
+the correct swipe did exist. The contract page's defense of the merge,
+"without the merge a vacuous item has no correct swipe", was arguing from an
+absence that the table fills.
+
+**What changed is the words and not the mapping.** A vacuous item still swipes
+down. Down stopped meaning "not a claim" and started meaning "it says
+nothing", which holds for all four kinds under it and contradicts no truth
+value. `LABELS` stayed the button text at one word per answer. A new `VERDICT`
+carries the clause form, because "It is " plus "says nothing" gives "It is
+says nothing". The flash, the explanation and the help table read `VERDICT`,
+so on screen they now read "Right. It says nothing.", "No. You said true and
+it says nothing." and "You said true. It says nothing."
+
+**The ask stopped being yes/no shaped**, and that is the half of it a
+screenshot cannot show. Three answers sit under the question and a yes/no
+question takes two. So "does this hold" over three buttons is a question that
+cannot take the answer the item wants, whatever the wording.
+
+| ask | the prompt now |
+|---|---|
+| `holds` | what this line says |
+| `implies` | what this implication says |
+| `enabled` | what this says about firing here |
+| `terminal` | what this says about stopping here |
+| `step` | what this says across the step |
+| `always` | what this says all the way |
+
+All six are shorter than the question forms they replaced, which the dock
+cares about: the ask shares its line with the level tag.
+
+**What did not change.** No corpus row, no bake, no `kind` field, no verdict
+channel, no mix, no base rate, no probe re-run. Field 11 already explained the
+vacuity per item, and it now agrees with the frame instead of arguing against
+it.
+
+**Frank turned down baking vacuous to right.** I think that reading has the
+better claim to being the real fix, since truth would stay truth and down
+would mean only that a line does not mean anything. What it costs is the level
+0 mix per template, which goes 18/18/12 to 24/18/6, and the base rate for true,
+which goes 0.3750 to 0.5000. The stem-blind probe floor, the power table above
+and the level 0 gate constants all move with those two. And vacuity stops
+being scored at all, which is the lesson `harness/vacuity.sh` and "Vacuity is
+measured, not asserted" exist to teach. That is the ruling to revisit if this
+rung is ever meant to be pure truth evaluation at fingertip speed. An item
+whose honest answer is true and whose scored answer is not trains hesitation,
+and nothing here measures that.
+
+**The gate pins the words, because the words are the fix.** The mapping did
+not move, so nothing else in the repo would redden if a later edit put "not a
+claim" back. `harness/test-swipe-reader.sh` holds `LABELS.down`, the three
+`VERDICT` clauses, the three sentence sites reading `VERDICT`, and the
+contract page's new gesture line and vacuity passage. The sixth check is the
+shape rule, and it is the real invariant of the six: no ask is yes/no shaped.
+The prompts can be reworded freely and it still holds, which a string check
+would not. Bead `tla-7xql.23`.
+
 ### The record is a file and the browser is a cache
 
 The browser resumes where you left off. The record is `SWIPE.tsv`, which
@@ -1912,6 +1988,13 @@ two rungs.
 **What it costs.** Four items of 48 carry the stutter, because `down` holds 12
 and three other kinds share it. The flash is what has to do the rest of the
 work on the 30 narrow-subscript items that are plainly right or left.
+
+**A related ruling landed on 2026-10-20 and left this one open.** Frank ruled
+that a vacuous item keeps swiping down and that the frame stops calling it not
+a claim, which is "Vacuous is not the same as not a claim" above. That settles
+what a down swipe asserts, so the words this section inherits are no longer
+the ones it was written against. It says nothing about whether a stutter is
+the `vacuous` kind, and the argument above is still unruled.
 
 ## The verdict channel at level 2
 

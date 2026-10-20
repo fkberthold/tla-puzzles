@@ -79,6 +79,27 @@
 # an open help screen and an accidental verdict. An overlay would leave the
 # step rendered underneath and would need a second guard written from scratch.
 #
+# and tla-7xql.23's, WHICH PINS WORDS RATHER THAN WIRING:
+#
+#   INVARIANT: the three answers carry a button word and a verdict clause as
+#   two maps, down asserts that the line says nothing rather than naming it
+#   as not a claim, no ask is yes/no shaped, and the contract page argues the
+#   down answer from what a line says rather than from a merge it calls
+#   forced.
+#
+# THE WORDS ARE THE WHOLE FIX HERE, which is why they are gated at all. The
+# mapping did not move: a vacuous item still swipes down. What moved is what
+# the screen says a down swipe means, and a wording with no gate under it is
+# reverted by the next edit with nothing going red. Frank read
+# "You said true. It is not a claim." on L0-T1-14, whose claim is
+# Cardinality({1, 2, 3}) = 4 => Cardinality({}) = 1, under a correction
+# arguing that the line holds. A vacuously true line is true, so the frame
+# was asserting something false about its own item.
+#
+# THE ASK CHECK IS A SHAPE AND NOT A STRING, and that is the stronger reading
+# of the four. Three answers sit under the ask, so an ask that takes two is
+# a question the honest answer may not fit, whatever its wording.
+#
 # ===========================================================================
 # WHY THIS SUITE EXISTS, AND IT IS NOT "A FILE IS MISSING"
 # ===========================================================================
@@ -182,7 +203,7 @@
 #
 # AND THE SCROLL THAT REACHED IT WAS THE NEXT BUG. tla-7xql.16: the listeners
 # are { passive: true }, so a vertical drag inside the reader scrolled the page
-# AND fired gesture(). Down is "not a claim", so a scroll filed a vacuity
+# AND fired gesture(). Down is the vacuity answer, so a scroll filed a vacuity
 # verdict on a real claim. Driven as a real touch against the published page
 # with the document parked at 200px, one downward stroke over the counts took it
 # to 0 and wrote one row to the log. The reader owns the viewport now and the
@@ -1280,6 +1301,44 @@ else
   nope "docs/swipe/.pages does not list contract.md, so the page is unreachable from the site nav"
 fi
 
+# ---------------------------------------------------------------------------
+# THE PAGE SAYS WHAT A GESTURE ASSERTS, bead tla-7xql.23. Two passages, and
+# both of them are the fix rather than a description of it.
+#
+# The gesture line read "down is not a claim". The paragraph under it said the
+# merge was forced, "without the merge a vacuous item has no correct swipe",
+# and that premise is false. All 30 level 0 vacuous items read the exit pair
+# (0, 0), which this corpus's own verdict table calls "the claim holds, swipe
+# right". So the swipe did exist and the page was arguing from its absence.
+#
+# The gate reads the BUILT page rather than the generator, because the reader
+# is sent to a URL and not to a shell script.
+#
+# AND IT READS THAT PAGE FLATTENED TO ONE LINE. The generator wraps its prose
+# at whatever width reads well inside a shell script, and markdown joins a
+# paragraph back up, so a sentence the reader sees whole can sit across two
+# echo lines. A line-by-line grep would go red on a reflow that changed no
+# word, which is a gate over the source's column width rather than over the
+# page's sentences. Watched happen on the first run of this check.
+# ---------------------------------------------------------------------------
+contract_flat=""
+if [ -f "$CONTRACT" ]; then
+  contract_flat=$(tr '\n' ' ' < "$CONTRACT" | tr -s ' ')
+fi
+
+if grep -q 'down means it says nothing' <<<"$contract_flat"; then
+  ok "the contract page's gesture line says what a down swipe asserts"
+else
+  nope "the contract page does not say down means it says nothing, so its gesture line names a category the item may not be in"
+fi
+
+if grep -q 'four shapes of line' <<<"$contract_flat" &&
+   grep -q 'elephants in my pocket' <<<"$contract_flat"; then
+  ok "the contract page carries the four down shapes and the sentence that makes the fourth one land"
+else
+  nope "the contract page has lost the vacuity passage, so the down answer is asserted there with no argument under it"
+fi
+
 # THE READER'S PAGE STAYS SHORT, and this is the measurement the bead turns on
 # rather than a tidiness check. 1944 pixels of prose is what put the reader
 # inside a 3266-pixel document. Markdown lines are not pixels, so the bound is
@@ -1842,6 +1901,84 @@ elif grep -qE 'swipe-btn' <<<"$help_body" && grep -qE 'panel = null' <<<"$help_b
   ok "the help panel draws its own button out, like stats, the messages and the menu"
 else
   nope "the help panel draws no button out, so a reader whose tap lands on a control has no way back"
+fi
+
+# ---------------------------------------------------------------------------
+# THE WORDS THE READER ANSWERS WITH, bead tla-7xql.23. Four checks, because
+# there are four separate ways to put the old defect back.
+#
+# EVERY ONE OF THEM READS $CODE, so a sentence in this file's own prose or in
+# the reader's cannot answer it. That matters more here than anywhere else in
+# this part: the thing under test IS a string, and the reader carries 2,500
+# lines of comments that discuss the strings it used to carry.
+# ---------------------------------------------------------------------------
+labels_body=$(sed -n '/var LABELS = {/,/};/p' "$CODE")
+if [ -z "$(printf '%s' "$labels_body" | tr -d '[:space:]')" ]; then
+  nope "LABELS was not found, so the button-word check read nothing"
+elif grep -qE 'down:[[:space:]]*"nothing"' <<<"$labels_body"; then
+  ok "the down button reads nothing, so no button names a category the item may not be in"
+else
+  nope "LABELS.down is not \"nothing\", so the down button names something other than what the gesture asserts"
+fi
+
+# THE SECOND MAP IS WHY THE FIRST ONE CAN BE ONE WORD. A button is a noun and
+# a verdict is a clause, and one map doing both jobs gives "It is says
+# nothing" the moment down stops being a noun phrase.
+verdict_body=$(sed -n '/var VERDICT = {/,/};/p' "$CODE")
+if [ -z "$(printf '%s' "$verdict_body" | tr -d '[:space:]')" ]; then
+  nope "VERDICT was not found, so the flash has no clause form to read and the sentence sites cannot be honest"
+elif grep -qE 'down:[[:space:]]*"it says nothing"' <<<"$verdict_body" &&
+     grep -qE 'right:[[:space:]]*"it is true"' <<<"$verdict_body" &&
+     grep -qE 'left:[[:space:]]*"it is false"' <<<"$verdict_body"; then
+  ok "VERDICT reads it is true, it is false and it says nothing, so the down verdict asserts rather than labels"
+else
+  nope "VERDICT does not carry all three clause forms, so a verdict line can read as a category again"
+fi
+
+# AND THE THREE SENTENCE SITES HAVE TO USE IT. This is the check the bead's D6
+# did not name, and I think it is load-bearing: LABELS.down reads "nothing"
+# now, so a site still reading LABELS prints "It is nothing." The screen would
+# be lying again with both maps correct.
+flash_body=$(awk '/^  function renderFlash\(\)/, /^  }$/' "$CODE")
+explain_body=$(awk '/^  function renderExplain\(\)/, /^  }$/' "$CODE")
+sentence_missing=""
+if ! grep -q 'VERDICT\[' <<<"$flash_body"; then
+  sentence_missing="$sentence_missing renderFlash"
+fi
+if ! grep -q 'VERDICT\[' <<<"$explain_body"; then
+  sentence_missing="$sentence_missing renderExplain"
+fi
+if ! grep -q 'VERDICT\[' <<<"$help_body"; then
+  sentence_missing="$sentence_missing renderHelp"
+fi
+if [ -z "$(printf '%s' "$flash_body$explain_body$help_body" | tr -d '[:space:]')" ]; then
+  nope "none of the three sentence sites was found, so this check read nothing"
+elif [ -z "$sentence_missing" ]; then
+  ok "the flash, the explanation and the help table all read VERDICT, so every sentence about an item asserts"
+else
+  nope "these sites still read a button word where a clause belongs:$sentence_missing"
+fi
+
+# THE ASK TAKES THREE ANSWERS, so it cannot be a yes/no question. This is a
+# shape rather than a string: the six prompts may be reworded freely and the
+# check still holds, which is what makes it the invariant and not the wording.
+prompts_body=$(sed -n '/var PROMPTS = {/,/};/p' "$CODE")
+prompt_vals=$(sed -n 's/^[[:space:]]*[a-z][a-z]*:[[:space:]]*"\([^"]*\)".*/\1/p' <<<"$prompts_body")
+prompt_n=$(grep -c '[^[:space:]]' <<<"$prompt_vals")
+yesno=""
+while IFS= read -r p; do
+  case "$p" in
+    "") ;;
+    "what "*) ;;
+    *) yesno="$yesno \"$p\"" ;;
+  esac
+done <<<"$prompt_vals"
+if [ "$prompt_n" -lt 6 ]; then
+  nope "only $prompt_n ask prompts came out of PROMPTS, so the shape check covered almost none of them"
+elif [ -z "$yesno" ]; then
+  ok "all $prompt_n ask prompts are noun phrases, so none of them asks a two-answer question of a three-answer item"
+else
+  nope "these ask prompts are not noun phrases, so the down answer does not fit them:$yesno"
 fi
 
 if grep -q '"swipe-tag"' <<<"$card_body" && grep -q 'TAGS\[item.level\]' <<<"$card_body"; then
