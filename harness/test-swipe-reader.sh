@@ -125,7 +125,10 @@
 #
 # THE ITEM COUNT IS DERIVED TWICE, PER LEVEL. Part 1 counts ITEM rows in each
 # corpus with its own scan and requires the payload to agree level by level.
-# Nothing below writes 240, 144 or 48.
+# No assertion below is written against a count spelled here, and the messages
+# that name one read what part 1 derived. A comment may still carry the number
+# a reading gave on the day it was taken, which is a record rather than an
+# expectation.
 #
 # THE LEAK SCAN HAS A NEGATIVE CONTROL AT EVERY LEVEL. "No witness appears in
 # the payload" passes vacuously over a scanner that extracts nothing, which
@@ -796,9 +799,17 @@ else
   nope "swipe/ carries levels [$want_levels] and the payload declares [$got_levels]"
 fi
 
+# KEYED BY LEVEL, SO A MESSAGE FURTHER DOWN CAN READ WHAT THIS LOOP DERIVED
+# rather than spelling the rung's size. A rung that grows, or a fourth one
+# landing, moves the number in that message with no edit here. A level the tree
+# does not carry reads 0 at the use site, which is wrong on screen rather than
+# an empty expansion nobody sees.
+declare -A CORPUS_N
+
 total_corpus=0
 for lvl in $LEVELS; do
   corpus_n=$(grep -c '^ITEM' "swipe/level$lvl/ITEMS.tsv")
+  CORPUS_N[$lvl]=$corpus_n
   payload_n=$(grep -c "\"level\": $lvl," "$PAYLOAD")
   total_corpus=$((total_corpus + corpus_n))
   if [ "$payload_n" = "$corpus_n" ]; then
@@ -2427,16 +2438,22 @@ fi
 
 # THE FLASH HAS TO KEEP pan-y, AND THAT IS A MEASUREMENT RATHER THAN A
 # PREFERENCE. Measured in a real browser at 390x844 on 2026-10-19, over EVERY
-# item of each pinned rung: 39 of the 48 level 2 corrections run past the
-# flash's own height, worst case 111 pixels, against 0 of 144 at level 1. With
-# the page no longer scrolling there is nowhere else for those pixels to be
-# read, and touch-action pinch-zoom alone means touch cannot pan the flash to
-# reach them.
+# item of each pinned rung: 39 level 2 corrections run past the flash's own
+# height, worst case 111 pixels, against none at level 1. With the page no
+# longer scrolling there is nowhere else for those pixels to be read, and
+# touch-action pinch-zoom alone means touch cannot pan the flash to reach
+# them.
 #
 # THE RUNG RATHER THAN A SAMPLE. An earlier reading answered 40 items drawn
-# from the 48, and since the stream draws at random, three runs of one tree
+# from the rung, and since the stream draws at random, three runs of one tree
 # gave 35, 31 and 29. Nothing was changing but the draw. Answering until the
 # done screen covers each item once and repeats exactly.
+#
+# THE RUNG'S SIZE IN THE MESSAGE BELOW IS PART 1'S COUNT rather than the one
+# this reading was taken over. The 39 is what a browser saw on the day, so it
+# stays and it carries its date. The rung's size is a live fact, so the message
+# reads it rather than spelling a number a grown rung would leave wrong.
+# swipe/README.md holds the reading in full with both numbers.
 #
 # Allowing pan-y is only half: the gesture handler has to decline a drag that
 # starts in an OVERFLOWING flash, or the drag scrolls the correction and
@@ -2448,7 +2465,7 @@ if [ -z "$ta_flash" ]; then
 elif grep -qE 'pan-y' <<<"$ta_flash" && grep -qE 'pinch-zoom' <<<"$ta_flash"; then
   ok "the flash keeps pan-y, so a correction taller than the flash can still be read, and keeps pinch-zoom"
 else
-  nope "the flash refuses pan-y, and 39 of the 48 level 2 corrections are taller than it: $ta_flash"
+  nope "the flash refuses pan-y, and 39 of level 2's ${CORPUS_N[2]:-0} corrections ran past it in a browser on 2026-10-19: $ta_flash"
 fi
 
 # ---------------------------------------------------------------------------
@@ -3654,7 +3671,7 @@ note "assert that the cap and the sticky row exist, not that the question"
 note "lands above the fold. A REAL BROWSER READ IT ON 2026-10-19 at 390x844"
 note "against the published site, and the dock held at every item measured:"
 note "298px at level 1, 269px at level 2, 384px worst case, never off screen."
-note "That reading also found 70 of 432 claims wrapping to four lines or more"
+note "That reading also found 70 of $total_corpus claims wrapping to four lines or more"
 note "and 198px of level 2 pin sitting behind the dock, which was tla-7xql.15."
 note "THE STACK AND THE VIEWPORT WERE READ IN A BROWSER on 2026-10-19 under"
 note "tla-7xql.16, at a true 390x844 with touch emulation on, against a mirror"
