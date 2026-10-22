@@ -220,7 +220,14 @@ american_for() {
 # control, and one read found three stale claims in it, an em dash among them.
 # Giving it a source is only half the fix. The other half is this line, because
 # a source no gate reads is a source with the same problem in a new place.
-SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts practice .claude)
+# core-language-docs/ ADDED 2026-10-21 (bead tla-d64i), with the tree one day
+# old. It holds the TLA+ language reference, one page per authoring family, and
+# seven more pages land under bead tla-9y4s. Enrolled now rather than when .9
+# wires the build, because seven authoring beads writing reader-facing prose
+# past a gate that reads none of it is exactly how swipe/ got three waves deep.
+# The tree was called language-docs/ for its first day and renamed the same
+# day, so a search for the old name finds nothing.
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts practice .claude core-language-docs)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,
@@ -240,6 +247,11 @@ ROOT_FLOORS=(
   "practice:1"
   ".claude:5"
   "chapter:30"
+  # core-language-docs/ carries 22 tracked files on 2026-10-21, one page and
+  # its 21 snippet files. The floor is 10 rather than 20, because tla-9y4s.9
+  # may yet split the snippets out from under this root and the floor should
+  # not be the thing that discovers it.
+  "core-language-docs:10"
 )
 
 # ---------------------------------------------------------------------------
@@ -270,6 +282,16 @@ ROOT_FLOORS=(
 #   top-level files      7     was 24; central cleared 17 on 2026-10-14
 #   corpus/              7
 #   .github/             1     verify-puzzles.yml, in a comment
+#
+# RE-SCANNED 2026-10-21 (bead tla-d64i), every tracked top-level tree, before
+# adding `core-language-docs/` above. It was the ONLY clean uncovered tree.
+# That is worth recording, because the caution under three-for-three is that a
+# narrow fix leaves other holes, and this time the scan says it does not: every
+# other uncovered tree is already named here with a count. The counts came back
+# within one or two of the 2026-10-14 figures (sources 240 against 242, curated
+# 17 against 18, pilot and corpus and .github unchanged), and the originals are
+# left standing rather than overwritten, since the small gap is more likely my
+# per-file counting method than real movement.
 #
 # That is 288 sites. `scripts/` was on this list with 1 site until
 # 2026-10-18, when its one hit in build-docs.sh was fixed and the root moved

@@ -104,6 +104,7 @@
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
 #   slow   9.0 s  chapter/snippets/run-all.sh
+#   slow   3.2 s  core-language-docs/snippets/run-all.sh   (added, bead tla-d64i)
 #   slow   9.8 s  scripts/test-verify-puzzle.sh                        (v1)
 #   slow  12.9 s  harness/fixtures/refinement/selftest.sh
 #   slow  14.4 s  harness/test-verdict.sh
@@ -1277,6 +1278,30 @@ SUITES=(
   # full gate runs: 8.3 / 9.0 / 8.8 s, so 9.0 and down from 13.6. A 34% drop,
   # unexplained, and recorded as the measurement rather than reasoned away.
   "slow|9.0|chapter snippets|bash chapter/snippets/run-all.sh"
+  # Added 2026-10-21, bead tla-d64i, next to the chapter's runner because it is
+  # the same instrument over a different tree: it runs every module the TLA+
+  # language reference prints and checks the exit code AND the distinct-state
+  # count each page quotes. Standalone on a quiet box, three runs: 2.85 / 2.99
+  # / 2.78 s. The chapter's 27-case suite read 8.65 s in the same window
+  # against its registered 9.0, so 3.2 is the same ratio of headroom.
+  #
+  # SLOW RATHER THAN FAST, although 3.2 s would sit well inside the fast tier's
+  # real 12.0 s top. It starts a JVM per case, ten of them, and needs the
+  # pinned toolchain present. No current fast-tier suite starts one, and
+  # test-tlc-wrapper.sh goes to the trouble of a fake java shim on PATH to keep
+  # it that way, so putting a TLC suite in --fast would change what --fast
+  # means for tight iteration.
+  #
+  # A FINDING THIS ROW DOES NOT FIX, recorded here because this is where the
+  # next person will be looking. The margin paragraph further up derives the
+  # 3.0x drift threshold from "the fast tier tops out at 2.4 s and the slow
+  # tier floors at 10.2 s, so any tier crossing is at least 4.2x". Measured
+  # over this registry on 2026-10-21: the fast tier tops out at 12.0, the swipe
+  # stem-blind gate, and the slow tier floors at 8.9, the drill study check.
+  # The tiers already overlap, so that derivation no longer holds and the 3.0x
+  # figure does not follow from it. Nothing gates the claim, which is why it
+  # drifted. Filed rather than adjusted here.
+  "slow|3.2|language reference snippets|bash core-language-docs/snippets/run-all.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
   # drop, unexplained.

@@ -9,9 +9,10 @@ reason. Three things pay for a split. A library you want to reuse, invariants
 you want kept away from the system they constrain, and an abstract spec you
 intend to refine against.
 
-Every module on this page is a real file under `language-docs/snippets/`, and
-`run-all.sh` beside them checks each one against the exit code and the state
-count quoted here. Measured on TLC 2026.07.31.184830 on 2026-10-21.
+Every module on this page is a real file under
+`core-language-docs/snippets/`, and `run-all.sh` beside them checks each one
+against the exit code and the state count quoted here. Measured on TLC
+2026.07.31.184830 on 2026-10-21.
 
 ## The constructs
 
