@@ -1,0 +1,34 @@
+# Cases for core-language-docs/modules.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD IS THE STATE COUNT, and it is not decoration. The page
+# quotes a distinct-state count in three places and in two of them the count
+# IS the finding: 16 states against 4 is the whole difference between two
+# tanks and one tank under two names. An rc check cannot see that. Both runs
+# exit 0, so a change that collapsed the pair into one variable would leave
+# this suite green and the page wrong. Leave the field empty where the page
+# quotes no count.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed
+#   12   an invariant was violated
+#   13   a temporal or action property was violated
+#   150  parse or semantic error in the module
+#   151  the .cfg named something the module does not define
+
+Tank.tla|Tank.cfg|0|4|the imported module on its own
+TwoTanks.tla|TwoTanks.cfg|150||forgetting to substitute for a variable
+TwoTanksOk.tla|TwoTanksOk.cfg|0|16|both substitutions supplied: two tanks
+NameInner.tla|NameInner.cfg|150||a module variable cannot be named from outside
+OneTank.tla|OneTank.cfg|0|4|two instances on one variable: one tank
+TankPlusClock.tla|TankPlusClock.cfg|0|8|a bare INSTANCE matches parameters by name
+NoArith.tla|NoArith.cfg|150||EXTENDS Sequences does not bring arithmetic
+TwoExtends.tla|TwoExtends.cfg|150||one EXTENDS line per module
+Split.tla|Split.cfg|0|9|substitution is on the parse tree
+Split.tla|SplitText.cfg|13||and the text-macro reading is a different formula
