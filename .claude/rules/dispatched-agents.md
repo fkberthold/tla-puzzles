@@ -439,7 +439,28 @@ different implementation and it fails on the shapes GNU is most convenient for. 
 matters when you are checking whether your own run wrote anything outside the worktree,
 which is exactly when you want a relative time.
 
-The scratch-script workaround covers all five refusal causes, and `command <tool>` covers
+**AMENDED A SIXTH TIME 2026-10-22, and this one is NOT the `HOME=` case above.** The
+`tla-kus2` author was refused this:
+
+```
+command find "$HOME/Study/tla-drills" ... -newermt ...
+```
+
+The message reads *"runs find with a value computed at runtime (the variable HOME) in a
+plain command, so what it runs cannot be shown not to be git."* The same line with a
+literal path ran fine.
+
+So the fifth cause is about SETTING `HOME` and this one is about READING it. Any
+variable expanded into an argument makes the command's effective target unverifiable,
+whatever the variable is and whatever the command does with it. That generalizes further
+than either case alone: the scan refuses what it cannot resolve statically, so an
+expansion is as opaque to it as an interpreter's program text.
+
+The practical upshot is the same as every other cause here. Put it in a scratch script,
+where the expansion happens inside a file the scan is not reading, or write the literal
+path when you know it.
+
+The scratch-script workaround covers all six refusal causes, and `command <tool>` covers
 the wrapper substitutions.
 
 Lineage: bead `tla-kl5.8` for the original observation, `tla-pmm2.1` and `tla-pmm2.3` for the
