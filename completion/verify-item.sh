@@ -97,7 +97,15 @@ case "$codes" in
       # col 29 to line 25, col 32 of module Claims and *."
       hits="$(grep -hE 'Precedence conflict|Unknown operator|Encountered|was not declared' \
         "$scratch"/*.log 2>/dev/null || true)"
-      printf '%s\n' "$hits" | sed -n 's/^[[:space:]]*/  /p' | sort -u | head -3
+      # `| head -3` would close the pipe on the third line and SIGPIPE sort,
+      # which is 141 under pipefail. This script runs under `set -u` alone and
+      # throws the status away, so it was harmless here, and it was the one
+      # live site the pipefail ban found when bead tla-l1en widened that gate
+      # to this tree. Capturing first and slicing from a here-string removes
+      # the live writer, so there is nothing left to signal. Byte-identical
+      # output, measured over five inputs including the empty one.
+      ranked="$(printf '%s\n' "$hits" | sed -n 's/^[[:space:]]*/  /p' | sort -u)"
+      head -3 <<<"$ranked"
     fi
     ;;
   0*0*0) echo "Every machine passed, including the broken ones, so at least one claim says nothing. TRUE scores this." ;;
