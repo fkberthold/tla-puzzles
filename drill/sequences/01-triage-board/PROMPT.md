@@ -24,5 +24,7 @@ after one step, oldest entry on the left.
 
 Write a module from an empty file that admits this morning. Then state,
 as something TLC can check, the rule the table shows the doctor keeping
-when she picks a patient. Say how you stopped the treated list growing
+when she picks a patient. State it so it would still catch a doctor who
+picked the wrong patient, rather than by repeating the condition your
+own step already carries. Say how you stopped the treated list growing
 without bound.
