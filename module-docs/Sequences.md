@@ -38,7 +38,17 @@ s == <<10, 20, 30>>
 
 | Set | Meaning |
 |---|---|
-| `Seq(T)` | the set of all finite sequences of `T` (infinite — bound with `Len(s) <= N` in `TypeOK`) |
+| `Seq(T)` | the set of all finite sequences of `T`, infinite, so bound it with `Len(s) <= N` where you DRAW from it rather than where you test against it |
+
+That distinction is measured rather than inferred, and this page used to put the
+bound in the wrong place. `INVARIANT TypeOK` where `TypeOK == wire \in Seq(Colors)`
+exits 0 over 7 distinct states, because membership is a test and nothing has to
+be enumerated to run it. No bound is needed there. What does need one is
+anywhere TLC has to produce the elements: quantifying over `Seq(Colors)` is
+refused at rc 75, and drawing `Init` from it is refused at rc 75 with 0 states.
+Measured on TLC 2026.07.31.184830, and the cases are pinned in
+`core-language-docs/snippets/sequences/CASES` as `SpoolType`, `SpoolEnumerated`
+and `SpoolAny`.
 
 ## Example
 
