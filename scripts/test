@@ -1302,6 +1302,17 @@ SUITES=(
   # figure does not follow from it. Nothing gates the claim, which is why it
   # drifted. Filed rather than adjusted here.
   "slow|3.2|language reference snippets|bash core-language-docs/snippets/run-all.sh"
+  # Bead tla-0i0l. Slow because it starts a JVM per obligation per machine,
+  # 24 TLC runs for the triage item alone. Measured 15.7 s standalone on a
+  # quiet box, registered at 20.0 for the headroom a JVM-per-case suite wants.
+  #
+  # PARTS 3 AND 4 SKIP WHERE NO ATTEMPT HAS BEEN DELIVERED, which is every box
+  # but Frank's, CI included. That is the same posture verify-delivery.sh takes
+  # toward an absent study root: a check that cannot apply reports that it did
+  # not run rather than reporting green. Parts 1, 2 and 2b read only the repo
+  # and run everywhere, and 2b is the one that pins the instrument's reach at
+  # 40 of 64 items.
+  "slow|20.0|refutation instrument|bash harness/test-refute.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
   # drop, unexplained.
