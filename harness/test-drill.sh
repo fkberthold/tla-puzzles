@@ -676,6 +676,64 @@ summary_and_exit() {
   exit $?
 }
 
+# ===========================================================================
+echo "== part 0: the lesson cross-references resolve =="
+# ===========================================================================
+# PLACED BEFORE THE EARLY DISPATCH ON PURPOSE, so every mode runs it. It needs
+# no fixture and starts no JVM, and scripts/cibuild invokes --full-sweep, which
+# exits below before part 1. An arm written at the bottom of this file would
+# never run in CI, which is the gate-that-never-read-the-tree shape one level
+# in: the gate exists, the mode that matters skips it, and green is what a gate
+# is supposed to say.
+#
+# WHY IT EXISTS. chapter/refinement.md was published on 2026-10-08 and nothing
+# under drill/ pointed at it. Frank worked drill/modules/01 on 2026-10-20 and
+# said he lacked a lesson on the thing he was drilling. The lesson had been
+# there twelve days. Bead tla-w8yu added the pointers, and a pointer that rots
+# silently is the same defect wearing the opposite sign.
+#
+# WHAT IS NOT ASSERTED, and the narrowing is deliberate. The bead's candidate
+# was a per-FAMILY assertion that each family names a chapter/ path. Six of the
+# eight families have no published lesson, so that gate would be RED by design
+# on six and would need waiving six times, which is a gate nobody trusts. The
+# assertion that holds is the weaker one: every chapter page a drill file
+# CLAIMS must exist. That reddens on a typo and on a rename, and stays silent
+# on an honest absence.
+#
+# BOTH REFERENCE FORMS COUNT. A source path reads chapter/<slug>.md and the
+# published URL reads .../chapter/<slug>/, and both are in the tree today.
+# Either resolves to the same source file, so a rename breaks both or neither.
+lesson_hits=""
+while IFS= read -r lf; do
+  [ -n "$lf" ] || continue
+  lgot=$(grep -hoE 'chapter/[A-Za-z0-9_-]+(\.md|/)' "${REPO_ROOT}/${lf}" 2>/dev/null || true)
+  [ -n "$lgot" ] && lesson_hits="${lesson_hits}${lgot}"$'\n'
+done <<<"$(git -C "$REPO_ROOT" ls-files drill 2>/dev/null || true)"
+
+lesson_slugs=$(sed -E 's#^chapter/##; s#(\.md|/)$##' <<<"$lesson_hits" | sort -u | sed '/^$/d')
+if [ -z "$lesson_slugs" ]; then
+  lesson_count=0
+else
+  lesson_count=$(grep -c '' <<<"$lesson_slugs")
+fi
+
+# THE FLOOR. A tree naming no lesson at all is the state this bead found, and
+# it has to redden rather than pass over an empty set.
+if [ "$lesson_count" -ge 1 ]; then
+  ok "drill/ names at least one chapter page (${lesson_count} distinct)"
+else
+  nope "drill/ names no chapter page at all, which is the tla-w8yu defect"
+fi
+
+while IFS= read -r lslug; do
+  [ -n "$lslug" ] || continue
+  if [ -f "${REPO_ROOT}/chapter/${lslug}.md" ]; then
+    ok "the lesson drill/ points at exists: chapter/${lslug}.md"
+  else
+    nope "drill/ points at chapter/${lslug}, and chapter/${lslug}.md is not there"
+  fi
+done <<<"$lesson_slugs"
+
 # THE EARLY DISPATCH. --static and --full-sweep run the real-tree arm and
 # nothing else, so no fixture is built and no control runs. Parts 1 and 2 are
 # the instrument's controls and they belong to the unflagged invocation.
