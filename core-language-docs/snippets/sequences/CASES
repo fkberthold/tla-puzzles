@@ -1,0 +1,60 @@
+# Cases for core-language-docs/sequences.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD IS THE STATE COUNT. On this page the exit code carries most
+# of the argument, since 12 of the 22 cases are evaluation failures and the
+# whole point of them is that the run stops. Four counts still do real work:
+#
+#   Conveyor 4            the belt a zero index and a past-the-end slice run on
+#   Spool 7 twice         Seq(Colors) as an invariant checks every state the
+#                         bounded union checks, so the two counts must agree
+#   SpoolAny 0            Init drew from Seq(Colors) and nothing was checked
+#
+# SpoolAny is the one to protect, for the reason the sets manifest gives about
+# Caliper. A run that finds 0 distinct states has told you nothing about the
+# system, and only the count says so. Leave the field empty where the page
+# quotes no count.
+#
+# THE 75 AND 76 ROWS ARE A MATCHED PAIR, not two spellings of one thing.
+# Trim/TrimPastEnd and Conveyor/ConveyorSlice are the same out-of-domain
+# SubSeq failure, one reached on the initial state and one on the second, and
+# they read 75 and 76. The page's last section rests on that pair, so neither
+# row may be relaxed to the other's code.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed
+#   12   an invariant was violated by a state
+#   75   evaluation failed while TLC was working on the initial state, with no
+#        behavior printed
+#   76   evaluation of an invariant failed on a state reached by a step, with
+#        the behavior printed
+#   150  parse or semantic error in the module
+
+Conveyor.tla|Conveyor.cfg|0|4|a sequence is a function on 1..Len(s), EXCEPT included
+Conveyor.tla|ConveyorZero.cfg|76||index 0 is outside the domain, so the run stops
+Conveyor.tla|ConveyorSlice.cfg|76||a past-the-end slice reached on the second state
+Spool.tla|SpoolType.cfg|0|7|wire \in Seq(Colors) is a test, so the invariant holds
+Spool.tla|SpoolBounded.cfg|0|7|and the finite bounded union holds over the same states
+Spool.tla|SpoolEnumerated.cfg|75||quantifying over Seq(Colors) is refused outright
+Spool.tla|SpoolAny.cfg|75|0|and drawing Init from it leaves nothing to check
+Pallet.tla|Pallet.cfg|0|3|Append adds one element, \o joins two sequences flat
+Pallet.tla|PalletSameLength.cfg|12||so the same layers sit at two different lengths
+Crate.tla|Crate.cfg|0|2|Head and Tail behind a guard that rules out the empty crate
+Crate.tla|CrateBareHead.cfg|76||Head of the empty sequence stops the run
+Crate.tla|CrateBareTail.cfg|76||and Tail of it stops the run the same way
+Trim.tla|Trim.cfg|0|1|a slice inside the domain, re-indexed, and a backwards range
+Trim.tla|TrimPastEnd.cfg|75||an upper bound past the end is refused, never clipped
+Trim.tla|TrimBeforeStart.cfg|75||and a lower bound of 0 is refused the same way
+Barge.tla|Barge.cfg|0|1|Len, Tail, SubSeq and \o all take a string and hand one back
+Barge.tla|BargeHead.cfg|75||Head refuses the string that Tail accepted
+Barge.tla|BargeAppend.cfg|75||Append refuses it too, where \o joined it
+Barge.tla|BargeIndex.cfg|75||and indexing it applies a non-function
+Barge.tla|BargeDomain.cfg|75||as does asking a value with a length for its domain
+Sorter.tla|Sorter.cfg|0|1|SelectSeq keeps elements in order and re-indexes from 1
+SorterExpr.tla|SorterExpr.cfg|150||and its second argument has to be an operator
