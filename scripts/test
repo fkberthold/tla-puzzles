@@ -89,7 +89,7 @@
 #   fast   1.3 s  harness/test-vector.sh
 #   fast   1.3 s  harness/test-refutation-coverage.sh
 #   fast   1.5 s  harness/screen.sh --selftest
-#   fast   4.6 s  harness/test-pipefail.sh
+#   fast  19.0 s  harness/test-pipefail.sh              (re-based, bead tla-l1en)
 #   fast   2.0 s  harness/test-sequence.sh
 #   fast   2.2 s  harness/comment-gate.sh --self-test
 #   fast   2.2 s  harness/test-build-docs-reading.sh     (added, bead tla-n7dv)
@@ -105,7 +105,7 @@
 #   slow  18.5 s  harness/test-reading.sh               (re-based, bead tla-d6o0)
 #   slow  50.2 s  harness/test-indeterminate.sh         (re-based again, 169d53a)
 #   slow   9.0 s  chapter/snippets/run-all.sh
-#   slow   3.2 s  core-language-docs/snippets/run-all.sh   (added, bead tla-d64i)
+#   slow  58.0 s  core-language-docs/snippets/run-all.sh (re-based, bead tla-6ont)
 #   slow   9.8 s  scripts/test-verify-puzzle.sh                        (v1)
 #   slow  12.9 s  harness/fixtures/refinement/selftest.sh
 #   slow  14.4 s  harness/test-verdict.sh
@@ -509,7 +509,7 @@ SUITES=(
   # The scan set grew with the day's work rather than the suite slowing: it
   # selects shell files by shebang across the tree, and swipe/level2/bake.sh,
   # swipe/level2/render.sh and the three reader files all landed today.
-  "fast|9.5|pipefail idiom ban|./harness/test-pipefail.sh"
+  "fast|19.0|pipefail idiom ban|./harness/test-pipefail.sh"
   # Added 2026-10-14, bead tla-nv5q phase 3. Placed next to the pipefail row
   # because the two are siblings in shape rather than in cost: both scan the
   # whole tree for a banned pattern, both assert one floor per root so a root
@@ -1313,7 +1313,7 @@ SUITES=(
   # The tiers already overlap, so that derivation no longer holds and the 3.0x
   # figure does not follow from it. Nothing gates the claim, which is why it
   # drifted. Filed rather than adjusted here.
-  "slow|3.2|language reference snippets|bash core-language-docs/snippets/run-all.sh"
+  "slow|58.0|language reference snippets|bash core-language-docs/snippets/run-all.sh"
   # Bead tla-0i0l. Slow because it starts a JVM per obligation per machine,
   # 24 TLC runs for the triage item alone. Measured 15.7 s standalone on a
   # quiet box, registered at 20.0 for the headroom a JVM-per-case suite wants.
@@ -1338,16 +1338,41 @@ SUITES=(
   # project keeps removing from its gates. A conservative budget can miss a
   # regression. A permanently red one gets ignored, and that is worse.
   #
-  # tla-6ont re-measures this row AND the language reference snippets row on a
-  # quiet box once the remaining pages land. Both moved today and both want one
-  # measurement pass rather than one per bead, because two beads editing this
-  # file is the collision tla-x1wr just removed from the snippets runner.
+  # tla-6ont DONE 2026-10-22, one measurement pass over all three rows that
+  # moved, which is what this paragraph asked for. Box verified quiet before
+  # AND after each set: 0 JVMs, nothing above 9% CPU, no whisper-cli. Slowest
+  # of three back-to-back serial runs, this project's standard:
+  #
+  #   language reference snippets   53 / 54 / 53 s   3.2 -> 58.0
+  #   refutation instrument         19 / 20 / 19 s   30.0 -> 24.0
+  #   pipefail idiom ban            16 / 16 / 16 s   9.5 -> 19.0
+  #
+  # THE SNIPPETS ROW WAS 17x OFF and the cause is not drift. It was registered
+  # at 3.2 when one reference page existed. Eight pages landed, so the suite is
+  # 180 cases over 8 family manifests against the 26 it was measured on, and the
+  # cost is JVM startup rather than any slow model. 58.0 is about 7% over the
+  # slowest reading.
+  #
+  # THE REFUTATION ROW COMES DOWN, which is the direction nobody re-measures.
+  # I set 30.0 earlier the same day and said in this file that it was
+  # deliberately conservative. It measures 20, so the conservatism was real
+  # rather than hidden slack, and 24.0 keeps a margin without pretending the
+  # suite is slower than it is.
+  #
+  # PIPEFAIL IS AN ATTRIBUTED MOVE, not a regression. tla-l1en widened
+  # SCAN_ROOTS from 4 roots to 11 and the suite now reads 157 tracked shell
+  # files, so more work costs more time. It STAYS IN THE FAST TIER on purpose:
+  # the tier's defining property is that it starts no JVM, which a pure
+  # shell-and-grep scan still satisfies, and moving it would drop a cheap
+  # correctness check out of the tier people run while iterating. I moved it to
+  # slow first and put it back, which is recorded because the 12.0 s swipe row
+  # already sits in fast and the precedent is what settled it.
   #
   # Why the suite grew: the temporal family came into reach, 8 items whose rc 0
   # cells each need a vacuity probe, and probes 1 and 2 of harness/vacuity.sh
   # are not waivable, so reaching probe 4 costs three TLC runs. The pairing is
   # lazy per machine, so only a cell that comes back 0 pays it.
-  "slow|30.0|refutation instrument|bash harness/test-refute.sh"
+  "slow|24.0|refutation instrument|bash harness/test-refute.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
   # drop, unexplained.
