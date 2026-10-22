@@ -315,8 +315,8 @@ correct.** The brief listed `VARIABLE`, `Init`, `Next`, `Spec`, the primed
 variable, `UNCHANGED` and `vars` as a `core` family, where this file files all
 seven under `temporal` as K079 to K086. The eight families here are now
 load-bearing on published work: `core-language-docs/` holds one page per
-family, named for it, with seven of the eight written and `temporal.md` in
-flight. Repartitioning would orphan them.
+family, named for it, and as of 2026-10-22 all eight are written.
+Repartitioning would orphan them, so central's brief is the copy to fix.
 
 ## The rows
 
