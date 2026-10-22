@@ -34,8 +34,9 @@
 #
 # This suite pins both halves: part 1 demonstrates the mechanism on a
 # deliberately chatty producer, and part 2 is the structural ban that keeps the
-# idiom from coming back anywhere under the scanned roots (harness/, scripts/,
-# chapter/, .github/ — see SCAN_ROOTS).
+# idiom from coming back anywhere under the scanned roots. SCAN_ROOT_FLOORS is
+# the one place the roots are named, and the run prints them, so this header
+# does not list them and cannot fall behind them.
 #
 # Usage:  harness/test-pipefail.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -192,7 +193,77 @@ fi
 # the same reason as the first two: a live site the ban could not see. The
 # runner a learner drives daily, plus six family helper scripts, sat outside
 # every root this suite had.
-SCAN_ROOTS=(harness scripts chapter .github drill recall)
+#
+# WIDENED 2026-10-22, bead tla-l1en, and this time the gap was found by
+# comparing root lists rather than by tripping over a site. scripts/lint had
+# grown to ten roots while this one still had six, so core-language-docs/ was
+# linted and not pipefail-checked. That tree was the FOURTH instance of the
+# gate-that-never-read-the-tree shape recorded in
+# .claude/rules/dispatched-agents.md, and the first one caught while the hole
+# was still empty.
+#
+# DO NOT ADD THE ONE ROOT. Every tracked tree holding a shell file was
+# selected by hand first, with this suite's own selector, and six were
+# uncovered rather than one. Five of them come in here, which is the same
+# arithmetic the 2026-10-18 lint widening ran: the narrow fix would have left
+# four more holes. Measured 2026-10-22, 157 tracked shell files in all:
+#
+#   sources   24 files   exercises  17 files   swipe  7 files
+#   completion 1 file    core-language-docs  1 file
+#
+# AND THE EMPTY HOLE WAS NOT EMPTY. completion/ carried one live site,
+# completion/verify-item.sh:100, a `sort -u | head -3` that would return 141
+# under pipefail. It is harmless there, because that script runs under `set -u`
+# alone and discards the status, and it is fixed anyway: a harmless site is a
+# site the next person copies. So this is the fourth widening in a row to find
+# something the ban could not see, and the bead that filed it expected an
+# empty hole.
+#
+# WHAT STAYS OUT, with its count, so nobody has to rediscover it:
+#
+#   .beads/   5 files   the tracker's own scripts. They arrive and change
+#                       with bd rather than with anything here, every one
+#                       opens with "This section is managed by beads", and a
+#                       141 in one of them would not be ours to fix.
+#                       scripts/lint leaves them out on the same reasoning.
+#
+# That is the whole remainder. Every other tracked tree holding a shell file
+# is a root above, which is a stronger claim than this block has carried
+# before and it is worth checking again rather than inheriting.
+#
+# THE ROOTS AND THEIR FLOORS ARE ONE LIST, and that is a fix rather than a
+# tidy-up. drill/ and recall/ sat in SCAN_ROOTS with no check_root call from
+# 2026-10-14 until this bead, so a typo in either one dropped its files and
+# the run stayed green on the other four. Deriving SCAN_ROOTS from the pairs
+# makes a root without a floor impossible to write.
+#
+# A floor asserts the root is still being walked, not how big it has grown.
+# The five new ones match scripts/lint's floors for the same trees, so a
+# divergence between the two gates is a signal rather than noise. harness/ and
+# scripts/ keep the lower floors they were given in 2026-08, because re-basing
+# them is not this bead's.
+#
+# Counted 2026-10-22 with this suite's selector: harness 65, scripts 23,
+# chapter 2, .github 2, drill 9, recall 1, swipe 7, completion 1, exercises 17,
+# sources 24, core-language-docs 1.
+SCAN_ROOT_FLOORS=(
+  "harness:8"
+  "scripts:8"
+  "chapter:1"
+  ".github:1"
+  "drill:5"
+  "recall:1"
+  "swipe:4"
+  "completion:1"
+  "exercises:10"
+  "sources:15"
+  "core-language-docs:1"
+)
+
+SCAN_ROOTS=()
+for entry in "${SCAN_ROOT_FLOORS[@]}"; do
+  SCAN_ROOTS+=("${entry%%:*}")
+done
 
 echo
 echo "== part 2: the idiom is banned across ${SCAN_ROOTS[*]} =="
@@ -270,11 +341,15 @@ done
 # up. The floors sit under the measured counts (15 / 12 / 2 / 2 on 2026-08-07):
 # this asserts that a root is still being walked, not how big it has grown.
 #
-# The .github/ floor carries more weight than the other three. Those roots are
-# full of .sh files that a broken selector would still find, but .github/ holds
-# nothing except the two workflows, so this is the one assertion that goes red
-# if the YAML clause stops admitting them. Every ban below reports "found
-# nothing", and that reads the same whether the scan is clean or blind.
+# The .github/ floor carries more weight than the other ten. The other roots
+# are full of .sh files that a broken selector would still find, but .github/
+# holds nothing except the two workflows, so this is the one assertion that
+# goes red if the YAML clause stops admitting them. Every ban below reports
+# "found nothing", and that reads the same whether the scan is clean or blind.
+#
+# DRIVEN FROM SCAN_ROOT_FLOORS, never from hand-written calls. Four of the six
+# roots had a call and two did not, which is how drill/ and recall/ went eight
+# days with no floor. One list is what makes that unwriteable.
 check_root() {
   local root="$1" floor="$2" f n=0
   for f in "${shell_files[@]}"; do
@@ -287,10 +362,19 @@ check_root() {
   fi
 }
 
-check_root harness 8
-check_root scripts 8
-check_root chapter 1
-check_root .github 1
+for entry in "${SCAN_ROOT_FLOORS[@]}"; do
+  check_root "${entry%%:*}" "${entry#*:}"
+done
+
+# And the list itself has to cover every root the scan walked. A pair dropped
+# from SCAN_ROOT_FLOORS takes its root out of SCAN_ROOTS with it, so the ban
+# would stop reading that tree and no floor would report it missing. This is
+# the one assertion the per-root loop above cannot make about itself.
+if [ "${#SCAN_ROOT_FLOORS[@]}" -eq "${#SCAN_ROOTS[@]}" ] && [ "${#SCAN_ROOTS[@]}" -ge 11 ]; then
+  ok "every one of the ${#SCAN_ROOTS[@]} scanned roots carries a floor"
+else
+  nope "${#SCAN_ROOTS[@]} roots against ${#SCAN_ROOT_FLOORS[@]} floors, and a floor of 11 roots expected — a root without a floor can be switched off by a typo"
+fi
 
 # ---------------------------------------------------------------------------
 # The allowlist — for a banned string that is DATA rather than code.

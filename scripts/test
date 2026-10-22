@@ -93,6 +93,7 @@
 #   fast   2.0 s  harness/test-sequence.sh
 #   fast   2.2 s  harness/comment-gate.sh --self-test
 #   fast   2.2 s  harness/test-build-docs-reading.sh     (added, bead tla-n7dv)
+#   fast   1.2 s  harness/test-build-docs-core-language.sh (added, tla-9y4s.9)
 #   fast   2.6 s  harness/test-corpus-manifest.sh
 #   fast   7.5 s  harness/test-spike-measure.sh
 #   fast   4.8 s  harness/test-completion-gate.sh --static (added, bead tla-4yit)
@@ -647,6 +648,17 @@ SUITES=(
   # less wall clock. Its cost tracks the size of reading/ rather than anything
   # about itself.
   "fast|2.2|docs reading section|./harness/test-build-docs-reading.sh"
+  # The core-language reference section, bead tla-9y4s.9. It runs
+  # scripts/build-docs.sh four times over four fixture trees, and it starts no
+  # JVM, so it belongs in fast by this header's rule that the boundary is the
+  # model checker. The snippet runner is the row that meets one, and that is
+  # registered separately as "language reference snippets".
+  #
+  # Measured 2026-10-22 standalone, three back to back: 0.90 / 0.91 / 0.77 s
+  # at load 6.3, with two sibling authoring sessions on the box. 1.2 rather
+  # than 0.9, because the slowest reading is what the registry records and a
+  # budget at the measurement flaps on the next warm run.
+  "fast|1.2|docs core-language section|./harness/test-build-docs-core-language.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 1.7 / 2.2 / 2.2 s, so 2.2 and down from 2.4. The 1.7 was
   # the first run of the three, which is the opposite of a cold-cache effect

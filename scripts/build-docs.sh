@@ -73,17 +73,121 @@ if command -v python3 >/dev/null && [ -f /tmp/puzzle_concepts.json ]; then
   python3 scripts/build-concept-index.py >/dev/null 2>&1 || true
 fi
 
+# ===========================================================================
+# THE CORE LANGUAGE REFERENCE: core-language-docs/ AS A REFERENCE SUBSECTION
+#
+# Bead tla-9y4s.9, epic tla-9y4s. Eight pages, one per authoring family. Frank
+# asked for this on 2026-10-21 after fighting a drill item: no page on this
+# site covered a language construct, so "what does INSTANCE ... WITH
+# substitute" had no answer a reader could reach. The standard-library pages
+# right below cover six modules and say nothing about the language itself.
+#
+# THE SOURCE TREE WAS CALLED language-docs/ FOR ONE DAY, renamed on 2026-10-21
+# under bead tla-d64i, so the published directory is reference/core-language/
+# and not reference/language/. The reason is the nav rather than taste.
+# reference/modules/ already serves the standard library under the label
+# Standard Modules, and this section ships a page called modules.md. Two
+# adjacent nav sections each holding something called modules is a reader's
+# problem. A search for the old name finds nothing.
+#
+# THE PAGE LIST IS DERIVED, NEVER WRITTEN, for the reason the chapter section
+# further down this file records and bead tla-i3zu measured: a hand-kept list
+# is right until somebody adds a page, and then it is silently wrong with
+# every gate still green. The Standard Modules block below is the one
+# counterexample in this file, and it stays hand-kept because its six pages
+# track a fixed set of standard modules rather than a tree that grows.
+#
+# NOTHING IS REWRITTEN ON THE WAY THROUGH. Every relative link in the eight
+# pages was authored against the published location, which their authors could
+# do because the destination was settled before they wrote. Measured
+# 2026-10-22: six distinct link targets across the eight pages, and all six
+# resolve from reference/core-language/. ../../chapter/refinement.md reaches
+# the refinement chapter and ../modules/Integers.md reaches a standard-library
+# page. So this section needs no link program like the chapter section's, and
+# harness/test-build-docs-core-language.sh is what holds that true.
+#
+# THE ORDER IS THE GLOB, which is alphabetical by page name. A reference is
+# looked up rather than read through, so there is no chain of "next" links to
+# walk the way the chapters have, and an order derived from the tree cannot
+# fall behind it. The index page carries the order a reader actually wants in
+# its own table, where it is prose rather than nav.
+#
+# THE LABELS COME FROM THE H1s. Each nav entry is a bare filename, which is
+# what tells awesome-pages to take the page's own H1 as its label. The
+# alternative is a slug-to-label case statement like reading_family_label()
+# further down, and that one exists because a reading family is a directory
+# with no H1 to read. These eight pages have one each, written to read as
+# labels.
+# ===========================================================================
+
+# ---- helper: the core-language page list, derived from the tree ----
+# Sets CORE_LANGUAGE_PAGES to the page names of the markdown files directly
+# under core-language-docs/, in glob order, with index.md held out. The index
+# publishes like any other page, but it is the section's landing page rather
+# than an entry in the list, so the nav writes it first by itself.
+#
+# Sub-directories are not pages, so snippets/ is left alone. An unmatched glob
+# stays literal and the -f test drops it, so a missing tree gives an empty
+# list rather than a bogus one.
+CORE_LANGUAGE_PAGES=()
+derive_core_language_pages() {
+  local f n
+  CORE_LANGUAGE_PAGES=()
+  for f in core-language-docs/*.md; do
+    [ -f "$f" ] || continue
+    n=$(basename "$f" .md)
+    if [ "$n" = "index" ]; then
+      continue
+    fi
+    CORE_LANGUAGE_PAGES+=("$n")
+  done
+  return 0
+}
+
+derive_core_language_pages
+
+if [ "${#CORE_LANGUAGE_PAGES[@]}" -gt 0 ]; then
+  mkdir -p "$DOCS/reference/core-language"
+  cp core-language-docs/*.md "$DOCS/reference/core-language/"
+
+  # The index is what makes reference/core-language/ a destination rather than
+  # a nav heading that opens on whichever page sorts first. Warn rather than
+  # publish a section whose own URL has nothing at it. The reference nav below
+  # already carries one entry whose page 404s on the live site, which is a
+  # finding bead tla-9y4s.9 filed separately, and a second one would be this
+  # section's own doing.
+  if [ ! -f core-language-docs/index.md ]; then
+    echo "build-docs.sh: core-language-docs/index.md is missing, so reference/core-language/ has no landing page." >&2
+  fi
+
+  {
+    echo "title: Core Language"
+    echo "nav:"
+    echo "  - index.md"
+    for page in "${CORE_LANGUAGE_PAGES[@]}"; do
+      echo "  - $page.md"
+    done
+  } > "$DOCS/reference/core-language/.pages"
+fi
+
 # Reference dir nav order (awesome-pages)
-cat > "$DOCS/reference/.pages" <<'EOF'
-title: Reference
-nav:
-  - Curriculum Map: curriculum-map.md
-  - Quality Gate: quality-gate.md
-  - Scaffolding Map: scaffolding-map.md
-  - Judgment Decision Tree: judgments.md
-  - Concept Index: concepts.md
-  - Standard Modules: modules
-EOF
+#
+# The Core Language line is emitted only when that section was built. A nav
+# entry pointing at a directory this run did not write is a 404, and the
+# entry above it is already one of those.
+{
+  echo "title: Reference"
+  echo "nav:"
+  echo "  - Curriculum Map: curriculum-map.md"
+  echo "  - Quality Gate: quality-gate.md"
+  echo "  - Scaffolding Map: scaffolding-map.md"
+  echo "  - Judgment Decision Tree: judgments.md"
+  echo "  - Concept Index: concepts.md"
+  if [ "${#CORE_LANGUAGE_PAGES[@]}" -gt 0 ]; then
+    echo "  - Core Language: core-language"
+  fi
+  echo "  - Standard Modules: modules"
+} > "$DOCS/reference/.pages"
 
 # Modules dir nav order
 cat > "$DOCS/reference/modules/.pages" <<'EOF'
