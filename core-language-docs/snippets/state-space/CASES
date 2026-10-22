@@ -1,0 +1,89 @@
+# Cases for core-language-docs/state-space.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD CARRIES MORE OF THIS PAGE THAN THE RC DOES. Three of the
+# five config keywords here are state-space knobs, so their whole observable
+# effect is the distinct-state count while the rc stays 0. An rc-only suite
+# would be green over every one of them:
+#
+#   GaugeFull 6 against GaugeViewFull 2       VIEW collapses the fingerprint
+#   WicketState 7 against WicketStride 4      an ACTION_CONSTRAINT cuts edges
+#   Livery 8 against LiverySym 4              SYMMETRY collapses the orbit
+#   Siding 4, SidingOff 4, SidingQuiet 4      one count, three exit codes
+#
+# The Gauge pair is the one to protect. GaugeCatch exits 12 and GaugeMiss
+# exits 0 on the same spec with the same invariant, and the only difference is
+# a VIEW. Its count dropping to 2 is what says the search stopped early rather
+# than deciding the invariant held.
+#
+# Leave the field empty where the page quotes no count.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed, with a warning on stdout in two of the cases
+#   10   an ASSUME in the root module is false
+#   11   deadlock, meaning a reachable state with no successor
+#   12   an invariant was violated by a state
+#   13   an action or temporal property was violated
+#   75   evaluation failed before TLC had a behavior to show
+#   76   the INVARIANT slot was handed a formula that is not a state predicate
+#   151  a declared invariant evaluated to FALSE with no state involved
+#   255  TLC's catch-all, which is where a malformed cfg lands
+#
+# TWO OF THOSE CODES CARRY A SECOND MEANING, and both are the second meaning
+# rather than the documented one.
+#
+# 151 is recorded project-wide as a cfg naming a symbol the spec does not
+# define. SemaphoreFalse.cfg and RoundhouseWidth.cfg are both correct cfgs
+# whose every name resolves, and both exit 151 because the declared invariant
+# is constant-level and false. Filed as tla-ry2y, found first by the sets
+# page's author.
+#
+# 76 is recorded as an invariant that could not be evaluated, with the
+# behavior printed. SemaphoreSlot.cfg gets 76 for an action formula in the
+# INVARIANT slot, refused before the first state with no behavior at all.
+
+Tollgate.tla|TollgateCut.cfg|0|6|a CONSTRAINT bound, and nothing looks stuck
+Tollgate.tla|TollgateSpecBound.cfg|11|6|the same bound in the spec is a dead end
+Tollgate.tla|TollgateProbe.cfg|12|6|a state outside the bound is still checked
+Tollgate.tla|TollgateNear.cfg|0|6|but a violation two steps out is never generated
+Tollgate.tla|TollgateFar.cfg|12|7|and one cap higher the same invariant finds it
+Wicket.tla|WicketState.cfg|0|7|a state constraint reads one state
+Wicket.tla|WicketStride.cfg|0|4|an ACTION_CONSTRAINT reads the pair, cutting edges
+Gauge.tla|GaugeFull.cfg|0|6|the default view is the tuple of every variable
+Gauge.tla|GaugeViewFull.cfg|0|2|a VIEW dropping the counter collapses the search
+Gauge.tla|GaugeCatch.cfg|12|4|the invariant is violated under the default view
+Gauge.tla|GaugeMiss.cfg|0|2|and the same invariant passes under the VIEW
+Marquee.tla|MarqueeAlias.cfg|12|4|ALIAS prints the record in place of the state
+Marquee.tla|MarqueeClaim.cfg|75||the same record in the INVARIANT slot is refused
+Livery.tla|Livery.cfg|0|8|three model values, so the powerset of three
+Livery.tla|LiverySym.cfg|0|4|SYMMETRY keeps one state per orbit
+Livery.tla|LiveryProp.cfg|0|8|the liveness property holds with no reduction
+Livery.tla|LiverySymProp.cfg|0|4|and under symmetry TLC warns about this one
+Livery.tla|LiverySymSafe.cfg|0|4|an action property under symmetry draws no warning
+Livery.tla|LiverySymRefute.cfg|13|2|and a false one still refutes, so it was live
+Livery.tla|LiverySymLift.cfg|0|4|nor does a boxed state predicate
+Placard.tla|PlacardOpaque.cfg|0|2|a model value is unequal to the string of its name
+Placard.tla|PlacardHonest.cfg|12|2|and the claim against the value itself does fail
+Placard.tla|PlacardRanked.cfg|75||an order comparison on a model value stops the run
+Plumbline.tla|PlumblineNeg.cfg|255||a negative integer literal is not a cfg value
+Plumbline.tla|PlumblineExpr.cfg|255||nor is the subtraction written out
+Plumbline.tla|PlumblineLast.cfg|255||and the line the refusal names follows the token
+Plumbline.tla|PlumblineSub.cfg|0|3|the arrow form points the constant at a definition
+Warrant.tla|Warrant.cfg|0|4|an ASSUME that holds is never mentioned
+Warrant.tla|WarrantBad.cfg|10||and one that fails stops the run before any state
+Roundhouse.tla|Roundhouse.cfg|0|3|an ASSUME does not cross an INSTANCE
+Roundhouse.tla|RoundhouseWidth.cfg|151||and the assumption really is violated
+Semaphore.tla|Semaphore.cfg|0|3|a state predicate in the INVARIANT slot
+Semaphore.tla|SemaphoreProp.cfg|0|3|an action formula in the PROPERTY slot
+Semaphore.tla|SemaphoreSlot.cfg|76||the same formula in the INVARIANT slot is refused
+Semaphore.tla|SemaphoreTrue.cfg|0|3|a true constant-level invariant passes, with a warning
+Semaphore.tla|SemaphoreFalse.cfg|151||and a false one reports outside the invariant channel
+Siding.tla|Siding.cfg|11|4|an intended terminal state reads as a deadlock
+Siding.tla|SidingOff.cfg|0|4|CHECK_DEADLOCK FALSE accepts it, and every other one
+Siding.tla|SidingQuiet.cfg|0|4|a stutter step accepts this one and keeps the check
