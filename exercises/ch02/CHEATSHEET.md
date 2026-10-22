@@ -96,7 +96,7 @@
 
 - Operators are defined with `==`, take a fixed number of arguments, and use `IF-THEN-ELSE` and `LET-IN` to structure the logic inside them.
 - Boolean logic uses math style symbols (`/\`, `\/`, `~`, `=>`) instead of programming keywords, plus a bullet-point layout for nested conditions.
-- TLA+ is untyped, but the checker still recognizes primitive types like integers, strings, and booleans. `=` and `#` are the only operators that work across types, and most other operators need an `EXTENDS` line first.
+- TLA+ is untyped, but the checker still recognizes primitive types like integers, strings, and booleans. `=` and `#` are the only operators the language defines across types, and that is a claim about TLA+ rather than about TLC. The checker won't evaluate one at all. `0 = "0"` aborts at rc 75, "Attempted to check equality of integer 0 with non-integer", measured on `core-language-docs/snippets/core/Untyped.tla`. Membership inherits the same limit, since `box \in Int`, `box \in 0..3` and `box \in {0, 1, 2, 3}` each fail to evaluate at rc 76. Most other operators need an `EXTENDS` line first.
 - Sequences are ordered, 1-indexed value lists, with a small module of helper operators (`Append`, `Head`, `Tail`, `Len`, `SubSeq`, `\o`).
 - Sets are unordered collections of unique values, with membership, subset, and algebraic operators, plus a way to generate the full set of values for every type (`a..b`, `BOOLEAN`, `S \X T`, `SUBSET S`).
 - `CHOOSE`, map, and filter let you pull or transform values out of a set instead of constructing a result by hand.
