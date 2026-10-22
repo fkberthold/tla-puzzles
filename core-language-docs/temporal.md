@@ -625,8 +625,11 @@ WindOk == Wind /\ UNCHANGED locked
 
 Stop == coil = 2 /\ UNCHANGED vars
 
-\* Two next-state relations over the same action, one of them incomplete.
+\* Three next-state relations over the same action, two of them incomplete.
+\* Loose and Solo differ only in whether the relation has a disjunct to name,
+\* which is what decides which form of the message you get.
 Loose == Init /\ [][Wind \/ Stop]_vars
+Solo == Init /\ [][Wind]_vars
 Tight == Init /\ [][WindOk \/ Stop]_vars
 
 Bounded == coil <= 2
@@ -651,6 +654,20 @@ State 2: <Wind line 9, col 9 to line 9, col 36 of module Mainspring>
 Read the trace's second state. `locked = null` is TLC showing you the hole it
 found, and `null` isn't a TLA+ value. `SPECIFICATION Tight` is a clean run,
 exit 0, 3 distinct states.
+
+That message has a second form, and it's the one to know if you go looking for
+the first and come up empty. `SPECIFICATION Solo` is the same incomplete
+`Wind` with no disjunct beside it, and it also exits 75:
+
+```
+Error: Successor state is not completely specified by the next-state action.
+The following variable is not defined: locked.
+```
+
+No action is named, because there's no disjunct to name. So which form you get
+depends on how `Next` is written rather than on what went wrong. A `Next` that
+is a disjunction of named actions gets the name, and a `Next` that is one
+action or an alias for one does not.
 
 The PlusCal translator writes `x' = x` for a variable an action doesn't touch.
 That's why this never bites you there, and bites you on the first raw-TLA+

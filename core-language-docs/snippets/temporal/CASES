@@ -85,4 +85,5 @@ Tumbler.tla|TumblerSome.cfg|13||\E is accepted and reaches one of them
 
 # An action has to describe a whole step.
 Mainspring.tla|Mainspring.cfg|75||an action that leaves a variable out
+Mainspring.tla|MainspringSolo.cfg|75||the same hole, reported without an action name
 Mainspring.tla|MainspringOk.cfg|0|3|and the same action with UNCHANGED supplied
