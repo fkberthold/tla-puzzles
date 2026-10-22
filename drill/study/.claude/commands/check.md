@@ -16,6 +16,13 @@ and this file arrives on its stdin because of that. Where a pass below tells
 you to open something, the one-shot's copy is already in the prompt, so look
 there rather than reaching for the path.
 
+A `./drill --check` also states two facts in its header, above everything
+else: whether the prompt publishes a count, and whether it carries a
+`possible?` column. A pass its header calls inapplicable has nothing in it to
+work. Say in the summary that it was inapplicable and spend nothing else on
+it, because an input that was never there is not a finding. A typed `/check`
+has no such header, so there you find both out as you go.
+
 ## 1. Run the checker
 
 Run `../check`. The checker sits at the study root and you're in a slug

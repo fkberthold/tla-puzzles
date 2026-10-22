@@ -731,6 +731,12 @@ REFUTE_OUT=""
 # So this is read inside run_refuter and nowhere else.
 REFUTE_RC=0
 REFUTE_WHY=""
+# The two facts the first two check passes are dead without, each as the
+# sentence that carries it. Set for a check run and empty for every other mode,
+# which is what build_prompt tests. A hint works no pass and a style run never
+# starts the checker, so a line in either would be a claim nothing established.
+APPLY_COUNT=""
+APPLY_TABLE=""
 PROMPT_TEXT=""
 
 # resolve_coach <flag> <arg>: which drill, and which directory holds it.
@@ -916,6 +922,65 @@ run_refuter() {
   return 0
 }
 
+# read_applicability <prompt>: whether each of the first two check passes has
+# anything in it to work, settled before the prompt is assembled.
+#
+# WHY A RUNNER SAYS THIS AND THE SHEET DOES NOT. Both are facts about the
+# prompt and both are true before the model reads a word of it. A model left to
+# find one out reports it, and an input that was never there arrives in the
+# report looking like something the run found. The sheet already asks for an
+# honest summary and that was never the gap: being handed a fact and
+# discovering it produce different reports off the same sheet. Bead tla-kus2.
+#
+# THE COUNT FACT IS THE CHECKER'S EXIT CODE, NOT A SCAN OF MY OWN. The checker
+# owns the claim scan, its exit 2 means the prompt publishes no count, and it
+# has already run by the time this is called, so the fact is in hand. A second
+# scanner here would be a second answer to one question, and a hand-written one
+# was tried twice while this bead was open and gave two answers, neither of
+# them the checker's.
+#
+# ANYTHING BUT 0, 1 OR 2 LEAVES IT UNDECIDED RATHER THAN INAPPLICABLE. The
+# checker reaches its claim verdict at the end of a run it completed, so a run
+# that could not start never established whether a count was published, and
+# "publishes no count" there would be a claim about a scan that never happened.
+# The code goes in the sentence, because the reader is the one who can fix what
+# stopped the checker.
+#
+# THE TABLE FACT HAS NO SCANNER TO REUSE, so this one is mine: a line opening
+# with a pipe and carrying a possible? cell. The pipe is the checker's own rule
+# for where a table starts and ends rather than a new one, and every prompt in
+# the tree that carries the column carries it that way, measured 2026-10-22
+# against GNU grep over the same files. Nothing in the checker reads that table
+# at all, which is why there was nothing here to reuse.
+read_applicability() {
+  local prompt="$1" line
+  APPLY_COUNT=""
+  APPLY_TABLE=""
+
+  case "$CHECK_RC" in
+  0 | 1)
+    APPLY_COUNT="APPLICABLE. This prompt publishes a count, and the checker's numbers below are the comparison."
+    ;;
+  2)
+    APPLY_COUNT="INAPPLICABLE. This prompt publishes no count, so there is nothing for the checker's number to be compared against. The exit 2 below is that same fact arriving a second time."
+    ;;
+  *)
+    APPLY_COUNT="UNDECIDED. The checker exited ${CHECK_RC} rather than one of the codes that settle this, so whether this prompt publishes a count was never established."
+    ;;
+  esac
+
+  APPLY_TABLE="INAPPLICABLE. This prompt carries no possible? column, so a violation has no row here to be looked up in."
+  while IFS= read -r line; do
+    case "$line" in
+    '|'*[Pp]ossible\?*)
+      APPLY_TABLE="APPLICABLE. This prompt carries a possible? column."
+      return 0
+      ;;
+    esac
+  done <"$prompt"
+  return 0
+}
+
 # build_prompt <mode>: everything the one-shot gets, on stdout.
 #
 # MODE is the first line and the only instruction in here. Everything after it
@@ -923,6 +988,12 @@ run_refuter() {
 # style script said, and the files of the attempt. No prohibition is restated,
 # because the study config holds all of them and a second copy drifts from the
 # day it is written.
+#
+# THE TWO APPLICABILITY LINES ARE MATERIAL AND NOT INSTRUCTION, which is the
+# distinction the paragraph above turns on and the first thing a reader will
+# ask about them. Each states a fact about the prompt that was true before the
+# run started. What a check DOES with a pass that has nothing in it is the
+# sheet's, and the sheet says it.
 #
 # THE MIDDLE BLOCK IS THE ONLY THING THAT VARIES BY MODE, and every mode now
 # has one. A style run gets the register, whole, and then the measurements. A
@@ -940,6 +1011,20 @@ build_prompt() {
   printf 'MODE: %s\n' "$mode"
   printf 'DRILL: %s\n' "$COACH_ITEM"
   printf 'DIRECTORY: %s\n' "$COACH_DIR"
+  # IN THE HEADER RATHER THAN FURTHER DOWN, because a pass is declared before
+  # it is worked and the passes themselves arrive below this. A fact about the
+  # prompt that reaches the model after the pass it governs is the fact
+  # arriving too late to save the pass, which is the whole bead.
+  #
+  # TESTED ONE AT A TIME THOUGH THEY ARE SET TOGETHER. They come from two
+  # different places, the checker's exit code and a scan of the prompt, and one
+  # of them going missing is exactly the failure a reader cannot see.
+  if [ -n "$APPLY_COUNT" ]; then
+    printf 'THE COUNT COMPARISON: %s\n' "$APPLY_COUNT"
+  fi
+  if [ -n "$APPLY_TABLE" ]; then
+    printf 'THE POSSIBLE? TABLE: %s\n' "$APPLY_TABLE"
+  fi
   if [ -n "$QUESTION" ]; then
     printf '\nQUESTION:\n%s\n' "$QUESTION"
   fi
@@ -1099,10 +1184,21 @@ coach() {
     run_checker "$COACH_DIR"
   fi
 
-  # AFTER the checker and only for a check. It is the most expensive thing
-  # here by a wide margin, since it is one TLC run per obligation per machine,
-  # so a mode that does not ship the table does not pay for it either.
+  # BOTH AFTER THE CHECKER AND BOTH CHECK-ONLY, for the reason the passes are
+  # check-only: each is an input to one of those passes and no other mode works
+  # them. The applicability read goes first because it reads the checker's exit
+  # code and nothing else, and it costs nothing. The instrument is the most
+  # expensive thing in this script by a wide margin, since it is one TLC run
+  # per obligation per machine, so a mode that does not ship the table does not
+  # pay for it either.
+  #
+  # ONE TEST FOR THE TWO OF THEM RATHER THAN TWO TESTS, and that is not
+  # tidiness. The mutant in harness/test-drill-runner.sh that flips this line
+  # addresses it by indent, on the stated ground that two spaces is the call
+  # site and nothing else. A second copy of this test at this indent would make
+  # that mutant change two lines and stop saying which one its row caught.
   if [ "$mode" = "check" ]; then
+    read_applicability "$HERE/$COACH_ITEM/PROMPT.md"
     run_refuter "$COACH_DIR" "$COACH_ITEM"
   fi
 

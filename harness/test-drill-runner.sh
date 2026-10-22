@@ -2481,6 +2481,169 @@ done
 
 # ---------------------------------------------------------------------------
 echo
+echo "== part 4f: the two facts the first two check passes are dead without =="
+# ---------------------------------------------------------------------------
+#
+# Bead tla-kus2. Whether the prompt publishes a count and whether it carries a
+# possible? column are both properties of the prompt, and both are true before
+# the model reads a word of it. Left to find one out, the model works the pass
+# and reports what it found, so an input that was never there arrives looking
+# like something the run caught. On one item that publishes neither, nine runs
+# produced that pair of findings nine times.
+#
+# WHAT IS NOT TESTED HERE is what a check DOES with a pass that has nothing in
+# it. That is the sheet's, the sheet ships verbatim, and no row over a runner
+# can assert it. These rows are about the two sentences and about where in the
+# prompt they sit.
+
+APPLY_COUNT_LABEL="THE COUNT COMPARISON:"
+APPLY_TABLE_LABEL="THE POSSIBLE? TABLE:"
+
+# --- RED: the shape the bead was filed over ---------------------------------
+#
+# A prompt that publishes no count and carries no table. The fixture prompt is
+# one body line, so it is that shape already, and the two facts arrive from
+# two different places even here: the count off the checker's exit 2 and the
+# table off a read of the prompt.
+
+COACH_CHECK_RC=2
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+COACH_CHECK_RC=0
+assert_rc "a check over a prompt publishing no count still exits 0" 0
+APPLY_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "the prompt declares the count comparison inapplicable" \
+  "$APPLY_COUNT_LABEL INAPPLICABLE." "$APPLY_STDIN"
+# THE LABEL IS PART OF THE NEEDLE and that is not belt and braces. The sheet
+# ships verbatim into this same prompt and its closing section already says
+# the words "publishes no count", so a row looking for them alone is green
+# over a runner that states nothing at all.
+assert_says_literal "and says in the prompt's own terms what makes it so" \
+  "$APPLY_COUNT_LABEL INAPPLICABLE. This prompt publishes no count" "$APPLY_STDIN"
+assert_says_literal "the prompt declares the possible? table inapplicable too" \
+  "$APPLY_TABLE_LABEL INAPPLICABLE." "$APPLY_STDIN"
+
+# BEFORE THE PASSES, which is the bead rather than a nicety. A fact that
+# reaches the model after the pass it governs is the fact arriving too late to
+# save the pass, and the sheet's own closing section was already asking for the
+# honest summary while the report came back with both absences in it.
+assert_before "the count line arrives before the passes do" \
+  "$APPLY_COUNT_LABEL" "$CHECK_PASSES_SENTINEL" "$APPLY_STDIN"
+assert_before "and before the served prompt it is a fact about" \
+  "$APPLY_COUNT_LABEL" "== PROMPT.md ==" "$APPLY_STDIN"
+assert_before "the table line arrives before the passes as well" \
+  "$APPLY_TABLE_LABEL" "$CHECK_PASSES_SENTINEL" "$APPLY_STDIN"
+# The checker's block is where the count fact arrives the second time. A
+# header behind it would be the model meeting the fact as a finding first.
+assert_before "and the count line comes before the checker's exit code does" \
+  "$APPLY_COUNT_LABEL" "== CHECKER," "$APPLY_STDIN"
+
+# --- the two facts come from two places, and one run says so ----------------
+#
+# A prompt publishing no count that carries a table all the same. Items of
+# that shape are real rather than contrived, so this is the shape and not an
+# invention. If either fact were being derived from the other, this is the row
+# that catches it, because here the two disagree.
+
+T_APPLY="$TMPROOT/coach-tree-applies"
+mk_tree "$T_APPLY" "$RUNNER"
+{
+  printf '\n'
+  printf '| what has happened | possible? |\n'
+  printf '|---|---|\n'
+  printf '| both tools held at once | no |\n'
+} >>"$T_APPLY/${CANONICAL[0]}/PROMPT.md"
+
+COACH_CHECK_RC=2
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_APPLY" --check "${CANONICAL[0]}"
+COACH_CHECK_RC=0
+APPLY_MIXED=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "a prompt carrying the column has that pass declared applicable" \
+  "$APPLY_TABLE_LABEL APPLICABLE." "$APPLY_MIXED"
+assert_says_literal "while the count comparison on the same run stays inapplicable" \
+  "$APPLY_COUNT_LABEL INAPPLICABLE." "$APPLY_MIXED"
+
+# --- a checker that compared something says so ------------------------------
+#
+# 0 and 1 are the two codes that settle the count fact the other way. One is a
+# match and the other a mismatch, and both mean a count was there to compare.
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_APPLY" --check "${CANONICAL[0]}"
+APPLY_MATCHED=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "a checker exiting 0 has the count comparison declared applicable" \
+  "$APPLY_COUNT_LABEL APPLICABLE." "$APPLY_MATCHED"
+assert_never_names "and the inapplicable sentence is nowhere in that prompt" \
+  "$APPLY_COUNT_LABEL INAPPLICABLE." "$APPLY_MATCHED"
+
+COACH_CHECK_RC=1
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+COACH_CHECK_RC=0
+assert_says_literal "and a checker exiting 1 found a count to disagree with, so it applies" \
+  "$APPLY_COUNT_LABEL APPLICABLE." "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# --- the code that settles nothing ------------------------------------------
+#
+# A checker reaches its claim verdict at the end of a run it completed, so a
+# run that could not start never established whether a count was published.
+# INAPPLICABLE there would be a claim about a scan that never happened, and it
+# would read exactly like a prompt that really publishes none.
+
+COACH_CHECK_RC=3
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+COACH_CHECK_RC=0
+APPLY_UNDEC=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "a checker that could not run leaves the count fact undecided" \
+  "$APPLY_COUNT_LABEL UNDECIDED." "$APPLY_UNDEC"
+assert_says_literal "and names the code, which is the part a reader can act on" \
+  "exited 3" "$APPLY_UNDEC"
+assert_never_names "and never calls the pass inapplicable off a scan that never ran" \
+  "$APPLY_COUNT_LABEL INAPPLICABLE." "$APPLY_UNDEC"
+# The table fact is read off the prompt, so the checker has no part in it and
+# a checker that could not run still settles that one.
+assert_says_literal "while the table fact, which no checker decides, still lands" \
+  "$APPLY_TABLE_LABEL INAPPLICABLE." "$APPLY_UNDEC"
+
+# --- check-only, for the reason the passes are ------------------------------
+#
+# Both rows are green over a runner that states applicability in no mode at
+# all, so M12 in part 5 is what makes them mean anything.
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint
+assert_never_names "a hint prompt declares no pass applicable, since it works none" \
+  "$APPLY_COUNT_LABEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style
+APPLY_STYLE=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_never_names "and a style prompt does not either, having never run the checker" \
+  "$APPLY_COUNT_LABEL" "$APPLY_STYLE"
+assert_never_names "nor the table line" "$APPLY_TABLE_LABEL" "$APPLY_STYLE"
+
+# --- the sheet is the other half --------------------------------------------
+#
+# The header states a verdict and the sheet is the only place that says what a
+# report does with it, so the two have to stay paired. A sheet that lost that
+# paragraph would leave the header an unexplained word in a prompt, and the
+# runner cannot tell.
+APPLY_REAL_SHEET="$REPO_ROOT/drill/study/.claude/commands/check.md"
+if [ -r "$APPLY_REAL_SHEET" ]; then
+  APPLY_SHEET_BODY=$(cat "$APPLY_REAL_SHEET")
+  assert_says_literal "the shipped sheet knows the header settles these two facts" \
+    "whether the prompt publishes a count" "$APPLY_SHEET_BODY"
+  assert_says_literal "and says an input that was never there is not a finding" \
+    "is not a finding" "$APPLY_SHEET_BODY"
+else
+  nope "no sheet at $APPLY_REAL_SHEET, so the header's other half is unchecked"
+fi
+
+# No census in the runner, for the reason part 4e gives about reach: both
+# facts are decided per item, and a count in a comment goes stale on the next
+# item that gains a table. Checked over the whole file, prose included.
+RUNNER_RAW_KUS2=$(cat "$RUNNER")
+for apply_n in "43 of" "21 of" "8 of 64" "16 items"; do
+  assert_never_names "the runner hardcodes no census: it never says $apply_n" \
+    "$apply_n" "$RUNNER_RAW_KUS2"
+done
+
+# ---------------------------------------------------------------------------
+echo
 echo "== part 5: the mutants, which is what makes part 1 and part 3 mean something =="
 # ---------------------------------------------------------------------------
 
@@ -2818,6 +2981,12 @@ fi
 # way in the banner block and in the gate above it. Two spaces is the call
 # site and nothing else, which the file's own layout makes true and a row in
 # part 4e does not have to know.
+#
+# IT NOW BACKS PART 4f's CHECK-ONLY ROWS TOO, because the applicability read
+# landed inside this same test rather than beside it, deliberately: a second
+# copy of the test at this indent would make this sed change two lines and
+# stop saying which one a row below caught. One flip, two features, and the
+# two assertions under it are what keeps that readable.
 # shellcheck disable=SC2016
 if mutate every-mode-refutes 's|^  if \[ "\$mode" = "check" \]; then$|  if true; then|'; then
   T_M12="$TMPROOT/tree-m12"
@@ -2830,6 +2999,11 @@ if mutate every-mode-refutes 's|^  if \[ "\$mode" = "check" \]; then$|  if true;
     ok "control: a runner shipping the table to --hint is DETECTED"
   else
     nope "control: the table in a hint prompt was NOT detected, so the check-only rows are vacuous"
+  fi
+  if grep -qF -- "$APPLY_COUNT_LABEL" "$STUB_REC/claude.stdin"; then
+    ok "control: a runner declaring a pass applicable to --hint is DETECTED"
+  else
+    nope "control: applicability in a hint prompt was NOT detected, so part 4f's check-only rows are vacuous"
   fi
 fi
 
