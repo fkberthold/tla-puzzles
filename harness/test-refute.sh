@@ -62,11 +62,24 @@ echo
 echo "== part 2b: the reach, pinned so a change cannot silently narrow it =="
 
 # Measured 2026-10-21. 40 of 64 items carry at least one machine that declares
-# its own state. The other 24 are the modules, state-space and temporal
-# families entire, where the machines compose state through INSTANCE or EXTENDS
-# rather than declaring it, so this probe shape cannot bind them. That is a
-# real limit on the instrument and it is pinned rather than described, because
-# a description of a limit is what drifts.
+# its own state where this scan looks for it. The other 24 are the modules,
+# state-space and temporal families entire.
+#
+# AMENDED THE SAME DAY, because the first wording of this comment was wrong
+# about why. It said those families compose state away through INSTANCE or
+# EXTENDS. That is true of the per-run wrapper modules and false of the module
+# underneath them: drill/temporal/07-pipeline-halt/verify/Pipeline.tla:7 reads
+# VARIABLES stage, artifact, retries. The state is declared one level down and
+# this scan is reading the wrong file, so 24 items are out of reach because of
+# where the instrument looks rather than because of how they are built.
+#
+# The temporal family is further from that wording still. All 8 of its items
+# ship verify/MATRIX and verify/MODULE, a manifest naming the base module and
+# the SPECIFICATION each run uses, which no other family has. It is the best
+# described family in the corpus, not the least. Filed as tla-6hrt.
+#
+# The number stays pinned rather than described either way, because a
+# description of a limit is what drifts, and this comment is the proof.
 reach=0
 for d in drill/*/*/; do
   it="${d#drill/}"; it="${it%/}"
