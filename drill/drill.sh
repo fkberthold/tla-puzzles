@@ -21,9 +21,15 @@
 #
 # ~/tla-practice is not a git repo. There is no harness beside this file, no
 # bd, no sibling script, and no guarantee that TLC is on the path. So this
-# script sources nothing, resolves no repo root, and confines its reads:
+# script sources nothing, discovers no repo root, and confines its reads:
 # a serve reads nothing outside the directory it sits in, and works out
 # everything it does read from ${BASH_SOURCE[0]} and from the tree under it.
+#
+# THAT CLAUSE USED TO READ "resolves no repo root" AND IT HAD TO MOVE. One
+# read now sits under a repo, and the honest version of the claim is that this
+# script never works out where a repo is. It takes one if it is handed one and
+# does without otherwise. The section NARROWED A THIRD TIME is the whole of
+# that argument.
 #
 # THE FIRST EXCEPTION, AND IT IS A WRITE RATHER THAN A READ. A serve creates
 # the study directory you work the drill in, at $DRILL_STUDY_ROOT/<slug>,
@@ -57,8 +63,8 @@
 #
 # The clause above used to cover the whole script: it read nothing outside the
 # directory it sits in, full stop. The three coaching flags, --check, --hint
-# and --style, read seven things outside it. So the clause is now about a
-# serve, and here are the seven, each one named rather than tucked into the
+# and --style, read eight things outside it. So the clause is now about a
+# serve, and here are the eight, each one named rather than tucked into the
 # code:
 #
 #   $STUDY_ROOT/check     executed, and its output read back
@@ -70,6 +76,11 @@
 #                         read, and cat whole into the hint prompt
 #   $STUDY_ROOT/.claude/commands/check.md
 #                         read, and cat whole into the check prompt
+#   $DRILL_REPO_ROOT/harness/refute.sh
+#                         executed, and its table read back. THE ONE ENTRY
+#                         THAT DOES NOT RESOLVE UNDER THE STUDY ROOT, which
+#                         is what made the third narrowing a different shape
+#                         from the first two
 #
 # WHY THEY ARE WORTH IT, which is one argument rather than seven. The one-shot
 # runs as `claude -p --tools ""`, and the empty tool set is what makes the read
@@ -110,15 +121,16 @@
 #
 # WHAT IT WOULD HAVE COST, which is the one thing separating the two. The hint
 # failure spends a rung and Frank can see it happen. A check that never
-# reaches pass 3 reports a clean run over a right count reached by a wrong
+# reaches pass 4 reports a clean run over a right count reached by a wrong
 # model, which is the failure the pass exists to catch, and it looks like a
 # pass from the report alone. I have no measured instance of that, which is
 # the problem with it rather than a reason to wait for one.
 #
-# The paths resolve the same way the study directory already did, off
-# $DRILL_STUDY_ROOT with the documented default. claude comes off PATH because
-# a model binary has no fixed home, which is the one of the five that could
-# surprise somebody reading this and so is the one worth naming twice.
+# Six of the eight paths resolve the same way the study directory already did,
+# off $DRILL_STUDY_ROOT with the documented default. claude comes off PATH
+# because a model binary has no fixed home. The instrument comes off a second
+# root entirely. Those two are the ones that could surprise somebody reading
+# this, so each is named twice.
 #
 # THE ONE-SHOT'S CWD IS THE SLUG DIRECTORY AND THAT IS LOAD-BEARING. The study
 # config at the study root loads by itself from there, and it is the single
@@ -145,7 +157,12 @@
 # worked case it is missing exists. A check run with no passes is the fourth
 # of those and the quietest, since what goes missing is a pass it never knew
 # to make. That is the wrong direction to be wrong in four times. A serve
-# still works with none of the seven present.
+# still works with none of the eight present.
+#
+# THE EIGHTH IS NOT ON THAT LIST AND IT IS NOT AN OVERSIGHT. The instrument
+# refuses nothing, because the block it fills is never empty: it carries the
+# table or it carries one line saying there is no table and why. The section
+# NARROWED A THIRD TIME argues it.
 #
 # ---------------------------------------------------------------------------
 # THE QUEUE IS DERIVED FROM THE TREE, NEVER FROM A LIST
@@ -309,6 +326,53 @@
 # register styles nothing and checks and hints fine. A root with no sheet
 # hints nothing and checks and styles fine. A root with no passes checks
 # nothing and hints and styles fine.
+#
+# ---------------------------------------------------------------------------
+# NARROWED A THIRD TIME, AND THIS ONE MOVES THE ROOT RATHER THAN THE LIST
+#
+# The two narrowings above both grew the list under one root this script
+# already resolved. The eighth read is under a SECOND root, so the clause at
+# the top of the file had to change and not only the enumeration under it.
+#
+# WHAT THE EIGHTH READ BUYS. A check run now also runs the learner's own
+# obligations against the wrong machines the drill item ships, and prints one
+# TLC exit code per pair. An exit code terminates where a reading does not:
+# each machine is either refuted by one of his obligations or it is not, and
+# nine runs of a reading produce nine findings whether or not anything is
+# wrong. One item cost a full day that way, on a ten-minute budget.
+#
+# WHY A SECOND ROOT IS UNAVOIDABLE. Those machines are withheld from every
+# delivery route on purpose, so they are in the repo and nowhere else, and the
+# delivered copy of this script does not sit under the repo. There is nothing
+# to walk up to. Discovering the root was the obvious route and it is not a
+# route at all, which is worth writing down so nobody spends an afternoon
+# finding that out again.
+#
+# SO IT ARRIVES IN DRILL_REPO_ROOT OR IT DOES NOT ARRIVE, and unset is the
+# default. ./drill keeps working on a box holding nothing but the practice
+# tree, and the richer report is opt-in on the one box that has the repo.
+#
+# IT IS NOT A GATE, WHICH IS THE ONE PLACE THIS DEPARTS FROM THE SEVEN ABOVE.
+# Every other dependency refuses the run, and the argument for that is always
+# the same: a model with no tools cannot tell an empty block from a clean one.
+# It does not reach here. This block is never empty. It carries the table, or
+# it carries one line saying there is no table and why, which is the sentence
+# a refusal would have printed anyway. Refusing the whole check over an opt-in
+# extra would trade a working check for no check.
+#
+# FOUR REASONS AND ONE OUTCOME. No repo named. A repo named with no instrument
+# in it. No tlc on the path, which would otherwise fill every cell with the
+# exit code of a command that was not found. And an item shipping no machine
+# this method can bind, which is a fact about the item rather than about the
+# attempt. No count of those items is written down here, because the
+# instrument's own exit code says so per item and a count in a comment goes
+# stale on the next item that gains a machine.
+#
+# THE INSTRUMENT'S OWN REFUSAL TEXT IS NEVER RELAYED, and that is the one rule
+# here that is about the leak rather than about the shape. Its refusals name
+# the author-side files it went looking for, and this script ships its prompt
+# to a model. So a nonzero exit becomes one sentence in this script's words,
+# and the instrument's own wording reaches nobody.
 
 set -uo pipefail
 
@@ -342,6 +406,20 @@ POINTER="$HERE/LAST-SERVED"
 STUDY_ROOT="${DRILL_STUDY_ROOT:-}"
 [ -n "$STUDY_ROOT" ] || STUDY_ROOT="${HOME:+${HOME%/}/Study/tla-drills}"
 STUDY_ROOT="${STUDY_ROOT%/}"
+
+# The repo root, which is the second root and the one with NO default. See the
+# section NARROWED A THIRD TIME for why there cannot be one: the machines a
+# check run wants are in the repo, and the delivered copy of this script does
+# not sit under the repo, so there is nothing to walk up to and nothing to
+# fall back on. Empty means the table is not produced, and a check run says so
+# in one line and otherwise runs exactly as it did.
+#
+# IT IS NOT CANONICALIZED. A relative value works, since nothing here changes
+# directory before the instrument is executed, and the banner then shows the
+# reader what he typed rather than a resolution of it. A value naming nothing
+# runnable is reported rather than resolved, which is the next function down.
+REPO_ROOT="${DRILL_REPO_ROOT:-}"
+REPO_ROOT="${REPO_ROOT%/}"
 
 TAB=$'\t'
 
@@ -390,6 +468,14 @@ All three need claude on the path. --check needs the checker at the study
 root, --style needs the style script and the register beside it, --hint needs
 the checker and its own sheet under .claude/commands, and each one refuses
 rather than half-running when what it needs is missing. Serving never does.
+
+--check will also run your obligations against the wrong machines the drill
+ships, one TLC exit code per pair, when DRILL_REPO_ROOT names a checkout of
+the repo. It is off when the variable is unset, which is the default and the
+ordinary case: the machines are not in the practice tree and there is nothing
+to find them by. A run without it says in one line that the table was not
+produced, and is otherwise the run it always was. It is the slowest thing
+here when it is on.
 USAGE
 }
 
@@ -636,6 +722,15 @@ CHECK_OUT=""
 CHECK_RC=0
 STYLE_OUT=""
 STYLE_RC=0
+REFUTE_OUT=""
+# THE THIRD RC IS NOT ON A BLOCK LABEL AND THE OTHER TWO ARE, which is worth
+# a line because the asymmetry looks like an omission. A checker's exit code
+# is a fact its output does not carry, so it goes where the model can read it.
+# The instrument's exit code is carried by the table: every cell of it is an
+# exit code, and the one from the instrument itself is 0 or there is no table.
+# So this is read inside run_refuter and nowhere else.
+REFUTE_RC=0
+REFUTE_WHY=""
 PROMPT_TEXT=""
 
 # resolve_coach <flag> <arg>: which drill, and which directory holds it.
@@ -749,6 +844,78 @@ run_styler() {
   STYLE_RC=$?
 }
 
+# run_refuter <dir> <item>: the learner's obligations against the machines the
+# item ships, one TLC exit code per pair.
+#
+# TWO OUTCOMES AND EXACTLY ONE OF THEM IS SET WHEN THIS RETURNS. REFUTE_OUT
+# holds a table and REFUTE_WHY is empty, or REFUTE_WHY holds one line and
+# REFUTE_OUT is empty. The caller tests REFUTE_WHY and never has to decide
+# which of the two to believe.
+#
+# IT RETURNS 0 ON EVERY PATH, which is the decision this whole feature turns
+# on. Nothing here refuses a check run. See the header for the argument: the
+# other seven reads are gated because a model with no tools cannot tell an
+# empty block from a clean one, and that cannot happen to a block carrying a
+# sentence about its own absence.
+#
+# THE TABLE SHIPS ONLY ON A ZERO EXIT. Every nonzero exit is a reason rather
+# than a measurement, and the instrument's own wording for it names the
+# author-side files it went looking for. So nothing it printed is relayed on
+# those paths and the sentence is this script's.
+run_refuter() {
+  local dir="$1" item="$2" inst
+  REFUTE_OUT=""
+  REFUTE_RC=0
+  REFUTE_WHY=""
+
+  if [ -z "$REPO_ROOT" ]; then
+    REFUTE_WHY="not produced: DRILL_REPO_ROOT names no repo, and the machines this would run live in the repo rather than in the delivered tree."
+    return 0
+  fi
+
+  inst="$REPO_ROOT/harness/refute.sh"
+  if [ ! -x "$inst" ]; then
+    REFUTE_WHY="not produced: nothing runnable at ${inst}, so the repo that was named holds no instrument."
+    return 0
+  fi
+
+  # Checked here rather than left to fail per pair. With no tlc the probe
+  # exits 127 every time and the table comes back as a column of 127s, which
+  # reads like a measurement and is the exit code of a command that was never
+  # found. One missing dependency must not arrive dressed as data.
+  if ! command -v tlc >/dev/null 2>&1; then
+    REFUTE_WHY="not produced: no tlc on the path, and every cell of the table is a TLC exit code."
+    return 0
+  fi
+
+  REFUTE_OUT="$("$inst" --attempt "$dir" --item "$item" 2>&1)"
+  REFUTE_RC=$?
+
+  if [ "$REFUTE_RC" -eq 0 ]; then
+    return 0
+  fi
+
+  if [ "$REFUTE_RC" -eq 3 ]; then
+    REFUTE_OUT=""
+    # A 3 HAS TWO CAUSES AND THEY POINT OPPOSITE WAYS. The item ships no
+    # machine this method can bind, which is nothing to do with him, or his
+    # own config names no obligation, which is his to fix and worth saying as
+    # his. Asking the instrument to list the item's machines settles it, reads
+    # the item alone and runs no TLC, so the message can be the right one
+    # rather than both.
+    if "$inst" --list-machines --item "$item" >/dev/null 2>&1; then
+      REFUTE_WHY="not produced: your config names no obligation, so there was nothing to run against this item's machines."
+    else
+      REFUTE_WHY="not produced: ${item} ships no machine this method can run, which is a fact about the item rather than about your attempt."
+    fi
+    return 0
+  fi
+
+  REFUTE_OUT=""
+  REFUTE_WHY="not produced: the instrument exited ${REFUTE_RC} and printed no table."
+  return 0
+}
+
 # build_prompt <mode>: everything the one-shot gets, on stdout.
 #
 # MODE is the first line and the only instruction in here. Everything after it
@@ -800,6 +967,32 @@ build_prompt() {
     fi
     printf '\n== CHECKER, exit %s, output verbatim ==\n' "$CHECK_RC"
     printf '%s\n' "$CHECK_OUT"
+    # The table goes AFTER the checker's numbers rather than before them,
+    # because the passes work in that order: the count comes first and the
+    # obligations are read against it. It is check-only for the reason the
+    # passes are, which is that it is what a check hands back and a hint
+    # hands back one rung.
+    #
+    # THE BLOCK IS ALWAYS HERE AND IT IS NEVER EMPTY. Either the table or one
+    # line saying there is no table and why. A block that came and went with
+    # the box's configuration would leave the model unable to tell a silent
+    # run from a run that never happened, which is the whole argument the
+    # other seven reads are gated on.
+    #
+    # THE TEST IS ON THE RESULT RATHER THAN ON THE MODE, and that is not a
+    # shortcut. Exactly one of the two is set whenever the instrument was
+    # asked, and neither is set when it was not, so this reads "a refutation
+    # was attempted" without a second opinion about which modes attempt one.
+    # The call site in coach() decides that, once, and two places that have
+    # to agree about it is one place too many.
+    if [ -n "$REFUTE_WHY" ] || [ -n "$REFUTE_OUT" ]; then
+      printf '\n== REFUTATION, the machines this item ships, against your obligations ==\n'
+      if [ -n "$REFUTE_WHY" ]; then
+        printf '%s\n' "$REFUTE_WHY"
+      else
+        printf '%s\n' "$REFUTE_OUT"
+      fi
+    fi
   fi
   for base in "${COACH_FILES[@]}"; do
     printf '\n== ATTEMPT %s ==\n' "$base"
@@ -882,7 +1075,7 @@ coach() {
   # document it was told to follow.
   #
   # WHY REFUSE RATHER THAN SHIP THE SUMMARY. A hint that classifies wrongly
-  # spends a rung. A check that never reaches pass 3 hands back a clean
+  # spends a rung. A check that never reaches pass 4 hands back a clean
   # verdict over a right count reached by a wrong model, which is the one
   # failure the mode exists to catch, and it hands it back looking green.
   # --hint and --style read no passes, so a root with none still serves both.
@@ -906,6 +1099,13 @@ coach() {
     run_checker "$COACH_DIR"
   fi
 
+  # AFTER the checker and only for a check. It is the most expensive thing
+  # here by a wide margin, since it is one TLC run per obligation per machine,
+  # so a mode that does not ship the table does not pay for it either.
+  if [ "$mode" = "check" ]; then
+    run_refuter "$COACH_DIR" "$COACH_ITEM"
+  fi
+
   printf -- '-- %s: %s --\n' "$mode" "$COACH_ITEM"
   printf 'chosen from %s\n' "$COACH_HOW"
   printf 'reading in:   %s\n' "$COACH_DIR"
@@ -925,6 +1125,14 @@ coach() {
     fi
     if [ "$mode" = "check" ]; then
       printf 'passes:       %s\n' "$STUDY_ROOT/.claude/commands/check.md"
+      # ALWAYS A LINE, EVEN WHEN THERE IS NOTHING TO SAY. The reader is the
+      # one person who can fix an unset variable or a repo path that moved,
+      # and a silence here reads as a run that did everything it could.
+      if [ -n "$REFUTE_WHY" ]; then
+        printf 'refutation:   %s\n' "$REFUTE_WHY"
+      else
+        printf 'refutation:   %s\n' "$REPO_ROOT/harness/refute.sh"
+      fi
     fi
   fi
   echo

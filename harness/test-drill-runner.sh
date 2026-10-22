@@ -36,6 +36,17 @@
 #   same way the first three do, before the script is executed rather than
 #   after, and the style script's own exit code never becomes the runner's.
 #
+#   Then, from bead tla-p29t: --check RUNS THE REFUTATION INSTRUMENT and ships
+#   its table, which is one TLC exit code per pair of the learner's
+#   obligations and the machines the item ships. Two things here are unlike
+#   everything above them. The instrument is under a SECOND root, arriving in
+#   DRILL_REPO_ROOT or not at all, because the machines are withheld from
+#   every delivery and a delivered ./drill does not sit under the repo. And it
+#   REFUSES NOTHING: unset is the default, the block carries one line saying
+#   there is no table and why, and the rest of the check is untouched. Four
+#   reasons produce that line and the reach is read off the instrument's own
+#   exit 3 rather than hardcoded. Part 4e.
+#
 #   Then, from bead tla-1sh7.1: --hint CATS ITS SHEET into the prompt, the way
 #   --style cats the register and for the same reason. The ladder, the two
 #   worked cases and the tiebreak live in
@@ -52,7 +63,7 @@
 # contract says", which is also what a suite driving a runner that silently
 # stopped working would report if the comparison went slack. So part 5 copies
 # the real runner, breaks ONE line of it, and requires the row that owns that
-# line to go red. Eleven mutants:
+# line to go red. Thirteen mutants:
 #
 #   family-major order   the index drops out of the sort key
 #   shaky retires        shaky behaves like done and never comes back
@@ -65,6 +76,8 @@
 #   a styled half-run    the register gate drops out and it ships anyway
 #   a hinted half-run    the sheet gate drops out and it ships anyway
 #   a sheet in a check   the hint-only gate falls open and --check ships it
+#   every mode refutes   the check-only guard falls open and --hint ships it
+#   a block with no why  the reason is dropped and the block ships empty
 #
 # A mutant that passes means the row above it is vacuous. That is a stronger
 # control than a planted fixture, because it exercises the real code path with
@@ -1027,6 +1040,71 @@ write_check_passes() {
     "$CHECK_HANDBACK_SENTINEL" >"$1"
 }
 
+# The refutation stub, in the checker's shape and for the same reasons: no row
+# here may start a JVM, and this suite is fast tier. The real instrument runs
+# one TLC model check per obligation per machine, which was 24 runs and 12.5 s
+# of wall time on the one item measured, so driving the real one here would
+# move this suite out of its tier on its own.
+#
+# THE FIXTURE TABLE IS A MEASUREMENT RATHER THAN AN INVENTION. These are rows
+# harness/refute.sh really printed, for Frank's own Triage attempt against
+# drill/sequences/01-triage-board, measured 2026-10-21 on TLC2
+# 2026.07.31.184830. m1 is the item's reference machine and is silent on every
+# obligation. GreatestSeverityAlwaysPicked refutes m2 at rc 13, which is the
+# obligation nine prose check runs said would never catch anything.
+# BoardEitherGrowsOrShrinksByOne refutes m2 and m3, and no prose run mentioned
+# it at all. TypeOK is silent everywhere, which is correct rather than weak,
+# and it is in the fixture because the passes tell a reader exactly that.
+#
+# THE REFUSAL TEXT ON THE NONZERO PATH IS DELIBERATELY LOUD. The real
+# instrument's refusals name the author-side files it went looking for, and
+# the runner must relay none of it. A row below asserts the planted sentence
+# never reaches the prompt, which needs a sentence worth catching.
+#
+# --list-machines ANSWERS SEPARATELY, because the runner asks it to tell the
+# two causes of a 3 apart: an item shipping no machine, or a config naming no
+# obligation. REFUTE_STUB_LIST_RC drives that fork and falls back to the main
+# code when a row does not care.
+write_refute_stub() {
+  mkdir -p "${1%/*}"
+  cat >"$1" <<'REFUTE_STUB'
+#!/usr/bin/env bash
+rec="${REFUTE_STUB_REC:?the refute stub needs REFUTE_STUB_REC}"
+for a in "$@"; do
+  if [ "$a" = "--list-machines" ]; then
+    : >"$rec.list"
+    exit "${REFUTE_STUB_LIST_RC:-${REFUTE_STUB_RC:-0}}"
+  fi
+done
+: >"$rec.argv"
+for a in "$@"; do printf 'ARG[%s]\n' "$a" >>"$rec.argv"; done
+printf '%s\n' "$PWD" >"$rec.cwd"
+if [ "${REFUTE_STUB_RC:-0}" != "0" ]; then
+  printf 'refute.sh: PLANTED REFUSAL, which no prompt may carry.\n' >&2
+  exit "${REFUTE_STUB_RC:-0}"
+fi
+printf 'item: SOME/ITEM\n'
+printf 'machines run: 3  (3 declare no state of their own and this method cannot bind them)\n'
+printf '\n'
+printf 'OBLIGATION                             KIND          m1     m2     m3\n'
+printf 'TypeOK                                 INVARIANT      0      0      0\n'
+printf 'GreatestSeverityAlwaysPicked           PROPERTY       0     13      0\n'
+printf 'BoardEitherGrowsOrShrinksByOne         PROPERTY       0     13     13\n'
+printf 'legend: 0 silent on that machine, 12 or 13 refutes it, 150 or 255 could not substitute\n'
+printf 'a line the instrument wrote on stderr\n' >&2
+exit 0
+REFUTE_STUB
+  chmod +x "$1"
+}
+
+# Two sentinels of the fixture table. The first is the row the whole channel
+# exists for, and the second is the line that tells a reader a 0 is not a
+# finding, so a runner shipping the first and truncating the table would still
+# redden.
+REFUTE_TABLE_SENTINEL="GreatestSeverityAlwaysPicked           PROPERTY       0     13      0"
+REFUTE_LEGEND_SENTINEL="legend: 0 silent on that machine, 12 or 13 refutes it"
+REFUTE_PLANTED_REFUSAL="PLANTED REFUSAL, which no prompt may carry"
+
 # run_coach_path <path> <study-root> <cwd> <tree> [args...]
 #
 # The recorder is cleared first, so every "no model was called" row below is
@@ -1040,15 +1118,31 @@ COACH_CHECK_RC=0
 # run, and no 1 at all), so the runner is not supposed to care either way and
 # one row varies this to say so.
 COACH_STYLE_RC=0
+# The repo root the runner will be handed, and what the refutation stub will
+# exit with. Empty is the DEFAULT and the ordinary case, because the variable
+# is opt-in: a box with only the practice tree on it never sets one.
+COACH_REPO_ROOT=""
+COACH_REFUTE_RC=0
+COACH_REFUTE_LIST_RC=""
 
 run_coach_path() {
   local path="$1" root="$2" dir="$3" tree="$4"
   shift 4
+  # DRILL_REPO_ROOT IS DECIDED ON EVERY INVOCATION, set or unset. The runner
+  # reads it, so leaving it to whatever shell started the suite would make
+  # every row in part 4e depend on the operator's environment. `env -u` for
+  # the absent case rather than an empty assignment, because an empty value
+  # and an absent one are different things and the default here is absent.
+  local -a repo_env=(-u DRILL_REPO_ROOT)
+  [ -z "$COACH_REPO_ROOT" ] || repo_env=(DRILL_REPO_ROOT="$COACH_REPO_ROOT")
   rm -f "$STUB_REC"/*
-  RUN_OUT=$(cd "$dir" && HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$root" \
+  RUN_OUT=$(cd "$dir" && env "${repo_env[@]}" \
+    HOME="$SANDBOX_HOME" DRILL_STUDY_ROOT="$root" \
     PATH="$path" CLAUDE_STUB_REC="$STUB_REC/claude" \
     CHECK_STUB_REC="$STUB_REC/check" CHECK_STUB_RC="$COACH_CHECK_RC" \
     STYLE_STUB_REC="$STUB_REC/style" STYLE_STUB_RC="$COACH_STYLE_RC" \
+    REFUTE_STUB_REC="$STUB_REC/refute" REFUTE_STUB_RC="$COACH_REFUTE_RC" \
+    REFUTE_STUB_LIST_RC="$COACH_REFUTE_LIST_RC" \
     "$tree/drill" "$@" 2>"$ERRFILE")
   RUN_RC=$?
   RUN_ERR=$(cat "$ERRFILE")
@@ -1071,7 +1165,7 @@ run_coach_rootless() {
   local dir="$1" tree="$2"
   shift 2
   rm -f "$STUB_REC"/*
-  RUN_OUT=$(cd "$dir" && env -u HOME -u DRILL_STUDY_ROOT \
+  RUN_OUT=$(cd "$dir" && env -u HOME -u DRILL_STUDY_ROOT -u DRILL_REPO_ROOT \
     PATH="$STUB_BIN:$PATH" CLAUDE_STUB_REC="$STUB_REC/claude" \
     CHECK_STUB_REC="$STUB_REC/check" STYLE_STUB_REC="$STUB_REC/style" \
     "$tree/drill" "$@" 2>"$ERRFILE")
@@ -1524,7 +1618,7 @@ assert_says_literal "and its text reached the model" \
 # report off the config's one-sentence pointer and sound just as sure.
 #
 # WHY THE REFUSAL IS WORTH MORE HERE THAN THE PARTIAL RUN. A hint that
-# misclassifies spends a rung. A check that skips pass 3 returns a clean
+# misclassifies spends a rung. A check that skips pass 4 returns a clean
 # verdict over a right count reached by a wrong model, which is the one
 # failure the whole mode exists to catch, and it returns it looking green.
 #
@@ -1669,8 +1763,14 @@ assert_says_literal "and says --style needs the register as well as the script" 
 # stops meaning anything, so the narrowing is a row rather than a note.
 
 COACH_HEAD=$(awk '/^set -uo pipefail/ { exit } { print }' "$RUNNER")
-assert_says_literal "the header still says it sources nothing and resolves no repo root" \
-  "sources nothing, resolves no repo root" "$COACH_HEAD"
+# AMENDED by bead tla-p29t, and the needle moved because the claim did. The
+# header read "resolves no repo root" until a check run grew one read under a
+# repo. It never DISCOVERS one, which is the surviving half and the stronger
+# half: taking a root from the environment is not the same as working out
+# where a repo is, and working it out is the thing a delivered copy cannot do.
+# Part 4e carries the narrowing rows.
+assert_says_literal "the header still says it sources nothing and finds no repo root itself" \
+  "sources nothing, discovers no repo root" "$COACH_HEAD"
 assert_says_literal "and the second narrowing is named rather than slipped in" \
   "NARROWED AGAIN" "$COACH_HEAD"
 assert_says_literal "and it says the confinement is now about a serve" \
@@ -2109,6 +2209,278 @@ assert_says_literal "and still prints the prompt" \
 
 # ---------------------------------------------------------------------------
 echo
+echo "== part 4e: the refutation table, the second root, and the ways it is not produced =="
+# ---------------------------------------------------------------------------
+#
+# Bead tla-p29t. harness/refute.sh existed, was gated at 27 assertions of its
+# own, and nothing called it, so the instrument built to replace nine prose
+# findings was not in the path that produced them. This part is the wiring.
+#
+# WHY THIS ONE READ IS UNDER A SECOND ROOT, since every other read this suite
+# drives resolves under the study root. The machines a refutation runs are
+# withheld from every delivery route on purpose, so they are in the repo and
+# nowhere else, and a delivered ./drill does not sit under the repo. Walking
+# up finds nothing. So the root arrives in DRILL_REPO_ROOT or the table is not
+# produced, and unset is the default.
+#
+# IT IS THE ONE DEPENDENCY THAT REFUSES NOTHING, which is what separates every
+# row here from the gate rows in 4c and 4d. Those argue that a model with no
+# tools cannot tell an empty block from a clean one, so a missing dependency
+# has to refuse. That argument does not reach a block which is never empty:
+# this one carries the table or one line saying there is no table and why. The
+# first two rows below are the whole of that decision, and they are the two
+# REDs the bead was written against.
+#
+# FOUR REASONS, FOUR ROWS, ONE OUTCOME. No repo named. A repo named with no
+# instrument in it. No tlc on the path. And an item that ships no machine this
+# method can bind, which is 24 of the 64 items today and is NOT hardcoded
+# anywhere: the reach is read off the instrument's own exit 3, so a sibling
+# bead extending the reach moves it with no edit here.
+
+FAKE_REPO="$TMPROOT/fake-repo"
+write_refute_stub "$FAKE_REPO/harness/refute.sh"
+
+# A PATH with claude on it and no tlc, which is the one reason that is about
+# the toolchain rather than about a path. Built by resolving the real utilities
+# for the reason NOCLAUDE_BIN is, including bash, since the runner's own
+# shebang resolves through PATH and a shim without it dies at exec with 127.
+NOTLC_BIN="$TMPROOT/bin-no-tlc"
+mkdir -p "$NOTLC_BIN"
+for coach_util in bash cat sort date mkdir dirname env; do
+  coach_util_path=$(command -v "$coach_util") || continue
+  ln -s -- "$coach_util_path" "$NOTLC_BIN/$coach_util"
+done
+cp -- "$STUB_BIN/claude" "$NOTLC_BIN/claude"
+assert_absent "the no-tlc PATH holds no tlc" "$NOTLC_BIN/tlc"
+if [ -e "$NOTLC_BIN/claude" ] && [ -e "$NOTLC_BIN/bash" ]; then
+  ok "and it does hold claude and bash, so a refusal there is about tlc alone"
+else
+  nope "the no-tlc PATH is missing claude or bash, so a refusal there proves nothing"
+fi
+
+# --- RED 1: no repo named ---------------------------------------------------
+#
+# The report has to SAY the table was not produced, and say why, rather than
+# leaving a silence where a block belongs. A check run that quietly dropped
+# the pass would hand back a report with one of its five passes missing, and
+# a report with a pass missing reads exactly like a report with nothing to
+# say. That is the failure shape bead tla-x0he measured one file over.
+
+COACH_REPO_ROOT=""
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a check with no repo named still exits 0, because this is not a gate" 0
+assert_says_literal "the run says the table was not produced" \
+  "not produced" "$RUN_OUT"
+assert_says_literal "and names the variable that would produce it" \
+  "DRILL_REPO_ROOT" "$RUN_OUT"
+assert_absent "and the instrument was not called, there being none to call" \
+  "$STUB_REC/refute.argv"
+# The rest of the run is UNCHANGED, which is the half of the decision a
+# message row cannot carry. An opt-in extra that degraded the check it hangs
+# off would be worse than no extra.
+assert_says_literal "the checker still ran and its numbers still reached the model" \
+  "module=Pickers rc=0 distinct=12 claimed=12 count=MATCH run=CLEAN invariant=-" \
+  "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+assert_says_literal "and the passes still reached it" \
+  "$CHECK_PASSES_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# THE BLOCK IS IN THE PROMPT EVEN WITH NOTHING IN IT, which is the whole
+# reason this is not a gate. The model is the one making the pass, so it has
+# to be told the table is absent rather than left to notice.
+NOREPO_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_says_literal "the prompt carries the block header all the same" \
+  "== REFUTATION" "$NOREPO_STDIN"
+assert_says_literal "and the one line saying there is no table" "not produced" "$NOREPO_STDIN"
+assert_never_names "and no table header, so nothing reads as an empty measurement" \
+  "OBLIGATION  " "$NOREPO_STDIN"
+
+# --- RED 2: the repo named, and the table arrives ---------------------------
+
+COACH_REPO_ROOT="$FAKE_REPO"
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a check with the repo named exits 0" 0
+if [ -f "$STUB_REC/refute.argv" ]; then
+  ok "the instrument was the thing called, so the rows below read a real invocation"
+else
+  nope "no invocation was recorded at $STUB_REC/refute.argv, so nothing below is evidence"
+fi
+assert_eq "it was handed the attempt directory and the drill, and nothing else" \
+  "ARG[--attempt]
+ARG[$ATTEMPT_DIR]
+ARG[--item]
+ARG[${CANONICAL[0]}]" "$(cat "$STUB_REC/refute.argv" 2>/dev/null)"
+
+REFUTE_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+# THE ROW THE WHOLE CHANNEL EXISTS FOR. Nine prose check runs over one item
+# said GreatestSeverityAlwaysPicked would never catch a doctor who broke the
+# rule, three of them saying it in those words. It refutes the item's own
+# wrong machine at rc 13.
+assert_says_literal "the table reaches the model, carrying the rc 13 row" \
+  "$REFUTE_TABLE_SENTINEL" "$REFUTE_STDIN"
+assert_says_literal "and the legend with it, so a 0 is not read as a finding" \
+  "$REFUTE_LEGEND_SENTINEL" "$REFUTE_STDIN"
+assert_says_literal "and the run names the instrument it used" \
+  "$FAKE_REPO/harness/refute.sh" "$RUN_OUT"
+assert_never_names "and the run no longer says the table was not produced" \
+  "not produced" "$RUN_OUT"
+
+# ORDER. The passes come first, because they are what the material is read
+# against, and the table comes after the checker's numbers, because the passes
+# work in that order: the count first, the obligations against it.
+assert_before "the passes arrive before the table" \
+  "$CHECK_PASSES_SENTINEL" "== REFUTATION" "$REFUTE_STDIN"
+assert_before "and the checker's numbers before it too" \
+  "== CHECKER," "== REFUTATION" "$REFUTE_STDIN"
+
+# IT IS NOT A SERVE AND NOT A MARK. The header's own invariant says the
+# coaching flags add no fourth write path, and the most expensive of the three
+# modes is where that is easiest to break.
+assert_eq "a refutation run writes nothing into the attempt directory" \
+  "$ATTEMPT_SNAP_BEFORE" "$(snapshot "$ATTEMPT_DIR")"
+assert_eq "and nothing beside the runner either" \
+  "$COACH_TREE_SNAP" "$(snapshot "$T_COACH")"
+
+# --- check-only, both directions -------------------------------------------
+#
+# The mirror of the rows 4c carries for the passes and the sheet. A hint hands
+# back one rung, so a table in a hint prompt would be the whole report
+# arriving in the rationed mode. A style run never runs the checker, so it has
+# nothing to read a table against either.
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --hint
+assert_rc "a hint with the repo named exits 0" 0
+assert_never_names "and its prompt carries no table" \
+  "$REFUTE_TABLE_SENTINEL" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+assert_never_names "nor the block header" \
+  "== REFUTATION" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+assert_absent "and the instrument was not run for it, so a hint pays nothing" \
+  "$STUB_REC/refute.argv"
+
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --style
+assert_rc "a style run with the repo named exits 0" 0
+assert_never_names "and its prompt carries no table either" \
+  "== REFUTATION" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+assert_absent "and the instrument was not run for it" "$STUB_REC/refute.argv"
+
+# --- reason 2: a repo named with no instrument in it ------------------------
+#
+# A misconfigured variable must not refuse the check. The richer report is
+# opt-in, so a wrong path costs the table and nothing else.
+
+COACH_REPO_ROOT="$TMPROOT/not-a-repo"
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a repo path naming no instrument does not refuse the check" 0
+assert_says_literal "and the run says the table was not produced" "not produced" "$RUN_OUT"
+assert_says_literal "and names the path it looked at, which is the thing he can fix" \
+  "$TMPROOT/not-a-repo/harness/refute.sh" "$RUN_OUT"
+assert_says_literal "and the model still got the checker's numbers" \
+  "module=Pickers rc=0" "$(cat "$STUB_REC/claude.stdin" 2>/dev/null)"
+
+# --- reason 3: no tlc on the path ------------------------------------------
+#
+# Every cell of the table is a TLC exit code, so with no tlc the probe exits
+# 127 on every pair and the table comes back as a column of 127s. That reads
+# like three measurements and is the exit code of a command that was never
+# found, which is the same class of lie as a gate reporting green having read
+# nothing. Checked before the instrument is executed, so it is a sentence
+# rather than a column.
+
+COACH_REPO_ROOT="$FAKE_REPO"
+run_coach_path "$NOTLC_BIN" "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "no tlc on the path does not refuse the check either" 0
+assert_says_literal "and the run says the table was not produced" "not produced" "$RUN_OUT"
+assert_says_literal "and says tlc is what is missing" "tlc" "$RUN_OUT"
+assert_absent "and the instrument was not run, so no column of 127s was built" \
+  "$STUB_REC/refute.argv"
+
+# --- reason 4: the item ships no machine, which is the other 24 -------------
+#
+# Driven off the instrument's exit 3 and off nothing else. No family name and
+# no item count appears anywhere in the runner, so the reach is whatever the
+# instrument says it is on the day, and a sibling bead widening it needs no
+# edit here.
+
+COACH_REFUTE_RC=3
+COACH_REFUTE_LIST_RC=3
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "an item that ships no machine does not refuse the check" 0
+assert_says_literal "and the run says the table was not produced" "not produced" "$RUN_OUT"
+assert_says_literal "and says it is a fact about the item rather than the attempt" \
+  "about the item" "$RUN_OUT"
+assert_says_literal "and names the item it is a fact about" "${CANONICAL[0]}" "$RUN_OUT"
+NOMACHINE_STDIN=$(cat "$STUB_REC/claude.stdin" 2>/dev/null)
+assert_never_names "and no empty table reaches the model" "OBLIGATION  " "$NOMACHINE_STDIN"
+# THE REFUSAL TEXT IS NOT RELAYED, which is the one rule here that is about
+# the leak rather than about the shape. The instrument's refusals name the
+# author-side files it went looking for, and this prompt goes to a model.
+assert_never_names "and the instrument's own refusal text reaches nobody" \
+  "$REFUTE_PLANTED_REFUSAL" "$NOMACHINE_STDIN"
+assert_never_names "not on stdout either" "$REFUTE_PLANTED_REFUSAL" "$RUN_OUT"
+assert_never_names "nor on stderr" "$REFUTE_PLANTED_REFUSAL" "$RUN_ERR"
+
+# A 3 HAS TWO CAUSES AND THEY POINT OPPOSITE WAYS. The item ships no machine,
+# which is nothing to do with him, or his own config names no obligation,
+# which is his to fix. One message for both would be wrong half the time, so
+# the runner asks the instrument to list the item's machines and tells them
+# apart. Without this row the message above is indistinguishable from a
+# runner that says "the item" whatever happened.
+COACH_REFUTE_RC=3
+COACH_REFUTE_LIST_RC=0
+run_coach "$STUDY_COACH" "$OUTSIDE" "$T_COACH" --check
+assert_rc "a config naming no obligation does not refuse the check" 0
+assert_says_literal "and the run says it is his config that names none" \
+  "names no obligation" "$RUN_OUT"
+assert_never_names "and does not blame the item for it" "about the item" "$RUN_OUT"
+if [ -f "$STUB_REC/refute.list" ]; then
+  ok "the machines were listed, so the fork above was decided and not guessed"
+else
+  nope "no --list-machines call was recorded, so the two causes were not told apart"
+fi
+COACH_REFUTE_RC=0
+COACH_REFUTE_LIST_RC=""
+COACH_REPO_ROOT=""
+
+# --- the header carries the THIRD narrowing --------------------------------
+#
+# Gate, don't advise, and the third time around. The two narrowings before
+# this one grew a list under a root the file had already argued for. This one
+# changed the clause at the top, because the file said it resolves no repo
+# root and now one read is under a repo. A stale invariant in a header reads
+# exactly like a live one, which is the argument the second narrowing's own
+# heading makes.
+REFUTE_HEAD=$(awk '/^set -uo pipefail/ { exit } { print }' "$RUNNER")
+assert_says_literal "the header names the third narrowing rather than slipping it in" \
+  "NARROWED A THIRD TIME" "$REFUTE_HEAD"
+assert_never_names "and no longer claims it resolves no repo root" \
+  "resolves no repo root, and confines" "$REFUTE_HEAD"
+assert_says_literal "and says what it does claim instead" \
+  "discovers no repo root" "$REFUTE_HEAD"
+# shellcheck disable=SC2016
+REFUTE_HEAD_INST='$DRILL_REPO_ROOT/harness/refute.sh'
+assert_says_literal "the narrowed list names the instrument it executes" \
+  "$REFUTE_HEAD_INST" "$REFUTE_HEAD"
+assert_never_names "and the list no longer says there are seven of them" \
+  "read seven things outside it" "$REFUTE_HEAD"
+# The one thing that makes this entry different from the other seven, and the
+# reason the clause moved rather than the list growing alone.
+assert_says_literal "and says this entry does not resolve under the study root" \
+  "DOES NOT RESOLVE UNDER THE STUDY ROOT" "$REFUTE_HEAD"
+# WHY IT REFUSES NOTHING, argued rather than asserted. Every other read in
+# that list refuses the run, so an eighth that does not is the thing a reader
+# will ask about first.
+assert_says_literal "and argues why this one is not a gate" \
+  "never empty" "$REFUTE_HEAD"
+# No count of reachable items in the runner, because the instrument's exit
+# code says so per item and a count in a comment goes stale on the next item
+# that gains a machine. Checked over the whole file, prose included.
+RUNNER_RAW_P29T=$(cat "$RUNNER")
+for refute_fam in "40 of 64" "24 of the 64" "state-space" "temporal family"; do
+  assert_never_names "the runner hardcodes no reach: it never says $refute_fam" \
+    "$refute_fam" "$RUNNER_RAW_P29T"
+done
+
+# ---------------------------------------------------------------------------
+echo
 echo "== part 5: the mutants, which is what makes part 1 and part 3 mean something =="
 # ---------------------------------------------------------------------------
 
@@ -2428,6 +2800,59 @@ if mutate check-ships-the-sheet \
     ok "control: a runner shipping the sheet to --check is DETECTED"
   else
     nope "control: the sheet in a check prompt was NOT detected, so the hint-only rows are vacuous"
+  fi
+fi
+
+# M12 BACKS THE CHECK-ONLY ROWS IN PART 4e, for the reason M11 backs the
+# sheet's. Two rows there say a hint prompt and a style prompt carry no
+# refutation table, and both were green the day before this feature landed
+# over a runner that shipped it nowhere. A negative row needs a runner that
+# gets it wrong.
+#
+# M12. the call-site guard goes true, so every mode runs the instrument and
+# ships the table. In a hint that is the whole report arriving in the mode
+# that hands back one rung, and in a style run it is a TLC run per obligation
+# per machine bought by a flag that reads no obligations at all.
+#
+# THE SUBSTITUTION IS ADDRESSED BY INDENT, since the same test spells the same
+# way in the banner block and in the gate above it. Two spaces is the call
+# site and nothing else, which the file's own layout makes true and a row in
+# part 4e does not have to know.
+# shellcheck disable=SC2016
+if mutate every-mode-refutes 's|^  if \[ "\$mode" = "check" \]; then$|  if true; then|'; then
+  T_M12="$TMPROOT/tree-m12"
+  mk_tree "$T_M12" "$MUTANT"
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M12/LAST-SERVED"
+  COACH_REPO_ROOT="$FAKE_REPO"
+  run_coach "$STUDY_COACH" "$OUTSIDE" "$T_M12" --hint
+  COACH_REPO_ROOT=""
+  if grep -qF -- "$REFUTE_TABLE_SENTINEL" "$STUB_REC/claude.stdin"; then
+    ok "control: a runner shipping the table to --hint is DETECTED"
+  else
+    nope "control: the table in a hint prompt was NOT detected, so the check-only rows are vacuous"
+  fi
+fi
+
+# M13 BACKS THE ONE LINE ITSELF, which is the thing this whole feature turns
+# on. Part 4e says the block carries a reason when there is no table, and the
+# block-header row alone is green over a runner that prints a header and
+# nothing under it. That is the empty block the other seven reads are gated
+# against, arriving in the one place nothing gates.
+#
+# M13. the reason is dropped and the empty table variable is printed instead,
+# so a no-repo check ships `== REFUTATION ==` with a blank line under it. A
+# model with no tools cannot tell that from a table nobody filled in.
+# shellcheck disable=SC2016
+if mutate refutation-block-with-no-reason \
+  '/^build_prompt() {$/,/^}$/ s|^      if \[ -n "\$REFUTE_WHY" \]; then$|      if false; then|'; then
+  T_M13="$TMPROOT/tree-m13"
+  mk_tree "$T_M13" "$MUTANT"
+  printf '%s\n' "${CANONICAL[0]}" >"$T_M13/LAST-SERVED"
+  run_coach "$STUDY_COACH" "$OUTSIDE" "$T_M13" --check
+  if grep -qF -- "not produced" "$STUB_REC/claude.stdin"; then
+    nope "control: an empty refutation block was NOT detected, so part 4e's reason rows are vacuous"
+  else
+    ok "control: a refutation block with no reason in it is DETECTED"
   fi
 fi
 
