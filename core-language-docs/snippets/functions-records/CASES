@@ -1,0 +1,44 @@
+# Cases for core-language-docs/functions-records.md. Read by ../run-all.sh,
+# which discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD IS THE STATE COUNT, and on this page it carries two
+# findings an rc check cannot see. Grow.cfg reads 4 states and GrowReach.cfg
+# reads 1, and that pair IS the claim that EXCEPT one past the end of a
+# sequence does not append. Both runs exit 0 and both print the same warning,
+# so an rc-only suite would stay green while the page went wrong. Typed.cfg
+# reads 9 because a function set holds |T| to the power of |S| members and
+# each one is an initial state, which is the only place the page quotes that
+# arithmetic against a real run. Leave the field empty where the page quotes
+# no count.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed
+#   12   an invariant was violated
+#   75   a runtime evaluation error, so the run stopped rather than reporting
+#   150  parse or semantic error in the module
+#
+# 75 is not in the modules page's list and it is the one worth knowing about.
+# TLC reaches it when an expression cannot be evaluated at all, which is what
+# reading outside a function's domain does. The run does not finish, so there
+# is no verdict to read either way.
+
+Shape.tla|Shape.cfg|0|3|a record, a function and a sequence are one kind of value
+Shape.tla|ShapeSeparate.cfg|12||and the reading that holds a record apart from a function
+Merge.tla|Merge.cfg|0|2|:> and @@ build a function, and @@ keeps the left value
+Merge.tla|MergeRight.cfg|12||the dictionary-update reading, where the right value wins
+Meter.tla|Meter.cfg|0|7|EXCEPT with @, a nested selector, and clauses read left to right
+Meter.tla|MeterNaive.cfg|12||the reading where every @ in a clause list sees the original
+Grow.tla|Grow.cfg|0|4|Append grows the sequence
+Grow.tla|GrowReach.cfg|0|1|EXCEPT one past the end does not append
+Typo.tla|Typo.cfg|0|1|a misspelled field name is a dropped clause
+Outside.tla|Outside.cfg|75||reading one past the end stops the run
+Recurse.tla|Recurse.cfg|0|6|the bracket form calls itself with no RECURSIVE line
+RecurseOp.tla|RecurseOp.cfg|150||the operator form of the same definition does not parse
+Typed.tla|Typed.cfg|0|9|the colon form is a set, and a function set holds |T|^|S| members
+Typed.tla|TypedArrow.cfg|75||the arrow form is one record, so \in has nothing to search
