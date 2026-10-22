@@ -99,13 +99,15 @@ line 13, col 1 to line 13, col 33 of module TankPairAnon
 Operator Spec already defined or declared.
 ```
 
-That's the whole difference between rows four and five. A duplicate
-between two copies is a warning. A duplicate between a copy and the
-module's own definition is an error, and nothing runs.
-
 Naming each copy fixes it because `A!Init` is not `Init`. Nothing lands
 at the pair's top level, so the pair is free to define `Init`, `Next`,
 `Spec` and `WithinCap` itself.
+
+## Question 3: why row five reached a state and row four didn't
+
+A duplicate between two copies is a warning. A duplicate between a copy
+and the module's own definition is an error, and nothing runs. That's the
+whole difference between the two rows.
 
 Row five got as far as a state because it defines nothing of its own, so
 no name collides at error level. SANY reports six warnings and prints no
@@ -127,7 +129,7 @@ documentation, so take "the first one wins" as what these two runs show.
 `null` is TLC's report of a variable the initial predicate never
 constrained. It isn't a value the spec can produce.
 
-## Question 3: the level that was never substituted
+## Question 4: the level that was never substituted
 
 The tank declares one constant and one variable, and a copy has to
 account for both. A symbol the instantiating module declares under the
@@ -146,7 +148,7 @@ and instantiated in module TankPairNoVar.
 Two errors, one per instance line. The parser catches this one, so it
 never reaches a state.
 
-## Question 4: the 12 and the 9 from the 3
+## Question 5: the 12 and the 9 from the 3
 
 One tank of capacity 2 holds 0, 1 or 2. Three states, and depth 3 is the
 two fills from empty plus the initial state.
@@ -173,11 +175,11 @@ next-state relation. The following variable is not defined: b.
 ```
 
 State the requirement from the pair instead, as `a <= CapA /\ b <= CapB`.
-Same 12 states, and it reads fine. It also restates the tank's rule in
-the pair, which is the one thing the prompt asked you not to do, and
-nothing in the run says so. I think that's the quiet failure of this
-item, and it's the only one. All three of the wrong neighbors the prompt
-asks for are loud.
+Same 12 states, and it reads fine. It also writes the tank's rule again
+in the pair, which the requirement line tells you not to do, and nothing
+in the run says so. I think that's the quiet failure of this item, and
+it's the only one. The one wrong neighbor the prompt asks for is loud,
+and so are the other two it only publishes.
 
 Name one copy and leave the other anonymous. The named one is reachable
 behind its prefix and the anonymous one lands at the top level, so the
@@ -218,9 +220,13 @@ returns.
 The prompt says the tank module is shared and that nothing in it may know
 about any particular pair. That's the reason each copy has to be told its
 capacity and its variable. It says "nothing about a tank is written
-twice". The table gives three verdicts in English: a definition already
-there, a level reported as null, and something declared but never
-substituted.
+twice". The requirement line adds that you state the rule through what
+the tank already says about itself. That guards the quiet failure above,
+and it narrows which answers count rather than naming a construct.
+
+The table gives three verdicts in English: a definition already there, a
+level reported as null, and something declared but never substituted.
+Only the third is reproduced, and the other two are published outcomes.
 
 What the prompt withholds: the keyword that brings a module in, that a
 copy can be given a name, the arrow that substitutes a symbol, that a
