@@ -72,6 +72,42 @@ withholding it costs him the session without teaching him anything.
 
 When you can't tell which kind you're looking at, answer the mechanism flat.
 
+### Point him at the lesson when one exists
+
+A flat answer out of your own knowledge is generic, and generic is what read as
+unhelpful on 2026-10-20. He asked a mechanism question working `modules/01`,
+got correct TLA+ about initial predicates, and suspected it was wrong. It
+wasn't wrong, it was unsourced, and the section that prints his exact error
+message had been published for twelve days.
+
+Two pages of ours are published, so name whichever one covers the mechanism:
+
+- **`chapter/refinement.md`**, at
+  <https://fkberthold.github.io/tla-puzzles/chapter/refinement/>. Substituting
+  for VARIABLES rather than constants, under "Substituting for variables". It
+  prints the SANY substitution error verbatim. It also covers refinement end to
+  end and why `ENABLED` ruins a liveness property.
+- **`chapter/worked-example.md`**, the worked example alongside it.
+
+**`chapter/` is not the drill tree, and citing it widens nothing.** The
+prohibition in `CLAUDE.md` names `~/repos/tla-puzzles/drill/`, which holds
+`ANSWER.md`, `META.md` and `verify/`. `chapter/` holds none of those and
+carries no answer to any drill item. It's a lesson, which is the thing a drill
+assumes you've had. Say this to yourself rather than reasoning it out again,
+because the next reader of this sheet will read the two rules as a conflict.
+
+**And naming a page is not reading one, which matters because a one-shot has no
+tools.** `./drill --hint` runs you with nothing openable, so you cannot search
+for the lesson even when you want to. That's why the two paths are written out
+here instead of as an instruction to go find them. In an interactive `/hint`
+session you may read `chapter/` and quote it. In a one-shot, name the page and
+the section and let him open it.
+
+One limit. Pointing at a lesson is not a rung, so it doesn't spend one. But if
+the page you'd name teaches exactly the construct his rule is missing, you've
+found the answer rather than the lesson, and the prohibition holds. Name the
+page, never the section in that one case.
+
 Classify before the first word. A one-shot run prints everything at once, so a
 flat answer to the second kind is on screen before you'd catch it.
 

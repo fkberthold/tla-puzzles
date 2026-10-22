@@ -68,6 +68,30 @@ that's your call to make.
 The numbering inside a family is not a difficulty ramp, so take them in any
 order. `./drill` has a queue if you'd rather not choose.
 
+## Where the lesson is, when a family has one
+
+Step 1 above says to open nothing else, and it means nothing else about the
+item in front of you. A lesson on the technique is a different thing, and two
+of them are published.
+
+- **`modules`** rests on substituting for VARIABLES rather than constants, and
+  that is taught at <https://fkberthold.github.io/tla-puzzles/chapter/refinement/>
+  under "Substituting for variables". Read it before the family rather than
+  during an item. It prints the SANY substitution error verbatim, so if you
+  have met that error the section is where it is explained.
+- **`modules` and `temporal`** both reach refinement, and the same page covers
+  it end to end, including why `ENABLED` ruins a liveness property.
+
+The other six families have no published lesson of their own yet. The twelve
+chapter cheat sheets are the nearest thing, and `SHEET.md` beside this file is
+their flat form.
+
+Worth saying why this section exists. The refinement chapter has been published
+since 2026-10-08 and nothing under this tree pointed at it, so a drill built on
+that technique read as a drill with no lesson behind it. That was reported on
+2026-10-20 as lacking an actual lesson on the thing being drilled, and the
+lesson existed the whole time.
+
 ## The construct list and the sheet
 
 Two files sit beside this one, and they read in the same order as a third that
