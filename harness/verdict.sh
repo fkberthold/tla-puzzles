@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # verdict.sh — The harness's single verdict channel (V2-PLAN.md §5.1, bead tla-kl5.4).
 #
-# Runs TLC once and reports what happened as ONE TOKEN DERIVED SOLELY FROM THE
-# PROCESS EXIT STATUS. Nothing in this file reads, matches, or reasons about
-# TLC's stdout. Every other harness component (§5.2 grading, §5.3 vacuity
-# probes, §5.4 refinement, §5.5 seeded bugs) branches on this token, so this
-# is the one place the exit-code table lives.
+# Runs TLC once and reports what happened as ONE TOKEN DERIVED FROM THE
+# PROCESS EXIT STATUS. Every other harness component (§5.2 grading, §5.3
+# vacuity probes, §5.4 refinement, §5.5 seeded bugs) branches on this token,
+# so this is the one place the exit-code table lives.
+#
+# ONE code is the exception and it is exit 151, which carries three meanings
+# that no exit status can tell apart. There and only there, TLC's output is
+# read to subdivide the code. See THE ONE STDOUT EXCEPTION below for the
+# measurement, the limits on it, and why it is not the mistake the next
+# paragraph warns about. Every other row is the status alone.
 #
 # WHY NOT STDOUT: TLC's console text is a presentation surface, not an API. It
 # changes between releases, it is localized by nothing and formatted by whim,
@@ -66,6 +71,8 @@
 #    124  TIMEOUT                killed by timeout(1) -- its OWN verdict
 #    150  PARSE_ERROR            parse or semantic failure, incl. a missing .tla
 #    151  CONFIG_ERROR           .cfg names something the spec does not define
+#    151  INVARIANT_FALSE        a variable-free INVARIANT evaluated FALSE
+#    151  PROPERTY_FALSE         a variable-free PROPERTY evaluated FALSE
 #    255  TLC_EXCEPTION          TLC's catch-all: missing/unparseable .cfg, etc.
 #      *  UNKNOWN_<rc>           never silently folded into an existing row
 #
@@ -258,6 +265,63 @@
 #   keyword with a missing operand -- e.g. a bare `INVARIANT` line -- is not an
 #   error at all: TLC exits 0 having silently checked no invariant. That last
 #   one is a live vacuity hazard for §5.3, and DanglingKeyword.cfg pins it.
+#
+# THE ONE STDOUT EXCEPTION, AND WHY 151 EARNED IT (bead tla-ry2y, 2026-10-22)
+#
+#   Everything above this line is derived from the exit status alone, and the
+#   WHY NOT STDOUT note at the top of this file is the reason. 151 is the one
+#   code that cannot be, because it carries THREE meanings and no exit status
+#   can separate them. Measured on TLC 2026.07.31.184830 against
+#   fixtures/verdict/InvariantFalse.tla:
+#
+#     INVARIANT NoSuchOperator  151  "The invariant NoSuchOperator specified
+#                                     in the configuration file"
+#     INVARIANT DiffSet         151  "The invariant of DiffSet is equal to
+#                                     FALSE"
+#     PROPERTY  DiffSet         151  "The property of DiffSet is equal to
+#                                     FALSE"
+#
+#   DiffSet is `{1, 2} = {1, 2, 3}`. An obligation whose body mentions no
+#   variable is folded to a constant before TLC walks any state, so a FALSE
+#   one is reported with no state and no trace. Only the failure channel
+#   differs: SameSet, the same shape and TRUE, exits 0 over 5 distinct states
+#   and reads like any ordinary pass. That asymmetry is why this went
+#   unnoticed for the life of the table -- the shape only misreports when it
+#   is wrong, and a corpus of passing fixtures never exercises it.
+#
+#   The exposure is live rather than theoretical. A transitive scan of 1,425
+#   .cfg files resolving 2,693 obligations found variable-free bodies in the
+#   swipe corpus and the reference-page snippets, including ones seeded FALSE
+#   on purpose. core-language-docs/snippets/sets/Girder.cfg is the worked
+#   example, and its own manifest already documented both readings.
+#
+#   WHY THIS IS NOT THE verify-puzzle.sh MISTAKE. That script let a grep
+#   OVERRIDE the exit status and reported a PASS over a spec that never
+#   parsed. Here the exit status decides first and alone; text is read only
+#   to SUBDIVIDE a single code, and only a code already known to be
+#   ambiguous. Text may never move a verdict between codes, never contradict
+#   one, and never rescue an unmapped one. A future row that wants this
+#   treatment needs the same thing 151 has: a measurement showing one code
+#   means two different things.
+#
+#   WHY A NEW TOKEN RATHER THAN 12. The bead asked for a violation rather
+#   than a config error, and SAFETY_VIOLATION would have been a second false
+#   statement in place of the first: a caller that reads it goes looking for
+#   the trace, and there is none. INVARIANT_FALSE and PROPERTY_FALSE say what
+#   happened and promise nothing else. Splitting them on the channel follows
+#   the grain this table already has at 12 against 13 and at 76 against 77.
+#
+#   A caller that still branches on CONFIG_ERROR alone now meets an
+#   unrecognized token on the false-obligation path instead of a
+#   plausible-looking wrong one, which is the same trade the UNKNOWN_<rc> arm
+#   at the bottom of this file already makes deliberately.
+#
+#   TWO OTHER COPIES OF THIS TABLE STILL READ 151 AS CONFIG_ERROR ALONE:
+#   harness/grade.sh:632 and recall/recall.sh:1814. They are not this bead's
+#   to change and they are filed as tla-v8ev. Said here rather than left for
+#   a reader to discover, because this file is the canonical table and it now
+#   disagrees with two live copies. grade.sh is the one that matters: the
+#   grader discarding a real refutation is the harm tla-ry2y was filed on.
 #
 # THE DEADLOCK CONFLICT — WHY A .cfg KEYWORD CAN REFUSE THE RUN (bead tla-hl96)
 #
@@ -614,8 +678,8 @@ if [ ${#EXTRA[@]} -gt 0 ]; then
   CMD+=("${EXTRA[@]}")
 fi
 
-# The one and only place the outcome is produced. TLC's output goes to a file
-# and is never inspected; `rc` is the entire signal.
+# The one and only place the outcome is produced. `rc` is the entire signal
+# for every code but 151, which the case below subdivides by reading $LOG.
 timeout "$TIMEOUT" "${CMD[@]}" >"$LOG" 2>&1
 rc=$?
 
@@ -634,7 +698,24 @@ case "$rc" in
   77)  verdict="LIVENESS_EVAL_FAILURE" ;;
   124) verdict="TIMEOUT" ;;
   150) verdict="PARSE_ERROR" ;;
-  151) verdict="CONFIG_ERROR" ;;
+  # THE ONE ROW THAT READS TLC'S OUTPUT, because 151 carries three meanings
+  # and the status cannot separate them. See THE ONE STDOUT EXCEPTION in the
+  # header for the measurement and for the limits on this. A redirect rather
+  # than a pipe, so there is no early-exit consumer to take SIGPIPE and no
+  # 141 to misread as "pattern absent".
+  #
+  # The default stays CONFIG_ERROR. An unrecognized 151 message is the
+  # documented meaning until somebody measures otherwise, which keeps this
+  # arm from inventing a verdict for text it has never seen.
+  151)
+    if grep -qE 'The invariant of .+ is equal to FALSE' <"$LOG"; then
+      verdict="INVARIANT_FALSE"
+    elif grep -qE 'The property of .+ is equal to FALSE' <"$LOG"; then
+      verdict="PROPERTY_FALSE"
+    else
+      verdict="CONFIG_ERROR"
+    fi
+    ;;
   255) verdict="TLC_EXCEPTION" ;;
   # An unmapped code is reported as itself rather than bucketed into the
   # nearest familiar row. A new TLC exit code should surface as a loud unknown,
