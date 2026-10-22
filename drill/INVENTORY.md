@@ -342,17 +342,17 @@ ROW	K019	sets	Set filter	exercises/ch02/CHEATSHEET.md:83	medium	A3/12	02-pumps,0
 ROW	K020	sets	CHOOSE	exercises/ch02/CHEATSHEET.md:87	medium	A4/12	07-the-hoist-and-the-crates,01-triage-board,01-any-healthy-upstream	07-peterson,01-clockface,03-chips,03-alternation	both
 ROW	K021	core	LET-IN	exercises/ch02/CHEATSHEET.md:91	medium	A4/12	05-pelican-case,07-the-hoist-and-the-crates,01-triage-board	01-nim,03-cups,03-gossip,03-chips	both
 ROW	K022	pluscal	--algorithm block	exercises/ch03/CHEATSHEET.md:11	medium	A3/12;C		01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble	reading-only
-ROW	K023	pluscal	:= assignment	exercises/ch03/CHEATSHEET.md:15	medium	A3/12;C		01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble	reading-only
-ROW	K024	pluscal	label	exercises/ch03/CHEATSHEET.md:19	medium	A3/12;C		01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble	reading-only
-ROW	K025	pluscal	|| simultaneous assignment	exercises/ch03/CHEATSHEET.md:23	low	A0/12;C		06-bubble	reading-only
-ROW	K026	pluscal	skip	exercises/ch03/CHEATSHEET.md:27	low	A0/12;C			neither
-ROW	K027	pluscal	assert	exercises/ch03/CHEATSHEET.md:31	low	A0/12;C		05-collatz	reading-only
-ROW	K028	pluscal	goto	exercises/ch03/CHEATSHEET.md:35	low	A0/12;C;D8omit			neither
-ROW	K029	pluscal	PlusCal if	exercises/ch03/CHEATSHEET.md:39	low	A0/12;C		01-euclid,05-collatz	reading-only
-ROW	K030	pluscal	macro	exercises/ch03/CHEATSHEET.md:43	low	A0/12;C		04-ring	reading-only
-ROW	K031	pluscal	with	exercises/ch03/CHEATSHEET.md:47	medium	A2/12;C		06-bubble	reading-only
-ROW	K032	pluscal	while	exercises/ch03/CHEATSHEET.md:51	medium	A3/12;C		01-euclid,03-contend,04-ring,05-collatz,06-bubble	reading-only
-ROW	K033	pluscal	\in on a variable declaration	exercises/ch03/CHEATSHEET.md:55	low	A0/12;C		06-bubble	reading-only
+ROW	K023	pluscal	:= assignment	exercises/ch03/CHEATSHEET.md:16	medium	A3/12;C		01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble	reading-only
+ROW	K024	pluscal	label	exercises/ch03/CHEATSHEET.md:20	medium	A3/12;C		01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble	reading-only
+ROW	K025	pluscal	|| simultaneous assignment	exercises/ch03/CHEATSHEET.md:24	low	A0/12;C		06-bubble	reading-only
+ROW	K026	pluscal	skip	exercises/ch03/CHEATSHEET.md:28	low	A0/12;C			neither
+ROW	K027	pluscal	assert	exercises/ch03/CHEATSHEET.md:32	low	A0/12;C		05-collatz	reading-only
+ROW	K028	pluscal	goto	exercises/ch03/CHEATSHEET.md:36	low	A0/12;C;D8omit			neither
+ROW	K029	pluscal	PlusCal if	exercises/ch03/CHEATSHEET.md:40	low	A0/12;C		01-euclid,05-collatz	reading-only
+ROW	K030	pluscal	macro	exercises/ch03/CHEATSHEET.md:45	low	A0/12;C		04-ring	reading-only
+ROW	K031	pluscal	with	exercises/ch03/CHEATSHEET.md:50	medium	A2/12;C		06-bubble	reading-only
+ROW	K032	pluscal	while	exercises/ch03/CHEATSHEET.md:55	medium	A3/12;C		01-euclid,03-contend,04-ring,05-collatz,06-bubble	reading-only
+ROW	K033	pluscal	\in on a variable declaration	exercises/ch03/CHEATSHEET.md:60	low	A0/12;C		06-bubble	reading-only
 ROW	K034	state-space	Invariant (as a TLA+ operator, checked at every state)	exercises/ch04/CHEATSHEET.md:11	high	A11/12;B117@s3	01-box-office,02-vending-unchanged,03-bakery-obligations,04-lift-types,05-pelican-case,06-can-pyramid,07-prime-capacity,08-altimeter-approx,01-shunting-yard,02-charging-bays,03-ballast-tanks,04-autoclaves,05-tool-crib,06-depot-cover,07-stock-board,08-troughs,01-two-tanks-one-hose,04-the-berth-and-the-phantom-ship,06-two-chutes-one-gate,07-the-hoist-and-the-crates,08-doors-of-the-hall,01-triage-board,02-floor-robot,03-returns-desk,04-deck-log,05-undo-history,06-dispatch-board,07-pneumatic-tube,08-pancake-pile,01-any-healthy-upstream,02-two-pools,03-ballast,04-convoys,05-leases,06-port-rules,07-which-pub,08-the-dive,01-clock-never-stops,02-four-identical-workers,03-view-hides-the-bug,04-clean-run-colleague-deadlock,05-summary-record,07-sentinel-and-the-roster,08-the-database-you-did-not-need	01-nim,02-chameleons,03-cups,04-stamps,01-matching,02-shelves,03-overlay,04-ledger,01-bitcounter,02-gears,03-fences,04-cycle,01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble,07-peterson,01-brackets,02-josephus,01-clockface,02-antichain,03-gossip,01-quorums,02-tickets,03-chips,04-key,01-handover,02-converge,03-alternation,04-contention,05-break	both
 ROW	K035	pluscal	define block (PlusCal)	exercises/ch04/CHEATSHEET.md:15	medium	A3/12;C		06-bubble	reading-only
 ROW	K036	pluscal	pc (PlusCal's label-tracking variable)	exercises/ch04/CHEATSHEET.md:20	medium	A0/12;B49of59@s6	01-slip-on-the-spike,02-pumps,03-two-tools,04-night-patrol,05-crane-and-riggers,06-three-reds,07-donor-session,08-wrong-label	01-euclid,02-interleave,03-contend,05-collatz,06-bubble,07-peterson	both
@@ -371,25 +371,25 @@ ROW	K048	functions-records	:> (singleton function)	exercises/ch06/CHEATSHEET.md:
 ROW	K049	functions-records	@@ (function merge)	exercises/ch06/CHEATSHEET.md:31	low	A0/12	05-tool-crib,06-depot-cover	03-overlay,04-ledger	both
 ROW	K050	functions-records	function set	exercises/ch06/CHEATSHEET.md:35	high	A12/12	02-pumps,01-shunting-yard,02-charging-bays,03-ballast-tanks,04-autoclaves,05-tool-crib,07-stock-board,08-troughs,03-returns-desk,08-pancake-pile,02-two-pools	02-chameleons,01-matching,02-shelves,03-overlay,04-ledger,02-interleave,03-contend,06-bubble,07-peterson,01-quorums,02-tickets,03-chips,02-converge,03-alternation,05-break	both
 ROW	K051	pluscal	nondeterministic with	exercises/ch07/CHEATSHEET.md:11	medium	A2/12;C		06-bubble	reading-only
-ROW	K052	pluscal	either-or	exercises/ch07/CHEATSHEET.md:15	medium	A3/12;C		04-ring	reading-only
+ROW	K052	pluscal	either-or	exercises/ch07/CHEATSHEET.md:16	medium	A3/12;C		04-ring	reading-only
 ROW	K053	pluscal	process (single)	exercises/ch08/CHEATSHEET.md:11	low	A1/12;C		03-contend	reading-only
-ROW	K054	pluscal	pc[...] (multi-process pc)	exercises/ch08/CHEATSHEET.md:15	low	A0/12;C	01-slip-on-the-spike,03-two-tools,05-crane-and-riggers,07-donor-session,08-wrong-label	02-interleave,03-contend,07-peterson	both
-ROW	K055	pluscal	process-local variable	exercises/ch08/CHEATSHEET.md:19	low	A0/12;C		02-interleave	reading-only
-ROW	K056	pluscal	process set	exercises/ch08/CHEATSHEET.md:23	low	A1/12;C		02-interleave	reading-only
-ROW	K057	pluscal	self	exercises/ch08/CHEATSHEET.md:27	low	A1/12;C		02-interleave	reading-only
-ROW	K058	pluscal	await	exercises/ch08/CHEATSHEET.md:31	medium	A3/12;C		03-contend,04-ring	reading-only
-ROW	K059	state-space	deadlock (checking)	exercises/ch08/CHEATSHEET.md:35	medium	Acfg6/13;B82of337@s5	01-slip-on-the-spike,03-two-tools,06-three-reds,03-bakery-obligations,04-deck-log,01-any-healthy-upstream,04-convoys,07-which-pub,08-the-dive,01-clock-never-stops,04-clean-run-colleague-deadlock,06-liveness-at-the-fence,08-the-database-you-did-not-need	01-nim,03-contend,07-peterson,01-brackets,02-josephus,02-antichain,03-gossip,01-quorums,02-tickets,03-chips,04-key,02-converge	both
-ROW	K060	pluscal	procedure	exercises/ch08/CHEATSHEET.md:39	low	A0/12;C		05-collatz	reading-only
-ROW	K061	pluscal	call	exercises/ch08/CHEATSHEET.md:43	low	A0/12;C		05-collatz	reading-only
-ROW	K062	pluscal	return	exercises/ch08/CHEATSHEET.md:47	low	A0/12;C		05-collatz	reading-only
+ROW	K054	pluscal	pc[...] (multi-process pc)	exercises/ch08/CHEATSHEET.md:16	low	A0/12;C	01-slip-on-the-spike,03-two-tools,05-crane-and-riggers,07-donor-session,08-wrong-label	02-interleave,03-contend,07-peterson	both
+ROW	K055	pluscal	process-local variable	exercises/ch08/CHEATSHEET.md:20	low	A0/12;C		02-interleave	reading-only
+ROW	K056	pluscal	process set	exercises/ch08/CHEATSHEET.md:25	low	A1/12;C		02-interleave	reading-only
+ROW	K057	pluscal	self	exercises/ch08/CHEATSHEET.md:30	low	A1/12;C		02-interleave	reading-only
+ROW	K058	pluscal	await	exercises/ch08/CHEATSHEET.md:34	medium	A3/12;C		03-contend,04-ring	reading-only
+ROW	K059	state-space	deadlock (checking)	exercises/ch08/CHEATSHEET.md:38	medium	Acfg6/13;B82of337@s5	01-slip-on-the-spike,03-two-tools,06-three-reds,03-bakery-obligations,04-deck-log,01-any-healthy-upstream,04-convoys,07-which-pub,08-the-dive,01-clock-never-stops,04-clean-run-colleague-deadlock,06-liveness-at-the-fence,08-the-database-you-did-not-need	01-nim,03-contend,07-peterson,01-brackets,02-josephus,02-antichain,03-gossip,01-quorums,02-tickets,03-chips,04-key,02-converge	both
+ROW	K060	pluscal	procedure	exercises/ch08/CHEATSHEET.md:42	low	A0/12;C		05-collatz	reading-only
+ROW	K061	pluscal	call	exercises/ch08/CHEATSHEET.md:47	low	A0/12;C		05-collatz	reading-only
+ROW	K062	pluscal	return	exercises/ch08/CHEATSHEET.md:51	low	A0/12;C		05-collatz	reading-only
 ROW	K063	temporal	[] (always)	exercises/ch09/CHEATSHEET.md:11	high	A12/12	01-triage-board,01-print-job,03-commit-sticks,06-help-desk,07-pipeline-halt,08-turnstile-clock	03-contend,04-ring,06-bubble,07-peterson	both
 ROW	K064	state-space	PROPERTY (TLC model config: register a temporal property)	exercises/ch09/CHEATSHEET.md:15	high	Acfg13/13;Bcomp@s1	06-three-reds,02-four-identical-workers,06-liveness-at-the-fence	01-nim,03-overlay,01-bitcounter,02-gears,04-cycle,01-euclid,02-interleave,03-contend,04-ring,05-collatz,06-bubble,07-peterson,02-josephus,02-antichain,03-gossip,01-quorums,02-tickets,01-handover,02-converge,03-alternation,04-contention,05-break	both
 ROW	K065	pluscal	fair process (weak fairness)	exercises/ch09/CHEATSHEET.md:19	low	A0/12;Buncounted		02-interleave,03-contend	reading-only
-ROW	K066	pluscal	fair+ (strong fairness)	exercises/ch09/CHEATSHEET.md:23	low	A0/12;Buncounted		03-contend	reading-only
-ROW	K067	temporal	<> (eventually)	exercises/ch09/CHEATSHEET.md:27	medium	A2/12	03-two-tools,04-night-patrol,01-print-job,05-flaky-link	01-euclid,02-interleave,05-collatz,06-bubble,04-contention	both
-ROW	K068	temporal	<>[] (eventually always)	exercises/ch09/CHEATSHEET.md:31	low	A0/12		02-converge	reading-only
-ROW	K069	temporal	[]<> (always eventually)	exercises/ch09/CHEATSHEET.md:35	low	A0/12	02-heartbeat,05-flaky-link	03-contend,03-alternation,04-contention	both
-ROW	K070	temporal	~> (leads-to)	exercises/ch09/CHEATSHEET.md:39	medium	A6/12	01-print-job,06-help-desk	07-peterson,01-handover,04-contention,05-break	both
+ROW	K066	pluscal	fair+ (strong fairness)	exercises/ch09/CHEATSHEET.md:24	low	A0/12;Buncounted		03-contend	reading-only
+ROW	K067	temporal	<> (eventually)	exercises/ch09/CHEATSHEET.md:28	medium	A2/12	03-two-tools,04-night-patrol,01-print-job,05-flaky-link	01-euclid,02-interleave,05-collatz,06-bubble,04-contention	both
+ROW	K068	temporal	<>[] (eventually always)	exercises/ch09/CHEATSHEET.md:32	low	A0/12		02-converge	reading-only
+ROW	K069	temporal	[]<> (always eventually)	exercises/ch09/CHEATSHEET.md:36	low	A0/12	02-heartbeat,05-flaky-link	03-contend,03-alternation,04-contention	both
+ROW	K070	temporal	~> (leads-to)	exercises/ch09/CHEATSHEET.md:40	medium	A6/12	01-print-job,06-help-desk	07-peterson,01-handover,04-contention,05-break	both
 ROW	K071	core	RECURSIVE	exercises/ch10/CHEATSHEET.md:11	low	A1/12	06-can-pyramid,08-troughs,07-the-hoist-and-the-crates,06-dispatch-board,08-pancake-pile	01-nim,02-josephus,03-gossip,03-chips	both
 ROW	K072	core	Higher-order operator parameter	exercises/ch10/CHEATSHEET.md:15	medium	A2/12	06-can-pyramid,06-two-chutes-one-gate	03-cups	both
 ROW	K073	core	LAMBDA	exercises/ch10/CHEATSHEET.md:19	low	A0/12	06-can-pyramid,06-two-chutes-one-gate,06-dispatch-board	03-cups,01-brackets	both

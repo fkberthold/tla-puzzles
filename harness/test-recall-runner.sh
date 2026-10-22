@@ -902,6 +902,22 @@ RUNNER_ROWS=$(awk '
   }
 ' "$RUNNER")
 
+# ONE CODE IS NO LONGER ONE TOKEN, and that is why this reads two shapes.
+# Bead tla-ry2y measured exit 151 carrying three meanings, and tla-831p found
+# two more, so verdict.sh's 151 arm is an if/elif/else over TLC's output rather
+# than a one-line assignment. A parser that only knows the one-line shape finds
+# no token for 151 and reports drift against a runner that is not wrong.
+#
+# WHAT THE RUNNER CAN KNOW IS THE DEFAULT, and the comparison is against that.
+# recall.sh has the exit status and nothing else, so it cannot tell a false
+# variable-free invariant from a broken config. verdict.sh's own default for an
+# unrecognized 151 message is CONFIG_ERROR, chosen deliberately so the arm never
+# invents a verdict for text nobody measured. So the runner agreeing with that
+# default is correct rather than stale, and this reads the else branch to say so.
+#
+# The duplication underneath is still a defect and is filed as tla-v8ev:
+# recall.sh and harness/grade.sh each carry their own copy of this table. When
+# one of them stops carrying a copy, this second pattern stops being needed.
 VERDICT_ROWS=$(awk '
   match($0, /^ *[0-9]+\) *verdict="[A-Z_]+"/) {
     code = $0
@@ -911,6 +927,25 @@ VERDICT_ROWS=$(awk '
     sub(/^.*verdict="/, "", t)
     sub(/".*$/, "", t)
     printf "%s %s\n", code, t
+    next
+  }
+  # A multi-token arm: remember the code, then take the token off the else
+  # branch, which is the reading the exit status alone supports.
+  match($0, /^ *[0-9]+\)[ \t]*$/) {
+    code = $0
+    sub(/^ */, "", code)
+    sub(/\).*/, "", code)
+    pending = code
+    next
+  }
+  pending != "" && /^ *else$/ { in_else = 1; next }
+  pending != "" && in_else && match($0, /verdict="[A-Z_]+"/) {
+    t = substr($0, RSTART, RLENGTH)
+    sub(/^verdict="/, "", t)
+    sub(/"$/, "", t)
+    printf "%s %s\n", pending, t
+    pending = ""
+    in_else = 0
   }
 ' "$VERDICT")
 

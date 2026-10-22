@@ -85,7 +85,7 @@ GENERATED. Do not hand-edit. The next run drops your change.
   `LET x == expr IN body`, can define several suboperators at once
 
 - K022  ch03  --algorithm block
-  `(* --algorithm Name variables x = 0; begin Label: x := 1; end algorithm; *)`
+  `(* --algorithm Name variables x = 0; begin Label: x := 1; end algorithm; *)` House shape (c-syntax, what you write here): `(*--algorithm Name { variables x = 0; { Label: x := 1; } }*)` and note the body takes its OWN braces after the variables, which the p-syntax form has no mark for
 
 - K023  ch03  := assignment
   `x := expr` updates a variable. `x = expr` only compares or binds, never updates.
@@ -106,19 +106,19 @@ GENERATED. Do not hand-edit. The next run drops your change.
   `goto L;` jumps to label `L`. A new label must follow the `goto`.
 
 - K029  ch03  PlusCal if
-  `if Expr then ... elsif Expr2 then ... else ... end if;`
+  `if Expr then ... elsif Expr2 then ... else ... end if;` House shape (c-syntax): `if (Expr) { ... } else if (Expr2) { ... } else { ... };` and `else if` is the chained form rather than `elsif`, measured on pcal 1.12 since no module here uses it
 
 - K030  ch03  macro
-  `macro name(arg) begin ... end macro;` a textual rewrite rule, no labels inside
+  `macro name(arg) begin ... end macro;` a textual rewrite rule, no labels inside House shape (c-syntax): `macro name(arg) { ... }`
 
 - K031  ch03  with
-  `with x = expr do ... end with;` a temporary binding, no labels inside
+  `with x = expr do ... end with;` a temporary binding, no labels inside House shape (c-syntax): `with (x = expr) { ... };`
 
 - K032  ch03  while
-  `while Expr do ... end while;` the only loop form. Must follow a label.
+  `while Expr do ... end while;` the only loop form. Must follow a label. House shape (c-syntax): `while (Expr) { ... };`
 
 - K033  ch03  \in on a variable declaration
-  `variables x \in SomeSet;` runs the model once for every element of `SomeSet`
+  `variables x \in SomeSet;` runs the model once for every element of `SomeSet` House shape (c-syntax): identical. The variables declaration is the one shape the two dialects share.
 
 - K034  ch04  Invariant (as a TLA+ operator, checked at every state)
   `TypeInvariant == /\ var \in Set`
@@ -172,22 +172,22 @@ GENERATED. Do not hand-edit. The next run drops your change.
   `[S -> T]` is the set of all functions from `S` to `T`
 
 - K051  ch07  nondeterministic with
-  `with x \in set do ... end with;` tries every value in `set`
+  `with x \in set do ... end with;` tries every value in `set` House shape (c-syntax, what you write here): `with (x \in set) { ... };`
 
 - K052  ch07  either-or
   `either branch1 or branch2 or branch3 end either;` picks one branch
 
 - K053  ch08  process (single)
-  `process writer = 1 begin AddToQueue: queue := Append(queue, 1); end process;`
+  `process writer = 1 begin AddToQueue: queue := Append(queue, 1); end process;` House shape (c-syntax, what you write here): `process (writer = 1) { AddToQueue: queue := Append(queue, 1); }` and the parentheses around the binding are what the p-syntax form has no mark for
 
 - K054  ch08  pc[...] (multi-process pc)
   `pc[0]`, `pc` becomes a function from process values to labels once a spec has more than one process
 
 - K055  ch08  process-local variable
-  `process writer = 1 variables i = 0; begin ... end process;`, invisible outside the process and in `define` blocks
+  `process writer = 1 variables i = 0; begin ... end process;`, invisible outside the process and in `define` blocks House shape (c-syntax): `process (writer = 1) variables i = 0; { ... }`
 
 - K056  ch08  process set
-  `process writer \in Writers begin ... end process;`, one process per element of `Writers`
+  `process writer \in Writers begin ... end process;`, one process per element of `Writers` House shape (c-syntax): `process (writer \in Writers) { ... }`
 
 - K057  ch08  self
   `queue := Append(queue, self);`, the current process's own value inside a process set
@@ -199,7 +199,7 @@ GENERATED. Do not hand-edit. The next run drops your change.
   no PlusCal keyword, TLC reports "deadlock" when no process has an enabled next action. Turned off from the model configuration, not from spec text
 
 - K060  ch08  procedure
-  `procedure Name(arg1, ...) variables var1 = ... begin Label1: ... Label2: ... return; end procedure;`
+  `procedure Name(arg1, ...) variables var1 = ... begin Label1: ... Label2: ... return; end procedure;` House shape (c-syntax): `procedure Name(arg1, ...) variables var1 = ...; { Label1: ...; Label2: ...; return; }`
 
 - K061  ch08  call
   `call Name(val1, ...);`, must be followed by a `goto`, a label, or another `return`
@@ -214,7 +214,7 @@ GENERATED. Do not hand-edit. The next run drops your change.
   add `PROPERTY Safety` to the model, alongside but distinct from `INVARIANT`
 
 - K065  ch09  fair process (weak fairness)
-  `fair process Name = ... begin ... end process;`
+  `fair process Name = ... begin ... end process;` House shape (c-syntax, what you write here): `fair process (Name = ...) { ... }`
 
 - K066  ch09  fair+ (strong fairness)
   `fair+ process Name ...`, or mark one action strongly fair with `Label:+`
