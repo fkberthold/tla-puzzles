@@ -1,0 +1,53 @@
+# Cases for core-language-docs/core.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD IS THE STATE COUNT, and it is not decoration. Two of this
+# page's findings are counts across runs that all exit 0. Vacuous.cfg and
+# VacuousWitness.cfg both pass over the same 4 states, and that equality is
+# what makes the first pass vacuous. RecHigher.cfg passes over 4 states, which
+# is the evidence that a RECURSIVE higher-order operator computed the right
+# answer four times rather than being accepted and never run. An rc-only
+# suite would be green on both while the page went wrong.
+#
+# The field is empty on every case that fails, because a failed run stops
+# where it fails and its count is an artifact of the search order.
+#
+# Exit codes TLC uses here. Four of the six are not in run-all.sh's own list,
+# which was written against the modules page:
+#   0    all checks passed
+#   11   deadlock: a reachable state has no successor
+#   12   an invariant was violated
+#   75   evaluation failed before TLC had a behavior to show
+#   76   evaluating an invariant failed, and TLC had a behavior to show
+#   150  parse or semantic error in the module
+
+Mixed.tla|Mixed.cfg|150||mixing /\ and \/ infix in one line does not parse
+Grouped.tla|Grouped.cfg|0|3|parentheses and the bullet form say the same thing
+Assign.tla|Assign.cfg|11|1|an unprimed body is a claim, so nothing moves
+Assign.tla|AssignPrimed.cfg|0|3|the primed body relates two states
+Vacuous.tla|Vacuous.cfg|0|4|an implication passes with its antecedent unreached
+Vacuous.tla|VacuousWitness.cfg|0|4|the witness says why that pass meant nothing
+Vacuous.tla|VacuousOpen.cfg|12||the same implication, antecedent now reachable
+Quantify.tla|Quantify.cfg|12|2|a universal over the empty set holds
+Quantify.tla|QuantifyExists.cfg|12||and an existential over it fails
+Untyped.tla|Untyped.cfg|75||0 = "0" is an evaluation error rather than FALSE
+Untyped.tla|UntypedFlip.cfg|76|2|a variable changes type and the invariant fails
+Untyped.tla|UntypedInterval.cfg|76|2|an interval fares no better than Int
+Untyped.tla|UntypedBounded.cfg|76|2|nor does an explicit set
+Grade.tla|Grade.cfg|75||a CASE with no matching arm kills the run
+Grade.tla|GradeOther.cfg|0|4|OTHER supplies the missing arm
+Grade.tla|GradeOverlap.cfg|0|4|TLC takes the first of two matching arms
+NoRecursive.tla|NoRecursive.cfg|150||a self-reference without RECURSIVE is unknown
+Depth.tla|Depth.cfg|0|3|a RECURSIVE operator that reaches its base case
+Depth.tla|DepthRunaway.cfg|75||and one that steps over it
+Apply.tla|Apply.cfg|0|3|a higher-order parameter, a LAMBDA and a custom infix
+NamedLambda.tla|NamedLambda.cfg|150||a LAMBDA cannot be bound to a name
+RecHigher.tla|RecHigher.cfg|0|4|RECURSIVE and higher-order do combine
+RecDecl.tla|RecDecl.cfg|150||but the declaration cannot describe an operator
+BadInfix.tla|BadInfix.cfg|150||a custom infix operator needs a TLA+ symbol
