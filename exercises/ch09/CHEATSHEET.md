@@ -18,6 +18,7 @@
 
 - Construct: `fair process` (weak fairness)
   Syntax shape: `fair process Name = ... begin ... end process;`
+  House shape (c-syntax, what you write here): `fair process (Name = ...) { ... }`
   Section anchor: `temporal-logic#fairness`
 
 - Construct: `fair+` (strong fairness)

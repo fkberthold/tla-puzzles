@@ -10,6 +10,7 @@
 
 - Construct: `--algorithm` block
   Syntax shape: `(* --algorithm Name variables x = 0; begin Label: x := 1; end algorithm; *)`
+  House shape (c-syntax, what you write here): `(*--algorithm Name { variables x = 0; { Label: x := 1; } }*)` and note the body takes its OWN braces after the variables, which the p-syntax form has no mark for
   Section anchor: `pluscal § PlusCal`
 
 - Construct: `:=` assignment
@@ -38,22 +39,27 @@
 
 - Construct: PlusCal `if`
   Syntax shape: `if Expr then ... elsif Expr2 then ... else ... end if;`
+  House shape (c-syntax): `if (Expr) { ... } else if (Expr2) { ... } else { ... };` and `else if` is the chained form rather than `elsif`, measured on pcal 1.12 since no module here uses it
   Section anchor: `pluscal#if_pluscal`
 
 - Construct: `macro`
   Syntax shape: `macro name(arg) begin ... end macro;` a textual rewrite rule, no labels inside
+  House shape (c-syntax): `macro name(arg) { ... }`
   Section anchor: `pluscal#macro`
 
 - Construct: `with`
   Syntax shape: `with x = expr do ... end with;` a temporary binding, no labels inside
+  House shape (c-syntax): `with (x = expr) { ... };`
   Section anchor: `pluscal#with`
 
 - Construct: `while`
   Syntax shape: `while Expr do ... end while;` the only loop form. Must follow a label.
+  House shape (c-syntax): `while (Expr) { ... };`
   Section anchor: `pluscal#while`
 
 - Construct: `\in` on a variable declaration
   Syntax shape: `variables x \in SomeSet;` runs the model once for every element of `SomeSet`
+  House shape (c-syntax): identical. The variables declaration is the one shape the two dialects share.
   Section anchor: `pluscal#multiple_starting_states`
 
 ## Major themes

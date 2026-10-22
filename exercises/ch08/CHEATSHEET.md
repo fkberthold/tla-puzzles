@@ -10,6 +10,7 @@
 
 - Construct: `process` (single)
   Syntax shape: `process writer = 1 begin AddToQueue: queue := Append(queue, 1); end process;`
+  House shape (c-syntax, what you write here): `process (writer = 1) { AddToQueue: queue := Append(queue, 1); }` and the parentheses around the binding are what the p-syntax form has no mark for
   Section anchor: `concurrency#process`
 
 - Construct: `pc[...]` (multi-process pc)
@@ -18,10 +19,12 @@
 
 - Construct: process-local variable
   Syntax shape: `process writer = 1 variables i = 0; begin ... end process;`, invisible outside the process and in `define` blocks
+  House shape (c-syntax): `process (writer = 1) variables i = 0; { ... }`
   Section anchor: `concurrency § local variables`
 
 - Construct: process set
   Syntax shape: `process writer \in Writers begin ... end process;`, one process per element of `Writers`
+  House shape (c-syntax): `process (writer \in Writers) { ... }`
   Section anchor: `concurrency § Process Sets`
 
 - Construct: `self`
@@ -38,6 +41,7 @@
 
 - Construct: `procedure`
   Syntax shape: `procedure Name(arg1, ...) variables var1 = ... begin Label1: ... Label2: ... return; end procedure;`
+  House shape (c-syntax): `procedure Name(arg1, ...) variables var1 = ...; { Label1: ...; Label2: ...; return; }`
   Section anchor: `concurrency#procedure`
 
 - Construct: `call`

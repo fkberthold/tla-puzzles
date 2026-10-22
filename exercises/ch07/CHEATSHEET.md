@@ -10,6 +10,7 @@
 
 - Construct: nondeterministic `with`
   Syntax shape: `with x \in set do ... end with;` tries every value in `set`
+  House shape (c-syntax, what you write here): `with (x \in set) { ... };`
   Section anchor: `nondeterminism#nondet_with`
 
 - Construct: `either-or`
