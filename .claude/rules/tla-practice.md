@@ -484,6 +484,46 @@ of it.
 checks TLC runs. So this document neither calls it a defect nor calls it fine.
 Somebody should settle it and amend this line.
 
+**AMENDED 2026-10-22, and the mechanism is settled while the corpus split is
+not.** TLC rules on it itself. Measured on TLC 2026.07.31.184830 against
+`core-language-docs/snippets/state-space/Livery.tla`, whose `Perms` is
+`Permutations(Cars)` over three model values, with `SPECIFICATION FairSpec`,
+`SYMMETRY Perms` and `PROPERTY Fills` where `Fills == <>(loaded = Cars)`:
+
+```
+Warning: Declaring symmetry during liveness checking is dangerous. It might
+cause TLC to miss violations of the stated liveness properties. Please check
+liveness without symmetry defined.
+```
+
+rc 0, 4 distinct states. So it is a defect, and the warning goes to stdout
+while the exit code stays 0. There is no failure channel, which I suspect is
+why the combination survives in a published corpus at all.
+
+**It is about liveness and not about `PROPERTY`.** The other two shapes a
+`PROPERTY` line can carry draw no warning under the same symmetry, both at rc
+0 over 4 distinct states: `Grows == [][loaded \subseteq loaded']_<<loaded>>`,
+an action formula, and `Held == [](loaded \subseteq Cars)`, a state predicate
+under a box that TLC lifts to the invariant channel. The action check is live
+rather than skipped, since the false twin `[][loaded' \subseteq
+loaded]_<<loaded>>` exits 13 under the same symmetry with a counterexample.
+Every case is pinned in that directory's `CASES`.
+
+Two things this does NOT settle. How the 10 configs divide by property shape,
+which needs a corpus clone this measurement did not have. And whether the
+book's wording covers the action-property case, since `harness/refinement.sh`
+refuses `SYMMETRY` and `VIEW` on any temporal check citing p. 244 and p. 246
+for "miss errors, report an error that doesn't exist, or report a real error
+with an incorrect counterexample", and TLC warns on only one of the three
+shapes. The harness is right to refuse either way, because refinement is
+liveness-shaped.
+
+Worth recording where this was already written down. `exercises/ch09/CHEATSHEET.md:50`
+says liveness checking "can't use symmetry sets" as a plain cost of the
+channel, so the project held the answer in a curated file while this section
+asked for somebody to go and find it. I would check the cheat sheets before
+the corpus next time.
+
 ## Sources
 
 - Leslie Lamport, *Specifying Systems*, Addison-Wesley 2002.
