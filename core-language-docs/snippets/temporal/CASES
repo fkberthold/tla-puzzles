@@ -1,0 +1,89 @@
+# Cases for core-language-docs/temporal.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD CARRIES THE WHOLE WEIGHT OF ONE FINDING ON THIS PAGE. A
+# vacuous spec exits 0, and so does a healthy one, so an assertion that
+# Detent.cfg exits 0 passes against a spec that is not broken at all. The
+# count pins which run happened, and DetentLive.cfg is its control at rc 13.
+# Seesaw is the same shape: a set used as the subscript passes a property that
+# is false, at rc 0 and no message, and only the count says which subscript
+# ran. Leave the field empty where the page quotes no count, and empty on a
+# run cut short by a violation, since that count is partial by construction.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed
+#   11   a deadlock was reached
+#   12   an invariant was violated, or a lifted [] over a state predicate was
+#   13   a temporal or action property was violated
+#   75   the spec could not be evaluated
+#   76   the declared invariant could not be evaluated
+#   150  parse or semantic error in the module
+#   151  the cfg named an operator TLC will not accept where it was named
+#   255  TLC refused the temporal formula
+#
+# 75 AND 76 SPLIT ON WHICH FORMULA FAILED, not on whether TLC had a behavior
+# to print by then. The two cases here are a counterexample to the gloss in
+# core/CASES, which reads 75 as "before TLC had a behavior to show" and 76 as
+# "and TLC had a behavior to show". Mainspring.cfg exits 75 WITH a behavior,
+# two states deep, because the hole is in the next-state relation.
+# MetronomeInv.cfg exits 76 with NO behavior and no state count, because the
+# invariant is rejected for its shape before the first state exists. So the
+# channel is the discriminator: 75 is the spec, 76 is the invariant, which is
+# how harness/verdict.sh already names them. Four data points over two pages,
+# and nobody has sourced TLC's own rule, so measure before extending this.
+
+# The box, and the three spellings of one step rule that fail without it.
+Metronome.tla|Metronome.cfg|0|4|a box action formula tolerates the stutter
+Metronome.tla|MetronomeBare.cfg|151||a bare action is refused under PROPERTY
+Metronome.tla|MetronomeInv.cfg|76||and a box action formula under INVARIANT
+MetronomeBox.tla|MetronomeBox.cfg|150||a box over an action needs a subscript
+
+# Which bracket each temporal operator admits.
+Chime.tla|Chime.cfg|255||an angle action alone under <> is refused
+Chime.tla|ChimeAgain.cfg|0|2|the same action under []<> is checked
+Chime.tla|ChimeForever.cfg|0|2|and a box action under <>[] is too
+ChimeHold.tla|ChimeHold.cfg|150||an angle action under <>[] is the wrong bracket
+ChimeRecur.tla|ChimeRecur.cfg|150||as is a box action under []<>
+
+# The subscript, wide and narrow.
+Escapement.tla|EscapementWide.cfg|13||the all-variables subscript catches it
+Escapement.tla|EscapementNarrow.cfg|0|6|the narrow one passes the same body
+
+# A subscript that is not a tuple.
+Seesaw.tla|Seesaw.cfg|13||a tuple subscript reports the false claim
+Seesaw.tla|SeesawSet.cfg|0|2|a set subscript passes it, silently
+Seesaw.tla|SeesawRecord.cfg|13||and a record subscript reports it
+Seesaw.tla|SeesawIndex.cfg|13||as does one reached by indexing the tuple
+
+# Liveness needs a fairness conjunct.
+Pawl.tla|Pawl.cfg|13||<> is refuted by the stuttering behavior
+Pawl.tla|PawlFair.cfg|0|3|weak fairness on the one moving action fixes it
+Pawl.tla|PawlLeads.cfg|13||~> is refuted the same way
+Pawl.tla|PawlLeadsFair.cfg|0|3|and fixed the same way
+Pawl.tla|PawlEnabled.cfg|12||ENABLED is a state predicate, so it can be an invariant
+Pawl.tla|PawlBlocked.cfg|11||a deadlock is reported instead of the liveness violation
+
+# Weak against strong fairness, and fairness on the whole of Next.
+Capstan.tla|CapstanMoving.cfg|13||WF on Next asks only that something happen
+Capstan.tla|Capstan.cfg|13||WF on a guard that comes and goes asks nothing
+Capstan.tla|CapstanStrong.cfg|0|4|SF is what reaches that guard
+
+# Fairness outside Next, which empties the spec.
+Detent.tla|Detent.cfg|0|3|an impossible liveness property passes
+Detent.tla|DetentLive.cfg|13||the same property on a sound spec is refuted
+Detent.tla|DetentLifted.cfg|12||the invariant channel still fires on the dead spec
+
+# Fairness under a quantifier.
+Tumbler.tla|Tumbler.cfg|0|4|\A over a fairness formula reaches every process
+Tumbler.tla|TumblerSome.cfg|13||\E is accepted and reaches one of them
+
+# An action has to describe a whole step.
+Mainspring.tla|Mainspring.cfg|75||an action that leaves a variable out
+Mainspring.tla|MainspringSolo.cfg|75||the same hole, reported without an action name
+Mainspring.tla|MainspringOk.cfg|0|3|and the same action with UNCHANGED supplied
