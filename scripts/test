@@ -1311,8 +1311,31 @@ SUITES=(
   # toward an absent study root: a check that cannot apply reports that it did
   # not run rather than reporting green. Parts 1, 2 and 2b read only the repo
   # and run everywhere, and 2b is the one that pins the instrument's reach at
-  # 40 of 64 items.
-  "slow|20.0|refutation instrument|bash harness/test-refute.sh"
+  # 48 of 64 items.
+  #
+  # RE-BASED 2026-10-22, bead tla-6hrt, and the number is DELIBERATELY
+  # CONSERVATIVE rather than measured the way this registry asks for. The
+  # convention here is worst-of-three on a quiet box. The box was not quiet, a
+  # sibling bead ran throughout. Four serial readings, three from the bead's
+  # author and one from central: 21.86, 23.90, 22.62 and 21.70 s against the
+  # old 20.0.
+  #
+  # So 30.0 is headroom over a contended worst case rather than a budget, and
+  # it is high on purpose. The alternative was leaving 20.0 and letting every
+  # full-gate run report an overrun that is not news, which is the noise this
+  # project keeps removing from its gates. A conservative budget can miss a
+  # regression. A permanently red one gets ignored, and that is worse.
+  #
+  # tla-6ont re-measures this row AND the language reference snippets row on a
+  # quiet box once the remaining pages land. Both moved today and both want one
+  # measurement pass rather than one per bead, because two beads editing this
+  # file is the collision tla-x1wr just removed from the snippets runner.
+  #
+  # Why the suite grew: the temporal family came into reach, 8 items whose rc 0
+  # cells each need a vacuity probe, and probes 1 and 2 of harness/vacuity.sh
+  # are not waivable, so reaching probe 4 costs three TLC runs. The pairing is
+  # lazy per machine, so only a cell that comes back 0 pays it.
+  "slow|30.0|refutation instrument|bash harness/test-refute.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
   # drop, unexplained.
