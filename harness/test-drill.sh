@@ -387,6 +387,141 @@ shape_arm() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# THE BASIS CITATIONS, and why they are gated here rather than left to a
+# reader.
+#
+# drill/INVENTORY.md field 7 says where a row's weight came from, and Rule B
+# weights cite a figure in .claude/rules/tla-practice.md. Nothing read those
+# citations until bead tla-ll9o. They were line numbers, and an amendment
+# landed in the survey's section 2 on 2026-10-18 that moved every later line
+# down by 23. Measured 2026-10-22 over the 19 Rule B citations: 17 pointed at
+# a line that no longer carried the figure, and `@169` was the only anchor
+# still landing. Two reference-page authors re-measured a figure by hand
+# because of it.
+#
+# SO THE ANCHOR IS THE SECTION, NOT THE LINE. The survey's sections are
+# numbered and their headings are stable, and the figure already travels in
+# the citation, so a reader greps the figure inside the section and lands on
+# it. A line number into a file somebody still edits is a citation with a
+# shelf life, and this is the second time the project has paid for one.
+#
+# WHAT IT CANNOT CATCH is the half worth knowing. It checks that a pointer
+# resolves, never that the figure counts the right thing. K092 used to cite a
+# count of `Termination` definitions to weight the stuttering disjunct pcal
+# adds to `Next`, two different operators, and that pointer resolved fine.
+# Conflation is a judgment and no gate I can think of reaches it. The two
+# classes that cannot be checked at all carry a marker instead of a figure,
+# so the run says how many there are rather than passing over them.
+#
+# THE FLOOR IS LOAD-BEARING. A selector that silently matches nothing comes
+# back green, which is the shape that hid a hole in `scripts/lint` and one in
+# `harness/test-spelling.sh` on 2026-10-18. So zero citations found is a
+# failure here, not a pass.
+# ---------------------------------------------------------------------------
+# `$0`, `$1` and `$7` below are awk's own fields and must not reach awk
+# already expanded by the shell, which is what the single quotes are for.
+# shellcheck disable=SC2016
+BASIS_AWK='
+# Section bodies, built once, with commas stripped so `1,182` in the survey
+# answers a citation that spells the figure `1182`.
+function build(   k, j, i, e, b, t) {
+  if (built) return
+  built = 1
+  for (k in start) {
+    e = nl
+    for (j in start) if (j + 0 > k + 0 && (e == nl || start[j] - 1 < e)) e = start[j] - 1
+    b = ""
+    for (i = start[k]; i <= e; i++) { t = text[i]; gsub(/,/, "", t); b = b " " t }
+    body[k] = b " "
+  }
+}
+NR == FNR {
+  text[FNR] = $0
+  nl = FNR
+  if ($0 ~ /^## [0-9]+\. /) { s = $0; sub(/^## /, "", s); sub(/\..*$/, "", s); start[s + 0] = FNR }
+  next
+}
+$1 == "ROW" {
+  build()
+  n = split($7, c, ";")
+  for (p = 1; p <= n; p++) {
+    t = c[p]
+    if (t !~ /^B/) continue
+    nb++
+    if (t == "Buncounted") { nunc++; continue }
+    if (t ~ /^Bcomp@s[0-9]+$/) {
+      sec = t; sub(/^Bcomp@s/, "", sec)
+      if (!(sec + 0 in body)) { printf "%s names section %s, which the survey does not have\n", $2, sec; next }
+      ncomp++
+      continue
+    }
+    if (t !~ /^B[0-9]+(of[0-9]+)?@s[0-9]+$/) {
+      printf "%s basis [%s] is none of B<figure>@s<section>, Bcomp@s<section> or Buncounted\n", $2, t
+      continue
+    }
+    fig = t; sub(/^B/, "", fig); sub(/@.*$/, "", fig)
+    sec = t; sub(/^.*@s/, "", sec)
+    num = fig; sub(/of.*$/, "", num)
+    if (!(sec + 0 in body)) { printf "%s names section %s, which the survey does not have\n", $2, sec; continue }
+    if (body[sec + 0] !~ ("[^0-9]" num "[^0-9]")) {
+      printf "%s cites %s in section %s, and the survey does not state %s anywhere in it\n", $2, fig, sec, num
+      continue
+    }
+    nok++
+  }
+}
+END { printf "COUNTS\t%d\t%d\t%d\t%d\n", nb + 0, nok + 0, ncomp + 0, nunc + 0 }
+'
+
+# ---------------------------------------------------------------------------
+# inventory_basis_arm: run the check above and read its output.
+#
+# It takes no fixture. The survey and the inventory are both real files that
+# ship in the tree, and a fixture pair would gate a copy of the question
+# rather than the question.
+# ---------------------------------------------------------------------------
+inventory_basis_arm() {
+  local inv="${REPO_ROOT}/drill/INVENTORY.md"
+  local survey="${REPO_ROOT}/.claude/rules/tla-practice.md"
+
+  if [ ! -f "$inv" ]; then
+    ok "basis citations: no drill/INVENTORY.md in this tree, so there is no citation to resolve"
+    return 0
+  fi
+  if [ ! -f "$survey" ]; then
+    nope "basis citations: drill/INVENTORY.md is here and .claude/rules/tla-practice.md is not, so every Rule B weight is unsourceable"
+    return 0
+  fi
+
+  local out counts nb nok ncomp nunc bad
+  out="$(awk -F'\t' "$BASIS_AWK" "$survey" "$inv")" || true
+  counts="$(grep '^COUNTS' <<<"$out" || true)"
+  bad="$(grep -v '^COUNTS' <<<"$out" || true)"
+
+  if [ -z "$counts" ]; then
+    nope "basis citations: the check printed no count line, so it did not run"
+    return 0
+  fi
+  IFS=$'\t' read -r _ nb nok ncomp nunc <<<"$counts"
+
+  if [ "${nb:-0}" -eq 0 ]; then
+    nope "basis citations: field 7 yielded no Rule B clause at all, so this row is reading the wrong column"
+    return 0
+  fi
+
+  if [ -n "$bad" ]; then
+    nope "basis citations: $(printf '%s\n' "$bad" | sed -n '$=') of ${nb} do not resolve:"
+    printf '%s\n' "$bad" | sed 's/^/        /'
+  else
+    ok "basis citations: all ${nb} Rule B clause(s) resolve, ${nok} to a figure the named section states"
+  fi
+
+  # SAID OUT LOUD BECAUSE IT CANNOT BE CHECKED. A marker stands where a
+  # figure would be, so these two classes rest on the prose beside the row.
+  ok "basis citations: ${ncomp} rest on a complement of a stated figure and ${nunc} are marked uncounted, neither of which this row can verify"
+}
+
 # ===========================================================================
 # PART 3, AS A FUNCTION, because two of the three invocations run it ALONE.
 #
@@ -422,6 +557,10 @@ shape_arm() {
 # mode asks has no answer to give there, and state 2 keeps --no-tlc because
 # what it is for is printing the coverage audit.
 real_tree_arm() {
+  # FIRST, AND IN EVERY MODE. It reads two text files and asks nothing of the
+  # item corpus, so it holds whether or not drill/ carries an item yet.
+  inventory_basis_arm
+
   local DRILL_ITEMS=0
   if [ -d "${REPO_ROOT}/drill" ]; then
     # The hidden-dir predicate is anchored at the drill root. `-not -path
