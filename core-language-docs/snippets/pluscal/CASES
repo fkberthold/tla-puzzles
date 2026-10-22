@@ -1,0 +1,59 @@
+# Cases for core-language-docs/pluscal.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD CARRIES THIS PAGE'S CENTRAL CLAIM, which is that the
+# translation adds `pc` to the state and a label boundary is a semantic edit.
+# Both halves show up as a state count over runs that all exit 0:
+#
+#   Trestle 3 against TrestleTwo 6     one more label, so pc enters vars
+#   Flume 2 against FlumeTwo 3         one more label in a terminating run
+#   Bellows 5 against BellowsSplit 13  one more label, and the interleavings
+#   Gantry 13 against BellowsSplit 13  a hand-rolled pc, same state space
+#   ReamerEmptyOpen 1                  a clean run over a dead action
+#   CapstanOpen 6                      a clean run over a deadlocked spec
+#
+# An rc-only suite would stay green over every one of those.
+#
+# TREADLE IS THE ONE FILE TO LEAVE ALONE. One line of its generated block was
+# changed by hand after the translator ran, so the block disagrees with the
+# source above it. Re-running the translator over it regenerates the block and
+# deletes the finding. JigRaw is the mirror case: it carries no generated
+# block because the translator refuses it, and its rc 151 is what pins that
+# absence.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed, which includes passing over a dead action
+#   11   deadlock: no action enabled and no process at its last label
+#   12   an invariant was violated by a state
+#   13   a temporal property was violated
+#   151  the cfg named a symbol the module does not define
+
+Trestle.tla|Trestle.cfg|0|3|a one-label endless loop, translated with no pc at all
+TrestleTwo.tla|TrestleTwo.cfg|0|6|the same loop plus one label, and pc doubles the space
+Flume.tla|FlumeSpace.cfg|0|2|a terminating algorithm gets pc whatever its label count
+Flume.tla|Flume.cfg|0|2|one label, so x and y move in the same step
+FlumeTwo.tla|FlumeTwoSpace.cfg|0|3|two labels, so the state between the assignments exists
+FlumeTwo.tla|FlumeTwo.cfg|12||and that state is where x = y is false
+Bellows.tla|BellowsSpace.cfg|0|5|two macro calls in one label, no interleaving between them
+Bellows.tla|Bellows.cfg|0|5|so no hand can lose the other hand's count
+BellowsSplit.tla|BellowsSplitSpace.cfg|0|13|the same calls in two labels: 5 states against 13
+BellowsSplit.tla|BellowsSplit.cfg|12||and the lost update is now reachable
+Gantry.tla|GantrySpace.cfg|0|13|a hand-written pc encoding, the same 13 states
+Gantry.tla|Gantry.cfg|12||and the same violation, reached the same way
+Capstan.tla|Capstan.cfg|11||await is a guard, and two blocked processes deadlock
+Capstan.tla|CapstanOpen.cfg|0|6|the check turned off gives a clean run over the same states
+Capstan.tla|CapstanTerm.cfg|13||and the liveness channel reports what the check stopped reporting
+Pawl.tla|Pawl.cfg|13||a plain algorithm declaration, so the loop may stall forever
+PawlFair.tla|PawlFair.cfg|0|5|one WF_vars(Next) line is the whole difference
+Treadle.tla|Treadle.cfg|12||a hand-altered translation, checked instead of its source
+Reamer.tla|Reamer.cfg|12||with over a two-element set opens a branch per element
+Reamer.tla|ReamerEmpty.cfg|11||with over an empty set is a dead action, read as deadlock
+Reamer.tla|ReamerEmptyOpen.cfg|0|1|and with the check off, a clean run over one state
+Jig.tla|Jig.cfg|13||a labeled while loop translates, and needs fairness to finish
+JigRaw.tla|JigRaw.cfg|151||the same loop unlabeled: refused, so there is no Spec to name
