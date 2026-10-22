@@ -1,0 +1,44 @@
+# Cases for core-language-docs/sets.md. Read by ../run-all.sh, which
+# discovers every */CASES under snippets/ rather than carrying a list.
+#
+# Five pipe-separated fields:
+#
+#   module | cfg | expected-rc | distinct-states | what it shows
+#
+# A blank line or a line opening with # is skipped.
+#
+# THE FOURTH FIELD IS THE STATE COUNT, and on this page it carries more of the
+# argument than the rc does. Set cardinality IS the state space here, so three
+# of the page's findings are counts over runs that all exit 0:
+#
+#   Quarry 3 against QuarryPick 1   drawing from a set against CHOOSE
+#   Silos 16                        the reachable states ARE the powerset
+#   Caliper 0                       an empty interval, checked over nothing
+#
+# Caliper is the one to protect. It exits 0 and prints "No error has been
+# found" over an invariant no state can satisfy, because there are no states.
+# An rc-only suite would call that a pass. Leave the field empty where the
+# page quotes no count.
+#
+# Exit codes TLC uses here:
+#   0    all checks passed, which includes passing over zero states
+#   12   an invariant was violated by a state
+#   150  parse or semantic error in the module
+#   151  a declared invariant evaluated to FALSE with no state involved
+
+Quarry.tla|Quarry.cfg|0|3|membership in Init opens one branch per element
+Quarry.tla|QuarryClaim.cfg|12||and the false claim about one chute is refuted
+QuarryPick.tla|QuarryPick.cfg|0|1|CHOOSE names one value, so one chute exists
+QuarryPick.tla|QuarryPickClaim.cfg|0|1|and the same false claim is confirmed
+Lathe.tla|Lathe.cfg|0|1|filtering a function set: 27 in, the sorted one out
+Sieve.tla|SieveFilter.cfg|12||a filter counts votes, so the landslide is found
+Sieve.tla|SieveMap.cfg|0|27|a map counts answers, so it cannot be found
+Sieve.tla|SieveSpace.cfg|0|27|and with no invariant, the space is 27 either way
+Silos.tla|Silos.cfg|0|16|the reachable state space is the powerset of 4 bins
+Silos.tla|SilosPower.cfg|0|16|drawing the variable out of SUBSET Bins in Init
+Silos.tla|SilosSubseteq.cfg|0|16|and the containment relation is the same draw
+Girder.tla|GirderArity.cfg|0|2|three sets crossed give triples, not nested pairs
+Girder.tla|GirderInNested.cfg|12||so a state drawn from one is not in the other
+Girder.tla|Girder.cfg|151||and asked as a claim about the sets, it is not rc 12
+Caliper.tla|Caliper.cfg|0|0|an empty interval: a clean run over no states
+Mandrel.tla|Mandrel.cfg|150||Cardinality needs EXTENDS FiniteSets
