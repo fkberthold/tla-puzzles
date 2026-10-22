@@ -4,8 +4,15 @@
 # Pins the RED invariant from the bead:
 #
 #   for each rc in {0,10,11,12,13,150,151,255,124} a purpose-built fixture
-#   spec drives verdict.sh to exactly that verdict, and no verdict is ever
-#   derived from stdout text.
+#   spec drives verdict.sh to exactly that verdict, and no verdict is derived
+#   from stdout text.
+#
+# AMENDED 2026-10-22 by bead tla-ry2y. Exit 151 was measured to carry three
+# meanings, so it is the one code whose arm reads TLC's output to subdivide
+# itself, and the structural check below scopes that permission to exactly
+# two matcher sites over two measured needles instead of banning matchers
+# outright. The RED invariant otherwise stands: text may never move a verdict
+# between codes.
 #
 # Two kinds of assertion:
 #
@@ -16,7 +23,8 @@
 #     token through a silently-patched map, and only the rc assertion catches it.
 #
 #   Structural — read verdict.sh itself and require -workers 1, a timeout
-#     wrapper, and the absence of any text matching over TLC's output.
+#     wrapper, and that every text matcher over TLC's output is one of the
+#     two permitted 151 needles.
 #
 # Usage:  harness/test-verdict.sh
 # Exit:   0 if all assertions hold, 1 otherwise.
@@ -161,6 +169,28 @@ assert_verdict "rc=150 unparseable module" \
 assert_verdict "rc=151 .cfg names an operator the spec lacks" \
   "CONFIG_ERROR" 151 \
   "$FIXTURES/ConfigError.tla"
+
+# THE OTHER TWO MEANINGS OF 151 (bead tla-ry2y). An obligation whose body
+# mentions no variable is folded to a constant before any state is walked, so
+# a FALSE one is reported with no state and no trace and still exits 151.
+# Before this bead both arrived as CONFIG_ERROR, which told a caller the
+# configuration was broken when the configuration was fine and the assertion
+# was false. A gate reading that would discard a real refutation.
+assert_verdict "rc=151 variable-free INVARIANT evaluated FALSE" \
+  "INVARIANT_FALSE" 151 \
+  -c "$FIXTURES/InvariantFalse.cfg" "$FIXTURES/InvariantFalse.tla"
+
+assert_verdict "rc=151 variable-free PROPERTY evaluated FALSE" \
+  "PROPERTY_FALSE" 151 \
+  -c "$FIXTURES/PropFalse.cfg" "$FIXTURES/InvariantFalse.tla"
+
+# THE CONTROL, AND IT IS WHAT MAKES THE TWO ABOVE WORTH ASSERTING. The same
+# obligation shape, TRUE instead of FALSE, is an ordinary pass over 5 distinct
+# states. Only the failure channel differs, which is why this went unnoticed
+# for the life of the table: a corpus of passing fixtures never exercises it.
+assert_verdict "rc=0   the same shape, TRUE, is an ordinary pass" \
+  "OK" 0 \
+  -c "$FIXTURES/InvariantTrue.cfg" "$FIXTURES/InvariantFalse.tla"
 
 # rc=255 — the fixture is the ABSENCE of the file. Guard that first: if
 # someone ever creates NoSuchModule.tla the assertions below would go green
@@ -590,10 +620,29 @@ assert_present "TLC is wrapped in timeout(1)" \
   '(^|[^[:alnum:]_])timeout[[:space:]]'
 
 # The whole point of the bead: verdicts come from the exit code, never from
-# TLC's stdout. verdict.sh has no legitimate use for a text matcher, so the
-# check bans them outright rather than trying to prove intent.
-assert_absent "no text matching over TLC output (grep/sed/awk/rg)" \
-  '(^|[^[:alnum:]_./-])(grep|sed|awk|rg|egrep|fgrep)[[:space:]]'
+# TLC's stdout. This used to ban text matchers outright, and that was right
+# until exit 151 was measured to carry three meanings (bead tla-ry2y), which
+# no exit status can separate. A blanket ban would have forced the file to
+# keep calling a false obligation a config error.
+#
+# SO THE BAN IS NOW SCOPED RATHER THAN LIFTED, and these two assertions are
+# what scope it. The first counts every matcher site in the code. The second
+# counts the sites matching the one permitted shape: grep over the two
+# measured needles, read from "$LOG" by redirect. Equal counts mean every
+# matcher in the file is a permitted one, so a third matcher, a different
+# needle, or one reading anything but the log breaks the pair.
+#
+# Checked as a pair on purpose. Either assertion alone is satisfiable by the
+# wrong file: the count alone allows two arbitrary greps, and the shape alone
+# allows ten more beside them.
+matcher_total=$(grep -cE -- '(^|[^[:alnum:]_./-])(grep|sed|awk|rg|egrep|fgrep)[[:space:]]' <<<"$VERDICT_CODE")
+matcher_allowed=$(grep -cE -- "grep -qE 'The (invariant|property) of \.\+ is equal to FALSE' <\"\\\$LOG\"" <<<"$VERDICT_CODE")
+
+if [ "$matcher_total" = "2" ] && [ "$matcher_allowed" = "2" ]; then
+  ok "text matching is confined to the two measured 151 needles over \$LOG"
+else
+  nope "text matching escaped the 151 arm — $matcher_total matcher site(s), $matcher_allowed of the permitted shape (both must be 2)"
+fi
 
 assert_absent "no bash regex match operator" \
   '=~'
