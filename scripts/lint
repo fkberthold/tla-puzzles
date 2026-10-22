@@ -49,9 +49,11 @@
 # A disable belongs at one site, with the reason next to it.
 # ---------------------------------------------------------------------------
 #
-# Lint roots. chapter/ is NOT here: it holds one shell file
-# (chapter/snippets/run-all.sh), it was clean on 2026-08-07, and adding it is
-# a one-word change when someone wants the coverage.
+# The lint roots, and the per-root floors that keep them honest, are further
+# down next to the lists themselves. This block used to carry a second,
+# contradicting note here saying chapter/ was not a root, written on 2026-08-07
+# and left behind when chapter/ was added on 2026-10-18. Two root lists in one
+# file is how that happens, so there is now one.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -89,8 +91,49 @@ fi
 #   exercises  17 files   sources    24 files
 #
 # .beads/ stays out. Its 5 scripts are the tracker's own, not this project's,
-# and they arrive and change with bd rather than with anything here.
-LINT_ROOTS=(scripts harness drill recall swipe completion chapter exercises sources)
+# and they arrive and change with bd rather than with anything here. Confirmed
+# 2026-10-21: all 5 carry a shell shebang, all 5 are shellcheck-clean, and the
+# header of each one reads "This section is managed by beads", so a future
+# finding in them would not be ours to fix.
+#
+# WIDENED 2026-10-21, bead tla-d64i. core-language-docs/ holds the TLA+
+# language reference and one shell file, core-language-docs/snippets/run-all.sh,
+# which runs that tree's modules against the exit codes and state counts the
+# pages quote. Seven more pages land under bead tla-9y4s and each may bring a
+# runner. Enrolled the day after the tree appeared rather than waiting for
+# tla-9y4s.9, since the thing this gate keeps learning is that a tree collects
+# shell for a while before anybody checks the gate reads it.
+LINT_ROOTS=(scripts harness drill recall swipe completion chapter exercises sources core-language-docs)
+
+# root:floor. ADDED 2026-10-21, bead tla-d64i, and the reason is that this gate
+# did not have them. It had one global check further down, refusing to report
+# success over an empty FILES array, and that only fires when EVERY root
+# resolves to nothing. A typo in one root silently drops that root's files and
+# the run stays green on the other eight.
+#
+# harness/test-spelling.sh has carried per-root floors since 2026-10-14, and
+# .claude/rules/dispatched-agents.md states that BOTH gates carry them. That
+# was true of one of them. Found while adding a tenth root here.
+#
+# A floor asserts the root is still being walked, not how big it has grown, so
+# each one sits well under the count measured on 2026-10-21:
+# scripts 23, harness 63, drill 9, recall 1, swipe 7, completion 1, chapter 2,
+# exercises 17, sources 24, core-language-docs 1. Total 148.
+#
+# Three roots hold exactly one shell file, so their floor is 1 and it is doing
+# real work: those are precisely the roots a typo would silently empty.
+LINT_FLOORS=(
+  "scripts:15"
+  "harness:40"
+  "drill:5"
+  "recall:1"
+  "swipe:4"
+  "completion:1"
+  "chapter:2"
+  "exercises:10"
+  "sources:15"
+  "core-language-docs:1"
+)
 
 LIST_ONLY=0
 declare -a EXPLICIT=()
@@ -133,6 +176,32 @@ if [ "${#FILES[@]}" -eq 0 ]; then
   echo "scripts/lint: no shell files found under: ${LINT_ROOTS[*]}" >&2
   echo "  Refusing to report success over an empty set." >&2
   exit 2
+fi
+
+# ONE CHECK PER ROOT, never one over the total. The empty-set check above only
+# fires when every root resolves to nothing, so it cannot tell "sources/ is
+# covered" from "sources/ silently dropped out of the find". Skipped when the
+# caller named files explicitly, since that set is deliberately not the roots.
+if [ "${#EXPLICIT[@]}" -eq 0 ]; then
+  floor_failures=0
+  for entry in "${LINT_FLOORS[@]}"; do
+    root="${entry%%:*}"
+    floor="${entry#*:}"
+    n=0
+    for f in "${FILES[@]}"; do
+      case "$f" in "$root"/*) n=$((n + 1)) ;; esac
+    done
+    if [ "$n" -lt "$floor" ]; then
+      echo "scripts/lint: found only $n shell file(s) under $root/ (floor $floor)." >&2
+      echo "  The gate is not covering that root. Fix the root list, or lower the" >&2
+      echo "  floor and say in a comment what moved." >&2
+      floor_failures=$((floor_failures + 1))
+    fi
+  done
+  if [ "$floor_failures" -gt 0 ]; then
+    echo "scripts/lint: $floor_failures root(s) below floor. Refusing to report success." >&2
+    exit 2
+  fi
 fi
 
 if [ "$LIST_ONLY" = "1" ]; then
