@@ -39,3 +39,24 @@ cd verify && tlc -workers 1 -cleanup MCHeartbeat -config Constraint12.cfg
 The `G01*` modules are thin wrappers, one per run the drill gate
 reproduces. Each extends the module it names and carries a copy of the
 config it is named after in `ANSWER.md`.
+
+## Parameters the prompt states
+
+Added 2026-10-23 under bead `tla-sfgm`. The published counts are a
+function of all three, so the prompt names them rather than leaving a
+reader to guess.
+
+- `Timeout = 2`
+- one standby, one variable over two values
+- deadlock checking off in the five capped runs
+
+The third one is the one to think twice about before touching. Leave it
+out and the spec-side route at cap 12 gives 217 and rc 11 against the
+published 237. Half the readers would hit a count mismatch that isn't
+theirs, which is the defect the bead was filed for.
+
+`G01CapDeadlock` and `G01CutDeadlock` are the gated control pair for that
+rc 11 against rc 0, added the same day. They differ in where the cap
+lives and in nothing else, so the opposite verdicts are about that alone.
+Both cfgs write `CHECK_DEADLOCK TRUE`, which is what makes the gate ask
+for the check, and `ANSWER.md` says what happens to the row without it.
