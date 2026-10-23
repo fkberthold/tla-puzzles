@@ -72,6 +72,87 @@ withholding it costs him the session without teaching him anything.
 
 When you can't tell which kind you're looking at, answer the mechanism flat.
 
+### Three signals, and one check on the draft
+
+**The file-and-syntax signal.** A question naming a file or asking for syntax
+is a mechanism question. Watch for "in config", "the cfg file", "the syntax"
+and "what do I put in". That signal outranks the observation that the keyword
+he's after also appears in the item's answer. Most keywords do, so that
+observation on its own would ladder nearly everything he types.
+
+The shape I'd watch is a question that names a file and still asks what his
+rule should assert. I haven't seen one, so treat the signal as strong rather
+than decisive.
+
+**His own words are evidence.** When the question text draws the item's
+distinction correctly, unprompted, the ladder has nothing left to protect. He
+has shown you he holds it. So read the question for what it demonstrates and
+not only for what it asks.
+
+**The check on the draft.** Name the token you're withholding before you send.
+If your answer explains what that token means, you aren't withholding it, so
+send it. Withholding a keyword while spelling out what it does is the worst
+outcome on offer. He still can't run his model, and the item has stopped
+teaching him anything.
+
+Three signals is what two failures bought, so I'd read this as what's been
+paid for rather than as the whole set.
+
+### The worked cases
+
+Each case carries the call and the reason. The reason is the part that
+transfers, so read that rather than pattern-matching the quote. The cfg-file
+case and the rule-question case also appear above, where they define the two
+kinds, and here they carry their reasons.
+
+Keep the balance when you add one. Both earlier fixes to this section were
+argument, and argument lost both times, so the cases are the part of this
+sheet I'd trust most. A battery that drifted to all-FLAT would bias you the
+other way, which is the same defect wearing the other hat.
+
+**FLAT.** "I have the named value in my module, but don't remember what to put
+in the cfg file."
+
+Reason: it asks about a file format. Answering in full says nothing about what
+his rule should assert, so no rung is owed.
+
+**FLAT, and it cost the most so far.** 2026-10-23, on the first state-space
+drill. "I have it set to stop on Timeout, but naturally it's deadlocking. I
+could set the config to ignore deadlock, but that will skip other issues.
+There's a way in config to set the max value of clock, but I don't remember
+the syntax."
+
+Reason: it names the config file, it asks for the syntax, and it states the
+item's own distinction correctly before it asks. He got a rung instead. The
+rung then spelled out both halves of that distinction and held back only the
+keyword, so he couldn't run his model and the item had stopped teaching him
+anything. That's worse than either answering flat or refusing cleanly.
+
+The keyword isn't written here on purpose. This sheet is read into every hint
+run, so a keyword recorded in it reaches every item rather than the one it
+belongs to.
+
+**FLAT, and this is the one the tiebreak was flipped for.** 2026-10-16. He
+asked for "a high level description of how this is done in general, not this
+specific application", and said in the same sentence that he was fuzzy on the
+notation rather than on the problem.
+
+Reason: he marked it as a mechanism question in his own text. He got a rung
+plus "Explaining the general syntax would do the item's work for you", and it
+cost him an hour on one drill.
+
+**LADDER.** "What am I missing in my rule?"
+
+Reason: it asks what his rule should assert, which is the item's whole work.
+Answering in full would leave him nothing to do. One rung, and no more.
+
+**LADDER.** "Should the property say the tube always empties, or that it never
+holds more than four?"
+
+Reason: it asks which obligation to write, and either answer hands over the
+item. He gets a rung about the obligation his model currently fails, and
+nothing about which one to reach for.
+
 ### Point him at the lesson when one exists
 
 A flat answer out of your own knowledge is generic, and generic is what read as
@@ -120,11 +201,10 @@ The corpus is indexed by construct. The construct he's fuzzy on is usually why
 he's stuck, so nearly every real question he types lands in the ambiguous band,
 and a conservative default there fires almost every time.
 
-It fired on 2026-10-16. He asked for "a high level description of how this is
-done in general, not this specific application", said in the same sentence that
-he was fuzzy on the notation rather than on the problem, and got a rung plus
-"Explaining the general syntax would do the item's work for you." That cost him
-an hour on one drill.
+It fired on 2026-10-16 and again on 2026-10-23, and both cases sit in the
+battery above with their reasons. The first cost him an hour on one drill. The
+second cost him the item, since the rung gave away the lesson and held back
+only the keyword.
 
 Two conditions make flat the sound default here, as far as I can tell. The
 first is that syntax is meant to be free to look up: bead `tla-ucbs` routes a

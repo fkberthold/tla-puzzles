@@ -3211,6 +3211,145 @@ else
   nope "control: the banned read pattern matched nothing, so the row above it is vacuous"
 fi
 
+# ---------------------------------------------------------------------------
+echo
+echo "== part 8: the hint sheet's own content, which is all a classifier gets =="
+# ---------------------------------------------------------------------------
+#
+# THIS PART TESTS SHAPE AND NOT JUDGMENT. Every row below asserts that a piece
+# of text is present in drill/study/.claude/commands/hint.md, or that a count
+# of labels in it balances. None of them classifies a question and none of them
+# reads a classification. --hint ships a one-shot model and every suite in this
+# registry runs offline, so the judgment the sheet exists to steer cannot be
+# exercised here at all.
+#
+# WHAT IT DOES NOT TEST, named beside the rows the way
+# harness/test-spelling.sh names the roots it leaves out. A gate that reads as
+# coverage and is not is a failure this project has recorded three times.
+#
+#   Whether any question classifies FLAT or LADDER. No model runs here. A
+#   sheet whose battery is balanced and whose every reason argues the wrong way
+#   passes every row below.
+#
+#   Whether a reason is a good reason, or true, or even about the case it sits
+#   under. The rows count the labels and the reasons and read neither.
+#
+#   What a hint actually said. Part 4c asserts the sheet reaches the model.
+#   Nothing anywhere asserts what the model did with it, and that is the gap
+#   bead tla-pms8 was filed from rather than one it closes.
+#
+#   Any delivered copy. harness/test-deliver-drill.sh owns the byte
+#   comparison, so an edit here leaves Frank's study tree stale until
+#   scripts/deliver-drill.sh --study runs.
+#
+# WHY A SHAPE GATE IS WORTH HAVING ANYWAY. The classifier has now laddered a
+# question Frank marked as a mechanism question in his own words twice, on
+# 2026-10-16 and on 2026-10-23, and both fixes before this one were argument.
+# The sheet is the classifier's whole input, so the sheet is the lever, and a
+# battery of worked cases is the part of it that does not depend on an argument
+# landing. What a gate can keep true is that the battery is there and that it
+# is not one-sided.
+#
+# BALANCE IS THE ROW THAT MATTERS MOST. A battery that drifts to all-FLAT
+# biases the classifier the other way, which is the same defect wearing the
+# other hat, so the floor runs in both directions.
+
+SHEET_REAL="$REPO_ROOT/drill/study/.claude/commands/hint.md"
+if [ ! -f "$SHEET_REAL" ]; then
+  nope "the hint sheet exists in the repo. There is none at $SHEET_REAL"
+else
+  # The sheet hard-wraps at 79 columns, so a prose needle longer than a few
+  # words straddles a newline and reads as absent. On a presence row that is a
+  # red telling you nothing, and on the never-names row below it is a false
+  # PASS. So the prose rows run against a flowed copy, newlines turned into
+  # spaces and runs of space squeezed.
+  SHEET_FLOW=$(tr '\n' ' ' < "$SHEET_REAL" | tr -s ' ')
+  # The control for that flow, over a planted pair rather than over the sheet.
+  # A control that read the sheet would redden the next time a paragraph
+  # rewraps, which is none of this row's business.
+  CTRL_WRAP=$'a needle that straddles\na line wrap'
+  CTRL_WRAP_FLOW=$(tr '\n' ' ' <<<"$CTRL_WRAP" | tr -s ' ')
+  assert_never_names "control: a straddling needle is ABSENT from the raw text" \
+    "straddles a line wrap" "$CTRL_WRAP"
+  assert_says_literal "control: and present once that text is flowed" \
+    "straddles a line wrap" "$CTRL_WRAP_FLOW"
+
+  # THE BATTERY. One label per case and one reason per case, and the sheet's
+  # convention is one of each per line, so a line count is a case count.
+  flat_cases=$(grep -cF -- '**FLAT' "$SHEET_REAL")
+  ladder_cases=$(grep -cF -- '**LADDER' "$SHEET_REAL")
+  case_reasons=$(grep -cF -- 'Reason:' "$SHEET_REAL")
+
+  assert_says_literal "the sheet carries a worked-case battery under its own heading" \
+    "### The worked cases" "$SHEET_FLOW"
+  if [ "$flat_cases" -ge 2 ]; then
+    ok "the battery carries at least two FLAT cases, and it has $flat_cases"
+  else
+    nope "the battery carries at least two FLAT cases. It has $flat_cases"
+  fi
+  if [ "$ladder_cases" -ge 2 ]; then
+    ok "and at least two LADDER cases, and it has $ladder_cases"
+  else
+    nope "and at least two LADDER cases. It has $ladder_cases, so the battery is one-sided"
+  fi
+  # Measured on the way in, against the sheet before bead tla-pms8 touched it:
+  # this row PASSES on a battery with no cases at all, because 0 equals 0. The
+  # two floors above are what catch that, so the three rows have to be read
+  # together and this one is worth nothing on its own.
+  assert_eq "and one stated reason per case, so no case is a quote on its own" \
+    "$((flat_cases + ladder_cases))" "$case_reasons"
+
+  # THE 2026-10-23 CASE, VERBATIM, because a paraphrase of it classifies
+  # differently from the words he typed. Two fragments, and each carries one of
+  # the signals the case turns on.
+  assert_says_literal "the 2026-10-23 question is in the sheet in his own words" \
+    "There's a way in config to set the max value of clock, but I don't remember the syntax." \
+    "$SHEET_FLOW"
+  assert_says_literal "including the sentence showing he already held the distinction" \
+    "I could set the config to ignore deadlock, but that will skip other issues." \
+    "$SHEET_FLOW"
+
+  # THE THREE RULES THAT CASE BOUGHT. Each is its own needle rather than a
+  # section heading, so a rewrite that drops one reddens instead of passing.
+  assert_says_literal "the sheet makes the classifier name the token it withholds" \
+    "Name the token you're withholding before you send." "$SHEET_FLOW"
+  assert_says_literal "and says an explained token is not a withheld one" \
+    "If your answer explains what that token means, you aren't withholding it" "$SHEET_FLOW"
+  assert_says_literal "and makes a file or a syntax ask a mechanism signal" \
+    "A question naming a file or asking for syntax is a mechanism question." "$SHEET_FLOW"
+  assert_says_literal "and says that signal outranks the keyword turning up in an answer" \
+    "outranks the observation that the keyword" "$SHEET_FLOW"
+  assert_says_literal "and reads his own words as evidence of what he already holds" \
+    "the ladder has nothing left to protect" "$SHEET_FLOW"
+
+  # THE LADDER IS NOT WEAKENED, which is the half of bead tla-pms8 that is
+  # easiest to lose. A sharpened classifier and a disabled one look identical
+  # from the FLAT side, so the rows that matter are about what still ladders.
+  assert_says_literal "a question about what his rule should say is still the ladder's" \
+    "A question about what his rule should say is the ladder's business." "$SHEET_FLOW"
+  assert_says_literal "and the rule question is a LADDER case in the battery" \
+    '**LADDER.** "What am I missing in my rule?"' "$SHEET_FLOW"
+  assert_says_literal "and the tiebreak still points at flat rather than at nothing" \
+    "answer the mechanism flat" "$SHEET_FLOW"
+  assert_says_literal "and the ladder still keeps the case it was written for" \
+    "one rung and no more" "$SHEET_FLOW"
+
+  # THE SHEET IS CAT'D INTO EVERY HINT RUN, so a keyword written down here
+  # reaches every item rather than the one it belongs to. The 2026-10-23 case
+  # is quoted without its answer for that reason and this row keeps it that
+  # way. It covers ONE keyword, the one that case asked for. It is not a
+  # general leak check, and no list of every construct the corpus drills exists
+  # anywhere for one to be built from.
+  SHEET_LEAK_KEYWORD="CONSTRAINT"
+  assert_never_names "the sheet does not name the keyword the 2026-10-23 case asked for" \
+    "$SHEET_LEAK_KEYWORD" "$SHEET_FLOW"
+  if grep -qF -- "$SHEET_LEAK_KEYWORD" <<<'the cap goes in the cfg as a CONSTRAINT'; then
+    ok "control: that keyword is DETECTED when it is there"
+  else
+    nope "control: the keyword needle matched nothing, so the row above it is vacuous"
+  fi
+fi
+
 echo
 if [ "$fail_count" -ne 0 ]; then
   printf "FAILED: %d passed, %d failed\n" "$pass_count" "$fail_count" >&2
