@@ -8,8 +8,11 @@ from one you should kill yourself.
 A supervisor watches one primary worker through heartbeats. The primary
 sends a beat whenever it's working. It can also pause, for as long as it
 likes, and resume. The supervisor keeps a clock and remembers when the last
-beat arrived. Once the gap since the last beat is longer than a fixed
-timeout, it promotes a standby worker onto the job.
+beat arrived. Once the gap since the last beat is longer than the timeout,
+it promotes a standby worker onto the job.
+
+The timeout is 2 ticks, and there's one standby. Every count below depends
+on both, so a model with different ones won't reach them.
 
 The requirement: two workers are never working the job at the same time.
 
@@ -30,7 +33,8 @@ With the fix in, the same run was still going 30 seconds later and had
 passed 2,954,402 distinct states. I killed it.
 
 So I capped the clock, meaning the supervisor's clock can't climb past a
-number I pick, and tried five numbers.
+number I pick, and tried five numbers. Deadlock checking was off in all
+five.
 
 | cap on the clock | verdict | distinct states | depth | wall time |
 |---|---|---|---|---|

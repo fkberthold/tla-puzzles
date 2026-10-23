@@ -8,6 +8,10 @@ Every number below came from `tlc -workers 1` on TLC2 Version
 2026.07.31.184830, each config in its own run, wall time from `date`
 around the call.
 
+Re-derived 2026-10-23 on the same build under bead `tla-sfgm`, every
+config run again from a scratch copy. Every distinct count and depth here
+came back unchanged, including the three that split the two routes.
+
 ## Question 1: why the fix made it slow
 
 TLC searches breadth first. With the bug in, the violation sits at depth 5
@@ -59,8 +63,8 @@ It checks them first, though. `ConstraintProbe12.cfg` declares an invariant
 still gets the invariants run over it. A constraint stops expansion, not
 checking. The same probe under `ACTION_CONSTRAINT` also exits 12 at 183.
 
-The deadlock check is where the two routes split. With `CHECK_DEADLOCK`
-left at its default of on:
+The deadlock check is where the two routes split. With the deadlock check
+on, which these cfgs ask for with `CHECK_DEADLOCK TRUE`:
 
 | route at cap 12 | rc | distinct | depth |
 |---|---|---|---|
@@ -80,6 +84,30 @@ the same numbers as `CONSTRAINT` in every cell here. On this spec the
 step constraint is a function of the successor state alone, so it has to.
 It would differ for something like `clock' - clock <= 1`, which no state
 constraint can say.
+
+That split is a runnable pair now rather than a number written down.
+`G01CapDeadlock` and `G01CutDeadlock` share the cap, the invariant and the
+deadlock setting. The only thing that moves is where the cap lives. One
+exits 11 and one exits 0, and the gate reproduces both.
+
+Both cfgs write `CHECK_DEADLOCK TRUE` rather than leaving the keyword out,
+and that is not decoration. `harness/verdict.sh` passes TLC's `-deadlock`
+by default, which means do NOT check, so a cfg that relies on TLC's own
+default comes back rc 0 through the gate with the check silently skipped.
+Measured on this item: keyword absent through `verdict.sh` gives rc 0,
+keyword `TRUE` gives rc 99 refused, and keyword absent with
+`--check-deadlock` gives rc 11. The gate reads the keyword and asks for
+the check when it sees it, so the keyword is what makes the row assert
+anything. Don't take it out to make something green.
+
+The counts move with the verdict, which I didn't expect. The deadlock
+report aborts the search, so the spec-side route gets to 217 of the 237
+states the constraint route finishes on. A six-line clock spec gives the
+same count on both sides, because there the dead end is the last state
+anyway. On a model this size it isn't, so the pair shows two differences
+rather than one, and I think the count is the weaker of the two. A learner
+who reads 217 against 237 can't tell a partial search from a smaller state
+space until they read the rc beside it.
 
 ## Question 3: nothing to cap
 
@@ -125,6 +153,13 @@ returns, with its default `-deadlock`.
 | `G01Cap12.tla` | rc 0 | 237 | `SpecBound12.cfg`, the spec-side bound at cap 12 |
 | `G01Probe12.tla` | rc 12 | 183 | `ConstraintProbe12.cfg`, a state outside the constraint still checked |
 | `G01Gap.tla` | rc 0 | 9 | `Relative.cfg`, the model with no clock to bound |
+| `G01CapDeadlock.tla` | rc 11 | 217 | `SpecBound12Deadlock.cfg`, the spec-side bound with the deadlock check left on |
+| `G01CutDeadlock.tla` | rc 0 | 237 | `Constraint12Deadlock.cfg`, the constraint with the deadlock check left on |
+
+The last two are a control pair and belong together. They differ in one
+thing, which is where the cap lives, so the opposite verdicts are about
+that and nothing else. Question 2 asks what TLC checked differently under
+each route, and this pair is the answer in two rows.
 
 ## why-not-in-prompt
 
@@ -139,6 +174,18 @@ won't expand, and that the deadlock check tells them apart. Question 2
 does say there are two routes, so a reader who's met `CONSTRAINT` will
 reach for it as the second one. The one I most wanted to hide was the
 deadlock split, and I think the prompt hides it.
+
+The prompt now states three things it used to leave out. The timeout is 2,
+there's one standby, and deadlock checking was off in the five capped runs.
+All three move the published counts, so without them no correct model
+reaches any of the six. Bead `tla-sfgm`.
+
+The deadlock line is the one that cost something, and I think it's still
+the right trade. Stating a setting isn't stating a finding. The prompt says
+deadlock checking was off and never says the two routes disagree about it,
+so the split above is still there to be found. The alternative was leaving
+half the readers unable to reproduce 237. Measured on this build, the
+spec-side bound at cap 12 with deadlock checking on gives 217 and rc 11.
 
 The honest caveat on question 3: the prompt says "say what the supervisor
 reads", and that's a nudge toward the gap. I left it in because without
