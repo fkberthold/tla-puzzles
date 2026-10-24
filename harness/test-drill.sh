@@ -631,6 +631,50 @@ real_tree_arm() {
   has "real tree: states how many distinct-state claims it parsed and compared" \
       "drill-gate.sh: count claims: "
 
+  # CHECK 4 OVER THE REAL TREE, AND THE TWO EXCEPTIONS THAT MUST NOT REDDEN.
+  #
+  # Both are real items whose own table records a wrong count INSIDE the
+  # envelope: drill/sets/01-any-healthy-upstream has 190 inside 189..398, and
+  # drill/sets/02-two-pools has 11 and 26 inside 9..49. On both, every wrong
+  # machine is rc 12 against a declared `fault: none`, so the recorded rc is
+  # what rejects them. A gate that reddened here would have the teeth arm's
+  # second clause wired wrong, and the two items would have to be narrowed to
+  # satisfy it, which would reject the correct models they ship.
+  #
+  # THE `by-rc=` COLUMN IS THE ASSERTION rather than the absence of a finding.
+  # An absence proves nothing about which clause did the work, and these are
+  # the only two items on the tree where a clause other than the envelope has
+  # anything to do.
+  has "real tree, check 4: sets/01's in-envelope wrong count is rejected by the rc" \
+      "sets/01-any-healthy-upstream                 power=1   envelope=189..398      correct=3   wrong=4   excluded=3/4 by-rc=1"
+  has "real tree, check 4: and sets/02's two are, with one correct model at 9 kept" \
+      "sets/02-two-pools                            power=1   envelope=9..49         correct=5   wrong=3   excluded=1/3 by-rc=2"
+  hasnt "real tree, check 4: so neither is a finding" "RUBRIC-ENVELOPE-ADMITS-WRONG"
+  hasnt "real tree, check 4: and no envelope rejects a correct model the item ships" \
+        "RUBRIC-ENVELOPE-EXCLUDES-CORRECT"
+  hasnt "real tree, check 4: nor is any envelope switched off" "RUBRIC-ENVELOPE-TOOTHLESS"
+
+  # A COUNT-WAIVED ROW IS NO CASE EITHER WAY, asserted here because a fixture
+  # cannot carry it: check 2 refuses a waiver naming a module its verify/ does
+  # not ship. drill/sets/03-ballast records 6 machines, one with no count at
+  # all (BallastBinary, a parse error) and one count-waived (BallastAnyStart,
+  # whose 1 came from the trace rather than the log). Both land in nocount, so
+  # the envelope is never asked to exclude a number TLC did not print.
+  has "real tree, check 4: a count-waived row is no case, the same as a row with no count" \
+      "sets/03-ballast                              power=0   envelope=50..50        correct=2   wrong=2   excluded=2/2 by-rc=0 nocount=2"
+
+  # THE SOUNDNESS POWER LINE IS THE CONTRACT, not decoration. Every envelope
+  # on the tree is the lowest and highest count among its item's own rc 0
+  # rows, so the fairness arm passes by construction and its green says
+  # nothing on its own. The run has to state what it could discriminate, or a
+  # reader takes a clean check 4 for evidence the envelopes are fair.
+  has "real tree, check 4: the run states the soundness power it had" \
+      "SOUNDNESS POWER "
+  has "real tree, check 4: and names the items where it had none" \
+      "AT POWER 0, so this run cannot tell a fair envelope from a tight one there"
+  has "real tree, check 4: and says a green run can still reject a reasonable model" \
+      "still reject a reasonable model"
+
   # THE MODE BLOCK IS PART OF THE CONTRACT, not decoration, so it is asserted
   # and not merely echoed. A tier that drops 237 TLC runs and then prints
   # VERDICT OK, saying nothing about the 237, reads as a full verification to
@@ -1420,6 +1464,219 @@ has "count waiver: and the static tier states that no count was compared" "0 com
 
 # ===========================================================================
 echo
+echo "== part 1i: check 4 — the RUBRIC, and the arm that keeps an envelope honest =="
+# ===========================================================================
+# WHY CHECK 4 NEEDS ITS OWN ROWS. Nothing stopped an author writing
+# `states: 1..99999`, which satisfies every envelope and reddens nothing, so
+# the field would read as a check while checking nothing. That was open
+# decision O3 in drawer_tla_puzzles_decisions_6309edf48de99c7168cc221d and it
+# is the reason the gate arm exists at all.
+#
+# EVERY ROW BELOW RUNS --static-only AND STARTS NO JVM. Check 4 compares two
+# sections of one file and never runs TLC, so the static tier answers its
+# question completely. That is also why these rows cost nothing as the fixture
+# count grows.
+#
+# THE FIXTURE TABLE IS INVISIBLE TO CHECK 2, which is what makes these numbers
+# free to be anything. Check 2 reads its rc and distinct claims from
+# ANSWER.md, and check 4 reads the `## Verify` table in META.md, so a fixture
+# can record five machines it does not ship without check 2 reaching for one
+# of them. Worth knowing before you go looking for A.tla.
+R_RUB="${TMP}/rubric"
+mkdir -p "$R_RUB"
+mk_inventory "$R_RUB"
+mk_item "$R_RUB" "liveness/01-served"
+D_RUB="${R_RUB}/liveness/01-served"
+
+# The table every row below is tested against. Two correct counts at 40 and
+# 60, two wrong at 5 and 50, and one row with no count at all.
+#
+# 50 IS THE LOAD-BEARING CELL. It is a wrong count that sits INSIDE an
+# envelope of 40..60, so it is the case the teeth arm has to reason about
+# rather than exclude, and the two real items with this shape are
+# drill/sets/01-any-healthy-upstream and drill/sets/02-two-pools.
+write_rubric_meta() {
+  local runs="$1" fault="$2" states="$3" obl="$4" extra="${5:-}"
+  {
+    cat <<'META'
+# Meta
+
+Constructs: `~>` leads-to
+Shape: 2
+Time estimate: 6 min
+
+## Verify
+
+| file | rc | distinct states |
+|---|---|---|
+| `verify/A.tla` | 0 | 40 |
+| `verify/B.tla` | 0 | 60 |
+| `verify/C.tla` | 12 | 5 |
+| `verify/D.tla` | 12 | 50 |
+| `verify/E.tla` | 150 | parse error |
+
+## Rubric
+META
+    [ -z "$runs" ] || printf -- '- runs: %s\n' "$runs"
+    [ -z "$fault" ] || printf -- '- fault: %s\n' "$fault"
+    [ -z "$states" ] || printf -- '- states: %s\n' "$states"
+    [ -z "$obl" ] || printf -- '- obligations: %s\n' "$obl"
+    [ -z "$extra" ] || printf -- '- %s\n' "$extra"
+  } >"${D_RUB}/META.md"
+}
+
+# --- GREEN first, so every RED below is one mutation from a passing item ---
+write_rubric_meta yes none 40..60 2
+run_gate --static-only "$R_RUB"
+rc_is "rubric baseline: rc 0" 0
+hasnt "rubric baseline: no finding of any kind" "FINDING"
+has   "rubric baseline: the item's accounting prints" "power=1"
+has   "rubric baseline: 40 and 60 are the two correct counts" "correct=2"
+has   "rubric baseline: 5 is excluded by the envelope and 50 is not" "excluded=1/2"
+has   "rubric baseline: 50 is rejected by the recorded rc instead" "by-rc=1"
+has   "rubric baseline: the row with no count is no case either way" "nocount=1"
+has   "rubric baseline: the run states its own coverage" "1 of 1 item(s) carry one"
+has   "rubric baseline: and states the number a green fairness arm cannot imply" \
+      "SOUNDNESS POWER 1"
+
+# --- RED 1: TEETH. A wrong count inside the envelope that the rc cannot excuse
+#
+# ONE MUTATION: `fault: none` becomes `fault: invariant`. The item now declares
+# that a run MEETING it exits 12, so D's rc 12 stops being a rejection and the
+# envelope is the only thing left. It admits 50, so nothing rejects D.
+#
+# THIS IS THE ARM THAT IS VACUOUS ON TODAY'S CORPUS and the reason this row
+# exists. All 8 real rubrics declare `fault: none`, so every rc other than 0
+# rejects on its own and no envelope can fail this arm over drill/. It is live
+# code for the families bead tla-sqym.2 brings in.
+write_rubric_meta yes invariant 40..60 2
+run_gate --static-only "$R_RUB"
+rc_is "teeth: rc 1" 1
+has   "teeth: the admitted wrong count is caught" "RUBRIC-ENVELOPE-ADMITS-WRONG"
+has   "teeth: the finding names the module, the rc and the count" \
+      "D records rc 12 at 50 distinct, inside states: 40..60"
+hasnt "teeth: the wrong count OUTSIDE the envelope is not a finding" \
+      "C records rc 12 at 5"
+
+# --- RED 1b: the same rubric with an envelope that excludes 50 ------------
+write_rubric_meta yes invariant 40..49 2
+run_gate --static-only "$R_RUB"
+hasnt "teeth: narrowing the envelope past 50 closes the finding" \
+      "RUBRIC-ENVELOPE-ADMITS-WRONG"
+
+# --- RED 2: FAIRNESS. An envelope that rejects a correct model ------------
+#
+# ONE MUTATION: the low bound moves from 40 to 45, so A's rc 0 count of 40
+# falls outside. An item shipping a correct model its own envelope rejects has
+# an envelope that rejects a reasonable model, which is the one failure Frank's
+# representation-freedom constraint rules out.
+write_rubric_meta yes none 45..60 2
+run_gate --static-only "$R_RUB"
+rc_is "fairness: rc 1" 1
+has   "fairness: the excluded correct count is caught" "RUBRIC-ENVELOPE-EXCLUDES-CORRECT"
+has   "fairness: the finding names the module and the count" \
+      "A records rc 0 at 40 distinct, outside states: 45..60"
+
+# --- RED 3: THE FLOOR, which is the arm that catches `states: 1..99999` ---
+#
+# THE TWO ROWS ABOVE BOTH PASS THIS FIXTURE and that is the point of this row.
+# An envelope of 1..999 admits every count the item records, so the fairness
+# arm is satisfied trivially and the teeth arm is satisfied by the rc. A field
+# with no information in it passes both, which is exactly the rot O3 named.
+#
+# SO THE ASSERTION BELOW IS A PAIR. The floor fires and the teeth arm does
+# not, and the second half is what says the floor is not subsumed by it.
+write_rubric_meta yes none 1..999 2
+run_gate --static-only "$R_RUB"
+rc_is "floor: rc 1" 1
+has   "floor: an envelope that excludes nothing is caught" "RUBRIC-ENVELOPE-TOOTHLESS"
+has   "floor: the finding says how many wrong counts it failed to exclude" \
+      "excludes none of the 2 wrong count(s) this item records"
+hasnt "floor: and the teeth arm stays silent, so the floor is not subsumed by it" \
+      "RUBRIC-ENVELOPE-ADMITS-WRONG"
+hasnt "floor: nor does the fairness arm fire on a wide envelope" \
+      "RUBRIC-ENVELOPE-EXCLUDES-CORRECT"
+
+# --- RED 4: the well-formedness arms -------------------------------------
+#
+# A MISSPELLED KEY IS A FIELD NOBODY READS, so it is a finding rather than
+# silence. A rubric that silently drops half of itself still prints green, and
+# the half it drops is the half the author thought they had written.
+write_rubric_meta yes none 60..40 2
+run_gate --static-only "$R_RUB"
+has "well-formed: a low bound above its high one admits nothing" "RUBRIC-STATES-INVERTED"
+
+write_rubric_meta yes oops 40..60 2
+run_gate --static-only "$R_RUB"
+has "well-formed: a fault value outside the four is caught" "fault: 'oops' is not none"
+
+write_rubric_meta maybe none 40..60 2
+run_gate --static-only "$R_RUB"
+has "well-formed: a runs value that is not yes or no is caught" "runs: 'maybe' is not yes or no"
+
+write_rubric_meta yes none 40..60 ""
+run_gate --static-only "$R_RUB"
+has "well-formed: an absent field is caught" "## Rubric carries no 'obligations:' line"
+
+# OBLIGATIONS IS A COUNT AND A RANGE IS REFUSED ON PURPOSE. Open decision O2
+# in the design drawer asks whether it should be a range, and accepting one
+# silently would settle O2 by accident.
+write_rubric_meta yes none 40..60 1..2
+run_gate --static-only "$R_RUB"
+has "well-formed: a range in obligations is refused while O2 is open" \
+    "obligations: '1..2' is not a non-negative integer"
+
+write_rubric_meta yes none 40..60 2 "obligatons: 2"
+run_gate --static-only "$R_RUB"
+has "well-formed: an unknown key is a finding and names itself" "unknown field(s): obligatons"
+
+# A MALFORMED RUBRIC CLAIMS NO COVERAGE, which matters more than the finding.
+# A bad `fault` value resolves to a conformant class no rc can report, so the
+# teeth arm would excuse every admitted wrong count by the rc. That is a false
+# pass on the one arm this check exists for.
+write_rubric_meta yes oops 1..999 2
+run_gate --static-only "$R_RUB"
+hasnt "well-formed: a malformed rubric gets no per-item accounting line" "envelope=1..999"
+hasnt "well-formed: so its toothless envelope is never read as checked" \
+      "RUBRIC-ENVELOPE-TOOTHLESS"
+
+# A COUNT-WAIVED ROW IS NO CASE EITHER WAY, and that row is asserted on the
+# real tree rather than here. Its number came from the trace rather than from
+# the log, so demanding the envelope exclude it is a tightening pressure built
+# on something TLC never printed. A fixture cannot carry the row cheaply,
+# because check 2 refuses a waiver naming a module its verify/ does not ship,
+# and drill/sets/03-ballast already is the case. See part 3.
+
+# --- RED 5: a rubric with no table to test it against -------------------
+#
+# CHECK_DID_NOT_RUN RATHER THAN A FINDING, because the gate was asked a
+# question it could not answer. An instrument that reports success on a check
+# it never made is the defect rc 99 exists for.
+R_RUB0="${TMP}/rubric-notable"
+mkdir -p "$R_RUB0"
+mk_inventory "$R_RUB0"
+mk_item "$R_RUB0" "liveness/01-served"
+printf '\n## Rubric\n\n- runs: yes\n- fault: none\n- states: 40..60\n- obligations: 2\n' \
+  >>"${R_RUB0}/liveness/01-served/META.md"
+run_gate --static-only "$R_RUB0"
+rc_is "no table: rc 99, never 0" 99
+has   "no table: the gate says it could not run rather than passing" "rubric-envelope"
+has   "no table: and says why" "offers no row with both an rc and a count"
+
+# --- RED 6: an item with NO rubric is OUT OF SCOPE ----------------------
+#
+# 8 of the 64 real items carry a rubric, so a check reading absence as a
+# defect would redden on 56 items this work does not touch. The baseline item
+# from part 1a has no `## Rubric` section at all.
+run_gate --static-only "$R_GOOD"
+rc_is "no rubric: rc 0" 0
+hasnt "no rubric: no finding" "RUBRIC-"
+has   "no rubric: and the run says so rather than staying silent" \
+      "0 of 1 item(s) carry a ## Rubric"
+has   "no rubric: naming what extends the corpus" "OUT OF SCOPE for check 4"
+
+# ===========================================================================
+echo
 echo "== part 2: controls the other way — shapes that must NOT fire =="
 # ===========================================================================
 # A detector that fires on every deviation is worse than none. These two
@@ -1906,8 +2163,20 @@ EOF
   # across a build change. One appended byte is enough and the copy still
   # runs: a jar is a zip, and java finds the central directory by scanning
   # back from the end.
+  # THE chmod IS LOAD-BEARING, and leaving it out turned this row red silently.
+  # The pinned jar moved into the nix store on 2026-10-23, where it is mode 444
+  # and owned by root, so `cp` makes a read-only copy and the appended byte is
+  # refused with "Permission denied". The copy then hashes identical to the
+  # source, the cache key does not move, and this row reads "2 from cache"
+  # against the "2 stale" it asserts. Measured 2026-10-24: the source is
+  # `-r--r--r-- root root` and both files hash e22f8ffb... after the refusal.
+  #
+  # The failure is in the FIXTURE and not in the gate, which is the worst
+  # direction for a control: the instrument was fine and its own control said
+  # otherwise.
   mkdir -p "${TMP}/altjar" "${TMP}/bin-altjar"
   cp "$REAL_JAR" "${TMP}/altjar/tla2tools.jar"
+  chmod u+w "${TMP}/altjar/tla2tools.jar"
   printf 'x' >>"${TMP}/altjar/tla2tools.jar"
   cat >"${TMP}/bin-altjar/tlc" <<EOF
 #!/usr/bin/env bash

@@ -40,3 +40,15 @@ Each module has a config of the same name. Reproduce with
 ## Count waiver
 
 count-waiver: BallastAnyStart -- the invariant is violated during initial-state computation, so TLC reports before any step and the log carries no distinct count. The 1 in the table is the one state in the trace.
+
+## Rubric
+
+Fields and rationale: `drill/study/CLAUDE.md`. The `states` envelope is the
+lowest and highest distinct count among the rc 0 rows above, so it was read
+rather than reasoned. The `-because` lines and the fault list are owed by bead
+`tla-sqym.3`.
+
+- runs: yes
+- fault: none
+- states: 50..50
+- obligations: 1

@@ -50,3 +50,15 @@ Each module has a config of the same name. Every config carries
 state the item wants. `ConvoyEmptySubseteq` fails during the initial-state
 computation, which is before TLC prints a count. Reproduce with
 `bash drill/sets/verify-item.sh drill/sets/04-convoys`.
+
+## Rubric
+
+Fields and rationale: `drill/study/CLAUDE.md`. The `states` envelope is the
+lowest and highest distinct count among the rc 0 rows above, so it was read
+rather than reasoned. The `-because` lines and the fault list are owed by bead
+`tla-sqym.3`.
+
+- runs: yes
+- fault: none
+- states: 150..150
+- obligations: 3

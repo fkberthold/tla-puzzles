@@ -42,3 +42,15 @@ Named as `drill/INVENTORY.md` field 4 writes them, one per bullet.
 Each module has a config of the same name. `LbClaim` extends `LbAnswer`
 and only its config differs. Reproduce with
 `bash drill/sets/verify-item.sh drill/sets/01-any-healthy-upstream`.
+
+## Rubric
+
+Fields and rationale: `drill/study/CLAUDE.md`. The `states` envelope is the
+lowest and highest distinct count among the rc 0 rows above, so it was read
+rather than reasoned. The `-because` lines and the fault list are owed by bead
+`tla-sqym.3`.
+
+- runs: yes
+- fault: none
+- states: 189..398
+- obligations: 2
