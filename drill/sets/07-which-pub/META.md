@@ -45,3 +45,15 @@ Each module has a config of the same name. Every config carries
 state the item wants. The two rows at 256 are the point of the item: the trap
 and the answer explore the same space, so the count is no help. Reproduce with
 `bash drill/sets/verify-item.sh drill/sets/07-which-pub`.
+
+## Rubric
+
+Fields and rationale: `drill/study/CLAUDE.md`. The `states` envelope is the
+lowest and highest distinct count among the rc 0 rows above, so it was read
+rather than reasoned. The `-because` lines and the fault list are owed by bead
+`tla-sqym.3`.
+
+- runs: yes
+- fault: none
+- states: 256..256
+- obligations: 2

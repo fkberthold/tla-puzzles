@@ -34,3 +34,15 @@ Named as `drill/INVENTORY.md` field 4 writes them, one per bullet.
 
 Each module has a config of the same name. Reproduce with
 `bash drill/sets/verify-item.sh drill/sets/08-the-dive`.
+
+## Rubric
+
+Fields and rationale: `drill/study/CLAUDE.md`. The `states` envelope is the
+lowest and highest distinct count among the rc 0 rows above, so it was read
+rather than reasoned. The `-because` lines and the fault list are owed by bead
+`tla-sqym.3`.
+
+- runs: yes
+- fault: none
+- states: 321..625
+- obligations: 2

@@ -31,7 +31,11 @@
 # tla-ytv2 split the two.
 #
 # ---------------------------------------------------------------------------
-# THE TWO DIMENSIONS ARE INDEPENDENT, AND ONLY ONE OF THEM MOVES THE EXIT CODE
+# THE DIMENSIONS ARE INDEPENDENT, AND ONLY ONE OF THEM MOVES THE EXIT CODE
+#
+# Two of them are older than the rubric and this section is about those two.
+# The three the rubric adds have their own section below, and the rule there
+# is the rule here: `count=` owns the exit and nothing else touches it.
 #
 # `count=` is the count dimension and it owns the exit code. `run=` is TLC's
 # verdict on the run and it never moves the exit, because a violation is the
@@ -104,6 +108,51 @@
 #
 #   DRILL_PROMPT_ROOT   default $HOME/tla-practice/drill
 #   DRILL_STUDY_ROOT    default $HOME/Study/tla-drills
+#   DRILL_REPO_ROOT     default unset. The rubric's only other home
+#
+# DRILL_REPO_ROOT UNSET IS `rubric=none` AND NOT A FAILURE, which is the same
+# posture drill/drill.sh takes about its refutation table (drill/drill.sh:
+# 345-360). An unset root keeps this script working on a box holding nothing
+# but the practice tree, and the richer report is opt-in on the box that has
+# the repo.
+#
+# ---------------------------------------------------------------------------
+# THE RUBRIC, AND THE THREE DIMENSIONS THAT NEVER MOVE THE EXIT CODE
+#
+# An item may declare what a reasonable model of it does, in four fields that
+# name no construct and no variable: `runs`, `fault`, `states` and
+# `obligations`. drill/study/CLAUDE.md carries the schema and the reason for
+# each field. This script compares a run against the first three and reports
+# the comparison beside the two dimensions it already had.
+#
+#   rubric-runs    MET, UNMET or -     did TLC get off the ground as declared
+#   rubric-fault   MET, UNMET,         did the declared fault fire, and only it
+#                  UNKNOWN or -
+#   rubric-states  IN, OUT or -        is the distinct count inside the envelope
+#
+# NONE OF THE THREE MOVES THE EXIT CODE. `count=` still owns it, for the same
+# reason `run=` never did: a rubric verdict is a statement about what the item
+# declared, and folding one into the exit would be this script ruling on
+# intent. An UNMET fault is the RIGHT answer on an item asking for a
+# violation, and the rubric is what says which item that is -- but the
+# instrument that acts on it is a session reading the report.
+#
+# UNKNOWN IS THE HONEST FAULT VERDICT WHEN THE RUN NEVER REACHED AN
+# OBLIGATION. rc 75, 76 and 77 mean the check did not happen, so nothing is
+# known about whether anything holds, and MET or UNMET would both be a claim
+# about a check that never ran. That is the same distinction `run=ERROR`
+# already draws against VIOLATED, arriving one dimension over.
+#
+# WHERE IT IS READ FROM, IN THIS ORDER. The prompt first, because `runs`,
+# `fault`, `states` and `obligations` are the DELIVERED half of the rubric and
+# a prompt that carries them needs nothing else. Then the item's META.md under
+# $DRILL_REPO_ROOT, which is where the fields live until bead tla-sqym.4 moves
+# them into the prompts. `rubric=` names which one answered, so a reader can
+# tell a rubric this script never found from an item that ships none.
+#
+# A `-` ON ALL THREE IS NOT A PASS AND NOT A FAILURE. 8 of the 64 items carry
+# a rubric today, all of them in the sets family, so `rubric=none` is the
+# common case and bead tla-sqym.2 is what changes that.
 #
 # ---------------------------------------------------------------------------
 # IT WRITES NOTHING IN THE DIRECTORY IT IS CHECKING, AND THAT TOOK A FIX
@@ -278,6 +327,7 @@ set -uo pipefail
 
 PROMPT_ROOT="${DRILL_PROMPT_ROOT:-${HOME:-}/tla-practice/drill}"
 STUDY_ROOT="${DRILL_STUDY_ROOT:-${HOME:-}/Study/tla-drills}"
+REPO_ROOT="${DRILL_REPO_ROOT:-}"
 
 usage() {
   cat <<'USAGE'
@@ -289,8 +339,8 @@ Usage: check [<slug-or-dir>]
   check --help          this text
 
 Exit 0 if every module reached a count the prompt publishes, 1 if one did not,
-2 if the prompt publishes no count, 3 if it could not run. The run verdict is
-reported either way and never moves the exit code.
+2 if the prompt publishes no count, 3 if it could not run. The run verdict and
+the three rubric verdicts are reported either way and never move the exit code.
 USAGE
 }
 
@@ -499,6 +549,88 @@ violated_name() {
   printf '%s' "${line##* }"
 }
 
+# violated_kind <tlc output>: which of the rubric's `fault` values TLC's
+# violation line names, or nothing when there is no violation line.
+#
+# THE KEYWORD IS WHAT THIS READS, where violated_name above reads the name. It
+# is the one place the three phrasings in the header have to be told apart
+# rather than merged: `Invariant` is the rubric's `invariant`, and both
+# `Action property` and `Temporal property` are its `property`.
+#
+# 12 AND 13 DO NOT DECIDE IT, and neither does the .cfg keyword. A formula
+# like `[](P => []P)` is safety written with temporal operators and TLC calls
+# it an invariant, so an item whose requirement is safety declares
+# `fault: invariant` however the formula is spelled. Reading the rc here would
+# get that case wrong (harness/verdict.sh:81-91).
+#
+# Capture first, then a here-string into head. A live pipe into head returns
+# 141 under pipefail, and inside an `if` that reads as "no violation".
+violated_kind() {
+  local hits line
+  hits="$(grep -oE '^Error: (Invariant|Action property|Temporal property) ' <<<"$1")"
+  [ -n "$hits" ] || return 0
+  line="$(head -n 1 <<<"$hits")"
+  case "$line" in
+  'Error: Invariant '*) printf 'invariant' ;;
+  'Error: Action property '* | 'Error: Temporal property '*) printf 'property' ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# rubric_read <file>: a `## Rubric` section's four delivered fields, into
+# globals. RB_PRESENT is 1 when the file carries the heading at all.
+#
+# THE TWO `-because` KEYS AND THE FAULT LIST ARE WITHHELD FROM THE PROMPT and
+# are not read here. They are coaching, and coaching available before the
+# attempt is a spoiler. drill/study/CLAUDE.md says which half goes where.
+#
+# IT PARSES RATHER THAN GREPS so a key appearing in prose cannot be mistaken
+# for a field. A field is a `- key: value` bullet INSIDE the section, and any
+# `##` heading ends the section.
+# ---------------------------------------------------------------------------
+RB_PRESENT=0
+RB_RUNS=""
+RB_FAULT=""
+RB_STATES=""
+RB_OBL=""
+rubric_read() {
+  RB_PRESENT=0
+  RB_RUNS=""
+  RB_FAULT=""
+  RB_STATES=""
+  RB_OBL=""
+  [ -f "$1" ] || return 0
+  local line insec=0 key val
+  while IFS= read -r line; do
+    case "$line" in
+    '##'*)
+      case "$line" in
+      '## Rubric' | '## Rubric '*) insec=1 RB_PRESENT=1 ;;
+      *) insec=0 ;;
+      esac
+      continue
+      ;;
+    esac
+    [ "$insec" = "1" ] || continue
+    case "$line" in
+    '- '*:*) : ;;
+    *) continue ;;
+    esac
+    key="${line#- }"
+    key="${key%%:*}"
+    val="${line#*:}"
+    while [ "${val# }" != "$val" ]; do val="${val# }"; done
+    while [ "${val% }" != "$val" ]; do val="${val% }"; done
+    case "$key" in
+    runs) RB_RUNS="$val" ;;
+    fault) RB_FAULT="$val" ;;
+    states) RB_STATES="$val" ;;
+    obligations) RB_OBL="$val" ;;
+    esac
+  done <"$1"
+  return 0
+}
+
 # deadlocked <tlc output>: a reachable state with no successor. Measured
 # `Error: Deadlock reached.` at rc 11. It is a violation with a trace and with
 # no name to give, so it is the one shape that leaves invariant= at the marker
@@ -618,6 +750,50 @@ NOCLAIM=""
 if [ -z "$CLAIMS" ]; then
   NOCLAIM=1
   CLAIMS="-"
+fi
+
+# ---------------------------------------------------------------------------
+# The rubric. Prompt first, then the item's META.md under $DRILL_REPO_ROOT.
+#
+# RESOLVED HERE AND PRINTED LATER, next to the module lines it applies to. A
+# declaration at the top of the output with the runs between it and the
+# verdicts would make a reader scroll to find what the comparison was against.
+#
+# THE META.md ROUTE IS THE SAME GLOB THE PROMPT USED, so a slug matching two
+# items is as much a corpus bug here as it is there. The difference is that
+# this one does not refuse: the rubric is a report and the prompt is the
+# instrument's subject, so a second hit stops the search rather than the run.
+# ---------------------------------------------------------------------------
+RUBRIC_SRC="none"
+rubric_read "$PROMPT"
+if [ "$RB_PRESENT" = "1" ]; then
+  RUBRIC_SRC="prompt"
+elif [ -n "$REPO_ROOT" ]; then
+  for candidate in "$REPO_ROOT"/drill/*/"$SLUG"/META.md; do
+    [ -f "$candidate" ] || continue
+    rubric_read "$candidate"
+    if [ "$RB_PRESENT" = "1" ]; then
+      RUBRIC_SRC="meta"
+      break
+    fi
+  done
+fi
+
+RB_LO=""
+RB_HI=""
+if [ -n "$RB_STATES" ]; then
+  case "$RB_STATES" in
+  *..*)
+    RB_LO="${RB_STATES%%..*}"
+    RB_HI="${RB_STATES##*..}"
+    case "${RB_LO}${RB_HI}" in
+    '' | *[!0-9]*)
+      RB_LO=""
+      RB_HI=""
+      ;;
+    esac
+    ;;
+  esac
 fi
 
 # ---------------------------------------------------------------------------
@@ -763,6 +939,15 @@ done
 # Run each model and report it.
 # ---------------------------------------------------------------------------
 
+# The declaration, read back, so a reader can see what the three rubric
+# verdicts below were compared against. `rubric=none` is the common case.
+if [ "$RUBRIC_SRC" = "none" ]; then
+  printf 'rubric=none\n'
+else
+  printf 'rubric=%s runs=%s fault=%s states=%s obligations=%s\n' \
+    "$RUBRIC_SRC" "${RB_RUNS:--}" "${RB_FAULT:--}" "${RB_STATES:--}" "${RB_OBL:--}"
+fi
+
 MISSED=()
 mi=0
 for module in "${MODULES[@]}"; do
@@ -805,8 +990,53 @@ for module in "${MODULES[@]}"; do
     name="-"
   fi
 
-  printf 'module=%s config=%s rc=%s distinct=%s claimed=%s count=%s run=%s invariant=%s\n' \
-    "$module" "$cfg" "$rc" "$shown" "$CLAIMS" "$verdict" "$run" "$name"
+  # The three rubric dimensions. Each one reads the run dimension above rather
+  # than the rc, for the reason the header gives: the rc does not predict
+  # either answer, and `run=` is already the reading of the log that does.
+  #
+  # NONE OF THEM MOVES THE EXIT CODE. See the rubric section of the header.
+  rb_runs="-"
+  if [ -n "$RB_RUNS" ]; then
+    case "$run" in
+    CLEAN | VIOLATED) got_runs="yes" ;;
+    *) got_runs="no" ;;
+    esac
+    if [ "$got_runs" = "$RB_RUNS" ]; then rb_runs="MET"; else rb_runs="UNMET"; fi
+  fi
+
+  rb_fault="-"
+  if [ -n "$RB_FAULT" ]; then
+    case "$run" in
+    CLEAN) got_fault="none" ;;
+    VIOLATED)
+      got_fault="$(violated_kind "$out")"
+      # A deadlock is the one violation with no name and no keyword, so it is
+      # what is left when the three phrasings do not match.
+      [ -n "$got_fault" ] || got_fault="deadlock"
+      ;;
+    *) got_fault="" ;;
+    esac
+    if [ -z "$got_fault" ]; then
+      rb_fault="UNKNOWN"
+    elif [ "$got_fault" = "$RB_FAULT" ]; then
+      rb_fault="MET"
+    else
+      rb_fault="UNMET"
+    fi
+  fi
+
+  rb_states="-"
+  if [ -n "$RB_LO" ] && [ -n "$count" ]; then
+    if [ "$count" -ge "$RB_LO" ] && [ "$count" -le "$RB_HI" ]; then
+      rb_states="IN"
+    else
+      rb_states="OUT"
+    fi
+  fi
+
+  printf 'module=%s config=%s rc=%s distinct=%s claimed=%s count=%s run=%s invariant=%s rubric-runs=%s rubric-fault=%s rubric-states=%s\n' \
+    "$module" "$cfg" "$rc" "$shown" "$CLAIMS" "$verdict" "$run" "$name" \
+    "$rb_runs" "$rb_fault" "$rb_states"
 
   if [ "$run" = "VIOLATED" ]; then
     state="$(violating_state "$out")"

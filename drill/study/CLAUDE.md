@@ -135,6 +135,116 @@ Exit 0 is where your judgment starts rather than where it stops. A count check
 structurally cannot catch a right count reached by a wrong model, and `/check`
 says why and what to do about it.
 
+## The rubric, and the three dimensions the checker prints
+
+Exit 0 means the count matched and nothing more, which the section above
+already says. The rubric is what gives your reading a fixed point without
+naming a single one of Frank's variables. Each item declares what a reasonable
+model of it does, and the checker compares his run against that declaration.
+
+Nothing in a rubric names a construct, a variable or a type. That is the whole
+reason it exists. `harness/refute.sh` needs his names to match because it pairs
+his module against the item's, so it can only work on the items where the
+names happen to coincide. A rubric judges his run on its own terms, so every
+representation he might reach for stays valid and the binding question stops
+being asked.
+
+### The four fields
+
+```
+## Rubric
+
+- runs: yes
+- fault: none
+- states: 9..49
+- obligations: 3
+```
+
+**runs**: `yes` or `no`. Whether TLC gets off the ground at all.
+
+**fault**: `none`, `invariant`, `property` or `deadlock`. What fires.
+
+**states**: `<low>..<high>`, inclusive. The envelope the distinct count sits in.
+
+**obligations**: a non-negative integer. How many separately named requirements.
+
+`runs` separates a mechanical failure from a modeling one, and those two want
+different sentences from you. On an item declaring `runs: yes`, an rc of 150,
+151, 255, 75, 76 or 10 means the attempt never started, so there is nothing to
+say yet about his rules. Read it from the log rather than from the exit code,
+which is bd memory `a-tlc-exit-code-does-not-predict-whether`.
+
+`fault` is the dimension that survives without binding. A declared `fault: none`
+plus his own obligations rejects a model whose rules are wrong, whatever he
+called the state. It is also what makes an item checkable when it publishes no
+count, which is every one of the eight control-state items.
+
+`states` catches the two failures that don't depend on how the state is spelled.
+Too small means a variable never moves, `Init` is over-constrained, or a guard
+is never true. Too big means something is unbounded, a domain is too wide, or a
+guard is missing.
+
+`obligations` counts the item's separately named requirements and leaves the
+type layer out. A type invariant is bookkeeping rather than a requirement, and
+not every reasonable model writes one. Bundling three requirements under one
+name throws away the label TLC would have printed, which is Lamport section
+14.5.3 p.259 and `.claude/rules/tla-practice.md` section 1.
+
+### What the checker prints, and what it still refuses to decide
+
+```
+rubric=meta runs=yes fault=none states=9..49 obligations=3
+module=Pools config=pools.cfg rc=0 distinct=49 claimed=9,49 count=MATCH run=CLEAN invariant=- rubric-runs=MET rubric-fault=MET rubric-states=IN
+```
+
+The first line is the declaration, read back so you can see what the comparison
+was against. The three `rubric-` fields on each module line are the comparison.
+
+- `rubric-runs` is `MET`, `UNMET` or `-`
+- `rubric-fault` is `MET`, `UNMET`, `UNKNOWN` or `-`
+- `rubric-states` is `IN`, `OUT` or `-`
+
+`UNKNOWN` on the fault dimension is the honest answer when the run errored
+before any obligation was evaluated. A `-` on any of them means the item ships
+no rubric, so there was no declaration to compare against.
+
+**None of the three moves the exit code.** `count=` still owns it, for the
+reason the two-dimension section gives. A rubric verdict is a report in the
+sense `run=` is, and folding one into the exit would be the checker ruling on
+intent it can't see.
+
+### Where it comes from, and the prohibition it does not touch
+
+The checker looks in `PROMPT.md` first, then in the item's `META.md` under
+`$DRILL_REPO_ROOT`. It prints `rubric=prompt`, `rubric=meta` or `rubric=none`
+so you can tell which. An unset `DRILL_REPO_ROOT` is `rubric=none` and not a
+failure, the same way a missing refutation table is.
+
+**The checker reads `META.md`. You still do not.** The first prohibition in this
+file stands exactly where it was. Take the three verdicts off the checker's
+output and quote them. Reading the file yourself hands you the fault list and
+both envelope reasons, which are withheld from the prompt on purpose, and an
+item's fault list names the break that is coming.
+
+### What the rubric does not yet establish
+
+8 of the 64 items carry a rubric, all of them in `sets`. On those eight the
+`states` envelope is the lowest and highest distinct count among the item's own
+rc 0 machines, so it was read off the `## Verify` table rather than reasoned
+from what a model of the item has to do. Two consequences, and I think the
+second is the one worth holding on to.
+
+The two `-because` lines and the `### Faults you should catch` list are owed by
+bead `tla-sqym.3`. Until they land, a count outside the envelope tells you the
+direction he went and nothing about what that direction usually means.
+
+An envelope built from the counts it would be tested against can't be shown to
+be fair by those counts. `harness/drill-gate.sh` prints the soundness power it
+had, per item and in total, which is the number of cases where an item ships
+two correct models whose distinct counts differ. Read that number before you
+read a correct model's count as evidence the envelope admits every reasonable
+one.
+
 ## The two modes a one-shot arrives in
 
 `./drill --check` and `./drill --hint` run you with no tools at all. Everything

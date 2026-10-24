@@ -69,6 +69,9 @@
 #                                         column reads `count:<module-stem>`
 #                                         for a count waiver and the bare
 #                                         token for a telegraph one.
+#   RUBRIC    <item> power= envelope= ...  check 4's per-item accounting. Its
+#                                         `power=` column is the number a
+#                                         green fairness arm cannot imply.
 #
 # EXIT CODES
 #     0  every check THIS RUN ASKED FOR ran and passed. Under --static-only
@@ -82,7 +85,7 @@
 #        report success, so this is not folded into 0
 #     2  usage error
 #
-# ONLY CHECKS 1 AND 2 CAN PRODUCE A FINDING. CHECK 3 PRINTS AND NEVER FAILS —
+# CHECKS 1, 2 AND 4 CAN PRODUCE A FINDING. CHECK 3 PRINTS AND NEVER FAILS —
 # no construct count can redden this gate. The reasoning is in CHECK 3's own
 # section below, and it is worth reading before touching that block.
 #
@@ -276,6 +279,82 @@
 # honestly saying it could not run.
 #
 # ===========================================================================
+# CHECK 4 — RUBRIC.  Does the declared envelope say anything?
+#
+# WHAT A RUBRIC IS. Each item declares what a reasonable model of it does, in
+# four fields a prompt can carry without naming a construct: `runs`, `fault`,
+# `states` and `obligations`. The checking model judges a learner's run against
+# that declaration instead of pairing module names, so every representation
+# stays valid. The schema and the rationale for each field are in
+# `drill/study/CLAUDE.md`, and the design is
+# drawer_tla_puzzles_decisions_6309edf48de99c7168cc221d.
+#
+# WHY IT IS GATED. Nothing else stops an author writing `states: 1..99999`.
+# That satisfies every envelope and reddens nothing, so the field would read as
+# a check while checking nothing, and loom's gate-don't-advise says a
+# correctness invariant cannot rest on a reviewer's memory. It was open
+# decision O3 in the design drawer.
+#
+# AN ITEM WITH NO `## Rubric` HEADING IS OUT OF SCOPE. 8 of 64 items carry one,
+# all in `sets`, because only `core` and `sets` record an rc and a distinct
+# count per machine. A check that read absence as a defect would redden on 56
+# items. Bead tla-sqym.2 extends the corpus.
+#
+# WHAT IS CHECKED, in four arms.
+#
+#   WELL-FORMEDNESS. Each of the four fields is present and inside its
+#   grammar, `states` is low..high with low no greater than high, and no
+#   unknown key sits in the section. An unknown key is a finding rather than
+#   silence, because a misspelled key is a field nobody reads and the rubric
+#   still prints green without it.
+#
+#   TEETH. Every WRONG row of the item's own `## Verify` table, meaning one
+#   whose recorded rc is not 0, is either outside the declared envelope OR
+#   lands in a fault class a run MEETING the rubric would not produce. The
+#   second clause is what admits the two known exceptions: sets/01 records a
+#   wrong count of 190 inside 189..398 and sets/02 records 11 and 26 inside
+#   9..49, and on both every wrong machine is rc 12 against a declared
+#   `fault: none`, so the rc is what rejects them.
+#
+#   THAT CLAUSE MAKES THE ARM VACUOUS ON TODAY'S CORPUS, and saying so is the
+#   point. All 8 rubrics declare `fault: none`, so every rc other than 0 is
+#   itself a rejection and no envelope can fail this arm. It is live code for
+#   the families tla-sqym.2 brings in, where an item asks for a violation and
+#   declares `fault: invariant`, and there an rc 12 machine is NOT excused.
+#
+#   THE FLOOR. The envelope must exclude at least one of the item's own
+#   recorded wrong counts. This is the arm that catches `1..99999`, and it
+#   exists because neither of the two above can: teeth lets the rc excuse
+#   everything, and fairness only asks that correct counts be inside, which a
+#   wide envelope satisfies trivially. It is the per-root-floor pattern
+#   harness/test-spelling.sh uses, where a root that selects nothing reddens
+#   instead of passing.
+#
+#   FAIRNESS. Every CORRECT row's count lies inside the envelope. An item that
+#   ships a correct model the envelope rejects has an envelope that rejects a
+#   reasonable model, which is the one failure Frank's representation-freedom
+#   constraint rules out.
+#
+# WHAT IS *NOT* CHECKED, and the first entry is the one that matters:
+#
+#   - WHETHER THE ENVELOPE IS FAIR. Every envelope in the corpus today is the
+#     lowest and highest count among its item's own rc 0 rows, so the fairness
+#     arm passes by construction and its green says nothing. The run prints
+#     SOUNDNESS POWER for exactly this reason. See that block at the bottom.
+#   - WHETHER THE ENVELOPE IS TIGHT. Deliberate. Bead tla-sqym.3 widens these
+#     from reasons rather than from counts, and a reasoned envelope is supposed
+#     to be wider than three machines justify. An arm penalizing width would
+#     push the field back to the point count the design replaces.
+#   - WHETHER `obligations` IS THE RIGHT NUMBER. The grammar is checked. The
+#     count rests on the item's own answer config and nothing here resolves it.
+#   - WHETHER THE TWO `-because` LINES OR THE FAULT LIST ARE PRESENT, let alone
+#     true. They are withheld from the prompt and owed by tla-sqym.3. Making
+#     them mandatory before they exist would redden all 8 items on work nobody
+#     has done yet.
+#   - ANYTHING A RUN SAYS. No TLC starts in this check. It compares two
+#     sections of one file, so it runs in every tier including --static-only.
+#
+# ===========================================================================
 # WHAT THIS CORPUS DELIBERATELY DOES NOT GET
 #
 # Private-first, not shippable (Frank, 2026-10-12). So there is NO novelty
@@ -440,6 +519,21 @@ stale_n=0
 count_claim_n=0
 count_checked_n=0
 count_waived_n=0
+
+# Check 4's counters. SOUNDNESS POWER IS THE ONE THAT HAS TO BE PRINTED, and
+# the reason is in check 4's header: an envelope read off the counts it is then
+# tested against passes the fairness arm by construction, so the arm's green
+# says nothing on its own. The power is the number of cases where an item ships
+# two correct models whose distinct counts differ, which is the only place the
+# corpus can tell a fair envelope from a tight one.
+rubric_item_n=0
+rubric_power_n=0
+rubric_zero_power=""
+rubric_correct_n=0
+rubric_wrong_n=0
+rubric_excluded_n=0
+rubric_by_rc_n=0
+rubric_nocount_n=0
 
 # One scratch dir for the whole run. SYMFILE holds LAYER_A_SYMBOLS one per
 # line so construct_tokens can match them all in a single grep.
@@ -1434,6 +1528,197 @@ rc_in_table() {
 }
 
 # ---------------------------------------------------------------------------
+# VERIFY_ROW_AWK / verify_rows <meta.md>
+#
+# The (module, rc, distinct) triples of an item's `## Verify` table, one per
+# line, tab separated. A distinct cell with no integer in it comes back as
+# `-`, which is NO COUNT and never a zero.
+#
+# IT READS META.md AND NOT ANSWER.md, which departs from check 2 on purpose.
+# The rubric lives in META.md, so the envelope and the counts it is tested
+# against sit in the same file and cannot drift apart unseen. Both files carry
+# the same table across the sets family today, and one file is one edit.
+#
+# A HEADER IS A PIPE ROW WHOSE NEXT LINE IS THE SEPARATOR. That is
+# COUNT_CLAIM_AWK's discriminator and the reason it exists: a header can carry
+# a column word twice, and a DATA row can contain the header word. bd memory
+# `an-answer-md-markdown-table-is-not` names where each shape was measured. An
+# escaped `\|` is parked under \001 and restored, because splitting on it
+# shifts every later column by one.
+#
+# SCOPED TO THE `## Verify` SECTION rather than to the whole file. A second
+# table carrying both an rc and a distinct column would otherwise pour its
+# rows into the same set, and the envelope would then be tested against rows
+# the item never meant as machines.
+#
+# THE rc COLUMN IS MATCHED EXACTLY and the distinct column by containment. In
+# META.md the header reads `| file | rc | distinct states |`, so `rc` is a
+# whole cell while the count column's word sits inside a phrase.
+# ---------------------------------------------------------------------------
+
+# The awk program holds `$0`, and NOT expanding it is the whole point of the
+# single quotes, exactly as in COUNT_CLAIM_AWK above.
+# shellcheck disable=SC2016
+VERIFY_ROW_AWK='
+function firstint(s,   out) {
+  gsub(/,/, "", s)
+  out = ""
+  if (match(s, /[0-9]+/)) out = substr(s, RSTART, RLENGTH)
+  return out
+}
+function issep(s) {
+  return (s ~ /^[[:space:]]*\|[-:|[:space:]]*$/ && s ~ /-/)
+}
+function cells(s, A,   n, i) {
+  gsub(/\\\|/, "\001", s)
+  n = split(s, A, "|")
+  for (i = 1; i <= n; i++) gsub(/\001/, "|", A[i])
+  return n
+}
+/^##/ {
+  insec = ($0 ~ /^##+[[:space:]]*Verify([[:space:]]|$)/)
+  intable = 0; rccol = 0; dcol = 0
+  prev = $0; prevpipe = 0
+  next
+}
+{
+  if (!insec) { prev = $0; prevpipe = 0; next }
+  if (issep($0) && prevpipe) {
+    nh = cells(prev, H)
+    rccol = 0; dcol = 0
+    for (i = 1; i <= nh; i++) {
+      h = tolower(H[i]); gsub(/[^a-z]/, "", h)
+      if (h == "rc" && rccol == 0) rccol = i
+      if (index(h, "distinct") > 0 && dcol == 0) dcol = i
+    }
+    intable = (rccol > 0 && dcol > 0)
+    prev = $0; prevpipe = 0
+    next
+  }
+  if ($0 ~ /^[[:space:]]*\|/) {
+    if (intable) {
+      nc = cells($0, C)
+      if (nc >= rccol && nc >= dcol) {
+        rc = firstint(C[rccol])
+        dv = firstint(C[dcol])
+        name = C[2]
+        gsub(/[^A-Za-z0-9_\/.-]/, "", name)
+        if (name == "") name = "-"
+        if (rc != "") printf "%s\t%s\t%s\n", name, rc, (dv == "" ? "-" : dv)
+      }
+    }
+    prev = $0; prevpipe = 1
+    next
+  }
+  intable = 0; rccol = 0; dcol = 0
+  prev = $0; prevpipe = 0
+}'
+
+verify_rows() {
+  [ -f "$1" ] || return 0
+  awk "$VERIFY_ROW_AWK" "$1"
+}
+
+# ---------------------------------------------------------------------------
+# rubric_read <meta.md>: the item's `## Rubric` fields, into globals.
+#
+# RB_PRESENT is the scope gate and it is the field that matters most. An item
+# with no `## Rubric` heading is OUT OF SCOPE for check 4, not a failure. 8 of
+# the 64 items carry one today, so a check that read absence as a defect would
+# redden on 56 items this work does not touch.
+#
+# RB_EXTRA collects any `- key: value` line whose key is none of the four. An
+# unknown key is a finding rather than silence, because the way a field gets
+# misspelled is the way it stops being read, and a rubric that silently drops
+# half of itself still prints green.
+#
+# The two `-because` keys and the `### Faults you should catch` list are owed
+# by bead tla-sqym.3. They are WITHHELD from the prompt, so they are known
+# keys here and are not reported as extras.
+# ---------------------------------------------------------------------------
+RB_PRESENT=0
+RB_RUNS=""
+RB_FAULT=""
+RB_STATES=""
+RB_OBL=""
+RB_EXTRA=""
+rubric_read() {
+  RB_PRESENT=0
+  RB_RUNS=""
+  RB_FAULT=""
+  RB_STATES=""
+  RB_OBL=""
+  RB_EXTRA=""
+  [ -f "$1" ] || return 0
+  local line insec=0 key val
+  while IFS= read -r line; do
+    case "$line" in
+      '##'*)
+        case "$line" in
+          '## Rubric' | '## Rubric '*) insec=1; RB_PRESENT=1 ;;
+          *) insec=0 ;;
+        esac
+        continue
+        ;;
+    esac
+    [ "$insec" = "1" ] || continue
+    case "$line" in
+      '- '*:*) : ;;
+      *) continue ;;
+    esac
+    key="${line#- }"
+    key="${key%%:*}"
+    val="${line#*:}"
+    while [ "${val# }" != "$val" ]; do val="${val# }"; done
+    while [ "${val% }" != "$val" ]; do val="${val% }"; done
+    case "$key" in
+      runs) RB_RUNS="$val" ;;
+      fault) RB_FAULT="$val" ;;
+      states) RB_STATES="$val" ;;
+      obligations) RB_OBL="$val" ;;
+      states-floor-because | states-ceiling-because) : ;;
+      *) RB_EXTRA="${RB_EXTRA:+${RB_EXTRA}, }${key}" ;;
+    esac
+  done <"$1"
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# rc_fault_class <rc>: which of the rubric's `fault` values this rc reports.
+#
+# 12 AND 13 SPLIT ON THE SHAPE OF THE FORMULA AND NOT ON THE .cfg KEYWORD,
+# which check 2's header states and verdict.sh:81-91 implements. `[](P => []P)`
+# is safety written with temporal operators and exits 12. So `fault: invariant`
+# is the right declaration for an item whose requirement is safety however it
+# is spelled, and an author reasoning from the keyword will write `property`
+# and be wrong.
+#
+# EVERYTHING ELSE IS `error`, which is the `runs` dimension's territory rather
+# than the fault dimension's. 75, 76 and 77 mean the check never happened, so
+# nothing at all is known about whether the obligation holds.
+# ---------------------------------------------------------------------------
+rc_fault_class() {
+  case "$1" in
+    0) printf 'none' ;;
+    11) printf 'deadlock' ;;
+    12) printf 'invariant' ;;
+    13) printf 'property' ;;
+    *) printf 'error' ;;
+  esac
+}
+
+# rubric_conformant_class <runs> <fault>: the class a run that MEETS the
+# rubric would land in. `runs: no` collapses to `error`, because an item that
+# expects TLC not to get off the ground has no fault to name.
+rubric_conformant_class() {
+  if [ "$1" = "no" ]; then
+    printf 'error'
+    return 0
+  fi
+  printf '%s' "$2"
+}
+
+# ---------------------------------------------------------------------------
 # Per-construct state, parallel to the INV_* arrays.
 #
 # INV_TOKENS is computed ONCE per construct rather than once per
@@ -1994,6 +2279,230 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
       "verify/ holds ${#MODS[@]} module(s) and not one is checkable (a .cfg plus a recorded rc)"
   fi
 
+  # =======================================================================
+  # CHECK 4 — RUBRIC
+  #
+  # LAST IN THE LOOP because it reads COUNT_WAIVED, which check 2 builds. The
+  # unset below drops it, so moving this block above check 2 would leave the
+  # waiver honored nowhere and silently tighten the envelope on one row of
+  # drill/sets/03-ballast.
+  #
+  # NO TLC HERE, so this check runs in every tier including --static-only. The
+  # whole of it is a comparison between two sections of one file.
+  # =======================================================================
+  rubric_read "$meta"
+  if [ "$RB_PRESENT" = "1" ]; then
+    rubric_item_n=$((rubric_item_n + 1))
+    rb_wellformed=1
+
+    if [ -z "$RB_RUNS" ]; then
+      finding "RUBRIC-FIELD-MISSING" "$rel" "## Rubric carries no 'runs:' line"
+      rb_wellformed=0
+    elif [ "$RB_RUNS" != "yes" ] && [ "$RB_RUNS" != "no" ]; then
+      finding "RUBRIC-FIELD-BAD" "$rel" "runs: '${RB_RUNS}' is not yes or no"
+      rb_wellformed=0
+    fi
+
+    if [ -z "$RB_FAULT" ]; then
+      finding "RUBRIC-FIELD-MISSING" "$rel" "## Rubric carries no 'fault:' line"
+      rb_wellformed=0
+    else
+      case "$RB_FAULT" in
+        none | invariant | property | deadlock) : ;;
+        *)
+          finding "RUBRIC-FIELD-BAD" "$rel" \
+            "fault: '${RB_FAULT}' is not none, invariant, property or deadlock"
+          rb_wellformed=0
+          ;;
+      esac
+    fi
+
+    # OBLIGATIONS IS A COUNT AND NOT A RANGE, and that is open decision O2 in
+    # drawer_tla_puzzles_decisions_6309edf48de99c7168cc221d rather than a
+    # settled one. An item may admit a model that splits one rule into two
+    # sound conjuncts, which would want a range. Reddening on a range is the
+    # deliberate choice: it makes widening the grammar an act somebody has to
+    # take, where accepting one silently would settle O2 by accident.
+    if [ -z "$RB_OBL" ]; then
+      finding "RUBRIC-FIELD-MISSING" "$rel" "## Rubric carries no 'obligations:' line"
+      rb_wellformed=0
+    elif ! grep -qE '^[0-9]+$' <<<"$RB_OBL"; then
+      finding "RUBRIC-FIELD-BAD" "$rel" \
+        "obligations: '${RB_OBL}' is not a non-negative integer (O2 is open; a range is refused on purpose)"
+      rb_wellformed=0
+    fi
+
+    rb_lo=""
+    rb_hi=""
+    if [ -z "$RB_STATES" ]; then
+      finding "RUBRIC-FIELD-MISSING" "$rel" "## Rubric carries no 'states:' line"
+      rb_wellformed=0
+    elif ! grep -qE '^[0-9]+\.\.[0-9]+$' <<<"$RB_STATES"; then
+      finding "RUBRIC-FIELD-BAD" "$rel" \
+        "states: '${RB_STATES}' is not <low>..<high>"
+      rb_wellformed=0
+    else
+      rb_lo="${RB_STATES%%..*}"
+      rb_hi="${RB_STATES##*..}"
+      if [ "$rb_lo" -gt "$rb_hi" ]; then
+        finding "RUBRIC-STATES-INVERTED" "$rel" \
+          "states: ${RB_STATES} has its low bound above its high one, so it admits nothing"
+        rb_wellformed=0
+        rb_lo=""
+        rb_hi=""
+      fi
+    fi
+
+    if [ -n "$RB_EXTRA" ]; then
+      finding "RUBRIC-FIELD-UNKNOWN" "$rel" \
+        "## Rubric carries unknown field(s): ${RB_EXTRA}. A misspelled key is a field nobody reads."
+      rb_wellformed=0
+    fi
+
+    # --- the three arms over the item's own Verify table ------------------
+    #
+    # Every number below is READ from the same META.md the rubric sits in. No
+    # TLC runs and nothing is measured here, so a row the gate cannot
+    # reproduce is still a row this check uses. That is the right direction:
+    # check 2 is what holds the table honest against a run, and check 4 asks
+    # whether the envelope is consistent with the table as written.
+    #
+    # GATED ON THE WHOLE RUBRIC BEING WELL FORMED, not only on `states`
+    # parsing. A bad `fault` value resolves to a conformant class no rc can
+    # report, which would make the teeth arm excuse every admitted wrong
+    # count by the rc. That is a false pass on the one arm this check exists
+    # for, so a rubric that is malformed anywhere gets its findings and no
+    # coverage claim.
+    if [ "$rb_wellformed" = "1" ] && [ -n "$rb_lo" ]; then
+      rb_correct=0
+      rb_wrong=0
+      rb_excluded=0
+      rb_byrc=0
+      rb_nocount=0
+      rb_cmin=""
+      rb_cmax=""
+      rb_seen=" "
+      rb_power=0
+      rb_conform="$(rubric_conformant_class "$RB_RUNS" "$RB_FAULT")"
+
+      while IFS=$'\t' read -r rb_name rb_rc rb_cnt; do
+        [ -n "$rb_rc" ] || continue
+        rb_stem="${rb_name##*/}"
+        rb_stem="${rb_stem%.tla}"
+        if [ "$rb_cnt" = "-" ]; then
+          rb_nocount=$((rb_nocount + 1))
+          continue
+        fi
+        # A COUNT-WAIVED ROW IS NOT A MEASUREMENT, so it is no case either
+        # way. Its number came from the trace rather than from the log, and
+        # demanding the envelope exclude it is a tightening pressure built on
+        # something TLC never printed. drill/sets/03-ballast is the one row
+        # this reaches today and its count falls outside anyway.
+        if count_is_waived "$rb_stem"; then
+          rb_nocount=$((rb_nocount + 1))
+          continue
+        fi
+
+        rb_in=0
+        if [ "$rb_cnt" -ge "$rb_lo" ] && [ "$rb_cnt" -le "$rb_hi" ]; then
+          rb_in=1
+        fi
+
+        if [ "$rb_rc" = "0" ]; then
+          # --- FAIRNESS -----------------------------------------------------
+          rb_correct=$((rb_correct + 1))
+          if [ "$rb_in" = "0" ]; then
+            finding "RUBRIC-ENVELOPE-EXCLUDES-CORRECT" "$rel" \
+              "${rb_stem} records rc 0 at ${rb_cnt} distinct, outside states: ${RB_STATES}. A correct model the item itself ships is not a reasonable model this envelope admits."
+          fi
+          [ -z "$rb_cmin" ] && rb_cmin="$rb_cnt"
+          [ -z "$rb_cmax" ] && rb_cmax="$rb_cnt"
+          [ "$rb_cnt" -lt "$rb_cmin" ] && rb_cmin="$rb_cnt"
+          [ "$rb_cnt" -gt "$rb_cmax" ] && rb_cmax="$rb_cnt"
+          case "$rb_seen" in
+            *" ${rb_cnt} "*) : ;;
+            *) rb_seen="${rb_seen}${rb_cnt} "; rb_power=$((rb_power + 1)) ;;
+          esac
+          continue
+        fi
+
+        # --- TEETH ---------------------------------------------------------
+        rb_wrong=$((rb_wrong + 1))
+        if [ "$rb_in" = "0" ]; then
+          rb_excluded=$((rb_excluded + 1))
+          continue
+        fi
+        if [ "$(rc_fault_class "$rb_rc")" != "$rb_conform" ]; then
+          rb_byrc=$((rb_byrc + 1))
+          continue
+        fi
+        finding "RUBRIC-ENVELOPE-ADMITS-WRONG" "$rel" \
+          "${rb_stem} records rc ${rb_rc} at ${rb_cnt} distinct, inside states: ${RB_STATES}, and rc ${rb_rc} is what a run MEETING this rubric returns. Neither the envelope nor the fault dimension excludes it."
+      done < <(verify_rows "$meta")
+
+      # Power counts the EXTRA distinct correct counts, so one correct count
+      # is power 0 and two are power 1.
+      [ "$rb_power" -gt 0 ] && rb_power=$((rb_power - 1))
+
+      if [ "$rb_correct" = "0" ] && [ "$rb_wrong" = "0" ]; then
+        unchecked "rubric-envelope" "$rel" \
+          "a ## Rubric declares states: ${RB_STATES} and the ## Verify table offers no row with both an rc and a count, so neither arm could run"
+      else
+        # --- THE FLOOR ----------------------------------------------------
+        #
+        # THIS IS THE ARM THAT CATCHES `states: 1..99999`, and it is here
+        # because neither of the other two does. The teeth arm lets the rc
+        # excuse an admitted wrong count, and on every item declaring
+        # `fault: none` the rc excuses all of them, so teeth is satisfiable
+        # by any envelope at all. Fairness only asks that correct counts be
+        # INSIDE, which a wide envelope satisfies trivially. So an envelope
+        # with no information passes both.
+        #
+        # WHAT IT ASKS is that the states dimension do SOME work: exclude at
+        # least one of the item's own recorded wrong counts. That is the
+        # 14-of-16 measurement in
+        # drawer_tla_puzzles_findings_3459dbeb085693f200068fe9 turned into a
+        # floor, and it is the per-root-floor pattern harness/lint and
+        # harness/test-spelling.sh already use, where a root that selects
+        # nothing reddens instead of passing.
+        #
+        # WHAT IT DELIBERATELY DOES NOT ASK is that the envelope be tight.
+        # Bead tla-sqym.3 widens these envelopes from reasons rather than
+        # from counts, and a reasoned envelope is SUPPOSED to be wider than
+        # three machines justify. An arm that penalized width would push the
+        # field back to the point count the whole design replaces.
+        if [ "$rb_wrong" -gt 0 ] && [ "$rb_excluded" = "0" ]; then
+          finding "RUBRIC-ENVELOPE-TOOTHLESS" "$rel" \
+            "states: ${RB_STATES} excludes none of the ${rb_wrong} wrong count(s) this item records, so the states dimension is switched off and only fault is checking anything"
+        fi
+
+        printf 'RUBRIC    %-44s power=%-3s envelope=%-13s correct=%-3s wrong=%-3s excluded=%s/%s by-rc=%s nocount=%s\n' \
+          "$rel" "$rb_power" "$RB_STATES" "$rb_correct" "$rb_wrong" \
+          "$rb_excluded" "$rb_wrong" "$rb_byrc" "$rb_nocount"
+
+        rubric_power_n=$((rubric_power_n + rb_power))
+        rubric_correct_n=$((rubric_correct_n + rb_correct))
+        rubric_wrong_n=$((rubric_wrong_n + rb_wrong))
+        rubric_excluded_n=$((rubric_excluded_n + rb_excluded))
+        rubric_by_rc_n=$((rubric_by_rc_n + rb_byrc))
+        rubric_nocount_n=$((rubric_nocount_n + rb_nocount))
+        # The `-` arm is for an item whose Verify table records wrong rows and
+        # no correct one. The envelope then rests on nothing at all, which is
+        # worse than resting on a single count, so it says so rather than
+        # printing an empty number.
+        if [ "$rb_power" = "0" ]; then
+          if [ -n "$rb_cmin" ]; then
+            rubric_zero_power="${rubric_zero_power}
+  - ${rel}  one distinct correct count, at ${rb_cmin}"
+          else
+            rubric_zero_power="${rubric_zero_power}
+  - ${rel}  NO correct count at all, so the envelope rests on nothing"
+          fi
+        fi
+      fi
+    fi
+  fi
+
   unset WAIVED COUNT_WAIVED DECLARED MODS STEMS
 done
 
@@ -2349,6 +2858,53 @@ if [ "$count_claim_n" -gt 0 ] && [ "$count_checked_n" = "0" ] \
   echo "NO COUNT WAS COMPARED although ${count_claim_n} were parsed, in a tier that runs TLC"
   echo "and served nothing from cache. Read the queue block above: most likely no job"
   echo "reached the queue at all."
+fi
+
+# ===========================================================================
+# CHECK 4'S OWN COVERAGE, AND THE NUMBER A GREEN RUN CANNOT IMPLY.
+#
+# A GREEN FAIRNESS ARM IS NOT EVIDENCE THE ENVELOPES ARE FAIR, and this block
+# is the whole reason the arm is allowed to be green at all. Every envelope in
+# the corpus today is the lowest and highest count among its item's own rc 0
+# rows, so "every correct count is inside" holds by construction. The arm
+# bites only on an envelope somebody narrowed by hand.
+#
+# SOUNDNESS POWER is what the corpus can actually discriminate: the number of
+# extra distinct counts among an item's correct models. An item shipping one
+# correct count proves nothing about fairness at all, because any envelope
+# containing that one number passes. Measured 2026-10-24 over the 16 items
+# whose META.md records counts, the whole-corpus power was 6, contributed by
+# five items and zero by the other eleven
+# (drawer_tla_puzzles_findings_3459dbeb085693f200068fe9).
+#
+# ITS SHAPE IS harness/test-spelling.sh's HABIT of naming what stays outside
+# its root list, beside the list. The count is printed rather than waived,
+# because a number here is one authored envelope away from moving and nothing
+# else would catch it.
+#
+# THE FIX FOR THE GAP IS THE RUNNER AND IT COSTS NO AUTHORING. When Frank
+# solves an item his model is a correct alternate of a representation the item
+# does not ship. `./drill done` recording the distinct count his run produced
+# would raise this number with use, and an out-of-envelope count on an item he
+# marked done is direct evidence the envelope is too tight. That signal exists
+# nowhere else in the design.
+# ===========================================================================
+echo
+if [ "$rubric_item_n" = "0" ]; then
+  echo "drill-gate.sh: check 4, the rubric. 0 of ${item_n} item(s) carry a ## Rubric, so nothing was compared."
+  echo "An item with no rubric is OUT OF SCOPE for check 4 and not a defect. Bead tla-sqym.2"
+  echo "is what extends the rubric past the two families whose META.md records counts."
+else
+  echo "drill-gate.sh: check 4, the rubric. ${rubric_item_n} of ${item_n} item(s) carry one."
+  echo "  ${rubric_correct_n} correct machine(s), ${rubric_wrong_n} wrong, ${rubric_excluded_n} of the wrong excluded by the envelope"
+  echo "  and ${rubric_by_rc_n} by the recorded rc. ${rubric_nocount_n} row(s) record no usable count and are no case either way."
+  echo "SOUNDNESS POWER ${rubric_power_n} over ${rubric_item_n} item(s) carrying a rubric."
+  if [ -n "$rubric_zero_power" ]; then
+    echo "AT POWER 0, so this run cannot tell a fair envelope from a tight one there:${rubric_zero_power}"
+  fi
+  echo "  Power counts an item's EXTRA distinct correct counts. One correct count is 0."
+  echo "  A rubric can pass every arm above and still reject a reasonable model, which is"
+  echo "  the failure the whole design exists to prevent and the one no arm here can see."
 fi
 
 # ===========================================================================
