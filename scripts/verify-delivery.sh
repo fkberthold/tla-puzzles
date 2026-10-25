@@ -79,12 +79,21 @@ PRACTICE_ROOT="${1:-$HOME/tla-practice}"
 # reported and never failed on. Wiring a gate to an exit code that merged the
 # two put a permanent red on 10 of 12 exercise chapters on 2026-10-18, every
 # one of them red because Frank had done the exercises.
+# probe       --verify, landed in tla-9bnj on 2026-10-25. Two file classes,
+#             the same split the drill channel has: the runner, the readme, the
+#             fetch script and each item's two config files are the repo's and
+#             any difference there is DRIFT, while each BRIEF.md is a page
+#             Frank may annotate and is judged against a recorded digest. It
+#             also calls the probe's own fetch script in verify mode, because
+#             the requirement modules are fetched rather than committed and a
+#             missing one is a real delivery obligation nothing else would see.
 KNOWN_CHANNELS='recall
 exercises
 drill
 completion
 problems
-practice-root'
+practice-root
+probe'
 
 # Empty since 2026-10-18, when drill gained --verify. The report below says so
 # in words rather than printing a heading over nothing: a block announcing
@@ -271,6 +280,15 @@ verify_overwriting "drill study" \
 
 verify_never_overwrite "practice-root" \
   "$REPO_ROOT/scripts/deliver-practice-root.sh" --verify "$PRACTICE_ROOT"
+
+# --- probe, the transfer measurement ---------------------------------------
+#
+# Added 2026-10-25 with bead tla-9bnj. It goes through the never-overwrite
+# helper because each BRIEF.md is a page Frank may annotate, and a conflict
+# there is his own work rather than a finding.
+
+verify_never_overwrite "probe" \
+  "$REPO_ROOT/scripts/deliver-probe.sh" --verify "$PRACTICE_ROOT/probe"
 
 # --- the report ------------------------------------------------------------
 

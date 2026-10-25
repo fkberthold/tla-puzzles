@@ -103,7 +103,15 @@ fi
 # runner. Enrolled the day after the tree appeared rather than waiting for
 # tla-9y4s.9, since the thing this gate keeps learning is that a tree collects
 # shell for a while before anybody checks the gate reads it.
-LINT_ROOTS=(scripts harness drill recall swipe completion chapter exercises sources core-language-docs)
+#
+# WIDENED 2026-10-25, bead tla-9bnj. probe/ holds the transfer probe's runner
+# and its oracle-fetch script, two shell files, and it was enrolled in the same
+# commit that created the tree rather than after the fact. Re-scanned every
+# tracked top-level tree before adding it, the way tla-d64i did: probe/ was the
+# only uncovered one, and it was already shellcheck clean. So this is the
+# narrow fix the three-for-three caution warns about, and the scan is what says
+# it is safe this time rather than a guess that it is.
+LINT_ROOTS=(scripts harness drill recall swipe completion chapter exercises sources core-language-docs probe)
 
 # root:floor. ADDED 2026-10-21, bead tla-d64i, and the reason is that this gate
 # did not have them. It had one global check further down, refusing to report
@@ -133,6 +141,11 @@ LINT_FLOORS=(
   "exercises:10"
   "sources:15"
   "core-language-docs:1"
+  # probe/ carries 2 shell files on 2026-10-25, the runner and the fetch
+  # script. The floor is 1 because it asserts the root is still walked rather
+  # than how big it has grown, and harness/probe-gate.sh separately asserts
+  # that both of those two files exist and are executable.
+  "probe:1"
 )
 
 LIST_ONLY=0

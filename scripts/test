@@ -1377,6 +1377,34 @@ SUITES=(
   # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
   # drop, unexplained.
   "slow|12.9|refinement harness|bash harness/fixtures/refinement/selftest.sh"
+  # Added 2026-10-25, bead tla-9bnj. Placed next to the refinement harness row
+  # because it drives the same instrument, against the transfer probe's items
+  # rather than against harness/fixtures/refinement.
+  #
+  # WHAT IT BUYS, which is one thing and worth the row on its own: it asserts
+  # that a correct solution to each probe item still grades REFINES. A probe
+  # item nobody can pass turns Frank's result into a reading of the harness,
+  # and he would have no way to tell. That is a false signal in the direction
+  # most likely to mislead.
+  #
+  # Standalone, three back-to-back serial runs on a green tree at load 1.67:
+  # 3.04 / 2.99 / 3.07 s. Three earlier runs against the unregistered suite,
+  # at load 0.55, read 3.08 / 3.06 / 3.04, so the registration check costs
+  # nothing measurable and the load difference did not move it either.
+  # Registered at 4.0, which clears the slowest reading by 30%, the margin the
+  # other JVM-per-case rows carry.
+  #
+  # SLOW RATHER THAN FAST, although 3.0 s would sit inside the fast tier's real
+  # top of 12.0. It starts ten JVMs, two per graded module, and the tier's
+  # defining property is that it starts none. Same call the language reference
+  # snippets row made and for the same reason.
+  #
+  # ITS GRADING HALF STANDS DOWN WHERE THE REQUIREMENT MODULES ARE NOT
+  # FETCHED, which is every CI run, because they are fetched rather than
+  # committed (bead tla-16je). The structural half still runs there and the
+  # suite prints what it did not check. On Frank's box the fetch has happened,
+  # so the box the measurement runs on gets both halves.
+  "slow|4.0|transfer probe|./harness/probe-gate.sh"
   # Re-measured 2026-09-04 for bead tla-29m4: 80.6 s in-suite. It is now the
   # slowest suite in the gate, ahead of the grader, and the whole run is about
   # 250 s. The jump is probe 6, one TLC run per --observe fixture across a
