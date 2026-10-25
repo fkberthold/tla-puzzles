@@ -13,7 +13,7 @@ one per kind of thread.
 | requirement module | `BlockingQueue.tla` |
 | requirement source | `lemmy/BlockingQueue` |
 | pinned commit | `68715979666344cbcc66fa621b27039f281bdd5c` |
-| licence | MIT |
+| license | MIT |
 | published answer | `BlockingQueueSplit.tla` |
 | grading model | `Producers = {p1, p2}`, `Consumers = {c1, c2}`, `BufCapacity = 1` |
 | abstract init | `Init`, the grader's default |

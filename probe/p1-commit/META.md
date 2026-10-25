@@ -12,7 +12,7 @@ Two-phase commit over a set of resource managers with one coordinator.
 | requirement module | `TCommit.tla` |
 | requirement source | `tlaplus/Examples`, `specifications/transaction_commit` |
 | pinned commit | `0cab2b3fbfefc6d48a9f84a432f5bb5498738d46` |
-| licence | MIT |
+| license | MIT |
 | published answer | `specifications/transaction_commit/TwoPhase.tla` |
 | grading model | `RM = {r1, r2}` |
 | abstract init | `TCInit`, not the grader's default of `Init` |

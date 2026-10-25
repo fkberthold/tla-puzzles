@@ -5,7 +5,7 @@
 # WHY THE MODULES ARE NOT IN THIS REPO
 #
 # Bead tla-16je is open about redistributing corpus specifications without a
-# licence, and bead tla-9bnj rules that the probe's requirement modules get
+# license, and bead tla-9bnj rules that the probe's requirement modules get
 # fetched at setup rather than committed. So this script ships and the files
 # do not. .gitignore names both of them by path, and harness/probe-gate.sh
 # asserts that it still does, which is the part that would otherwise rot.
