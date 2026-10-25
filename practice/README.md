@@ -77,11 +77,12 @@ impressions alone are a reliable signal about ambiguity and an unreliable one ab
 
 ## The other directories in this tree
 
-Four more channels land here, and none of them is problem machinery. Each one carries its
+Five more channels land here, and none of them is problem machinery. Each one carries its
 own instructions, so this section names the directory and the file to open first.
 
 - **`drill/`**: blank-page drills. Read `drill/README.md`, then run `./drill` in it.
 - **`recall/`**: typed-notation reps. Read `recall/README.md`, then run `recall/recall.sh --session`.
+- **`probe/`**: refine a published requirement. Read `probe/README.md`, then run `./probe` in it.
 - **`exercises/`**: chapter exercise sets. Each chapter's brief is `exercises/<chNN>/EXERCISES.md`.
 - **`completion/`**: fill in the missing claims. Each item's brief is `completion/<family>/<item>/PROMPT.md`.
 

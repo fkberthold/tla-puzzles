@@ -434,17 +434,19 @@ mkdir -p "$FIX/attempts/withdrawn-2026-09-04"
 mkdir -p "$FIX/released"
 : >"$FIX/problems/ORDER"
 
-# The four channels the README points at rather than explains, added for bead
-# tla-azwl. Each one gets the file the prose names as its entry point, plus one
+# The five channels the README points at rather than explains, added for bead
+# tla-azwl, and probe/ for tla-9bnj. Each one gets the file the prose names as its entry point, plus one
 # instance under the chapter and item placeholders, so the glob below has
 # something to count and the fixture satisfies the README as written.
 mkdir -p "$FIX/drill"
 mkdir -p "$FIX/recall"
+mkdir -p "$FIX/probe"
 mkdir -p "$FIX/exercises/ch02"
 mkdir -p "$FIX/completion/core/01-shutters"
 : >"$FIX/drill/README.md"
 : >"$FIX/recall/README.md"
 : >"$FIX/recall/recall.sh"
+: >"$FIX/probe/README.md"
 : >"$FIX/exercises/ch02/EXERCISES.md"
 : >"$FIX/completion/core/01-shutters/PROMPT.md"
 
