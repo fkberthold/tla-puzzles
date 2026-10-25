@@ -45,3 +45,10 @@ _apalache-out/
 # and the run's flags. It is a fact about THIS box and THIS build, never
 # content, and it is worthless on any other machine.
 /.drill-gate-state
+
+# Probe requirement modules, fetched by probe/scripts/fetch-oracles.sh and
+# never committed. Bead tla-16je on redistributing corpus specs, and tla-9bnj
+# which rules that the probe fetches its oracle rather than shipping it.
+# harness/probe-gate.sh asserts these two lines are still here.
+/probe/p1-commit/TCommit.tla
+/probe/p2-queue/BlockingQueue.tla

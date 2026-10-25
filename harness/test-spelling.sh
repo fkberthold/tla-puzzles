@@ -227,7 +227,7 @@ american_for() {
 # past a gate that reads none of it is exactly how swipe/ got three waves deep.
 # The tree was called language-docs/ for its first day and renamed the same
 # day, so a search for the old name finds nothing.
-SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts practice .claude core-language-docs)
+SCAN_ROOTS=(drill completion reading recall harness exercises module-docs chapter swipe scripts practice .claude core-language-docs probe)
 
 # root:floor, measured 2026-10-14. Tracked file counts that day were
 # drill 1255, completion 101, reading 75, harness 287, exercises 378,
@@ -252,6 +252,11 @@ ROOT_FLOORS=(
   # may yet split the snippets out from under this root and the floor should
   # not be the thing that discovers it.
   "core-language-docs:10"
+  # probe/ carries 16 tracked files on 2026-10-25, the transfer probe's two
+  # items plus its runner, readme and fetch script. The floor is 10 rather
+  # than 15, because the five modules under the two verify/ directories may
+  # yet move and the floor should not be the thing that discovers it.
+  "probe:10"
 )
 
 # ---------------------------------------------------------------------------
@@ -282,6 +287,13 @@ ROOT_FLOORS=(
 #   top-level files      7     was 24; central cleared 17 on 2026-10-14
 #   corpus/              7
 #   .github/             1     verify-puzzles.yml, in a comment
+#
+# probe/ IS IN THE ROOTS, added 2026-10-25 with bead tla-9bnj in the same
+# commit that created the tree. It carries two 900-word briefs, two item
+# records and a readme, so it is reader-facing prose from its first day. The
+# rule this file keeps learning is that a tree collects prose for a while
+# before anybody checks the gate reads it, and enrolling it on arrival is the
+# cheap way not to learn it a fourth time.
 #
 # RE-SCANNED 2026-10-21 (bead tla-d64i), every tracked top-level tree, before
 # adding `core-language-docs/` above. It was the ONLY clean uncovered tree.
