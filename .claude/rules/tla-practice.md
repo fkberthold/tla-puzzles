@@ -86,6 +86,36 @@ bare-identifier conjunct is separately named in the same config.
 `grep -c ']_'` returns 755 against the parser's 725, since grep counts
 occurrences inside comments and in files with no module header.
 
+**The section 8 run, 2026-10-26.** Helper-operator facts come from a fifth
+parser pass, and it needs two things the earlier four didn't. Index every
+definition with its body span, taking the span from `==` to the next
+column-1 structural line. Then close each module's `VARIABLES` over `EXTENDS`
+and `INSTANCE` inside the repository, the way the subscript pass does, and
+close state-dependence over it too: a definition is state-dependent when its
+body reads a closed variable or calls something that does. Skip that second
+closure and a proof module looks stateless, because its variables live in the
+module it extends. That mistake put 954 of 1,211 theorems in the
+operator-property bucket against the closed pass's 727.
+
+A use count is occurrences of the name in the same module, outside the
+definition's own span. Drop tokens preceded by `!` or `.`, and tokens followed
+by `|->`. Those three are instance references, record fields and record
+constructors, and none is a call.
+
+Four of the 16 repositories had moved off their recorded tip by 2026-10-26.
+`git fetch --shallow-since` then `git checkout --detach <sha>` pins them, and
+the run was made at the recorded SHAs. `find` needs `-type f` here, since the
+`ongardie/raft.tla` clone directory matches `-name '*.tla'` and reads 667.
+
+Figures that moved against this file on re-measurement, all small and none
+amended above. Plain-tuple-body definitions read 388 against 375, of which 40
+span more than one line, and `vars` reads 187 against 181. `INSTANCE` reads
+252 occurrences in 194 modules against 250 in 190. Definitions whose body is
+`M!Spec` read 27 against 28. `THEOREM ... => M!Spec` on one line inside
+`tlaplus/Examples` reads 19 against the 15 in section 5, and none of the 19 is
+commented out. I'd want a second reader on the tuple figure before changing
+it, since my test may be stricter or looser than the original's.
+
 ## What this survey did not cover
 
 - No TLC or TLAPS run. Nothing here was executed, only read.
@@ -305,6 +335,22 @@ action, usually `\E self \in Procs : Step(self)`. Action names are verbs in
 the system's own vocabulary: `BecomeLeader`, `FlushBuffer`, `BufRcv`,
 `Gossip`.
 
+**AMENDED 2026-10-26, and the three counts above are wrong.** The section 8
+run reads **214** modules defining `Next`, not 238. Two methods agree.
+`grep -rlE '^Next[ \t]*==' --include='*.tla'` under GNU grep returns 214
+files, and the parser pass returns 214 modules. Allowing an indent moves it to
+215, and I couldn't reconstruct 238 by any reading I tried. Closing `Next`
+over `EXTENDS` and `INSTANCE` inside each repository gives 390, so that isn't
+the gap either.
+
+The shapes re-read as follows over those 214, after stripping the outer
+parentheses a PlusCal translation wraps `Next` in. **91** open as a bulleted
+`\/` list. **50** are a bare existential over an action taking a parameter. **57**
+are an inline disjunction, and 16 are neither. 66 of the 214 have an
+existential as their first arm, which is the figure closest to the 69 above.
+The two readings agree on structure and disagree on the denominator, and the
+original's ratio of 174 in 238 sits within a point of this run's 157 in 214.
+
 **What a name is expected to tell a reader.** Three things, and the corpus is
 consistent about all three.
 
@@ -523,6 +569,176 @@ says liveness checking "can't use symmetry sets" as a plain cost of the
 channel, so the project held the answer in a curated file while this section
 asked for somebody to go and find it. I would check the cheat sheets before
 the corpus next time.
+
+## 8. Helper operators
+
+**The practice**: published specs are helper-rich, and about half of the
+helpers they use get used once. The instinct that keeps a spec in one place, so
+reading the action tells you what happens, isn't what this corpus does.
+
+A helper here is an operator definition that is none of these: an obligation a
+`.cfg` names, any other name a `.cfg` names, `Init`, `Next`, `Spec` or a
+variant, `vars` or a plain tuple of names, or a definition `Next` names
+directly. 4,969 of 8,306 definitions qualify, so 59.8%. 3,871 of those carry no
+prime and no `UNCHANGED`, and that layer is what this section measures. The
+other 1,098 are sub-actions reached from a named action.
+
+Counted over the 214 modules that have a closed `VARIABLES` set and define
+`Next`:
+
+| non-action helpers | spec modules |
+|---|---|
+| 0 | 11 |
+| 1 to 2 | 47 |
+| 3 to 5 | 41 |
+| 6 to 10 | 50 |
+| 11 to 20 | 40 |
+| 21 to 40 | 18 |
+| 41 or more | 7 |
+
+Median 6, mean 9.6, maximum 88. Drop the 25 proof and library modules and the
+median holds at 6 while the mean rises to 10.1. A spec with a dozen named
+helpers sits inside the ordinary range, and one with none is 11 modules out of
+214.
+
+**Single use is the common case.** Of the 3,871 non-action helpers, 2,846 are
+referenced at least once in the module that defines them.
+
+| uses in its own module | helpers | share of the used |
+|---|---|---|
+| 0 | 1,025 | |
+| 1 | 1,424 | 50.0% |
+| 2 | 574 | 20.2% |
+| 3 | 274 | 9.6% |
+| 4 to 5 | 216 | 7.6% |
+| 6 or more | 358 | 12.6% |
+
+Narrowing to spec modules gives 765 of 1,667, so 45.9%. Narrowing again to the
+non-proof, non-library ones gives 757 of 1,533, so 49.4%. Three poolings land
+between 45.9% and 50.0%, which is why I'd treat the figure as settled. A name
+given to one expression and used in one place is how published TLA+ reads.
+
+The zero bucket runs 20% to 27% depending on the pooling, and it isn't
+evidence of dead code. Use counts here are module-internal, so a
+`CommunityModules` operator written for other modules to call reads as unused.
+Section 4 found the same shape from the other side, where 133 of 286
+obligation-named definitions aren't named by a `.cfg` in their own directory.
+
+**What TLC names, and where it stops.** Section 1 quotes the mechanism that
+settles obligations: name the conjuncts separately and TLC tells you which one
+is false. That argument doesn't reach a helper, and the boundary is sharp.
+
+Measured on TLC 2026.07.31.184830 against a four-helper fixture, two pools and
+two staff, 9 distinct states. The invariant failure names the obligation and
+not the helper the comparison sits in. With
+`EveryPoolSmall == \A p \in Pool : PoolSize(p) <= 1` the run exits 12 and
+prints `Error: Invariant EveryPoolSmall is violated by the initial state`,
+while the arithmetic that decides it is inside `PoolSize`.
+
+Relax the bound to `<= 2` and the model runs out at exit code 0, which gets
+the coverage report. Under `-coverage 1` the angle-bracketed rows are the
+top-level definitions alone: `<pools>`, `<Init>`, `<Move>`, `<Drop>` and
+`<EveryPoolSmall>`. A helper's body shows up underneath its caller as a line
+and column with a count, under no name of its own. `StaffCanLeave` is defined
+at line 10 and called from two actions. It read `line 10, col 24 to line 10,
+col 37 of module Helper: 48` twice, once under `<Move>` and once under
+`<Drop>`.
+
+Two things follow. A helper is anonymous to TLC and not invisible to it, and I
+think the per-caller counts are more use for diagnosis than one name would be.
+And a helper nothing calls draws no coverage row, so coverage won't tell you a
+definition is dead. `NeverUsed` appeared zero times in the output.
+
+**Value-returning next-state helpers are attested and rare.** The shape is an
+operator that takes a function and returns an updated one. An action then
+applies it to produce a primed value. 2,440 sites write the update inline
+instead, as `v' = [v EXCEPT ...]`, spread over 1,190 action-shaped
+definitions.
+
+Against that, 272 primed assignments have the form `v' = Op(...)` with `v` in
+the module's closed variable set. 158 name a standard-module operator, mostly
+`Append` at 86 and `Tail` at 53. 109 resolve to a non-action definition in the
+same repository, and those are the factored-out next-state functions. So about
+one site in 22 factors.
+
+The sub-shape split is lopsided. 102 of the 109 take the function as a
+parameter and read no module variable, so they compose. 7 read a variable and
+take an index. 51 distinct definitions sit behind those sites, carrying 26
+distinct names, in 25 modules across 6 of the 16 repositories.
+
+Three of them use the same two names for the same job.
+`WithMessage(m, msgs)` and `WithoutMessage(m, msgs)` appear in
+`raft.tla:106`, in etcd-io's `etcdraft.tla:164`, and in CCF's
+`Network.tla:172`. Each has a `[msgs EXCEPT ...]` body and the same comment
+above it. That's lineage and not three inventions, and the original is
+Ongardie's Raft spec.
+
+CCF composes the pair. `ccfraft.tla:400` reads
+`messages' = Network!WithoutMessage(request, Network!WithMessage(response, messages))`,
+which updates one variable by threading it through two helpers. 30 primed
+assignments in the corpus apply one non-standard operator to another's result.
+13 of those are in `kafka-tlaplus`, where `SendFunc` and `DiscardFunc` nest
+the same way.
+
+**A guard predicate takes the state or reads it, about half and half.** 268
+non-action helpers appear in a guard conjunct of an action. The test is that
+the occurrence opens the conjunct instead of sitting on the right of a primed
+assignment. 218 of them take a parameter.
+
+| guard helper reads | count | share |
+|---|---|---|
+| no variable, state comes in as an argument | 104 | 47.7% |
+| a module variable, an index comes in | 114 | 52.3% |
+
+50 take no parameter at all, and 32 of those read a variable. 95 modules hold
+at least one guard helper, and the shapes mix inside a module. 19 modules use
+the argument form alone, 20 the variable-reading form alone, and 32 use both.
+
+An even split is weak evidence for either form, which is the useful result
+here. A guard that reads the module's variable and takes an index is ordinary,
+and `ccfraft.tla:450` and `Elevator.tla:44` both do it. Passing the state in is
+equally ordinary. I read the choice as open among practitioners instead of
+settled, so neither form should draw a review comment on its own.
+
+**What practitioners state theorems about.** 1,211 statements, 880 `THEOREM`,
+325 `LEMMA` and 6 `COROLLARY`, in 176 of 673 modules.
+
+| subject | statements | share |
+|---|---|---|
+| an operator, with no spec state in the claim | 727 | 60.0% |
+| the spec, temporal or inductive | 245 | 20.2% |
+| the spec, a state predicate | 198 | 16.4% |
+| refinement, `=> M!Spec` | 23 | 1.9% |
+| another instance-qualified claim | 18 | 1.5% |
+
+So the most common subject of a theorem here is a helper operator, and by a
+wide margin. 539 of the 727 sit in modules that declare no state, which is
+`CommunityModules` and the proof modules beside it. The other 188 sit inside a
+stateful module as side claims, and they read to me as typing lemmas for the
+helpers a proof needs. `BlockingQueuePoisonApple_proofs.tla:90` is the pattern:
+`ASSUME NEW buf \in Seq(Producers \cup {Poison}) PROVE IsFiniteSet(PoisonSet(buf))`.
+
+None of that reaches TLC. The same fixture carries three false theorems,
+`THEOREM 1 = 2` among them, and TLC reports `Model checking completed. No
+error has been found.` at exit code 0. A theorem is a claim addressed to
+TLAPS, so it tests a helper for a reader who runs the prover and for nobody
+else.
+
+**Thin spots**, and there are several.
+
+The composable next-state helper rests on 25 modules and 26 names. Three of the
+`With`/`Without` sites are one spec copied forward, so the number of
+independent authors is smaller than 51 definitions suggests. The coupled
+sub-shape is 7 cases, which is not a distribution.
+
+The guard test is structural. It counts an occurrence that opens a conjunct, so
+a predicate used inside a `LET` or under a quantifier doesn't land in the 268.
+50 of those that do land take no parameter, and the 52.3% is a share of the 218
+that remain.
+
+Nothing here measures why an author factored. The use counts say a single-use
+helper is normal and say nothing about what the name bought. Section 4 hit the
+same wall on redundancy, and the corpus can't separate the cases there either.
 
 ## Sources
 
