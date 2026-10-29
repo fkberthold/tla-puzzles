@@ -7,23 +7,43 @@ in the study root governs this command, and the prohibition on naming the
 missing construct applies here hardest, because this is the command most likely
 to break it.
 
-## The gate comes first
+## The gate, and the one thing it must not gate
 
-Before you say anything about the item, check that there's an attempt here.
+Before you give a RUNG, check that there's an attempt here.
 
 An attempt is a `.tla` file in this directory, ignoring anything matching
 `*_TTrace_*` and anything ending `.old`, carrying at least one definition of
 its own. A module header with nothing under it isn't an attempt.
 
-If there's no attempt, REFUSE. Say that there's nothing here yet and that the
-hint is waiting on a module, and say nothing about the item. Do not describe
-the problem. Do not restate the prompt in different words. Do not say which
-part of TLA+ the item is about. Then stop.
+With no attempt and no question, REFUSE. Say that there's nothing here yet and
+that the hint is waiting on a module, and say nothing about the item. Do not
+describe the problem. Do not restate the prompt in different words. Do not say
+which part of TLA+ the item is about. Then stop.
+
+**With no attempt and a QUESTION, classify it before you refuse.** The ladder
+is the thing waiting on a module. A flat answer isn't a rung, so an empty
+directory says nothing about whether it's owed. Run the test below first. A
+mechanism question or a question about what the prompt MEANS gets answered in
+full, and then you say the ladder is waiting on a module. A question about what
+his rules should assert gets the refusal above.
 
 The refusal isn't pedantry. Feedback with no attempt in front of it is a
 lookup, and a lookup is what this corpus is built to replace. A failed attempt
 followed by immediate feedback beats reading the answer (Kornell, Hays and
 Bjork 2009), and the first half of that is the half this command can check.
+
+**AND THAT ARGUMENT DOES NOT REACH A QUESTION ABOUT THE PROMPT.** Retrieval
+means recalling something you learned. Reading a sentence isn't retrieval, so
+there's nothing to fail at first and the finding says nothing about it.
+Refusing to say what a requirement means doesn't produce an attempt either. It
+produces a worse one, or it sends him somewhere else to ask, which is the
+outcome this gate exists to prevent.
+
+The deadlock is the part to keep in mind. He can't write the module until he
+knows what the prompt asks, and the gate used to answer that with "write the
+module". It bites hardest on an underdetermined item, which is where a reader
+needs reading help most, and 5 of the first 10 items he attempted carried a
+prompt-side defect he found himself.
 
 ## The ladder
 
@@ -140,6 +160,17 @@ notation rather than on the problem.
 Reason: he marked it as a mechanism question in his own text. He got a rung
 plus "Explaining the general syntax would do the item's work for you", and it
 cost him an hour on one drill.
+
+**FLAT, and the gate used to swallow this whole category.** 2026-10-29, on the
+bakery. "In the test case, obviously the second batch can't be unloaded by the
+rules if no loaves have sold, do they just stay on the tray until the shelf has
+space?"
+
+Reason: it asks what the prompt means, and the prompt answers it. The tray is
+empty, baking or done, and a done batch unloads only if the shelf has room, so
+it waits there. Saying so leaves him every rule, every variable and the whole
+configuration. He got a refusal twice instead, and the second told him to write
+the module on the reading he had just said he didn't have.
 
 **LADDER.** "What am I missing in my rule?"
 
