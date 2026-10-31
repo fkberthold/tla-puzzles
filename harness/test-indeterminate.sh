@@ -150,6 +150,7 @@ DGATE="harness/drill-gate.sh"
 RGATE="harness/reading-gate.sh"
 KGATE="harness/completion-gate.sh"
 QGATE="harness/recall-gate.sh"
+REFUTE="harness/refute.sh"
 
 pass_count=0
 fail_count=0
@@ -221,7 +222,86 @@ involuntary_admissions() {
 # rcs, which is a success code carrying a skip admission, exactly what part 3
 # forbids. That block now spells the admission and names its flag
 # (drill-gate.sh:2389), and the --static-only row below is what checks it.
-REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE" "$KGATE" "$QGATE")
+#
+# refute.sh, registered 2026-10-30 by bead tla-1v24. It had been this registry's
+# only red since 2026-10-22, the day the instrument landed, and the bead that
+# filed it named the wrong paths: the "four refusal paths off exit 3" are two
+# sites, and 3 is not the reserved code. Both corrections are in the bead.
+#
+# WHAT THE CENSUS MATCHED IS NOT A SENTENCE, and that is worth knowing before
+# reading the rows. refute.sh prints no phrase in SKIP_VOCAB at all. It carries
+# a counter named SKIPPED, the vocabulary is matched case-insensitively against
+# comment-stripped SOURCE, and `skipped` is a substring of the identifier. So
+# refute.sh:272 and its three increments are what named the file, along with the
+# two lines that interpolate the counter.
+#
+# That is luck of the same kind bead tla-ocpw found, where the census reached
+# drill-gate.sh through a sentence DENYING a skip. The difference is where the
+# luck landed: here the two interpolating lines ARE the real admissions.
+#
+#   refute.sh:497  --list-machines prints "<N> runnable machine(s), <M> <text>"
+#                  and exits 0
+#   refute.sh:654  the full run prints "machines run: <N>  (<M> <text>)" and
+#                  exits 0
+#
+# <text> is "that this method cannot bind" on the manifest path and "that
+# declare no state of their own" on the ANSWER.md path. :654 is the one that
+# matters, because a full run can leave a machine out and still exit 0.
+#
+# THE TWO exit 3 SITES ARE NOT THE DEFECT. refute.sh:493 and :573 refuse out
+# loud and say what wasn't run, which is the opposite of what this suite
+# catches. They are driven below anyway, because part 6 refuses a registration
+# whose every row returns 0 and they're the paths that give refute.sh a
+# non-passing row.
+#
+# AND PART 3 CANNOT JUDGE THE TWO ROWS THAT MATTER, which is hole C in the
+# header arriving on the one instrument the census reached by accident. Neither
+# admission uses a word in SKIP_VOCAB, so involuntary_admissions() finds nothing
+# in the output and run_row's second assertion stays silent. The assert_out
+# pairs below are the whole check, each pinned to the full admission clause
+# rather than to a token, because the rc those rows declare is the rc the
+# unchanged script already returns.
+#
+# WIDENING THE VOCABULARY TO REACH THEM WOULD BE A RULING RATHER THAN A FIX.
+# The parenthetical rule says an admission naming no waiving flag is
+# involuntary and owes the reserved code, and neither line names one. So a
+# vocabulary that could see them would demand 99 from a run refute.sh:456
+# argues is a true report about the ITEM rather than a failure of the
+# instrument. I think that question is worth settling, and it isn't settled
+# here: harness/refute.sh belongs to bead tla-sqym.5, which is open and already
+# fixes two other wrong statements in that header.
+#
+# AND THE CENSUS NAMES A SECOND INSTRUMENT THIS BEAD DOES NOT CLOSE.
+# harness/probe-gate.sh landed 2026-10-25 at 41384a6 and has been unregistered
+# since, so the single FAIL line this suite prints has carried two names all
+# along and the bead that filed refute.sh read it as one. Registering refute.sh
+# shrinks that line to one name rather than clearing it.
+#
+# It is not a row away, and the reason is the interesting part. Measured on
+# 44a6fc3:
+#
+#   harness/probe-gate.sh --static   rc 0, "OK: 31 passed, 1 skipped"
+#
+# That line matches SKIP_VOCAB and names no waiving flag, so part 3 would
+# JUDGE such a row rather than stay silent on it, which is the opposite of
+# refute.sh's position above. probe-gate.sh's band is 0 and 1 with no 99
+# anywhere, and --require-oracles turns a missing oracle into an rc 1 rather
+# than into the reserved code.
+#
+# MY READ IS THAT IT IS A SUITE RATHER THAN AN INSTRUMENT, which would put it
+# under hole D with the test-*.sh files. scripts/test:1407 runs it bare as
+# "slow|4.0|transfer probe", where screen.sh and comment-gate.sh appear only
+# through a --selftest flag, and probe-gate.sh counts pass, fail and skip the
+# way a suite does. The census selects by the test-* filename prefix, and this
+# one carries a different one.
+#
+# WHAT NOT TO REACH FOR: selecting the exclusion off scripts/test's SUITES list
+# would drop screen.sh and comment-gate.sh out of the census with it, and both
+# are registered instruments with real 99 paths. So that fix opens two holes to
+# close one. A rename, or a parenthetical on probe-gate.sh's summary line, is
+# the shape I would take, and harness/probe-gate.sh is in neither this bead's
+# Files line nor this file.
+REGISTERED=("$SCREEN" "$VACUITY" "$VERDICT" "$CGATE" "$DGATE" "$RGATE" "$KGATE" "$QGATE" "$REFUTE")
 ROWS_RUN=()
 ROWS_NONPASS=()
 for i in "${!REGISTERED[@]}"; do
@@ -467,8 +547,14 @@ fi
 # detector that flags everything satisfies the positive control, and a
 # detector that flags nothing satisfies the negative one. Only the pair says
 # the thing discriminates.
-PLANT=$(mktemp -d -t tla_census.XXXXXX)
-trap 'rm -rf "$PLANT"' EXIT
+# ONE TEMP ROOT, ONE TRAP. A second `trap ... EXIT` REPLACES this one rather
+# than adding to it, so the refute.sh fixture part 3 builds can't carry a trap
+# of its own without orphaning the census plant. Both hang off one root and one
+# trap takes both away.
+TMPROOT=$(mktemp -d -t tla_indet.XXXXXX)
+trap 'rm -rf "$TMPROOT"' EXIT
+PLANT="$TMPROOT/census"
+mkdir -p "$PLANT"
 
 # The single quotes are the point: this printf writes the SOURCE TEXT of a
 # planted shell script, so `$answer` has to reach the file unexpanded. The
@@ -718,6 +804,208 @@ assert_out "the static-only admission and its waiving flag are on one line" \
   "were skipped (--static-only)"
 assert_out "the static-only run still states what it did not measure" \
   "whose grading was not measured"
+
+# --- refute.sh: the two exit-0 admissions, and the two refusals -------------
+#
+# Bead tla-1v24. The registry block above carries the argument: the admissions
+# are the rc 0 paths rather than the rc 3 ones, and on the rc 0 rows the
+# assert_out line is the whole check because run_row's rc half passes against
+# the unchanged script.
+#
+# A FIXTURE AND NOT THE SHIPPED CORPUS, which is the opposite call from the
+# drill and reading rows above and for a reason they don't have. The shipped
+# corpus can't be made to leave a machine out on demand: how many machines an
+# item ships is a property of the item, and harness/test-refute.sh part 2b
+# already pins the whole reach at 48 of 64. The admission this suite is about
+# is the SKIPPED > 0 case, so a fixture is the only way to reach it on purpose.
+# REFUTE_DRILL_ROOT is the documented hook, and refute.sh:124-126 says
+# harness/test-refute.sh was its only caller.
+#
+# FIVE ITEMS, each carrying one row's subject.
+#
+#   core/00-left-out      one bindable machine, one declaring no state
+#   core/00-clean         one bindable machine and nothing left out
+#   core/00-nothing       nothing bindable at all, the ANSWER.md dialect
+#   temporal/00-left-out  the manifest dialect of core/00-left-out
+#   temporal/00-nothing   nothing bindable at all, the manifest dialect
+#
+# Two TLC runs in all. Each full-run row drives one obligation against one
+# machine, and the obligation refutes, so the manifest row never reaches the
+# vacuity pairing that would cost three more.
+#
+# COST, measured 2026-10-30 on this box. The fixture build plus all eight
+# invocations read 1.17, 1.23 and 1.48 s over three passes. The suite read 51.5
+# and 52.8 s without this block and 53.3 and 55.0 s with it, against a
+# scripts/test budget of 50.2.
+#
+# SO THE BUDGET WAS ALREADY OVER BEFORE THIS BLOCK, by about 2 s. Whoever
+# re-bases it should take the baseline as well rather than charging the whole
+# gap here. A fourth reading came back 71.2 s and is dropped as box noise, on
+# the grounds that two later passes over the same file read 53.3 and 55.0.
+RFX="$TMPROOT/droot"
+
+# A machine: three states, its own VARIABLES, and deadlock checking off in its
+# own .cfg. The ANSWER.md path reads CHECK_DEADLOCK off the machine's config
+# and leaves it absent otherwise, so without that line TLC's default is on and
+# the cell code could come back 11 from a terminal state rather than from the
+# obligation.
+mk_machine() {
+  {
+    printf '%s\n' "---- MODULE $2 ----"
+    printf '%s\n' "EXTENDS Naturals"
+    printf '%s\n' "VARIABLES s"
+    printf '%s\n' "vars == << s >>"
+    printf '%s\n' "Init == s = 0"
+    printf '%s\n' "Next == s < 2 /\\ s' = s + 1"
+    printf '%s\n' "Spec == Init /\\ [][Next]_vars"
+    printf '%s\n' "===="
+  } >"$1/$2.tla"
+  printf 'SPECIFICATION Spec\nCHECK_DEADLOCK FALSE\n' >"$1/$2.cfg"
+}
+
+# A machine refute.sh counts rather than runs, which on the ANSWER.md path
+# means one declaring no VARIABLES of its own (refute.sh:464).
+#
+# IT NEEDS THE .cfg AND THAT IS NOT COSMETIC. A module with no config of the
+# same name is dropped at refute.sh:449 WITHOUT being counted, so a fixture
+# that left the file out would read SKIPPED 0 and every row below would pass
+# over an admission that never printed.
+mk_stateless() {
+  printf -- '---- MODULE %s ----\nEXTENDS Naturals\n====\n' "$2" >"$1/$2.tla"
+  printf 'SPECIFICATION Spec\n' >"$1/$2.cfg"
+}
+
+mkdir -p "$RFX/core/00-left-out/verify" "$RFX/core/00-clean/verify" \
+  "$RFX/core/00-nothing/verify" "$RFX/temporal/00-left-out/verify" \
+  "$RFX/temporal/00-nothing/verify"
+
+# THE BARE-NAME DIALECT, which is the control-state family's spelling and one
+# of the three refute.sh:311-316 reads. The backticked one is commoner in the
+# corpus and shellcheck reads a literal backtick in a printf format as a
+# command substitution, so writing it here would buy three SC2016 suppressions
+# for nothing. Which dialects parse is harness/test-refute.sh part 2's
+# question, and it pins all three.
+mk_machine "$RFX/core/00-left-out/verify" Bound
+mk_stateless "$RFX/core/00-left-out/verify" Unbound
+printf '| Bound | reference | rc 0 |\n| Unbound | neighbor | rc 0 |\n' \
+  >"$RFX/core/00-left-out/ANSWER.md"
+
+mk_machine "$RFX/core/00-clean/verify" Solo
+printf '| Solo | reference | rc 0 |\n' >"$RFX/core/00-clean/ANSWER.md"
+
+mk_stateless "$RFX/core/00-nothing/verify" Lonely
+printf '| Lonely | reference | rc 0 |\n' >"$RFX/core/00-nothing/ANSWER.md"
+
+# The manifest dialect. A row whose module has no file in verify/ is the
+# manifest path's own floor (refute.sh:411), so NoSuchBox is what gets counted
+# and Box is what gets run.
+mk_machine "$RFX/temporal/00-left-out/verify" Box
+printf 'Box\n' >"$RFX/temporal/00-left-out/verify/MODULE"
+{
+  printf 'good\t-\tSPECIFICATION Spec\n'
+  printf 'gone\t-\t\\* MODULE: NoSuchBox ; SPECIFICATION Spec\n'
+} >"$RFX/temporal/00-left-out/verify/MATRIX"
+
+printf 'Gone\n' >"$RFX/temporal/00-nothing/verify/MODULE"
+printf 'only\t-\tSPECIFICATION Spec\n' >"$RFX/temporal/00-nothing/verify/MATRIX"
+
+# The attempt. One INVARIANT over the machines' one variable, violated at the
+# second state, so every cell comes back 12 and no cell is a 0 the manifest
+# path would pair with harness/vacuity.sh.
+RATT="$TMPROOT/refute-attempt"
+RSIL="$TMPROOT/refute-silent"
+mkdir -p "$RATT" "$RSIL"
+printf -- '---- MODULE Att ----\nEXTENDS Naturals\nVARIABLES s\nStaysAtZero == s = 0\n====\n' \
+  >"$RATT/Att.tla"
+printf 'INVARIANT StaysAtZero\n' >"$RATT/Att.cfg"
+printf -- '---- MODULE Silent ----\nEXTENDS Naturals\nVARIABLES s\n====\n' \
+  >"$RSIL/Silent.tla"
+printf 'SPECIFICATION Spec\n' >"$RSIL/Silent.cfg"
+
+# ADMISSION 1, refute.sh:497. The rc here is worth nothing on its own, since
+# the unchanged script already exits 0 on this path, so the clause below is
+# what the row actually asserts.
+run_row "$REFUTE" "refute.sh: --list-machines exits 0 over a machine it left out" \
+  0 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" --list-machines --item core/00-left-out
+assert_out "the listing says how many it left out, and why" \
+  "1 runnable machine(s), 1 that declare no state of their own"
+
+# THE COUNT IS READ RATHER THAN PRINTED, which the row above can't establish on
+# its own. Same instrument and same flag over an item shipping nothing
+# unbindable, and the count reads 0.
+run_row "$REFUTE" "refute.sh: --list-machines over a clean item leaves nothing out" \
+  0 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" --list-machines --item core/00-clean
+assert_out "a clean item reports nothing left out" \
+  "1 runnable machine(s), 0 that declare no state of their own"
+assert_not_out "and the left-out item's count is nowhere in it" \
+  "1 that declare no state of their own"
+
+# ADMISSION 2, refute.sh:654, and the one that matters. A FULL run can leave a
+# machine out and still exit 0, which is a success code carrying a skip
+# admission and is what part 3 forbids everywhere the vocabulary can see it.
+run_row "$REFUTE" "refute.sh: a full run exits 0 over a machine it left out" \
+  0 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" \
+  --attempt "$RATT" --item core/00-left-out
+assert_out "the full run's header says how many it left out, and why" \
+  "machines run: 1  (1 that declare no state of their own)"
+
+# BOTH DIALECTS OF BOTH LINES. The text after the count is chosen at
+# refute.sh:483-488 by which path enumerated the machines, so two rows over the
+# ANSWER.md wording would leave half of each line undriven.
+run_row "$REFUTE" "refute.sh: --list-machines on the manifest path admits the same way" \
+  0 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" --list-machines --item temporal/00-left-out
+assert_out "the manifest listing names its own reason for leaving one out" \
+  "1 runnable machine(s), 1 that this method cannot bind"
+
+run_row "$REFUTE" "refute.sh: a full manifest run exits 0 over a machine it left out" \
+  0 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" \
+  --attempt "$RATT" --item temporal/00-left-out
+assert_out "the manifest run's header names its own reason too" \
+  "machines run: 1  (1 that this method cannot bind)"
+# AND THE CELL COUNTS, which pin the cost rather than the verdict. A 0 cell on
+# this path sends refute.sh into harness/vacuity.sh for three more TLC runs, so
+# a change that turned this obligation silent would slow the suite with nothing
+# to show for it.
+assert_out "the obligation refutes, so the vacuity pairing is never asked" \
+  "1 refute a machine, 0 are silent"
+
+# THE TWO REFUSALS, refute.sh:493 and :573. Neither is the defect: both are
+# non-zero codes that say out loud what wasn't run. They are driven because
+# part 6 refuses a registration whose every row returns 0, and because :493
+# carries two different texts for the two enumeration paths.
+run_row "$REFUTE" "refute.sh: an ANSWER.md table with nothing bindable refuses" \
+  3 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" \
+  --attempt "$RATT" --item core/00-nothing
+assert_out "the refusal names the source it read" \
+  "lists no runnable machine in its ANSWER.md rc table"
+assert_out "and it puts the finding on the item" \
+  "Nothing was run. This is a fact about the item, not about the attempt."
+
+run_row "$REFUTE" "refute.sh: a manifest with nothing bindable refuses too" \
+  3 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" \
+  --attempt "$RATT" --item temporal/00-nothing
+assert_out "the manifest refusal names verify/MATRIX instead" \
+  "lists no runnable machine in its verify/MATRIX"
+
+# THE SECOND SITE IS A FACT ABOUT THE ATTEMPT AND NOT ABOUT THE ITEM, which is
+# why refute.sh:112-115 doesn't describe it. That table gives one reason for 3
+# and this is the other one. The header correction belongs to bead tla-sqym.5,
+# which owns the file.
+run_row "$REFUTE" "refute.sh: an attempt declaring no obligation refuses" \
+  3 -- \
+  env REFUTE_DRILL_ROOT="$RFX" bash "$REFUTE" \
+  --attempt "$RSIL" --item core/00-left-out
+assert_out "the refusal names what the config is missing" \
+  "names no INVARIANT and no PROPERTY"
+assert_out "and says there is nothing to run against the machines" \
+  "There is nothing to run against the item's machines."
 
 # --- comment-gate.sh: the instrument that already got this right ------------
 #
