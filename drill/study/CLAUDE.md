@@ -143,11 +143,16 @@ naming a single one of Frank's variables. Each item declares what a reasonable
 model of it does, and the checker compares his run against that declaration.
 
 Nothing in a rubric names a construct, a variable or a type. That is the whole
-reason it exists. `harness/refute.sh` needs his names to match because it pairs
-his module against the item's, so it can only work on the items where the
-names happen to coincide. A rubric judges his run on its own terms, so every
+reason it exists. A rubric judges his run on its own terms, so every
 representation he might reach for stays valid and the binding question stops
 being asked.
+
+The channel that did ask it is gone. It paired his module against the item's
+and matched the two by variable name, so it measured something only where his
+names happened to match the reference's. On a blank-page drill, choosing the
+representation is the exercise, so that left him writing to an instrument or
+reading the names off the prompt. Frank cleared it on 2026-11-02 and the
+rubric is what replaces it.
 
 ### The four fields
 
@@ -218,7 +223,8 @@ intent it can't see.
 The checker looks in `PROMPT.md` first, then in the item's `META.md` under
 `$DRILL_REPO_ROOT`. It prints `rubric=prompt`, `rubric=meta` or `rubric=none`
 so you can tell which. An unset `DRILL_REPO_ROOT` is `rubric=none` and not a
-failure, the same way a missing refutation table is.
+failure, the same way a prompt that publishes no count is `count=NONE` and not
+a failure.
 
 **The checker reads `META.md`. You still do not.** The first prohibition in this
 file stands exactly where it was. Take the three verdicts off the checker's

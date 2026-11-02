@@ -1314,34 +1314,18 @@ SUITES=(
   # figure does not follow from it. Nothing gates the claim, which is why it
   # drifted. Filed rather than adjusted here.
   "slow|58.0|language reference snippets|bash core-language-docs/snippets/run-all.sh"
-  # Bead tla-0i0l. Slow because it starts a JVM per obligation per machine,
-  # 24 TLC runs for the triage item alone. Measured 15.7 s standalone on a
-  # quiet box, registered at 20.0 for the headroom a JVM-per-case suite wants.
-  #
-  # PARTS 3 AND 4 SKIP WHERE NO ATTEMPT HAS BEEN DELIVERED, which is every box
-  # but Frank's, CI included. That is the same posture verify-delivery.sh takes
-  # toward an absent study root: a check that cannot apply reports that it did
-  # not run rather than reporting green. Parts 1, 2 and 2b read only the repo
-  # and run everywhere, and 2b is the one that pins the instrument's reach at
-  # 48 of 64 items.
-  #
-  # RE-BASED 2026-10-22, bead tla-6hrt, and the number is DELIBERATELY
-  # CONSERVATIVE rather than measured the way this registry asks for. The
-  # convention here is worst-of-three on a quiet box. The box was not quiet, a
-  # sibling bead ran throughout. Four serial readings, three from the bead's
-  # author and one from central: 21.86, 23.90, 22.62 and 21.70 s against the
-  # old 20.0.
-  #
-  # So 30.0 is headroom over a contended worst case rather than a budget, and
-  # it is high on purpose. The alternative was leaving 20.0 and letting every
-  # full-gate run report an overrun that is not news, which is the noise this
-  # project keeps removing from its gates. A conservative budget can miss a
-  # regression. A permanently red one gets ignored, and that is worse.
+  # THREE ROWS WERE RE-BASED TOGETHER AND THIS BLOCK IS ABOUT ALL THREE, which
+  # is why it sits between rows rather than above one. Two of them are the
+  # language reference snippets row above and the pipefail row in the fast
+  # tier. The third was the refutation instrument, and bead tla-6g98 removed
+  # that row with its instrument on 2026-11-02, so the table below names a row
+  # this registry no longer carries. The reading stays as the measurement it
+  # was.
   #
   # tla-6ont DONE 2026-10-22, one measurement pass over all three rows that
-  # moved, which is what this paragraph asked for. Box verified quiet before
-  # AND after each set: 0 JVMs, nothing above 9% CPU, no whisper-cli. Slowest
-  # of three back-to-back serial runs, this project's standard:
+  # moved. Box verified quiet before AND after each set: 0 JVMs, nothing above
+  # 9% CPU, no whisper-cli. Slowest of three back-to-back serial runs, this
+  # project's standard:
   #
   #   language reference snippets   53 / 54 / 53 s   3.2 -> 58.0
   #   refutation instrument         19 / 20 / 19 s   30.0 -> 24.0
@@ -1353,12 +1337,6 @@ SUITES=(
   # cost is JVM startup rather than any slow model. 58.0 is about 7% over the
   # slowest reading.
   #
-  # THE REFUTATION ROW COMES DOWN, which is the direction nobody re-measures.
-  # I set 30.0 earlier the same day and said in this file that it was
-  # deliberately conservative. It measures 20, so the conservatism was real
-  # rather than hidden slack, and 24.0 keeps a margin without pretending the
-  # suite is slower than it is.
-  #
   # PIPEFAIL IS AN ATTRIBUTED MOVE, not a regression. tla-l1en widened
   # SCAN_ROOTS from 4 roots to 11 and the suite now reads 157 tracked shell
   # files, so more work costs more time. It STAYS IN THE FAST TIER on purpose:
@@ -1367,12 +1345,6 @@ SUITES=(
   # correctness check out of the tier people run while iterating. I moved it to
   # slow first and put it back, which is recorded because the 12.0 s swipe row
   # already sits in fast and the precedent is what settled it.
-  #
-  # Why the suite grew: the temporal family came into reach, 8 items whose rc 0
-  # cells each need a vacuity probe, and probes 1 and 2 of harness/vacuity.sh
-  # are not waivable, so reaching probe 4 costs three TLC runs. The pairing is
-  # lazy per machine, so only a cell that comes back 0 pays it.
-  "slow|24.0|refutation instrument|bash harness/test-refute.sh"
   # Re-measured 2026-10-13 (bead tla-0eis.3), in-suite over three back-to-back
   # full gate runs: 12.3 / 12.9 / 12.9 s, so 12.9 and down from 16.8. A 23%
   # drop, unexplained.
