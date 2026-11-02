@@ -110,11 +110,15 @@
 #   DRILL_STUDY_ROOT    default $HOME/Study/tla-drills
 #   DRILL_REPO_ROOT     default unset. The rubric's only other home
 #
-# DRILL_REPO_ROOT UNSET IS `rubric=none` AND NOT A FAILURE, which is the same
-# posture drill/drill.sh takes about its refutation table (drill/drill.sh:
-# 345-360). An unset root keeps this script working on a box holding nothing
-# but the practice tree, and the richer report is opt-in on the box that has
-# the repo.
+# DRILL_REPO_ROOT UNSET IS `rubric=none` AND NOT A FAILURE. An unset root
+# keeps this script working on a box holding nothing but the practice tree,
+# and the richer report is opt-in on the box that has the repo.
+#
+# THIS IS NOW THE ONLY PLACE ON THE DRILL PATH THAT READS THAT VARIABLE.
+# drill/drill.sh read it too, for the refutation table bead tla-6g98 deleted
+# on 2026-11-02, and the posture here was written as a match for that one. It
+# stands on its own argument above, and a reader who sets the variable still
+# reaches the rubric through this script.
 #
 # ---------------------------------------------------------------------------
 # THE RUBRIC, AND THE THREE DIMENSIONS THAT NEVER MOVE THE EXIT CODE
