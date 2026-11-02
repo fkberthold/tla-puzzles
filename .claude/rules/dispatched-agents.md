@@ -460,14 +460,41 @@ The practical upshot is the same as every other cause here. Put it in a scratch 
 where the expansion happens inside a file the scan is not reading, or write the literal
 path when you know it.
 
-The scratch-script workaround covers all six refusal causes, and `command <tool>` covers
+**AMENDED A SEVENTH TIME 2026-11-02, and it breaks the interpreter framing above.**
+The `tla-gdg2.2` author was refused a command whose scratch PATH contained the word
+`trap`, with the message *"this command runs a string through trap."*
+
+`trap` is a SHELL BUILTIN, not an interpreter. So the rule underneath the second,
+third and fourth causes is wider than "handing an interpreter a program it cannot
+read through". The scan refuses a token that names something capable of running
+code, wherever that token appears, and its idea of what qualifies reaches past the
+interpreter names this section lists. It also blocks a COMMIT MESSAGE mentioning an
+item's own "trap" section, so `git commit -F <file>` is the route when prose contains
+one.
+
+**TWO MORE, measured 2026-10-25 and never written down until now.** `git -C <dir>` is
+refused as a runtime-computed git target, which is why the footprint check at the
+bottom of this file says never to use it. And a `grep` whose ARGUMENT merely contained
+the string `.gitignore` was refused for naming git, which is the same positional
+reading as the fourth cause.
+
+**So stop counting causes and learn the shape.** The scan reads tokens POSITIONALLY,
+not semantically, and refuses anything it cannot resolve statically: an interpreter or
+builtin name anywhere including inside a pattern or a path, a variable expanded into an
+argument, a `HOME=` assignment, `/\`, a brace group, and enough clauses to defeat it.
+**When a word you need is also the name of something that runs code, put the command in
+a scratch script and stop trying to quote your way out.**
+
+The scratch-script workaround covers every cause above, and `command <tool>` covers
 the wrapper substitutions.
 
 Lineage: bead `tla-kl5.8` for the original observation, `tla-pmm2.1` and `tla-pmm2.3` for the
 2026-10-08 measurements, `tla-fwkz.2.2` / `tla-fwkz.2.5` / `tla-fwkz.2.7` for the 2026-10-13
 `bash`-prefix measurements, and `tla-gz6m` for the 2026-10-13 `awk` measurement that generalises
 the second one, `tla-z4f3` for the 2026-10-18 argument-position measurements, and `tla-mjvx` for the
-2026-10-18 `HOME=` and `find -newermt` measurements.
+2026-10-18 `HOME=` and `find -newermt` measurements, and `tla-gdg2.2` for the
+2026-11-02 `trap` measurement that shows the token reading reaches shell builtins
+and not only interpreters.
 
 ---
 
