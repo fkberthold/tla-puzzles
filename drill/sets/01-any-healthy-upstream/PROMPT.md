@@ -18,7 +18,9 @@ Two rules the balancer must keep:
 Someone on the team has read this description and says: "With the balancer
 as described, every request in flight at any moment is on the same upstream."
 
-Write the specification from an empty file, with the two rules and the claim
-as three named checks, and run it with three upstreams and a pool of three
-ids. The answer says what TLC should report for the claim. A correct model
+Write the specification from an empty file, with both rules as named checks,
+and run it with three upstreams and a pool of three ids. A correct model
 finds 398 distinct states.
+
+Then add the colleague's claim as a third check, run it again, and read what
+TLC reports. The answer says what TLC should report for the claim.

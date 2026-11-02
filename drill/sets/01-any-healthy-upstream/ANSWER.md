@@ -61,8 +61,11 @@ INVARIANTS
   TypeOK
   OnlyHealthy
   NoDoubleBooking
-  Claim
 ```
+
+That config is the first run, the two rules alone, and it finds 398 distinct
+states. `Claim` is defined in the module and goes unchecked until the second
+run, which is the next section.
 
 The health list is drawn from the powerset in `Init`, and the empty draw
 is thrown out. In-flight requests are pairs, id and upstream. `Forward`
@@ -71,6 +74,16 @@ whole item: "any upstream on the list" is one branch per upstream, and TLC
 follows every branch.
 
 ## What TLC should report for the claim
+
+Add `Claim` to the invariant list and run the same module again:
+
+```
+INVARIANTS
+  TypeOK
+  OnlyHealthy
+  NoDoubleBooking
+  Claim
+```
 
 `Invariant Claim is violated.` with a trace of five states: two arrivals, a
 forward to one upstream, a forward to another. The claim is false, and the
@@ -95,9 +108,9 @@ every forward in the whole run lands on the same upstream. The claim holds.
 TLC reports nothing. The run finds 189 distinct states instead of 398, and
 the colleague is confirmed by a model that can't disagree with him.
 
-Two signals tell the two apart, and the prompt carries both. The count is
-off by half. The claim comes back true when the description says it can't
-be.
+Two signals tell the two apart, and the prompt carries both. The first run
+is off by half, 189 against 398, before the claim has gone in at all. Then
+the claim comes back true when the description says it can't be.
 
 Where the keyword does belong is a lookup the state has already settled.
 "The upstream a request is on" is one of those, since each in-flight id is
@@ -157,10 +170,14 @@ the connection will never meet the trap. The item is for the reader whose
 instinct for "pick one" is the keyword that picks a value, and the count
 and the claim are there so that reader finds out on his own.
 
-The honest caveat is about the claim. The prompt doesn't say it's false.
-A reader who writes the trap sees the claim confirmed and 189 states, and
-only the count tells him something is wrong, because he has no reason yet
-to doubt the colleague. I think withholding the verdict is right, since
-saying "TLC should refute this" hands over the shape of `Forward`. But it
-means a reader who trusts the colleague can hand in the trap and feel
-done, and the review has to catch it from the count.
+The honest caveat is about the claim. The prompt doesn't say it's false. A
+reader who writes the trap sees the claim confirmed, and he has no reason
+yet to doubt the colleague. I think withholding the verdict is right, since
+saying "TLC should refute this" hands over the shape of `Forward`.
+
+So the count on the first run carries the weight instead, and that's why
+the prompt asks for the two rules alone before the claim goes in. The trap
+reads 189 against a published 398, and the gap is there before the
+colleague is in the run at all. Putting the claim in that first run would
+cost it. A correct model stops at 190 and the trap runs to 189, one apart,
+and I don't think a reader tells those two apart by eye.
