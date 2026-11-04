@@ -7,23 +7,30 @@
 # this suite is that instrument's controls: it proves the instrument still
 # bites, in both directions, against fixtures built to be caught.
 #
-# Read harness/drill-gate.sh's header for what each of the three checks does
-# and — the half that matters more — what each one deliberately does not.
-# This file does not restate those boundaries; it would drift from them.
+# Read harness/drill-gate.sh's header for what each of its five checks does
+# and, the half that matters more, what each one deliberately does not.
+# This file does not restate those boundaries. It would drift from them.
 #
-# TWO OF THE THREE CHECKS GATE. ONE ONLY REPORTS.
+# FOUR OF THE FIVE CHECKS GATE. ONE ONLY REPORTS.
 #
-#   check 1, TELEGRAPH    — fails. Whether an ITEM is honest is a property of
+#   check 1, TELEGRAPH      FAILS. Whether an ITEM is honest is a property of
 #                           the item.
-#   check 2, VERIFICATION — fails. Whether an item's recorded verdict
+#   check 2, VERIFICATION   FAILS. Whether an item's recorded verdict
 #                           REPRODUCES is a property of the item.
-#   check 3, COVERAGE     — PRINTS, and never fails. Whether the CORPUS covers
+#   check 3, COVERAGE       PRINTS, and never fails. Whether the CORPUS covers
 #                           the inventory is a property of a set that is still
 #                           being written, and gating it would make the set's
 #                           shape serve the gate. Part 1d is the pin that
 #                           keeps the failing arm removed.
+#   check 4, RUBRIC         FAILS. An envelope nothing tests is a field that
+#                           reads as a check while checking nothing.
+#   check 5, VOICE          FAILS. A drill prompt has no first-person
+#                           narrator, and 6 real items are waived by name
+#                           until their rewrites land. Part 1j drives the
+#                           waiver's floor, which is the half that keeps the
+#                           waiver from being an off switch.
 #
-# A FOURTH CHECK LIVES HERE AND NOT IN THE GATE: the delivery shape, which
+# ONE MORE CHECK LIVES HERE AND NOT IN THE GATE: the delivery shape, which
 # asserts that every item's top-level entry set is exactly ANSWER.md, META.md,
 # PROMPT.md and verify. Do not go looking for it in harness/drill-gate.sh. It
 # guards scripts/deliver-drill.sh's one-name manifest rather than anything
@@ -674,6 +681,33 @@ real_tree_arm() {
       "AT POWER 0, so this run cannot tell a fair envelope from a tight one there"
   has "real tree, check 4: and says a green run can still reject a reasonable model" \
       "still reject a reasonable model"
+
+  # CHECK 5 OVER THE REAL TREE, AND THE NUMBERS ARE THE ASSERTION. The 6
+  # waived items are the whole reason the gate is green on this clause, so a
+  # row asserting only the absence of a finding would pass just as happily on
+  # a check that had stopped running. These three numbers cannot all hold by
+  # accident: 64 scanned, 58 clean and 6 waived account for every item, and
+  # the split is the measurement bead tla-5iy3 rests on.
+  has "real tree, check 5: every prompt is scanned and the reach is stated" \
+      "VOICE REACH: 64 prompt(s) scanned, 58 with no first-person"
+  has "real tree, check 5: and 6 carry a narrator under a named waiver" \
+      "singular and 6 carrying one under a named waiver"
+  hasnt "real tree, check 5: so no prompt carries an unwaived narrator" \
+        "VOICE-FIRST-PERSON"
+
+  # EVERY WAIVED PATH STILL RESOLVES. This is the floor, asserted against the
+  # corpus rather than a fixture, because the failure it catches is somebody
+  # renaming a real item and leaving its row behind.
+  hasnt "real tree, check 5: no waiver names a path that is gone" "VOICE-WAIVER-STALE"
+  hasnt "real tree, check 5: and the scan read a non-zero number of prompts" "VOICE-NO-REACH"
+
+  # THE SIX WAIVED ITEMS ARE NAMED, with the bead that clears each. A waiver
+  # list nobody can read from the log is an exemption, which is the same
+  # contract part 1f holds the telegraph waiver to.
+  has "real tree, check 5: the heaviest waived item is echoed with its count" \
+      "state-space/03-view-hides-the-bug            voice:tla-5iy3 5 first-person occurrence(s)"
+  has "real tree, check 5: and 01 names both beads that must land together" \
+      "voice:tla-gdg2.6 + tla-hz6y"
 
   # THE MODE BLOCK IS PART OF THE CONTRACT, not decoration, so it is asserted
   # and not merely echoed. A tier that drops 237 TLC runs and then prints
@@ -1674,6 +1708,145 @@ hasnt "no rubric: no finding" "RUBRIC-"
 has   "no rubric: and the run says so rather than staying silent" \
       "0 of 1 item(s) carry a ## Rubric"
 has   "no rubric: naming what extends the corpus" "OUT OF SCOPE for check 4"
+
+# ===========================================================================
+echo
+echo "== part 1j: check 5, the narrator and the waiver that has to have a floor =="
+# ===========================================================================
+# A drill prompt has no first-person singular. Measured over the 64 real
+# prompts on 2026-11-04: 14 occurrences in 6 prompts and every one in
+# `state-space`, against 0 in the other 58. So this is one family's local
+# habit rather than a house style, and the rows below drive both halves.
+#
+# THE WAIVER IS THE HALF THAT NEEDS THE MOST ROWS. 6 items violate the rule
+# today and their rewrites are separate beads, so the gate ships green with
+# each violator waived by name. That is a correct design and also an off
+# switch if nothing holds it, which is what the stale and reach rows are for.
+#
+# THE WAIVER LIST LIVES IN THE GATE, not in META.md like the other two
+# waivers. So these fixtures drive it by NAMING A FAMILY, which is how the
+# gate scopes it. A fixture under `liveness` is unwaived whatever it says, and
+# one under `state-space` resolves against the list.
+R_VOICE="${TMP}/voice"
+mkdir -p "$R_VOICE"
+mk_inventory "$R_VOICE"
+mk_item "$R_VOICE" "liveness/01-served"
+
+# The baseline prompt from mk_item has no narrator, so the clean case first.
+run_gate --static-only "$R_VOICE"
+rc_is "voice: the baseline prompt has no narrator, rc 0" 0
+hasnt "voice: and no finding" "VOICE-FIRST-PERSON"
+has   "voice: the reach is stated rather than inferred from silence" \
+      "VOICE REACH: 1 prompt(s) scanned, 1 with no first-person"
+
+# AN UNWAIVED FAMILY IS CAUGHT. `liveness` is on no waiver row, so a narrator
+# here is a finding however the state-space list reads.
+P_VOICE="${R_VOICE}/liveness/01-served/PROMPT.md"
+printf '\nI ran this twice and my second count disagreed.\n' >>"$P_VOICE"
+run_gate --static-only "$R_VOICE"
+rc_is "voice: a narrator in an unwaived family reddens" 1
+has   "voice: the finding names the item" \
+      "VOICE-FIRST-PERSON           liveness/01-served"
+has   "voice: and counts the occurrences, so a rewriter knows how many" \
+      "carries 2 first-person singular occurrence(s)"
+has   "voice: and points at the contract rather than restating it" \
+      "see drill/README.md"
+
+# THE CONTRACTIONS COME FREE, and that is worth a row rather than a comment.
+# An apostrophe is not a word character, so `\<I\>` matches `I'd` and the
+# curly-apostrophe form alike. A pattern listing `I'm` and `I'd` separately
+# would look more careful and cover strictly less.
+grep -v 'I ran this twice' "$P_VOICE" >"${P_VOICE}.new" && mv "${P_VOICE}.new" "$P_VOICE"
+printf "\nThe run is quick at any size I'd bother to try.\n" >>"$P_VOICE"
+run_gate --static-only "$R_VOICE"
+has "voice: a contraction is caught by the bare pronoun" \
+    "carries 1 first-person singular occurrence(s)"
+
+# THE WORDS THAT MUST NOT FIRE. `Invariant`, `Init`, `INSTANCE`, `symmetry`,
+# `memory` and `summary` all contain a token letter-for-letter, and a naive
+# match for `I` or `me` hits every one of them. This is the row that keeps the
+# check from firing on ordinary TLA+ prose.
+grep -v "I'd bother" "$P_VOICE" >"${P_VOICE}.new" && mv "${P_VOICE}.new" "$P_VOICE"
+printf '\nThe Invariant is an Init-time INSTANCE over a symmetry set, from memory, in summary.\n' >>"$P_VOICE"
+run_gate --static-only "$R_VOICE"
+rc_is "voice: TLA+ prose holding Invariant, Init, INSTANCE, symmetry, memory and summary stays rc 0" 0
+hasnt "voice: and none of those six is a finding" "VOICE-FIRST-PERSON"
+
+# A WAIVED ITEM IS NOT A FINDING, AND ITS WAIVER IS ECHOED. Same contract as
+# the telegraph waiver in part 1f: a waiver nobody can see is an exemption.
+R_VW="${TMP}/voice-waived"
+mkdir -p "$R_VW"
+mk_inventory "$R_VW"
+mk_item "$R_VW" "state-space/05-summary-record"
+printf '\nThere is a fourth keyword nobody suggested. I tried it too.\n' \
+  >>"${R_VW}/state-space/05-summary-record/PROMPT.md"
+run_gate --static-only "$R_VW"
+hasnt "voice waiver: a waived item is not a finding" "VOICE-FIRST-PERSON"
+has   "voice waiver: and the waiver is echoed" "voice:tla-5iy3"
+has   "voice waiver: naming the bead that will clear it" \
+      "cleared by tla-5iy3"
+
+# THE FLOOR, ARM 1: A WAIVER FOR A PATH THAT IS GONE REDDENS. This is the
+# failure the floor exists for. Somebody renames or deletes a waived item, the
+# row stays behind, and the todo now points at nothing while reading as live.
+# The fixture above holds `state-space` with ONE of the six waived items, so
+# the other five are exactly this case.
+has "voice floor: a waiver whose item is gone while its family is here reddens" \
+    "VOICE-WAIVER-STALE"
+has "voice floor: and the stale row names the missing item" \
+    "VOICE-WAIVER-STALE           state-space/01-clock-never-stops"
+rc_is "voice floor: a stale waiver is a finding, so rc 1" 1
+
+# THE FLOOR, ARM 2: AN ABSENT FAMILY IS OUT OF SCOPE AND NOT STALE. Every
+# other fixture in this suite is a `liveness` tree, so without this
+# distinction all 6 waivers would redden every fixture in part 1 and part 2.
+# A root with no `state-space` family is not the corpus the list was written
+# against, so the waivers do not apply and the count is printed.
+run_gate --static-only "$R_VOICE"
+hasnt "voice scope: a root with no state-space family raises no stale waiver" \
+      "VOICE-WAIVER-STALE"
+has   "voice scope: and the run says how many waivers did not apply here" \
+      "6 name a family absent from this root"
+
+# THE FLOOR, ARM 3: THE REACH ASSERTION. This project has shipped three gates
+# that reported green having read nothing, each one a root list or a selector
+# that silently matched zero. So the number of prompts scanned is asserted
+# rather than trusted. The fixture is an item directory with no files in it,
+# which the missing-file arm drops before the voice scan runs.
+R_VR="${TMP}/voice-reach"
+mkdir -p "${R_VR}/fam/01-empty"
+mk_inventory "$R_VR"
+run_gate --static-only "$R_VR"
+has   "voice reach: items found and 0 prompts scanned is a finding" "VOICE-NO-REACH"
+has   "voice reach: and it states both numbers" "1 item(s) found and check 5 scanned 0 prompt(s)"
+rc_is "voice reach: which reddens rather than passing" 1
+
+# A SPENT WAIVER PRINTS AND DOES NOT REDDEN, which is deliberate. Reddening
+# between a rewrite landing and its row being deleted would fail the gate on
+# the exact work the waiver list exists to schedule.
+R_VS="${TMP}/voice-spent"
+mkdir -p "$R_VS"
+mk_inventory "$R_VS"
+mk_item "$R_VS" "state-space/01-clock-never-stops"
+mk_item "$R_VS" "state-space/02-four-identical-workers"
+mk_item "$R_VS" "state-space/03-view-hides-the-bug"
+mk_item "$R_VS" "state-space/05-summary-record"
+mk_item "$R_VS" "state-space/06-liveness-at-the-fence"
+mk_item "$R_VS" "state-space/07-sentinel-and-the-roster"
+run_gate --static-only "$R_VS"
+rc_is "voice spent: six waived items that are all clean stays rc 0" 0
+hasnt "voice spent: with no stale waiver, because every waived path resolves" \
+      "VOICE-WAIVER-STALE"
+has   "voice spent: and the run names the rows that can come out" "SPENT WAIVERS"
+has   "voice spent: one line per spent row" \
+      "state-space/03-view-hides-the-bug  waived under tla-5iy3, now clean"
+
+# THE ALTITUDE IS STATED ON EVERY RUN. Four of the family contract's five
+# clauses are judgments about meaning and no arm here reads them. A reader who
+# takes a green check 5 for a green contract has the wrong half, which is the
+# same failure check 1's header block is written against.
+has "voice altitude: the run says the other four clauses are unread" \
+    "NO arm here reads them"
 
 # ===========================================================================
 echo
