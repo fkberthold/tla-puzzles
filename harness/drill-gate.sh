@@ -67,7 +67,8 @@
 #   WAIVER    <item> <token> <reason>     a per-item waiver, echoed so waivers
 #                                         cannot accumulate unseen. The token
 #                                         column reads `count:<module-stem>`
-#                                         for a count waiver and the bare
+#                                         for a count waiver, `voice:<bead>`
+#                                         for a check 5 one, and the bare
 #                                         token for a telegraph one.
 #   RUBRIC    <item> power= envelope= ...  check 4's per-item accounting. Its
 #                                         `power=` column is the number a
@@ -75,8 +76,8 @@
 #
 # EXIT CODES
 #     0  every check THIS RUN ASKED FOR ran and passed. Under --static-only
-#        that is checks 1 and 3 plus check 2's structural half, and the run
-#        prints the count of recorded rcs it did not reproduce
+#        that is checks 1, 3, 4 and 5 plus check 2's structural half, and the
+#        run prints the count of recorded rcs it did not reproduce
 #     1  at least one FINDING. Findings outrank unchecked: a run with both
 #        exits 1, because the finding is the actionable half
 #    99  no findings, but at least one check COULD NOT RUN. The project-wide
@@ -85,8 +86,8 @@
 #        report success, so this is not folded into 0
 #     2  usage error
 #
-# CHECKS 1, 2 AND 4 CAN PRODUCE A FINDING. CHECK 3 PRINTS AND NEVER FAILS —
-# no construct count can redden this gate. The reasoning is in CHECK 3's own
+# CHECKS 1, 2, 4 AND 5 CAN PRODUCE A FINDING. CHECK 3 PRINTS AND NEVER FAILS.
+# No construct count can redden this gate. The reasoning is in CHECK 3's own
 # section below, and it is worth reading before touching that block.
 #
 # ===========================================================================
@@ -355,6 +356,80 @@
 #     sections of one file, so it runs in every tier including --static-only.
 #
 # ===========================================================================
+# CHECK 5, VOICE.  Does the prompt have a narrator?
+#
+# WHAT IS CHECKED. No PROMPT.md carries a first-person singular pronoun. The
+# token set is `I`, `my` and `me` at a word boundary, which covers `I'd`,
+# `I'm`, `I'll` and `I've` for free, because an apostrophe is not a word
+# character. Measured both ways on 2026-11-04: `\<I\>` matches `I'd` and the
+# curly-apostrophe `I’d` alike, and rejects `Invariant`, `Init`, `INSTANCE`,
+# `mine`, `memory`, `summary`, `symmetry` and `immediate`.
+#
+# WHY THIS IS A CORRECTNESS GATE AND NOT A STYLE PREFERENCE. Over the 64
+# prompts on 2026-11-04, 14 occurrences sat in 6 prompts and EVERY ONE was in
+# `state-space`. The other 58 prompts across seven families had none. So one
+# family grew a narrator and the corpus-wide norm is not to have one.
+#
+# The mechanism, which is the part worth keeping. A `state-space` item is
+# built around a table of prior runs, because a config knob only shows up as a
+# difference between two runs. A narrator is how provenance for such a table
+# gets supplied: "I killed it", "I capped the clock". That voice then makes the
+# reader reconstruct a history instead of reading a state, and unstated setup
+# is what the prompt audit kept finding in this family. Bead `tla-5iy3` carries
+# Frank's ruling and `drill/README.md` carries the family contract this clause
+# comes from.
+#
+# ONLY ONE CLAUSE OF THAT CONTRACT IS CHECKED HERE, and the other four are not
+# mechanically checkable at all. "Provenance is agentless", "a colleague
+# appears only as a claim to evaluate", "every published figure is reachable by
+# a run the prompt asks for" and the four-move order are all judgments about
+# meaning. This check takes the one clause that reduces to a token scan. A
+# reader who assumes the gate covers the contract has the wrong half.
+#
+# THE WAIVER LIST IS THE TODO, and it exists so the gate is GREEN today.
+# 6 items violate the rule right now and their rewrites are separate beads. A
+# gate that stays red for days is a gate people learn to read past, so each
+# known violator is waived BY NAME alongside the bead that will clear it, and
+# the list shrinks as those beads land. What the gate catches from today is a
+# NEW prompt picking up a narrator, which is the drift worth stopping.
+#
+# A WAIVER NEEDS A FLOOR OR IT IS AN OFF SWITCH. Two assertions carry it:
+#
+#   - The check must have SELECTED a non-zero number of prompts. This project
+#     has three recorded cases of a gate reporting green having read nothing,
+#     all of them a root list or a selector that silently matched zero, so a
+#     reach assertion is the one thing that catches the class.
+#   - Every waived item must still RESOLVE to a real path under the root being
+#     scanned. A waiver for an item somebody renamed or deleted is a todo
+#     nobody owes and a hole nobody can see, so it reddens.
+#
+# THE WAIVER IS SCOPED BY FAMILY, which is what makes the floor usable. A
+# waiver whose family directory is absent from the scanned root is OUT OF
+# SCOPE rather than stale, because a fixture tree legitimately holds no
+# `state-space` family. A waiver whose family IS present and whose item is not
+# is stale, and that is the renamed-or-deleted case the floor exists for. Both
+# counts print on every run, so neither can go quiet.
+#
+# WHAT IS *NOT* CHECKED:
+#   - FIRST-PERSON PLURAL. `we`, `our` and `us` are not in the token set.
+#     Measured 2026-11-04: zero occurrences across all 64 prompts, so adding
+#     them would cost no waiver. Left out because the project's own voice uses
+#     `we` legitimately elsewhere and nobody has ruled on the prompts.
+#   - A SENTENCE-INITIAL `My` OR `Me`. The scan is case-sensitive on purpose.
+#     A case-insensitive pass would flag a bare `i` used as an index variable
+#     in prose, and 0 prompts carry one today, so the risk is future rather
+#     than present either way. Zero `My` and zero `Me` today as well.
+#   - A FENCED CODE BLOCK. Nothing is stripped, because nothing needs to be:
+#     0 of the 64 prompts carry a fence and 0 carry a backtick at all,
+#     measured two ways. A TLA+ identifier named `I` inside a fence would be a
+#     false positive, and fence-stripping is the fix if one ever lands.
+#   - A SECOND-PERSON NARRATOR. `you` is how every prompt addresses its
+#     reader and that is correct.
+#   - WHETHER REMOVING THE NARRATOR MADE THE PROMPT CLEAR. That is the actual
+#     requirement and no token scan reaches it. The gate only says the voice
+#     is gone.
+#
+# ===========================================================================
 # WHAT THIS CORPUS DELIBERATELY DOES NOT GET
 #
 # Private-first, not shippable (Frank, 2026-10-12). So there is NO novelty
@@ -534,6 +609,48 @@ rubric_wrong_n=0
 rubric_excluded_n=0
 rubric_by_rc_n=0
 rubric_nocount_n=0
+
+# ---------------------------------------------------------------------------
+# CHECK 5's WAIVER LIST. The todo lives in the gate, not in META.md.
+#
+# WHY HERE AND NOT IN EACH ITEM'S META.md, which is where the telegraph and
+# count waivers live. Those two waive a property of the item forever: a
+# construct the prompt may legitimately show, a module whose run prints no
+# count. A voice waiver is temporary by construction, so it has to name the
+# bead that retires it, and a reader wants the whole todo on one screen rather
+# than spread over six files. Keeping it here also means the floor below can
+# ask whether a waived item still exists, which an in-item waiver cannot.
+#
+# FORMAT: <family>/<item-dir> <bead(s)> <why>. The item column is the path
+# relative to the drill root, exactly as the gate's `rel` reads it.
+#
+# EVERY ROW IS A MEASURED VIOLATOR, and 04 and 08 are deliberately NOT here.
+# Both are clean today and both are where bead tla-5iy3 proves the contract
+# next, so waiving them would let that very work reintroduce the narrator
+# unseen. A waiver for an item with nothing to waive is an unlit hole.
+#
+# The occurrence counts, measured 2026-11-04 over all 64 prompts:
+# 01 has 3, 02 has 2, 03 has 5, 05 has 1, 06 has 2, 07 has 1. 14 in total,
+# and the other 58 prompts in the corpus have none.
+VOICE_WAIVERS=(
+  "state-space/01-clock-never-stops|tla-gdg2.6 + tla-hz6y|01's rewrite rides with its two fencing beads, which must land together"
+  "state-space/02-four-identical-workers|tla-5iy3|re-anchor on the knob, second touch after a20c389"
+  "state-space/03-view-hides-the-bug|tla-5iy3|heaviest at 5 occurrences, and blocked on tla-gdg2.1 for its deadlock half"
+  "state-space/05-summary-record|tla-5iy3|re-anchor on the knob, second touch after a20c389"
+  "state-space/06-liveness-at-the-fence|tla-5iy3, blocked on tla-gdg2.1|06 has no deadlock fix yet, so it cannot be rewritten alone"
+  "state-space/07-sentinel-and-the-roster|tla-5iy3|untouched so far, one of the three cheapest to re-anchor"
+)
+
+# Check 5's counters. REACH IS THE ONE THAT HAS TO BE PRINTED. A gate whose
+# selector matches nothing reports green having read nothing, and this project
+# has three recorded instances of exactly that, so the number of prompts
+# scanned is stated on every run rather than inferred from silence.
+voice_scanned_n=0
+voice_clean_n=0
+voice_waived_n=0
+voice_waiver_scope_n=0
+voice_spent_n=0
+voice_spent_list=""
 
 # One scratch dir for the whole run. SYMFILE holds LAYER_A_SYMBOLS one per
 # line so construct_tokens can match them all in a single grep.
@@ -1243,6 +1360,30 @@ waivers() {
 # ---------------------------------------------------------------------------
 count_waivers() {
   grep -iE '^[[:space:]]*[*_ ]*count-waiver[*_ ]*:' "$1" 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------------------
+# voice_is_waived <rel>: is this item on check 5's waiver list?
+#
+# Sets VOICE_BEAD and VOICE_WHY on a hit so the caller can echo both. Returns
+# 1 and leaves them empty otherwise. The match is on the WHOLE rel path, so
+# renaming an item takes it off the list, which is the stale case the floor
+# below reports.
+# ---------------------------------------------------------------------------
+VOICE_BEAD=""
+VOICE_WHY=""
+voice_is_waived() {
+  local want="$1" row
+  VOICE_BEAD=""
+  VOICE_WHY=""
+  for row in "${VOICE_WAIVERS[@]}"; do
+    [ "${row%%|*}" = "$want" ] || continue
+    row="${row#*|}"
+    VOICE_BEAD="${row%%|*}"
+    VOICE_WHY="${row#*|}"
+    return 0
+  done
+  return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -2049,6 +2190,60 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
   fi
 
   # =======================================================================
+  # CHECK 5, VOICE
+  #
+  # Reads the SAME PROMPT.md check 1 already loaded into prompt_text, so this
+  # costs no extra open. Nothing is stripped: check 5's header records that 0
+  # of the 64 prompts carry a fence or a backtick, so there is no fenced
+  # region a pronoun could hide in legitimately.
+  #
+  # The producer is a HERE-STRING and the consumer is `wc`, which reads to
+  # EOF. A pipe into an early-exiting consumer returns 141 under pipefail,
+  # which inside an `if` reads as "pattern absent" and turns a present
+  # narrator into a pass. That is the false-PASS direction, and
+  # harness/test-pipefail.sh bans `| grep -q`, `| grep -m` and `| head` for
+  # it (bead tla-kr9). `| wc -l` closes no pipe early, so it is safe here.
+  #
+  # OCCURRENCES AND NOT LINES, which is why this is `-o | wc -l` rather than
+  # the cheaper `grep -c`. The two agree on all six items today, because each
+  # narrator line carries one pronoun. They would diverge on a line with two,
+  # and the number a rewriter needs is how many words to remove.
+  #
+  # `\<...\>` rather than the `(^|[^A-Za-z_])TOKEN` idiom. That idiom returns
+  # 0 under the Bash tool's ugrep wrapper while GNU reads 6, per the hazard in
+  # .claude/rules/dispatched-agents.md. This file has a bash shebang so it
+  # gets GNU either way, and `\<` agreed with GNU in both implementations.
+  # =======================================================================
+  voice_scanned_n=$((voice_scanned_n + 1))
+  voice_hits="$(grep -oE '\<(I|my|me)\>' <<<"$prompt_text" | wc -l)" || true
+  voice_hits="${voice_hits//[[:space:]]/}"
+  [ -n "$voice_hits" ] || voice_hits=0
+
+  if [ "$voice_hits" -gt 0 ]; then
+    if voice_is_waived "$rel"; then
+      voice_waived_n=$((voice_waived_n + 1))
+      printf 'WAIVER    %-44s %-10s %s\n' \
+        "$rel" "voice:${VOICE_BEAD}" \
+        "${voice_hits} first-person occurrence(s), cleared by ${VOICE_BEAD}: ${VOICE_WHY}"
+    else
+      finding "VOICE-FIRST-PERSON" "$rel" \
+        "PROMPT.md carries ${voice_hits} first-person singular occurrence(s). A prompt has no narrator, see drill/README.md"
+    fi
+  else
+    voice_clean_n=$((voice_clean_n + 1))
+    # A WAIVED ITEM THAT IS NOW CLEAN PRINTS AND DOES NOT REDDEN. Its bead
+    # landed and its row can come out, which is a tidy-up rather than a
+    # defect. Reddening here would fail the gate between the rewrite landing
+    # and the row being deleted, which punishes the exact work the waiver
+    # list exists to schedule.
+    if voice_is_waived "$rel"; then
+      voice_spent_n=$((voice_spent_n + 1))
+      voice_spent_list="${voice_spent_list}
+  - ${rel}  waived under ${VOICE_BEAD}, now clean"
+    fi
+  fi
+
+  # =======================================================================
   # CHECK 2 — VERIFICATION
   # =======================================================================
   declare -a MODS=()
@@ -2505,6 +2700,63 @@ for item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
 
   unset WAIVED COUNT_WAIVED DECLARED MODS STEMS
 done
+
+# ===========================================================================
+# CHECK 5's FLOOR. The two assertions that stop the waiver list being an off
+# switch, and the scope rule that makes the second one usable.
+#
+# THE REACH ASSERTION IS NOT REDUNDANT against the "no items found" line
+# above, and the difference is the hole. An empty root is already reported as
+# UNCHECKED by the corpus arm, so this fires only when items WERE found and
+# check 5 still read no prompt. That happens when every item is dropped by the
+# missing-file arm before the voice scan runs, and without this line the run
+# would report green on a corpus it never opened. Three gates in this project
+# have shipped that exact shape (harness/test-spelling.sh missing `swipe/`,
+# then missing `scripts/`, then scripts/lint missing `swipe/`), which is why
+# the number is asserted rather than trusted.
+# ===========================================================================
+if [ "${#ITEMS[@]}" -gt 0 ] && [ "$voice_scanned_n" -eq 0 ]; then
+  finding "VOICE-NO-REACH" "$ROOT" \
+    "${#ITEMS[@]} item(s) found and check 5 scanned 0 prompt(s). A selector that matches nothing reports green having read nothing"
+fi
+
+for row in "${VOICE_WAIVERS[@]}"; do
+  wrel="${row%%|*}"
+  wrest="${row#*|}"
+  wbead="${wrest%%|*}"
+  wfam="${wrel%%/*}"
+  if [ -d "${ROOT}/${wrel}" ]; then
+    continue
+  fi
+  if [ -d "${ROOT}/${wfam}" ]; then
+    # The family is here and the item is not, so somebody renamed or deleted
+    # it and left the row behind. A waiver pointing at nothing waives nothing
+    # and reads as a todo somebody still owes, so it reddens.
+    finding "VOICE-WAIVER-STALE" "$wrel" \
+      "check 5 waives this item under ${wbead} and no such directory exists, though its family does. A waiver for a path that is gone is a hole nobody can see"
+  else
+    # No such family under this root, so this root is not the corpus the list
+    # was written against. A fixture tree lands here, and so does any run
+    # scoped to one family. Counted and printed, never a finding.
+    voice_waiver_scope_n=$((voice_waiver_scope_n + 1))
+  fi
+done
+
+echo
+echo "== check 5: voice over ${voice_scanned_n} prompt(s) =="
+echo "VOICE REACH: ${voice_scanned_n} prompt(s) scanned, ${voice_clean_n} with no first-person"
+echo "  singular and ${voice_waived_n} carrying one under a named waiver. ${#VOICE_WAIVERS[@]} waiver(s)"
+echo "  are on the list, of which ${voice_waiver_scope_n} name a family absent from this root and so"
+echo "  do not apply here. A prompt is scanned for \`I\`, \`my\` and \`me\` at a word boundary,"
+echo "  which covers the contractions. The other four clauses of the family contract in"
+echo "  drill/README.md are judgments about meaning and NO arm here reads them."
+
+if [ "$voice_spent_n" -gt 0 ]; then
+  echo
+  echo "SPENT WAIVERS. Waived items that now carry no first-person singular.$voice_spent_list"
+  echo
+  echo "  Printed, not failed. The bead landed and the row can come out of VOICE_WAIVERS."
+fi
 
 # ===========================================================================
 # CHECK 2, PHASE B — dispatch the queue, then READ THE OUTCOMES IN THE PARENT.

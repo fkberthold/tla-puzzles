@@ -68,6 +68,71 @@ that's your call to make.
 The numbering inside a family is not a difficulty ramp, so take them in any
 order. `./drill` has a queue if you'd rather not choose.
 
+## What `state-space` is about
+
+This family reads differently from the other seven, and the difference used to
+be invisible. Three worked items weren't enough to say what it was about,
+which is the defect this section fixes.
+
+**The subject is the config file, not the module.** The eight items drill the
+knobs you set outside the spec. Those are `CONSTANT` and the `ASSUME` that
+constrains it, the model values a constant gets instantiated over, a set of
+them, a symmetry claim across that set, whether deadlock gets checked, the
+operator you name as an invariant, and the one you name as a property. Each
+knob has its own way of lying to you, and catching the lie is the drill.
+
+State blowup is not the subject. It motivates about three of the eight, so I
+think it's the loudest thing you meet here rather than the thing you're
+learning.
+
+**A knob only shows up as a difference between two runs.** You can't see a
+symmetry claim by reading a system, because the system is the same either
+way. You see it when two runs over one unchanged system report different
+state counts. So these items hand you prior runs instead of a world to model.
+
+That's also why they run long. The family's median prompt is 387 words
+against 346 for the next-longest family and 162 for `core`, and it holds four
+of the five longest prompts in the corpus. You're reading two runs plus a
+system. A long one here isn't a harder one.
+
+**Every item in the family goes in four moves.**
+
+1. **The model.** What the system is, present tense, no history.
+2. **The runs.** A table, one row per configuration difference. Each row
+   names its difference in your terms and reports what the run found.
+3. **The claim under test.** Which row misleads, or what the rows disagree
+   about, stated as a given rather than recounted.
+4. **The questions.** These diagnose. The first three moves don't.
+
+**And the prompts promise you five things.**
+
+- No narrator. Provenance is agentless.
+- A colleague appears only as a claim to evaluate.
+- Any global setting the published verdicts rest on is stated once.
+- What you reproduce is counted in runs, never in files.
+- Every published figure is reachable by a run the prompt asks for.
+
+The first promise is the one with a history. Six of these eight prompts had a
+first-person narrator and the other 58 in the corpus had none, so this was
+one family's local habit rather than a house style. A narrator is how
+provenance for a table gets supplied, which I suspect is why it grew here and
+nowhere else. `harness/drill-gate.sh` fails on a first-person singular in any
+prompt now, and the six known items are waived by name until each gets
+rewritten.
+
+The fourth promise is about routes. A file count is route-dependent, and item
+03 is the worked case. The constant route needs five configs and the
+module-fork route needs four, and the prompt used to publish a count that
+only one route hit.
+
+**One trap, if you ever write one of these.** Anchoring an item on its knob
+is structural and never nominal. The gate's telegraph check forbids a prompt
+from showing the token of any construct the item drills, so a prompt may not
+say "this one is about `VIEW`". Naming the keyword is the one move that's off
+the table, and it's the first one an author reaches for. The table is what
+makes a knob visible: two runs that differ in one setting, with the setting
+named in the reader's terms.
+
 ## Where the lesson is, when a family has one
 
 Step 1 above says to open nothing else, and it means nothing else about the
