@@ -40,7 +40,8 @@ that came back clean at 211 states.
    trusted. Name both. Then build a config that breaks each one, so
    you've seen what the failure looks like.
 3. The colleague's cap: what did it buy, and what can it no longer see?
-4. You also want to check that every waiter is eventually served. Does
+4. You also want to check that every waiter is eventually served. Assume
+   a worker who can take a slot or give one back eventually does. Does
    your knob survive that? Run it and read what TLC prints.
 
 Write the module and the configs. Reproduce the 811 before you shrink it.

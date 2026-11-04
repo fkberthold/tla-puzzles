@@ -47,6 +47,15 @@ done with it.
 B's bug is found with the view at the same depth, which is the check
 that the view lost nothing there.
 
+Every config above carries `CHECK_DEADLOCK FALSE`. The prompt says so,
+because without it client A has nowhere to go from `done`. Leave the
+keyword out and both A runs exit 11 at 3 distinct states and depth 2,
+the plain one and the view one alike. That's the pair this answer
+reports for the view alone. A reader comparing their own two A runs
+would see the same numbers twice. Nothing in the output tells them
+apart. B is untouched either way, since a B job can be resubmitted and
+nothing in it is terminal.
+
 ## Question 2: what the view changes
 
 It changes which states TLC considers already seen. That's all. It

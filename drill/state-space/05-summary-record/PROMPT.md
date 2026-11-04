@@ -28,20 +28,25 @@ things from it.
 
 ## What happened
 
+There's a fourth keyword nobody suggested. I tried it too.
+
 | what was done with the summary | verdict | distinct states | depth |
 |---|---|---|---|
 | nothing, requirement checked directly | violation | 4 | 3 |
 | named as the thing to check | error, exit 75 | 1 | 1 |
 | named as the thing to print | violation | 4 | 3 |
 | named as "same state" | violation | 3 | 3 |
+| named as the values that can be swapped | error, exit 151 | - | - |
 
-The error says TLC expected a boolean value and didn't find one.
+The 75 says TLC expected a boolean value and didn't find one. The 151
+says the state variable the summary reads is undefined, which is not the
+same complaint.
 
 ## The questions
 
 1. Four config keywords can take the summary's name. Which one states a
-   claim? Which one prints? Which one changes what TLC counts? Which does
-   nothing of the kind on its own?
+   claim TLC checks at every state? Which one prints? Which one changes
+   what TLC counts? Which does nothing of the kind on its own?
 2. Why did the second colleague's run find the bug anyway, and would it
    always? What did the 3 cost?
 3. State a claim over the summary that is boolean and legal. Run it on

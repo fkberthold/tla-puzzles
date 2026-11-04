@@ -11,17 +11,20 @@ a fourth retry through.
 
 **Client A** keeps a log of every attempt's outcome and decides whether
 to retry by counting the errors in that log. Nothing else in it counts
-anything.
+anything. An A job that finishes or gets abandoned stays that way.
 
 **Client B** keeps a retry counter, reset on every new submission, and
 decides from the counter. It also keeps the same outcome log, appended on
 every attempt, but nothing in B ever reads the log. It's there for
-whoever reads traces. A job can be resubmitted after it finishes, forever.
+whoever reads traces. A B job can be resubmitted after it finishes,
+forever.
 
 The requirement for both: the number of failures a job has been through
 never exceeds the budget.
 
 ## What happened
+
+Deadlock checking was off in every run below.
 
 | run | verdict | distinct states | depth | wall time |
 |---|---|---|---|---|
@@ -57,5 +60,5 @@ in.
 4. Before you had the colleague's idea, what was the other knob for B's
    blow-up, and what would it have cost?
 
-Write both modules and the four configs. Get the 3 before you believe
-the 10.
+Write both modules and reproduce all five runs above, counting the one I
+killed. Question 4 is a sixth. Get the 3 before you believe the 10.
