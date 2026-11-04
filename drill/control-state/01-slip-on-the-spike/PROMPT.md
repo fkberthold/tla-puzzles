@@ -4,9 +4,9 @@ A small warehouse runs its rush orders off a spike by the aisle. This
 morning's one rush order is on it.
 
 Two pickers work the aisle. A picker who glances at the spike and sees the
-slip there goes to the shelf for the item. When they come back with it they
-take the slip off the spike and carry both to packing. A picker who glances
-and sees the spike empty does nothing with it.
+slip there goes to the shelf for the item. Coming back, they clear the
+spike and carry the item to packing. Nobody glances twice. A picker who
+glances and sees the spike empty does nothing with it.
 
 The rule the warehouse cares about: **a rush order is never picked twice.**
 
@@ -28,7 +28,7 @@ the verdict.
 The table above is a claim about your model, not a description of the
 system. Check every row against it. Say how you checked.
 
-Then: the floor supervisor proposes moving the spike onto the shelf itself,
-next to the stock, so that a picker sees the slip and takes it in the same
-reach. Change the model to match, run it, and report the verdict again. Say
-in one sentence what changed in the model and why that changed the verdict.
+Then: the floor supervisor proposes moving the spike onto the shelf, next
+to the stock, so a picker sees the slip and takes it in one reach. Change
+the model to match, run it, and report the verdict again. Say in one
+sentence what changed in the model and why that changed the verdict.

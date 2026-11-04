@@ -5,7 +5,7 @@ the procedure for each one.
 
 > To bring a pump online: open its inlet valve, then start its motor.
 > To take a pump offline: stop its motor, then close its inlet valve.
-> The station supply can drive at most two motors at once.
+> Never start a third motor: the station supply drives two at once.
 
 Two things must never happen. **A motor must never run against a closed
 inlet** (it cavitates). **More than two motors must never run at once.**
