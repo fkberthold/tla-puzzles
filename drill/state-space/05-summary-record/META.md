@@ -1,9 +1,9 @@
 # META: 05-summary-record
 
 - **Family**: state-space
-- **Shape**: one record, four keywords, four measured outcomes, and the question of which one states anything
+- **Shape**: one record, four keywords, five measured outcomes, and the question of which one states anything
 - **Time estimate**: 10 min thinking, under 1 min of runs
-- **Slowest run asked for**: any of the nine, 0.4 s
+- **Slowest run asked for**: any of the ten, 0.4 s
 - **Shows TLA+ in the prompt**: no
 
 ## Constructs

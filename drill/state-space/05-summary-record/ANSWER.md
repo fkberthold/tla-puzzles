@@ -26,8 +26,12 @@ and the four keywords that can take its name:
 Only the first states anything, and it wants a boolean. `Summary` is a
 record, so `INVARIANT Summary` and `PROPERTY Summary` both exit 75 on
 the initial state with "TLC expected a boolean value, but did not find
-one". The claim has to be an operator that reads the summary and returns
-a boolean, and then it's an ordinary invariant:
+one". `PROPERTY` is the reason question 1 asks for the claim TLC checks
+at every state: both keywords state a claim and both fail the same way
+here, and only `INVARIANT` takes a state predicate. A reader who answers
+`PROPERTY` has the mechanism right. The claim has to be an operator that
+reads the summary and returns a boolean, and then it's an ordinary
+invariant:
 
 ```
 NoOverReserve == \A i \in Items : reserved[i] <= Stock[i]
@@ -37,6 +41,14 @@ NoOverReserve == \A i \in Items : reserved[i] <= Stock[i]
 the same violation (rc 12, 4 states, depth 3) and printed each trace
 state as `free`, `held` and `reserved`. That's the display job, and it's
 the only thing a record built from the state is wired to in the corpus.
+
+`SYMMETRY Summary` never gets as far as a state. `SymmetrySummary.cfg`
+exits 151 with "In evaluation, the identifier reserved is either
+undefined or not an operator", and prints no count at all. I read that
+as a permutation set being a constant, so TLC evaluates the name before
+any variable has a value. That's the 151 the prompt publishes, and it's
+the fourth keyword: it can't check, can't print and can't count, because
+what it wants is a set of values rather than anything read off a state.
 
 ## Question 2: the colleague's view
 
@@ -126,6 +138,14 @@ reader commits to a number.
 
 The honest caveat: the measurements table in the prompt labels each row
 by what was done ("named as the thing to print"), which is the
-keyword's job in prose. I couldn't give four verdicts without saying
-which was which, and four unlabeled rows would be a guessing game
+keyword's job in prose. I couldn't give five verdicts without saying
+which was which, and five unlabeled rows would be a guessing game
 rather than a drill.
+
+The fourth keyword used to have no row and no mention, so question 1
+asked for a name nothing in the prompt reached. Two other keywords fit
+"does nothing of the kind on its own" just as well, and I measured both
+against this model: `CONSTRAINT Summary` exits 75 like the invariant
+does, and `POSTCONDITION Summary` runs the model and then reports that
+evaluating the postcondition failed. Neither is about swappable values,
+so the row's label is what rules them out.
