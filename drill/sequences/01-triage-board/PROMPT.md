@@ -1,10 +1,11 @@
 # Triage board
 
 A walk-in clinic has one doctor and a waiting board with room for three
-names. Each patient who arrives is written at the bottom of the board with
-a severity from 1 to 4, where 1 is the most urgent. The doctor takes one
+names. A patient who arrives is written at the bottom of the board with a
+severity from 1 to 4, where 1 is the most urgent. The doctor takes one
 patient at a time, and the severity of each patient she takes is added to
-the end of the day's treated list.
+the end of the day's treated list. A name leaves the board only when the
+doctor takes that patient, so nobody is written on a full board.
 
 The table shows one morning. Each row is the board and the treated list
 after one step, oldest entry on the left.
@@ -26,5 +27,6 @@ Write a module from an empty file that admits this morning. Then state,
 as something TLC can check, the rule the table shows the doctor keeping
 when she picks a patient. State it so it would still catch a doctor who
 picked the wrong patient, rather than by repeating the condition your
-own step already carries. Say how you stopped the treated list growing
-without bound.
+own step already carries. Room for three is a rule of the clinic, and how
+many patients the doctor treats is not. Say how you held the run finite
+without making it one.
