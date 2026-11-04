@@ -217,5 +217,5 @@ nowhere on the page.
 The caveat: "a colleague found a different number" says outright that there
 is a choice, and a reader who has thought about sets against lists before
 will guess what it is. The item still has to be written three times to be
-checked, and the question of which choice made the rule harder to break
-isn't answerable from the hint.
+checked, and the question of which of them had more rules to state isn't
+answerable from the hint.
