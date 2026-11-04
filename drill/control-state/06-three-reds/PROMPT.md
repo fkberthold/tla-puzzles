@@ -4,7 +4,7 @@ Field procedure for a controller that has stopped responding. Cut the
 power. Wait thirty seconds. Power it up. Watch the status light.
 
 - **Green**: it is fixed. Done.
-- **Amber**: still booting. Keep watching.
+- **Amber**: still booting. No answer yet, and nothing to do.
 - **Red**: it has failed to come up. Go back and cut the power again.
 
 On the third red, the technician does not cut the power again. They
@@ -26,7 +26,7 @@ All of the following must be possible in your model.
 | green on the first boot, fixed after one power cycle | yes |
 | red, red, green, fixed after three power cycles | yes |
 | red, red, red, escalated, and nothing happens after | yes |
-| red, then a long amber, then green, fixed after two power cycles | yes |
+| red, then green, fixed after two power cycles | yes |
 
 Write the specification and the three rules from an empty file, and run
 it. Report the verdict and the number of distinct states.
