@@ -624,21 +624,28 @@ rubric_nocount_n=0
 # FORMAT: <family>/<item-dir> <bead(s)> <why>. The item column is the path
 # relative to the drill root, exactly as the gate's `rel` reads it.
 #
-# EVERY ROW IS A MEASURED VIOLATOR, and 04 and 08 are deliberately NOT here.
-# Both are clean today and both are where bead tla-5iy3 proves the contract
-# next, so waiving them would let that very work reintroduce the narrator
+# EVERY ROW IS A MEASURED VIOLATOR, and 04, 07 and 08 are deliberately NOT
+# here. All three are clean and all three are where bead tla-5iy3 proved the
+# contract, so waiving them would let that very work reintroduce the narrator
 # unseen. A waiver for an item with nothing to waive is an unlit hole.
 #
 # The occurrence counts, measured 2026-11-04 over all 64 prompts:
-# 01 has 3, 02 has 2, 03 has 5, 05 has 1, 06 has 2, 07 has 1. 14 in total,
-# and the other 58 prompts in the corpus have none.
+# 01 has 3, 02 has 2, 03 has 5, 05 has 1, 06 has 2. 13 in total, and the other
+# 59 prompts in the corpus have none.
+#
+# 07 HAD 1 AND WAS CLEARED THE SAME DAY, and how it was cleared is the part
+# worth keeping. Its narrator sentence was not decoration. It carried two
+# runs the table had no row for, which is the mechanism this check's header
+# describes: a narrator is how provenance for an off-table run gets supplied.
+# So the two runs became rows seven and eight and the sentence went away.
+# Deleting the pronoun alone would have left both runs in prose and left
+# move 2 of the contract broken.
 VOICE_WAIVERS=(
   "state-space/01-clock-never-stops|tla-gdg2.6 + tla-hz6y|01's rewrite rides with its two fencing beads, which must land together"
   "state-space/02-four-identical-workers|tla-5iy3|re-anchor on the knob, second touch after a20c389"
   "state-space/03-view-hides-the-bug|tla-5iy3|heaviest at 5 occurrences, and blocked on tla-gdg2.1 for its deadlock half"
   "state-space/05-summary-record|tla-5iy3|re-anchor on the knob, second touch after a20c389"
   "state-space/06-liveness-at-the-fence|tla-5iy3, blocked on tla-gdg2.1|06 has no deadlock fix yet, so it cannot be rewritten alone"
-  "state-space/07-sentinel-and-the-roster|tla-5iy3|untouched so far, one of the three cheapest to re-anchor"
 )
 
 # Check 5's counters. REACH IS THE ONE THAT HAS TO BE PRINTED. A gate whose
