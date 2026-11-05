@@ -682,16 +682,21 @@ real_tree_arm() {
   has "real tree, check 4: and says a green run can still reject a reasonable model" \
       "still reject a reasonable model"
 
-  # CHECK 5 OVER THE REAL TREE, AND THE NUMBERS ARE THE ASSERTION. The 6
+  # CHECK 5 OVER THE REAL TREE, AND THE NUMBERS ARE THE ASSERTION. The 5
   # waived items are the whole reason the gate is green on this clause, so a
   # row asserting only the absence of a finding would pass just as happily on
   # a check that had stopped running. These three numbers cannot all hold by
-  # accident: 64 scanned, 58 clean and 6 waived account for every item, and
+  # accident: 64 scanned, 59 clean and 5 waived account for every item, and
   # the split is the measurement bead tla-5iy3 rests on.
+  #
+  # THE NUMBERS MOVE AS THE WAIVER LIST SHRINKS, which is the point of them.
+  # They read 58 and 6 until 2026-11-04, when item 07's rewrite landed and
+  # its row came out. A row here going red on that work is the list being
+  # audited, so move the number with the list rather than loosening the match.
   has "real tree, check 5: every prompt is scanned and the reach is stated" \
-      "VOICE REACH: 64 prompt(s) scanned, 58 with no first-person"
-  has "real tree, check 5: and 6 carry a narrator under a named waiver" \
-      "singular and 6 carrying one under a named waiver"
+      "VOICE REACH: 64 prompt(s) scanned, 59 with no first-person"
+  has "real tree, check 5: and 5 carry a narrator under a named waiver" \
+      "singular and 5 carrying one under a named waiver"
   hasnt "real tree, check 5: so no prompt carries an unwaived narrator" \
         "VOICE-FIRST-PERSON"
 
@@ -1789,8 +1794,8 @@ has   "voice waiver: naming the bead that will clear it" \
 # THE FLOOR, ARM 1: A WAIVER FOR A PATH THAT IS GONE REDDENS. This is the
 # failure the floor exists for. Somebody renames or deletes a waived item, the
 # row stays behind, and the todo now points at nothing while reading as live.
-# The fixture above holds `state-space` with ONE of the six waived items, so
-# the other five are exactly this case.
+# The fixture above holds `state-space` with ONE of the five waived items, so
+# the other four are exactly this case.
 has "voice floor: a waiver whose item is gone while its family is here reddens" \
     "VOICE-WAIVER-STALE"
 has "voice floor: and the stale row names the missing item" \
@@ -1799,14 +1804,14 @@ rc_is "voice floor: a stale waiver is a finding, so rc 1" 1
 
 # THE FLOOR, ARM 2: AN ABSENT FAMILY IS OUT OF SCOPE AND NOT STALE. Every
 # other fixture in this suite is a `liveness` tree, so without this
-# distinction all 6 waivers would redden every fixture in part 1 and part 2.
+# distinction all 5 waivers would redden every fixture in part 1 and part 2.
 # A root with no `state-space` family is not the corpus the list was written
 # against, so the waivers do not apply and the count is printed.
 run_gate --static-only "$R_VOICE"
 hasnt "voice scope: a root with no state-space family raises no stale waiver" \
       "VOICE-WAIVER-STALE"
 has   "voice scope: and the run says how many waivers did not apply here" \
-      "6 name a family absent from this root"
+      "5 name a family absent from this root"
 
 # THE FLOOR, ARM 3: THE REACH ASSERTION. This project has shipped three gates
 # that reported green having read nothing, each one a root list or a selector

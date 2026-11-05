@@ -90,10 +90,21 @@ symmetry claim by reading a system, because the system is the same either
 way. You see it when two runs over one unchanged system report different
 state counts. So these items hand you prior runs instead of a world to model.
 
-That's also why they run long. The family's median prompt is 387 words
-against 346 for the next-longest family and 162 for `core`, and it holds four
-of the five longest prompts in the corpus. You're reading two runs plus a
+That's also why they run long. The family's median prompt is 431 words
+against 347 for `modules`, the next longest, and 165 for `core`. It holds all
+five of the longest prompts in the corpus. You're reading two runs plus a
 system. A long one here isn't a harder one.
+
+Those three numbers read 387, 346 and 162 until 2026-11-04, and the 387 was
+wrong on the day it was written. It's item 07's own word count, so I think
+somebody read along a row instead of down a column. The real median was 420
+before item 07's rewrite moved it to 431, which also took the family from
+four of the five longest prompts to all five. Counted with `wc -w` over
+`drill/*/PROMPT.md`, 64 files, eight per family.
+
+The other two moved by a point and by three, which I'd put down to a
+different counting method rather than an error. Only the 387 is off by a
+distance no method explains.
 
 **Every item in the family goes in four moves.**
 
@@ -104,21 +115,57 @@ system. A long one here isn't a harder one.
    about, stated as a given rather than recounted.
 4. **The questions.** These diagnose. The first three moves don't.
 
+Move 2 had a presupposition it never said out loud, and item 04 is where it
+shows. A table works when the difference between the runs is handed to you
+and the consequence is the puzzle. That's the other seven items here, and
+every left column says so: `workers` 2 through 6, `cap on the clock` 3
+through 48, "counter cut at 3", "named as the values that can be swapped".
+04 runs the other way. Both of its runs use one config file, the verdicts
+differ, and finding what differed is question 1. Name that difference in a
+left column and you've printed the answer. Leave the column blank and the
+table does nothing a sentence doesn't do better.
+
+So 04 has no table and is the shortest prompt in the family, and I don't
+think that's drift. A knob somebody tells you about goes in a table, because
+the left column is where the telling happens. A knob you have to go and find
+can't. `sequences/03` does the same thing in another family, so the
+withheld-difference item is a shape rather than a one-off.
+
 **And the prompts promise you five things.**
 
-- No narrator. Provenance is agentless.
-- A colleague appears only as a claim to evaluate.
+- No first-person narrator. Nobody says "I killed the run".
+- A colleague appears as a claim to evaluate, or as a run that differed.
 - Any global setting the published verdicts rest on is stated once.
 - What you reproduce is counted in runs, never in files.
-- Every published figure is reachable by a run the prompt asks for.
+- Every figure you're asked to reproduce is reachable from the prompt.
 
 The first promise is the one with a history. Six of these eight prompts had a
 first-person narrator and the other 58 in the corpus had none, so this was
 one family's local habit rather than a house style. A narrator is how
 provenance for a table gets supplied, which I suspect is why it grew here and
 nowhere else. `harness/drill-gate.sh` fails on a first-person singular in any
-prompt now, and the six known items are waived by name until each gets
+prompt now, and the five that are left are waived by name until each gets
 rewritten.
+
+Two promises were written narrower than the corpus and got widened on
+2026-11-04, after 04, 07 and 08 were read against them.
+
+The second one said a colleague may appear only as a claim to evaluate, and
+cited `sequences/03` for it. `sequences/03` doesn't do that. Its colleague
+wrote the same library, got a different state count, and both of you are
+right, so you work out what the two of you chose differently. That's a run
+that differed, not a claim, and 04 does the same thing with a deadlock
+verdict. `sets/01` is the claim device: somebody says a thing and you add it
+as a third check. Two devices, and the promise had them collapsed into one.
+The withheld-difference item needs the second, because nothing in its files
+tells its runs apart and the runner is all that's left to name them by.
+
+The fifth said every published figure is reachable by a run the prompt asks
+for. Item 08 publishes 405,673,796 distinct states at depth 13 in 64 minutes
+and you aren't meant to go near it. It's cited from `sources/README.md:110`,
+where a 619-line reference spec took that long, and question 4 asks what the
+number says about that spec. A figure you reason about is a different thing
+from a figure you reproduce, and the promise now covers the second kind only.
 
 The fourth promise is about routes. A file count is route-dependent, and item
 03 is the worked case. The constant route needs five configs and the
@@ -129,9 +176,10 @@ only one route hit.
 is structural and never nominal. The gate's telegraph check forbids a prompt
 from showing the token of any construct the item drills, so a prompt may not
 say "this one is about `VIEW`". Naming the keyword is the one move that's off
-the table, and it's the first one an author reaches for. The table is what
-makes a knob visible: two runs that differ in one setting, with the setting
-named in the reader's terms.
+the table, and it's the first one an author reaches for. A table is the usual
+way to make a knob visible: two runs that differ in one setting, with the
+setting named in the reader's terms. Item 04 is the case where that route is
+closed, for the reason above.
 
 ## Where the lesson is, when a family has one
 

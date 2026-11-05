@@ -27,10 +27,8 @@ a number, and a maximum of zero is nonsense.
 | two nurses, maximum 0 | refused before the first state, exit 10 | | |
 | three nurses | clean | 13 | 5 |
 | three nurses, told they're interchangeable | clean | 5 | 5 |
-
-I also tried spelling the nurses as quoted text instead of bare names.
-The two-nurse run still passed at 9 states. Telling TLC the quoted
-nurses are interchangeable exited 255.
+| two nurses spelled as quoted text | clean | 9 | 5 |
+| two nurses spelled as quoted text, told they're interchangeable | refused, exit 255 | | |
 
 ## The questions
 
@@ -43,7 +41,9 @@ nurses are interchangeable exited 255.
 3. Row two: the requirement failed on a true model of a one-nurse ward.
    What does that say about the requirement, and about where the model's
    size lives?
-4. Why did the quoted names work until row six?
+4. Rows seven and eight both spell the nurses as quoted text, and only
+   one of them ran. What does the claim in row six ask of a name that
+   quoted text can't give it?
 
 Write the module and the configs. Reproduce the 9, then the 5, then
 break it.
